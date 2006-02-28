@@ -1,0 +1,51 @@
+diff -ur k3b-0.12.5.orig/libk3b/projects/datacd/k3bisoimager.cpp k3b-0.12.5/libk3b/projects/datacd/k3bisoimager.cpp
+--- k3b-0.12.5.orig/libk3b/projects/datacd/k3bisoimager.cpp	2005-10-19 10:42:22.000000000 +0100
++++ k3b-0.12.5/libk3b/projects/datacd/k3bisoimager.cpp	2005-10-28 20:09:38.000000000 +0100
+@@ -686,6 +686,25 @@
+     return -1;
+ }
+ 
++bool K3bIsoImager::DirContainsWriteableItem( K3bDirItem* dirItem )
++{
++  for( QPtrListIterator<K3bDataItem> it( dirItem->children() ); it.current(); ++it ) {
++    K3bDataItem* item = it.current();
++    bool writeItem = item->writeToCd();
++
++    if( writeItem )
++      return true;
++      
++    if( item->isDir() ) {
++	writeItem = DirContainsWriteableItem( dynamic_cast<K3bDirItem*>(item) );
++
++        if( writeItem )
++          return true;
++      }
++  }
++
++  return false;
++}
+ 
+ int K3bIsoImager::writePathSpecForDir( K3bDirItem* dirItem, QTextStream& stream )
+ {
+@@ -700,6 +719,10 @@
+     K3bDataItem* item = it.current();
+     bool writeItem = item->writeToCd();
+ 
++    // if a directory from a previous session, check if it contains new files
++    if (!writeItem && item->isDir())
++      writeItem = DirContainsWriteableItem( dynamic_cast<K3bDirItem*>(item) );
++
+     if( item->isSymLink() ) {
+       if( d->usedLinkHandling == Private::DISCARD_ALL ||
+ 	  ( d->usedLinkHandling == Private::DISCARD_BROKEN &&
+diff -ur k3b-0.12.5.orig/libk3b/projects/datacd/k3bisoimager.h k3b-0.12.5/libk3b/projects/datacd/k3bisoimager.h
+--- k3b-0.12.5.orig/libk3b/projects/datacd/k3bisoimager.h	2005-10-19 10:42:22.000000000 +0100
++++ k3b-0.12.5/libk3b/projects/datacd/k3bisoimager.h	2005-10-28 20:09:38.000000000 +0100
+@@ -106,6 +106,7 @@
+   virtual int writePathSpecForDir( K3bDirItem* dirItem, QTextStream& stream );
+   virtual void writePathSpecForFile( K3bFileItem*, QTextStream& stream );
+   QString escapeGraftPoint( const QString& str );
++  bool K3bIsoImager::DirContainsWriteableItem( K3bDirItem* dirItem );
+ 
+   KTempFile* m_pathSpecFile;
+   KTempFile* m_rrHideFile;

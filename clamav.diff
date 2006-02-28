@@ -1,0 +1,17 @@
+--- clamav-0.87.1/clamav-milter/clamav-milter.c.orig	2005-10-25 22:40:59.000000000 +0100
++++ clamav-0.87.1/clamav-milter/clamav-milter.c	2005-12-12 20:33:56.000000000 +0000
+@@ -4209,6 +4209,14 @@
+ 	}
+ 	offset = (off_t)0;
+ 	ret = sendfile(fout, fin, &offset, statb.st_size);
++	if (ret < 0 && errno == EINVAL) {
++		unsigned char buf[512];
++		ssize_t n;
++
++		ret = 0;
++		while(ret >= 0 && (n = read(fin, buf, sizeof buf)) > 0)
++			ret = write(fout, buf, n);
++	}    
+ 	close(fin);
+ 	if(ret < 0) {
+ 		perror(newfile);

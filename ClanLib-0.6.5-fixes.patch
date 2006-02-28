@@ -1,0 +1,153 @@
+--- Sources/Display/Display/Generic/blit_transparent.cpp
++++ Sources/Display/Display/Generic/blit_transparent.cpp
+@@ -278,7 +278,7 @@
+ 	unsigned int dest_pitch = target->get_pitch();
+ 
+ 	unsigned char *dest = (unsigned char *) target->get_data();
+-	dest += x*sizeof(T) + (y-1)*dest_pitch;
++	dest += x*sizeof(T) + y*dest_pitch - dest_pitch;
+ 
+ //	T *dd;
+ 	
+--- Sources/Display/Display/Generic/target_generic.cpp
++++ Sources/Display/Display/Generic/target_generic.cpp
+@@ -713,13 +713,13 @@
+ 				}
+ 			}
+ 		}
+-	
++		break;	
+ 	case 2:
+ 		{
+ 			register unsigned short _color = (unsigned short) color;
+ 			int skip = dest_pitch - delta_x * 2;
+ 			// the blitter probes if it can perform a memset (when hi and lo byte of _color are equal)
+-			if ((_color & 0x00FF) != (_color & 0xFF00))
++			if ((_color & 0x00FF) != ((_color & 0xFF00) >> 8))
+ 			{
+ 				for (unsigned int y = 0; y < delta_y; y++)
+ 				{
+@@ -758,8 +758,8 @@
+ 				for (unsigned int x = 0; x < delta_x; x++)
+ 				{
+ 					*(dest++) = color & 0x0000FF;
+-					*(dest++) = color & 0x00FF00;
+-					*(dest++) = color & 0xFF0000;
++					*(dest++) = (color & 0x00FF00) >> 8;
++					*(dest++) = (color & 0xFF0000) >> 16;
+ 				}
+ 				dest += skip;
+ 			}
+--- Sources/Display/Display/X11/target_ximage_std.cpp
++++ Sources/Display/Display/X11/target_ximage_std.cpp
+@@ -153,15 +153,12 @@
+ 
+ unsigned int CL_Target_XImage_Std::get_pitch() const
+ {
+-	int bytes_per_pixel = (get_depth()+7)/8;
+-
+-	return m_width*bytes_per_pixel;
++	return m_pitch;
+ }
+ 	
+ unsigned int CL_Target_XImage_Std::get_depth() const
+ {
+-	int hack = (m_visual_info.bits_per_rgb+7)/8;
+-	return hack*8;
++	return m_depth;
+ }
+ 
+ unsigned int CL_Target_XImage_Std::get_red_mask() const
+--- Sources/Display/Display/X11/x11_resolution.cpp
++++ Sources/Display/Display/X11/x11_resolution.cpp
+@@ -51,12 +51,32 @@
+ 
+ 	if (!mode_set) // save original mode
+ 	{
++	        XF86VidModeModeLine l;
+ 		memset(&orig_mode, 0, sizeof(orig_mode));
+ 		memset(&orig_view, 0, sizeof(orig_view));
++		memset(&l, 0, sizeof(l));
+ 
+ 		// Get mode info. (missing XF86VidModeGetModeInfo)
+-		XF86VidModeModeLine *l = (XF86VidModeModeLine*)((char*) &orig_mode + sizeof orig_mode.dotclock);
+-		cl_assert(XF86VidModeGetModeLine(dpy, scr, (int*) &orig_mode.dotclock, l) == True);
++		//  XF86VidModeModeLine *l = (XF86VidModeModeLine*)((char*) &orig_mode + sizeof orig_mode.dotclock);
++		//  there is a problem with alignment on 64bit platforms
++		
++		
++		cl_assert(XF86VidModeGetModeLine(dpy, scr, (int*) &orig_mode.dotclock, &l) == True);
++
++		
++		// this should be ok on all platforms
++		orig_mode.hdisplay = l.hdisplay;
++		orig_mode.hsyncstart = l.hsyncstart;
++		orig_mode.hsyncend = l.hsyncend;
++		orig_mode.htotal = l.htotal;
++		orig_mode.hskew = l.hskew;
++		orig_mode.vdisplay = l.vdisplay;
++		orig_mode.vsyncstart = l.vsyncstart;
++		orig_mode.vsyncend = l.vsyncend;
++		orig_mode.vtotal = l.vtotal;
++		orig_mode.flags = l.flags;
++		orig_mode.privsize = l.privsize;
++		orig_mode.c_private = l.c_private;
+ 
+ 		// Get the viewport position.
+ 		cl_assert(XF86VidModeGetViewPort(dpy, scr, &orig_view.x, &orig_view.y) == True);
+--- Sources/Sound/SoundProviders/static_provider_wave.cpp
++++ Sources/Sound/SoundProviders/static_provider_wave.cpp
+@@ -27,6 +27,7 @@
+ #include "API/Core/System/error.h"
+ #include "API/Sound/SoundProviders/static_provider_raw.h"
+ #include "API/Sound/SoundProviders/static_provider_wave.h"
++#include "API/Core/IOData/cl_endian.h"
+ 
+ CL_SoundBuffer *CL_Sample::create(const std::string &sample_id, CL_InputSourceProvider *provider)
+ {
+--- Sources/Sound/SoundProviders/stream_provider_wave.cpp
++++ Sources/Sound/SoundProviders/stream_provider_wave.cpp
+@@ -22,6 +22,7 @@
+ 
+ #include "API/Core/System/cl_assert.h"
+ #include "API/Core/System/error.h"
++#include "API/Core/IOData/cl_endian.h"
+ #include "API/Core/IOData/inputsource.h"
+ #include "API/Core/IOData/inputsource_provider.h"
+ #include "API/Sound/SoundProviders/stream_provider_wave.h"
+@@ -118,10 +119,13 @@
+ //	cl_assert(!(memcmp(temp, "data", 4)));
+ 
+ 	sample_size = input->read_uint32();
++	SWAP_IF_BIG(format.nSamplesPerSec);
+ 	sample_freq = format.nSamplesPerSec;
+ 
++	SWAP_IF_BIG(format.nAvgBytesPerSec);
+ 	int bytes_per_sample = format.nAvgBytesPerSec / format.nSamplesPerSec;
+ 
++	SWAP_IF_BIG(format.nChannels);
+ 	if (format.nChannels == 2 && bytes_per_sample == 4) sample_format = sf_16bit_signed_stereo;
+ 	else if (format.nChannels == 2 && bytes_per_sample == 2) sample_format = sf_8bit_signed_stereo;
+ 	else if (format.nChannels == 1 && bytes_per_sample == 2) sample_format = sf_16bit_signed;
+--- configure.in
++++ configure.in
+@@ -72,8 +72,8 @@
+ dnl Check system endianess: (note: ClanLib is _not_ endian clean right now)
+ dnl -----------------------------------------------------------------------
+ 
+-dnl AC_C_BIGENDIAN
+-dnl AC_CHECK_SIZEOF(int, 4)
++AC_C_BIGENDIAN
++AC_CHECK_SIZEOF(int, 4)
+ 
+ if test "$ac_cv_sizeof_int" = "8"; then
+ 	AC_DEFINE(USE_64BIT)
+@@ -217,7 +217,7 @@
+ 
+ CHECK_LIB(GL,Setup/Tests/opengl.cpp, OPENGL=enabled, OPENGL=disabled, [$x_libraries -lGL -lGLU -lpthread])
+ CHECK_LIB(mikmod,Setup/Tests/mikmod.cpp, mikmod=enabled, mikmod=disabled, [$x_libraries -lmikmod])
+-CHECK_LIB(png,Setup/Tests/png.cpp, png=enabled, png=disabled, [$x_libraries -lpng])
++CHECK_LIB(png,Setup/Tests/png.cpp, png=enabled, png=disabled, [$x_libraries -lpng -lz])
+ CHECK_LIB(jpeg,Setup/Tests/jpeg.cpp, jpeg=enabled, jpeg=disabled, [$x_libraries -ljpeg])
+ for lib in lua40 lua; do
+ 	dnl setting back OLDLIBS is needed because of the break

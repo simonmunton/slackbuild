@@ -1,0 +1,27 @@
+--- k3b-0.11.12/src/tools/k3biso9660.cpp.orig	2004-02-17 08:54:24.000000000 +0000
++++ k3b-0.11.12/src/tools/k3biso9660.cpp	2004-06-24 22:08:49.000000000 +0100
+@@ -308,6 +308,7 @@
+   if( d->cdDevice != 0 ) {
+ 
+     int retries = 10;  // TODO: no fixed value
++#if 0
+     while( retries && !d->cdDevice->read10( (unsigned char*)data,
+ 					    count*2048,
+ 					    sector,
+@@ -316,11 +317,13 @@
+ 
+     if( retries > 0 )
+       read = count;
+-
++#endif
+   
+     // fallback
+-    if( read < 0 ) {
+-      kdDebug() << "(K3bIso9660) falling back to stdlib read" << endl;
++    retries = 5;
++
++    while (retries-- && read < 0 ) {
++//      kdDebug() << "(K3bIso9660) falling back to stdlib read" << endl;
+       if( ::lseek( d->cdDevice->open(), static_cast<unsigned long long>(sector)*2048, SEEK_SET ) == -1 )
+ 	kdDebug() << "(K3bIso9660) seek failed." << endl;
+       else {

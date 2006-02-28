@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+CWD=`pwd`
+PKGNAME=alsa-driver
+VERSION=1.0.9b
+VERSIONEXTRA=
+PKG_EXT=.tar.bz2
+TAR_OPTS=xjvf
+ARCH=i486
+BUILD=1
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+CPUOPT="-mcpu"
+GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
+case $GCCVER in
+  3.4*|4.*) CPUOPT="-mtune" ;;
+esac
+
+PKGDIR=~/tmp/new/a/alsa
+PKG=/tmp/package-$PKGNAME
+
+if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+then
+  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  exit
+fi
+
+rm -rf $PKG
+mkdir -p $PKG
+
+if [ ! -d $PKGNAME-$VERSION ]
+then 
+#cd /tmp
+tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+fi
+
+cd $PKGNAME-$VERSION
+#chown -R root.root .
+find . -perm 666 -exec chmod 644 {} \;
+find . -perm 664 -exec chmod 644 {} \;
+CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+./configure --with-cards=intel8x0,mpu401 \
+	    --with-sequencer=yes \
+	    --with-kernel=/usr/src/linux
+make
+
+su -c "make install"

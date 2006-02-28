@@ -1,0 +1,91 @@
+.TH VSOUND 1
+.\" NAME should be all caps, SECTION should be 1-8, maybe w/ subsection
+.\" other parms are allowed: see man(7), man(1)
+.SH NAME
+vsound \- digitally record output of an OSS audio program
+.SH SYNOPSIS
+.B vsound
+.I "[options] [program arguments]"
+.br
+.SH "DESCRIPTION"
+.B vsound
+allows you to record the output of any standard OSS
+program (one that uses /dev/dsp for sound) without having to modify or
+recompile the program.  It uses the same idea as the esddsp wrapper
+from the Enlightened Sound Daemon (in fact, vsound is based on
+esddsp).  That is, it preloads a library that intercepts calls to open
+/dev/dsp, and instead returns a handle to a normal file.  It also
+intercepts ioctl's on that file handle and logs them, to help convert
+the audio data from its raw form.  Vsound then uses sox to convert the
+raw data to the desired file format.
+
+The upshoot of this is that instead of playing sound to the sound card
+in your computer, the data is recorded to a file.  This is similar to
+if you connected a loopback cable to the line in and line out jacks on
+your sound card, but no DA or AD conversions take place, so quality is
+not lost.
+
+One use of vsound is to help convert real audio files to some other
+non-proprietary format.  Since the real audio format is proprietary, and
+all we have is a player, we can use the vsound to create a wave file
+like so:
+
+     vsound -f output.wav realplay input.rm
+
+This will run realplayer under vsound.  You will notice that no sound
+is produced while the real audio file is being played.  When the file
+has completed playing, exit realplayer, and the raw audio data will be
+converted to a wave file.
+
+With the help of some other encoder, you would then be able to convert
+the wave file to Ogg Vorbis or other formats if you wanted.  This method
+is probably the one that preserves the most data during the conversion.
+
+There are probably many other possible uses for vsound.  Just use your
+imagination.
+
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page.
+.SH OPTIONS
+.TP
+.B \-d, \-\-dspout       
+enable simulateous output to /dev/dsp and file
+.TP
+.B \-f, \-\-file=FILE    
+output file name
+.TP
+.B \-h, \-\-help
+Show summary of options.
+.TP
+.B \-k, \-\-keep-temps
+don't delete temporary files
+.TP
+.B \-n, \-\-no-convert
+do not convert the AU file to WAV
+.TP
+.B \-r, \-\-resample     
+resample the output file to the given sample rate
+.TP
+.B \-s, \-\-stdout       
+write the intermediate (Sun AU format) file to stdout
+.TP
+.B \-t, \-\-timing       
+add timing delays to allow recording of streaming data
+.TP
+.B \-v, \-\-verbose      
+set to verbose output
+.TP
+.B \-V, \-\-version      
+show program version
+.SH "SEE ALSO"
+.B sox(1), 
+files in the
+.B /usr/share/doc/vsound/
+directory.
+.SH AUTHOR
+First versions by James Henstridge <james@daa.com.au>.  This version
+is based on the esddsp program by Manish Singh <yosh@gimp.org> and 
+has been patched by Erik de Castro Lopo <erikd@zip.com.au> so that 
+it works with the G2 release of the real media player. This manual 
+page was written by Paul Seelig <pseelig@debian.org>, for the Debian 
+GNU/Linux system (but may be used by others).

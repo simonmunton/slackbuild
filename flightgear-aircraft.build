@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+CWD=`pwd`
+PKGNAME=FlightGearAircraft
+VERSION=0.9.8
+VERSIONEXTRA=
+PKG_EXT=.tar.gz
+TAR_OPTS=xzvf
+PKG_EXT=.tar.gz
+ARCH=i486
+BUILD=1
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+CPUOPT="-mcpu"
+GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
+case $GCCVER in
+  3.4*|4.*) CPUOPT="-mtune" ;;
+esac
+
+PKGDIR=~/tmp/new/f/Flightgear/aircraft
+PKG=/tmp/package-$PKGNAME
+
+if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+then
+  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  exit
+fi
+
+
+rm -rf $PKG
+mkdir -p $PKG/usr/share/FlightGear/data/Aircraft
+
+
+(cd $PKG/usr/share/FlightGear/data/Aircraft
+ for f in $PKGDIR/747* $PKGDIR/A320* $PKGDIR/a4* $PKGDIR/airwave* $PKGDIR/AN-225* $PKGDIR/as350* \
+          $PKGDIR/asw20* $PKGDIR/B-52* $PKGDIR/b1900* $PKGDIR/BAC* $PKGDIR/beech* $PKGDIR/bell* \
+	  $PKGDIR/Canberra* $PKGDIR/Concorde* $PKGDIR/dc3* $PKGDIR/f104* $PKGDIR/f15* $PKGDIR/fokker* \
+	  $PKGDIR/harrier* $PKGDIR/Hunter* $PKGDIR/shuttle* $PKGDIR/Spitfire* $PKGDIR/T37* \
+	  $PKGDIR/T38* $PKGDIR/tu154* $PKGDIR/X15* $PKGDIR/x24b* $PKGDIR/YF*
+ do
+   tar xf $f
+ done
+)
+
+mkdir -p $PKG/install
+cat <<EOF > $PKG/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+          |-----handy-ruler------------------------------------------------------|
+FlightGearAircraft: FlightGearAircraft
+FlightGearAircraft:
+FlightGearAircraft: 
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+FlightGearAircraft:
+EOF
+
+cd $PKG
+su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"

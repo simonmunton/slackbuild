@@ -1,0 +1,66 @@
+diff -ur k3b-0.12.5.orig/libk3b/projects/datacd/k3bdatajob.cpp k3b-0.12.5/libk3b/projects/datacd/k3bdatajob.cpp
+--- k3b-0.12.5.orig/libk3b/projects/datacd/k3bdatajob.cpp	2005-10-19 10:42:22.000000000 +0100
++++ k3b-0.12.5/libk3b/projects/datacd/k3bdatajob.cpp	2005-10-28 20:09:44.000000000 +0100
+@@ -391,6 +391,7 @@
+       }
+       d->verificationJob->setDoc( d->doc );
+       d->verificationJob->setDevice( d->doc->burner() );
++      d->verificationJob->setUsedMultiSessionMode( d->usedMultiSessionMode );
+ 
+       emit newTask( i18n("Verifying written data") );
+       emit burning(false);
+diff -ur k3b-0.12.5.orig/libk3b/projects/datacd/k3bdataverifyingjob.cpp k3b-0.12.5/libk3b/projects/datacd/k3bdataverifyingjob.cpp
+--- k3b-0.12.5.orig/libk3b/projects/datacd/k3bdataverifyingjob.cpp	2005-10-19 10:42:22.000000000 +0100
++++ k3b-0.12.5/libk3b/projects/datacd/k3bdataverifyingjob.cpp	2005-10-28 20:09:44.000000000 +0100
+@@ -57,6 +57,7 @@
+   K3bDataDoc* doc;
+   K3bDevice::Device* device;
+   K3bIso9660* iso9660;
++  K3bDataDoc::MultiSessionMode usedMultiSessionMode;
+ 
+   K3bDataItem* currentItem;
+   bool originalCalculated;
+@@ -147,8 +148,8 @@
+ 
+     delete d->iso9660;
+     unsigned long startSec = 0;
+-    if( d->doc->multiSessionMode() == K3bDataDoc::CONTINUE ||
+-	d->doc->multiSessionMode() == K3bDataDoc::FINISH ) {
++    if( d->usedMultiSessionMode == K3bDataDoc::CONTINUE ||
++	d->usedMultiSessionMode == K3bDataDoc::FINISH ) {
+       // in this case we only compare the files from the new session
+       K3bDevice::Toc::const_iterator it = dh->toc().end();
+       --it; // this is valid since there is at least one data track
+@@ -237,6 +238,12 @@
+ }
+ 
+ 
++void K3bDataVerifyingJob::setUsedMultiSessionMode( K3bDataDoc::MultiSessionMode usedMultiSessionMode )
++{
++  d->usedMultiSessionMode = usedMultiSessionMode;
++}
++
++
+ void K3bDataVerifyingJob::slotMd5JobFinished( bool success )
+ {
+   if( d->canceled ) {
+diff -ur k3b-0.12.5.orig/libk3b/projects/datacd/k3bdataverifyingjob.h k3b-0.12.5/libk3b/projects/datacd/k3bdataverifyingjob.h
+--- k3b-0.12.5.orig/libk3b/projects/datacd/k3bdataverifyingjob.h	2005-10-19 10:42:22.000000000 +0100
++++ k3b-0.12.5/libk3b/projects/datacd/k3bdataverifyingjob.h	2005-10-28 20:09:44.000000000 +0100
+@@ -17,6 +17,8 @@
+ #define _K3B_DATA_VERIFYING_JOB_H_
+ 
+ #include <k3bjob.h>
++#include "k3bdatadoc.h"
++
+ 
+ class K3bDataDoc;
+ namespace KIO {
+@@ -43,6 +45,7 @@
+ 
+   void setDoc( K3bDataDoc* );
+   void setDevice( K3bDevice::Device* );
++  void setUsedMultiSessionMode( K3bDataDoc::MultiSessionMode );
+ 
+  private slots:
+   void slotMediaReloaded( bool );

@@ -1,0 +1,57 @@
+diff -ur calltree-2.3.orig/DEFAULTS/Defaults.linux calltree-2.3/DEFAULTS/Defaults.linux
+--- calltree-2.3.orig/DEFAULTS/Defaults.linux	2003-02-16 00:01:48.000000000 +0000
++++ calltree-2.3/DEFAULTS/Defaults.linux	2004-05-20 15:18:29.000000000 +0100
+@@ -27,7 +27,7 @@
+ # Installation config stuff
+ #
+ ###########################################################################
+-INS_BASE=	/opt/schily
++INS_BASE=	/usr
+ INS_KBASE=	/
+ #
+ DEFUMASK=	002
+diff -ur calltree-2.3.orig/calltree/calltree.c calltree-2.3/calltree/calltree.c
+--- calltree-2.3.orig/calltree/calltree.c	2004-01-26 13:39:31.000000000 +0000
++++ calltree-2.3/calltree/calltree.c	2004-06-08 09:35:34.000000000 +0100
+@@ -341,14 +341,16 @@
+ 		printf("}\n");
+ 		printxvcgusage(sym, sym->s_uses);
+ 	} else if (dot) {
+-		if (!eflag && !sym->s_uses)
++		if (!eflag && ((sym->s_flags & S_DEF) == 0) /*!sym->s_uses*/)
+ 			return;
+-		printf(" %s [ shape=box ", sym->s_name);
++		printf(" %s [ ", sym->s_name);
++		if ((sym->s_flags & S_DEF) == 0)
++			printf("shape=ellipse ");
++		else
++			printf("shape=box ");
+ 		if (gflag && sym->s_filename)
+ 			printf("label = \"%s [%s:%d]\" ",
+ 				sym->s_name, sym->s_filename, sym->s_lineno);
+-		if ((sym->s_flags & S_DEF) == 0)
+-			printf("shape = ellipse, fontcolor = lightgrey ");
+ 		printf("];\n");
+ 		printdotusage(sym, sym->s_uses);
+ 	} else if ((sym->s_flags & S_DEF) == 0) {
+@@ -480,7 +482,7 @@
+ 
+ 		printdotusage(caller, tab->s_left);
+ 		if (eflag || ((called = lookup(tab->s_name, &funcs, L_LOOK)) != NULL
+-			      && called->s_uses))
++			      && /*called->s_uses*/ ((called->s_flags & S_DEF) != 0) ))
+ 			printf("%s  -> %s;\n",
+ 			       caller->s_name, tab->s_name);
+ 		printdotusage(caller, tab->s_right);
+@@ -774,8 +776,10 @@
+ 
+ 	for (;;) {
+ 		if ((ft = findfunc(fp, name, fname)) == FUNC_DEF) {
+-			if (lookup(name, &ignorefuncs, L_LOOK))
++			if (lookup(name, &ignorefuncs, L_LOOK)) {
++				dsym = 0;
+ 				continue;
++			}
+ 			if (debug)
+ 				error("define func '%s'\n", name);
+ 

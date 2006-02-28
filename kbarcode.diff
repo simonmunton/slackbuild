@@ -1,0 +1,23 @@
+--- kbarcode-1.9.10/kbarcode/propertywidget.cpp.orig	2005-06-11 11:15:17.000000000 +0100
++++ kbarcode-1.9.10/kbarcode/propertywidget.cpp	2006-02-16 13:58:14.000000000 +0000
+@@ -259,15 +259,15 @@
+ {
+     BarcodeItem* bcode = static_cast<BarcodeItem*>(item);
+ 
+-    Barkode d = barcode->getData();
++    Barkode *d = new Barkode( barcode->getData() );
+             
+     if( comboComplex->currentItem() != comboComplex->count() - 1 ) {
+-        d.setType( getTypeFromCaption( comboComplex->currentText() ) );
+-        d.setValue( SqlTables::getInstance()->getBarcodeMaxLength( d.type() ) );
++        d->setType( getTypeFromCaption( comboComplex->currentText() ) );
++        d->setValue( SqlTables::getInstance()->getBarcodeMaxLength( d->type() ) );
+     }
+-    d.setDatabaseMode( comboComplex->currentText() );
++    d->setDatabaseMode( comboComplex->currentText() );
+     
+-    BarcodeCommand* bc = new BarcodeCommand( bcode, &d );
++    BarcodeCommand* bc = new BarcodeCommand( bcode, d );
+     bc->execute();
+     command->addCommand( bc );
+ }

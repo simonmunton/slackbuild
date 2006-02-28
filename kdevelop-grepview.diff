@@ -1,0 +1,58 @@
+--- kdevelop-3.2.2/parts/grepview/grepdlg.cpp.orig	2005-09-26 19:13:03.000000000 +0100
++++ kdevelop-3.2.2/parts/grepview/grepdlg.cpp	2005-09-26 19:13:58.000000000 +0100
+@@ -152,6 +152,11 @@
+     QBoxLayout *dir_checks_layout = new QHBoxLayout(4);
+     layout->addLayout(dir_checks_layout, 4, 1);
+ 	
++    regexp_box = new QCheckBox(i18n("Regular &Expression"), this);
++    regexp_box->setChecked(true);
++    dir_checks_layout->addSpacing(10);
++    dir_checks_layout->addWidget(regexp_box);
++
+     recursive_box = new QCheckBox(i18n("&Recursive"), this);
+     recursive_box->setChecked(true);
+     dir_checks_layout->addSpacing(10);
+--- kdevelop-3.2.2/parts/grepview/grepdlg.h.orig	2005-09-26 19:13:03.000000000 +0100
++++ kdevelop-3.2.2/parts/grepview/grepdlg.h	2005-09-26 19:13:58.000000000 +0100
+@@ -48,6 +48,8 @@
+     QString directoryString() const
+ 	{ return dir_combo->currentText(); }
+ 	
++	bool regexpFlag() const
++		{ return regexp_box->isChecked(); }
+ 	bool recursiveFlag() const
+ 		{ return recursive_box->isChecked(); }
+ 	bool ignoreSCMDirsFlag() const
+@@ -74,6 +76,7 @@
+     KComboBox * dir_combo;
+     KURLRequester * url_requester;
+ 
++    QCheckBox *regexp_box;
+     QCheckBox *recursive_box;
+     QCheckBox *ignore_scm_box;
+     QCheckBox *case_sens_box;
+--- kdevelop-3.2.2/parts/grepview/grepviewwidget.cpp.orig	2005-09-26 19:13:02.000000000 +0100
++++ kdevelop-3.2.2/parts/grepview/grepviewwidget.cpp	2005-09-26 19:13:58.000000000 +0100
+@@ -158,7 +158,7 @@
+ // @todo - put this somewhere common - or just use Qt if possible
+ static QString escape(const QString &str)
+ {
+-	QString escaped("[]{}()\\^$?.+-*");
++	QString escaped("[]{}()\\^$?.+-*|");
+ 	QString res;
+ 
+ 	for (uint i=0; i < str.length(); ++i)
+@@ -213,9 +213,10 @@
+ 
+ 	m_lastPattern = grepdlg->patternString();
+ 	QString pattern = grepdlg->templateString();
+-	//    pattern.replace(QRegExp("%s"), grepdlg->patternString());
+-	pattern.replace(QRegExp("%s"), escape( grepdlg->patternString() ) );
+-	pattern.replace(QRegExp("'"), "'\\''");
++	if (grepdlg->regexpFlag())
++	    pattern.replace(QRegExp("%s"), grepdlg->patternString());
++        else
++	    pattern.replace(QRegExp("%s"), escape( grepdlg->patternString() ) );
+ 
+ 	QString filepattern = "find ";
+ 	filepattern += KShellProcess::quote(grepdlg->directoryString());

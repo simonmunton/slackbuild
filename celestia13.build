@@ -1,0 +1,129 @@
+#!/bin/bash
+#
+CWD=`pwd`
+PKGNAME=celestia
+VERSION=1.3.2
+VERSIONEXTRA=
+PKG_EXT=.tar.gz
+TAR_OPTS=xzvf
+ARCH=i486
+BUILD=1
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+CPUOPT="-mcpu"
+GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
+case $GCCVER in
+  3.4*|4.*) CPUOPT="-mtune" ;;
+esac
+
+PKGDIR=~/tmp/new/c
+PKG=/tmp/package-$PKGNAME
+
+if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+then
+  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  exit
+fi
+
+rm -rf $PKG
+mkdir -p $PKG
+
+if [ ! -d $PKGNAME-$VERSION ]
+then 
+#cd /tmp
+tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+fi
+
+cd $PKGNAME-$VERSION
+
+patch -p0 <<EOF
+Index: src/celestia/kde/celestialbrowser.cpp
+===================================================================
+RCS file: /cvsroot/celestia/celestia/src/celestia/kde/celestialbrowser.cpp,v
+retrieving revision 1.11
+diff -u -r1.11 celestialbrowser.cpp
+--- src/celestia/kde/celestialbrowser.cpp	19 Jul 2004 18:03:15 -0000	1.11
++++ src/celestia/kde/celestialbrowser.cpp	28 Aug 2004 14:37:07 -0000
+@@ -137,8 +137,8 @@
+         star->getStellarClass().str(buf, sizeof buf);
+         QString starClass(buf);
+ 
+-        CelListViewItem *starItem = new CelListViewItem(listStars, QString(name),
+-                                    QString::fromUtf8(ReplaceGreekLetterAbbr(name).c_str()), dist, appMag, absMag, starClass);
++        CelListViewItem *starItem = new CelListViewItem(listStars, name,
++                                    QString::fromUtf8(ReplaceGreekLetterAbbr(name.latin1()).c_str()), dist, appMag, absMag, starClass);
+         
+         SolarSystemCatalog::iterator iter = solarSystemCatalog->find(star->getCatalogNumber());
+         if (iter != solarSystemCatalog->end())
+@@ -156,7 +156,7 @@
+                 sprintf(buf, " %.2f au", starBodyDist / KM_PER_AU);
+                 QString distStarBody(buf);
+                                                                              
+-                CelListViewItem *planetItem = new CelListViewItem(starItem, QString(body->getName()), 
++                CelListViewItem *planetItem = new CelListViewItem(starItem, QString(body->getName().c_str()), 
+                                             QString::fromUtf8(body->getName().c_str()),
+                                             distStarBody, "", "", getClassification(body->getClassification()));
+                 
+@@ -173,7 +173,7 @@
+                                 sprintf(buf, " %.0f km", bodySatDist);
+                                 QString distBodySat(buf);
+                                 
+-                                new CelListViewItem(planetItem, QString(sat->getName()),
++                                new CelListViewItem(planetItem, QString(sat->getName().c_str()),
+                                     QString::fromUtf8(sat->getName().c_str()),
+                                     distBodySat, "", "", getClassification(sat->getClassification()));
+ 
+EOF
+
+#chown -R root.root .
+find . -perm 666 -exec chmod 644 {} \;
+find . -perm 664 -exec chmod 644 {} \;
+CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+./configure --prefix=/opt/kde \
+	    --with-kde
+
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+make -j4
+
+make install DESTDIR=$PKG
+
+#mkdir -p $PKG/etc/gconf/schemas
+#mv $PKG/*schemas $PKG/etc/gconf/schemas
+rm $PKG/*schemas
+
+mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+
+#mv $PKG/usr/share/doc/HTML $PKG/usr/doc/$PKGNAME-$VERSION
+#rm -rf $PKG/usr/share/doc
+
+cp -a \
+  AUTHORS ChangeLog COPYING INSTALL NEWS README TODO TRANSLATORS *.txt \
+  $PKG/usr/doc/$PKGNAME-$VERSION
+mkdir -p $PKG/install
+cat <<EOF > $PKG/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+    |-----handy-ruler------------------------------------------------------|
+celestia: celestia
+celestia:
+celestia: 
+celestia:
+celestia:
+celestia:
+celestia:
+celestia:
+celestia:
+celestia:
+celestia:
+EOF
+
+cd $PKG
+su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"

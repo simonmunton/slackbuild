@@ -1,0 +1,427 @@
+diff -uNr Setup/Unix-old/Makefile.app.in Setup/Unix/Makefile.app.in
+--- Setup/Unix-old/Makefile.app.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.app.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanApp: Libs/libclanApp.so Libs/libclanApp.a
+ 
+ installApp: clanApp
+-	@for i in `find Sources/API/Application -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Application -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/application.h $(INC_PREFIX)/ClanLib/application.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanApp.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanApp.a $(LIB_PREFIX)
+-	@ln -s -f libclanApp.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanApp.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanApp.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanApp.so
++	@for i in `find Sources/API/Application -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Application -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/application.h $(DESTDIR)$(INC_PREFIX)/ClanLib/application.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanApp.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanApp.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanApp.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanApp.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanApp.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanApp.so
+ 
+ 
+ OBJF_LIB_App = Libs/Intermediate/clanapp.o
+diff -uNr Setup/Unix-old/Makefile.conf.in Setup/Unix/Makefile.conf.in
+--- Setup/Unix-old/Makefile.conf.in	Sat Apr  6 14:54:58 2002
++++ Setup/Unix/Makefile.conf.in	Fri Apr 26 15:56:06 2002
+@@ -12,7 +12,7 @@
+ INC_PREFIX    = @includedir@
+ BIN_PREFIX    = @bindir@
+ TARGET_PREFIX = @libdir@/ClanLib
+-
++DESTDIR       =
+ INCLUDE_DIRS  = -I Sources @x_includes@ @extra_includes@
+ 
+ COMP_OPTIONS  = -Wall $(INCLUDE_DIRS) -fPIC -DNOCONTROLS -D__int64=int64_t @DEFS@ @comp_mode@ @directfb_cflags@
+diff -uNr Setup/Unix-old/Makefile.core.in Setup/Unix/Makefile.core.in
+--- Setup/Unix-old/Makefile.core.in	Tue Jan  8 22:58:35 2002
++++ Setup/Unix/Makefile.core.in	Fri Apr 26 15:55:19 2002
+@@ -5,20 +5,20 @@
+ clanCore: build_info Libs/libclanCore.so Libs/libclanCore.a
+ 
+ installCore: clanCore
+-	@for i in `find Sources/API/Core -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Core -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Sound -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Sound -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/core.h $(INC_PREFIX)/ClanLib/core.h
+-	@install -m 0644 Sources/API/sound.h $(INC_PREFIX)/ClanLib/sound.h
+-	@install -m 0644 Sources/API/efence.h $(INC_PREFIX)/ClanLib/efence.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanCore.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanCore.a $(LIB_PREFIX)
+-	@ln -s -f libclanCore.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanCore.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanCore.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanCore.so
+-	@install -d $(BIN_PREFIX)
+-	@install Setup/Unix/clanlib-config $(BIN_PREFIX)
++	@for i in `find Sources/API/Core -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Core -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Sound -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Sound -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/core.h $(DESTDIR)$(INC_PREFIX)/ClanLib/core.h
++	@install -m 0644 Sources/API/sound.h $(DESTDIR)$(INC_PREFIX)/ClanLib/sound.h
++	@install -m 0644 Sources/API/efence.h $(DESTDIR)$(INC_PREFIX)/ClanLib/efence.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanCore.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanCore.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanCore.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanCore.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanCore.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanCore.so
++	@install -d $(DESTDIR)$(BIN_PREFIX)
++	@install Setup/Unix/clanlib-config $(DESTDIR)$(BIN_PREFIX)
+ 
+ OBJF_CORE_GENERIC = \
+ 	Libs/Intermediate/cl_assert.o \
+diff -uNr Setup/Unix-old/Makefile.display.in Setup/Unix/Makefile.display.in
+--- Setup/Unix-old/Makefile.display.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.display.in	Fri Apr 26 15:55:19 2002
+@@ -4,14 +4,14 @@
+ clanDisplay: Libs/libclanDisplay.so Libs/libclanDisplay.a
+ 
+ installDisplay: clanDisplay
+-	@for i in `find Sources/API/Display -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Display -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/display.h $(INC_PREFIX)/ClanLib/display.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanDisplay.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanDisplay.a $(LIB_PREFIX)
+-	@ln -s -f libclanDisplay.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanDisplay.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanDisplay.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanDisplay.so
++	@for i in `find Sources/API/Display -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Display -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/display.h $(DESTDIR)$(INC_PREFIX)/ClanLib/display.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanDisplay.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanDisplay.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanDisplay.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanDisplay.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanDisplay.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanDisplay.so
+ 
+ 
+ OBJF_DISP_GENERIC = \
+diff -uNr Setup/Unix-old/Makefile.gl.in Setup/Unix/Makefile.gl.in
+--- Setup/Unix-old/Makefile.gl.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.gl.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanGL: Libs/libclanGL.so Libs/libclanGL.a
+ 
+ installGL: clanGL
+-	@for i in `find Sources/API/GL -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/GL -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/gl.h $(INC_PREFIX)/ClanLib/gl.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanGL.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanGL.a $(LIB_PREFIX)
+-	@ln -s -f libclanGL.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanGL.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanGL.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanGL.so
++	@for i in `find Sources/API/GL -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/GL -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/gl.h $(DESTDIR)$(INC_PREFIX)/ClanLib/gl.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanGL.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanGL.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanGL.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanGL.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanGL.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanGL.so
+ 
+ OBJF_LIB_GL = Libs/Intermediate/texture_gl.o \
+ 		Libs/Intermediate/opengl.o \
+diff -uNr Setup/Unix-old/Makefile.gui.in Setup/Unix/Makefile.gui.in
+--- Setup/Unix-old/Makefile.gui.in	Sat Mar 16 18:28:44 2002
++++ Setup/Unix/Makefile.gui.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanGUI: Libs/libclanGUI.so Libs/libclanGUI.a
+ 
+ installGUI: clanGUI
+-	@for i in `find Sources/API/GUI -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/GUI -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/gui.h $(INC_PREFIX)/ClanLib/gui.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanGUI.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanGUI.a $(LIB_PREFIX)
+-	@ln -s -f libclanGUI.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanGUI.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanGUI.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanGUI.so
++	@for i in `find Sources/API/GUI -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/GUI -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/gui.h $(DESTDIR)$(INC_PREFIX)/ClanLib/gui.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanGUI.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanGUI.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanGUI.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanGUI.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanGUI.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanGUI.so
+ 
+ OBJF_LIB_GUI = \
+ 	Libs/Intermediate/button.o \
+diff -uNr Setup/Unix-old/Makefile.jpeg.in Setup/Unix/Makefile.jpeg.in
+--- Setup/Unix-old/Makefile.jpeg.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.jpeg.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanJPEG: Libs/libclanJPEG.so Libs/libclanJPEG.a
+ 
+ installJPEG: clanJPEG
+-	@for i in `find Sources/API/JPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/JPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/jpeg.h $(INC_PREFIX)/ClanLib/jpeg.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanJPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanJPEG.a $(LIB_PREFIX)
+-	@ln -s -f libclanJPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanJPEG.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanJPEG.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanJPEG.so
++	@for i in `find Sources/API/JPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/JPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/jpeg.h $(DESTDIR)$(INC_PREFIX)/ClanLib/jpeg.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanJPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanJPEG.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanJPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanJPEG.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanJPEG.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanJPEG.so
+ 
+ 
+ OBJF_LIB_JPEG = \
+diff -uNr Setup/Unix-old/Makefile.lua.in Setup/Unix/Makefile.lua.in
+--- Setup/Unix-old/Makefile.lua.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.lua.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanLua: Libs/libclanLua.so Libs/libclanLua.a
+ 
+ installLua: clanLua
+-	@for i in `find Sources/API/Lua -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Lua -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/lua.h $(INC_PREFIX)/ClanLib/lua.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanLua.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanLua.a $(LIB_PREFIX)
+-	@ln -s -f libclanLua.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanLua.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanLua.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanLua.so
++	@for i in `find Sources/API/Lua -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Lua -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/lua.h $(DESTDIR)$(INC_PREFIX)/ClanLib/lua.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanLua.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanLua.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanLua.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanLua.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanLua.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanLua.so
+ 
+ OBJF_LIB_LUA = \
+ 	Libs/Intermediate/clanbindings.o 
+diff -uNr Setup/Unix-old/Makefile.mikmod.in Setup/Unix/Makefile.mikmod.in
+--- Setup/Unix-old/Makefile.mikmod.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.mikmod.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanMikMod: Libs/libclanMikMod.so Libs/libclanMikMod.a
+ 
+ installMikMod: clanMikMod
+-	@for i in `find Sources/API/MikMod -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/MikMod -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/mikmod.h $(INC_PREFIX)/ClanLib/mikmod.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanMikMod.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanMikMod.a $(LIB_PREFIX)
+-	@ln -s -f libclanMikMod.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanMikMod.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanMikMod.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanMikMod.so
++	@for i in `find Sources/API/MikMod -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/MikMod -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/mikmod.h $(DESTDIR)$(INC_PREFIX)/ClanLib/mikmod.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanMikMod.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanMikMod.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanMikMod.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanMikMod.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanMikMod.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanMikMod.so
+ 
+ OBJF_LIB_MIKMOD = \
+ 	Libs/Intermediate/resourcetype_module.o \
+diff -uNr Setup/Unix-old/Makefile.mpeg.in Setup/Unix/Makefile.mpeg.in
+--- Setup/Unix-old/Makefile.mpeg.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.mpeg.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanMPEG: Libs/libclanMPEG.so Libs/libclanMPEG.a
+ 
+ installMPEG: clanMPEG
+-	@for i in `find Sources/API/MPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/MPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/mpeg.h $(INC_PREFIX)/ClanLib/mpeg.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanMPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanMPEG.a $(LIB_PREFIX)
+-	@ln -s -f libclanMPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanMPEG.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanMPEG.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanMPEG.so
++	@for i in `find Sources/API/MPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/MPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/mpeg.h $(DESTDIR)$(INC_PREFIX)/ClanLib/mpeg.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanMPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanMPEG.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanMPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanMPEG.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanMPEG.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanMPEG.so
+ 
+ OBJF_LIB_MPEG =	\
+ 	Libs/Intermediate/mpeg_soundprovider.o
+diff -uNr Setup/Unix-old/Makefile.network.in Setup/Unix/Makefile.network.in
+--- Setup/Unix-old/Makefile.network.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.network.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanNetwork: Libs/libclanNetwork.so Libs/libclanNetwork.a
+ 
+ installNetwork: clanNetwork
+-	@for i in `find Sources/API/Network -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Network -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/network.h $(INC_PREFIX)/ClanLib/network.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanNetwork.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanNetwork.a $(LIB_PREFIX)
+-	@ln -s -f libclanNetwork.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanNetwork.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanNetwork.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanNetwork.so
++	@for i in `find Sources/API/Network -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Network -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/network.h $(DESTDIR)$(INC_PREFIX)/ClanLib/network.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanNetwork.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanNetwork.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanNetwork.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanNetwork.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanNetwork.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanNetwork.so
+ 
+ OBJF_LIB_NETWORK = Libs/Intermediate/netcomputer.o \
+ 	Libs/Intermediate/browse_client.o \
+diff -uNr Setup/Unix-old/Makefile.png.in Setup/Unix/Makefile.png.in
+--- Setup/Unix-old/Makefile.png.in	Thu Jan 10 21:17:13 2002
++++ Setup/Unix/Makefile.png.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanPNG: Libs/libclanPNG.so Libs/libclanPNG.a
+ 
+ installPNG: clanPNG
+-	@for i in `find Sources/API/PNG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/PNG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/png.h $(INC_PREFIX)/ClanLib/png.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanPNG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanPNG.a $(LIB_PREFIX)
+-	@ln -s -f libclanPNG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanPNG.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanPNG.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanPNG.so
++	@for i in `find Sources/API/PNG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/PNG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/png.h $(DESTDIR)$(INC_PREFIX)/ClanLib/png.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanPNG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanPNG.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanPNG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanPNG.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanPNG.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanPNG.so
+ 
+ 
+ OBJF_LIB_PNG = \
+diff -uNr Setup/Unix-old/Makefile.signals.in Setup/Unix/Makefile.signals.in
+--- Setup/Unix-old/Makefile.signals.in	Sat Mar 17 00:56:33 2001
++++ Setup/Unix/Makefile.signals.in	Fri Apr 26 15:55:19 2002
+@@ -5,6 +5,6 @@
+ clanSignals:
+ 
+ installSignals: clanSignals
+-	@for i in `find Sources/API/Signals -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Signals -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/signals.h $(INC_PREFIX)/ClanLib/signals.h
++	@for i in `find Sources/API/Signals -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Signals -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/signals.h $(DESTDIR)$(INC_PREFIX)/ClanLib/signals.h
+diff -uNr Setup/Unix-old/Makefile.smalljpeg.in Setup/Unix/Makefile.smalljpeg.in
+--- Setup/Unix-old/Makefile.smalljpeg.in	Thu Feb 14 06:54:15 2002
++++ Setup/Unix/Makefile.smalljpeg.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanSmallJPEG: Libs/libclanSmallJPEG.so Libs/libclanSmallJPEG.a
+ 
+ installSmallJPEG: clanSmallJPEG
+-	@for i in `find Sources/API/SmallJPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/SmallJPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/jpeg.h $(INC_PREFIX)/ClanLib/jpeg.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanSmallJPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanSmallJPEG.a $(LIB_PREFIX)
+-	@ln -s -f libclanSmallJPEG.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanSmallJPEG.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanSmallJPEG.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanSmallJPEG.so
++	@for i in `find Sources/API/SmallJPEG -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/SmallJPEG -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/jpeg.h $(DESTDIR)$(INC_PREFIX)/ClanLib/jpeg.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanSmallJPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanSmallJPEG.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanSmallJPEG.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanSmallJPEG.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanSmallJPEG.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanSmallJPEG.so
+ 
+ 
+ OBJF_LIB_SMALLJPEG = \
+diff -uNr Setup/Unix-old/Makefile.sound.in Setup/Unix/Makefile.sound.in
+--- Setup/Unix-old/Makefile.sound.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.sound.in	Fri Apr 26 15:55:19 2002
+@@ -4,14 +4,14 @@
+ clanSound: Libs/libclanSound.so Libs/libclanSound.a
+ 
+ installSound: clanSound
+-	@for i in `find Sources/API/Sound -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Sound -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/sound.h $(INC_PREFIX)/ClanLib/sound.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanSound.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanSound.a $(LIB_PREFIX)
+-	@ln -s -f libclanSound.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanSound.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanSound.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanSound.so
++	@for i in `find Sources/API/Sound -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Sound -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/sound.h $(DESTDIR)$(INC_PREFIX)/ClanLib/sound.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanSound.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanSound.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanSound.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanSound.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanSound.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanSound.so
+ 
+ OBJF_SOUND_GENERIC = \
+ 	Libs/Intermediate/sound.o \
+diff -uNr Setup/Unix-old/Makefile.ttf.in Setup/Unix/Makefile.ttf.in
+--- Setup/Unix-old/Makefile.ttf.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.ttf.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanTTF: Libs/libclanTTF.so Libs/libclanTTF.a
+ 
+ installTTF: clanTTF
+-	@for i in `find Sources/API/TTF -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/TTF -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/ttf.h $(INC_PREFIX)/ClanLib/ttf.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanTTF.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanTTF.a $(LIB_PREFIX)
+-	@ln -s -f libclanTTF.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanTTF.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanTTF.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanTTF.so
++	@for i in `find Sources/API/TTF -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/TTF -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/ttf.h $(DESTDIR)$(INC_PREFIX)/ClanLib/ttf.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanTTF.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanTTF.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanTTF.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanTTF.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanTTF.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanTTF.so
+ 
+ 
+ OBJF_LIB_TTF = \
+diff -uNr Setup/Unix-old/Makefile.vorbis.in Setup/Unix/Makefile.vorbis.in
+--- Setup/Unix-old/Makefile.vorbis.in	Mon Dec 24 17:12:59 2001
++++ Setup/Unix/Makefile.vorbis.in	Fri Apr 26 15:55:19 2002
+@@ -5,14 +5,14 @@
+ clanVorbis: Libs/libclanVorbis.so Libs/libclanVorbis.a
+ 
+ installVorbis: clanVorbis
+-	@for i in `find Sources/API/Vorbis -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(INC_PREFIX)/ClanLib/$$i; done
+-	@for i in `find Sources/API/Vorbis -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(INC_PREFIX)/ClanLib/$$i; done
+-	@install -m 0644 Sources/API/vorbis.h $(INC_PREFIX)/ClanLib/vorbis.h
+-	@install -d $(LIB_PREFIX)
+-	@install Libs/libclanVorbis.so.$(D_VERSION_MINOR) $(LIB_PREFIX)
+-	@install Libs/libclanVorbis.a $(LIB_PREFIX)
+-	@ln -s -f libclanVorbis.so.$(D_VERSION_MINOR) $(LIB_PREFIX)/libclanVorbis.so.$(D_VERSION_MAJOR)
+-	@ln -s -f libclanVorbis.so.$(D_VERSION_MAJOR) $(LIB_PREFIX)/libclanVorbis.so
++	@for i in `find Sources/API/Vorbis -type d | grep -v CVS | sed "s/Sources\/API\///;"`; do install -d $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@for i in `find Sources/API/Vorbis -type f | grep -v CVS | sed "s/Sources\/API\///;"`; do install -m 0644 Sources/API/$$i $(DESTDIR)$(INC_PREFIX)/ClanLib/$$i; done
++	@install -m 0644 Sources/API/vorbis.h $(DESTDIR)$(INC_PREFIX)/ClanLib/vorbis.h
++	@install -d $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanVorbis.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)
++	@install Libs/libclanVorbis.a $(DESTDIR)$(LIB_PREFIX)
++	@ln -s -f libclanVorbis.so.$(D_VERSION_MINOR) $(DESTDIR)$(LIB_PREFIX)/libclanVorbis.so.$(D_VERSION_MAJOR)
++	@ln -s -f libclanVorbis.so.$(D_VERSION_MAJOR) $(DESTDIR)$(LIB_PREFIX)/libclanVorbis.so
+ 
+ OBJF_LIB_VORBIS = \
+ 	Libs/Intermediate/vorbis_soundprovider_generic.o \

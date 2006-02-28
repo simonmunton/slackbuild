@@ -1,0 +1,387 @@
+--- Sources/API/Core/IOData/inputsource_file.h
++++ Sources/API/Core/IOData/inputsource_file.h	2002/06/07 10:05:27
+@@ -23,7 +23,11 @@
+ 
+ #include <string>
+ #include <stack>
++#ifndef WIN32
++#include <cstdio>
++#else
+ #include <stdio.h>
++#endif
+ 
+ //: Inputsource reading from file.
+ class CL_InputSource_File : public CL_InputSource
+--- Sources/API/Core/IOData/outputsource_file.h
++++ Sources/API/Core/IOData/outputsource_file.h	2002/06/07 10:05:58
+@@ -22,7 +22,11 @@
+ #include "outputsource.h"
+ 
+ #include <string>
++#ifndef WIN32
++#include <cstdio>
++#else
+ #include <stdio.h>
++#endif
+ 
+ //: Outputsource writing to file.
+ class CL_OutputSource_File : public CL_OutputSource
+--- Sources/API/Core/Math/math.h
++++ Sources/API/Core/Math/math.h	2002/06/07 10:06:28
+@@ -16,7 +16,11 @@
+ #ifndef header_math
+ #define header_math
+ 
++#ifndef WIN32
++#include <cmath>
++#else
+ #include <math.h>
++#endif
+ 
+ #ifndef PI
+ #ifndef M_PI
+--- Sources/API/Core/System/cl_assert.h
++++ Sources/API/Core/System/cl_assert.h	2002/06/07 10:06:55
+@@ -81,7 +81,7 @@
+ 	static void die(bool a, const char *file, int line, const char *func, const char *assert_str);
+ 
+ 	//: Writes an info statements on the specified channel.
+-	//: <p>Don't callthis one directly, instead use the cl_info macro.
++	//: <p>Don't call this one directly, instead use the cl_info macro.
+ 	//:  For example: cl_info(info_network, "MyClass::my_funx - Hello World.");</p>
+ 	//- channel - Channel to use. (Use the ErrorChannels enum's)
+ 	//- text - text to print.
+--- Sources/API/Core/System/clanstring.h
++++ Sources/API/Core/System/clanstring.h	2002/06/07 10:08:32
+@@ -21,11 +21,19 @@
+ 
+ #include <string>
+ 
++#ifndef WIN32
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <cstdio>
++#else
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <iostream>
+ #include <stdio.h>
++#endif
++
++#include <iostream>
+ 
+ #ifndef WIN32
+ #include <cctype>
+@@ -53,7 +61,8 @@
+ #include "../Resources/resource_manager.h"
+ #include "error.h"
+ 
+-using namespace std;
++//this should *never* appear in a header
++//using namespace std;
+ 
+ //: Clan String Class
+ class CL_String
+--- Sources/API/GUI/component_options.h
++++ Sources/API/GUI/component_options.h	2002/06/07 10:09:11
+@@ -23,7 +23,12 @@
+ #include "../Core/System/error.h"
+ #include <map>
+ #include <string>
++
++#ifndef WIN32
++#include <cstdio>
++#else
+ #include <stdio.h>
++#endif
+ 
+ #ifdef WIN32
+ #define snprintf _snprintf
+--- Sources/API/GUI/gui_manager.h
++++ Sources/API/GUI/gui_manager.h	2002/06/07 10:09:51
+@@ -19,7 +19,11 @@
+ #ifndef header_gui_manager
+ #define header_gui_manager
+ 
++#ifndef WIN32
++#include <cstddef>
++#else
+ #include <stddef.h>
++#endif
+ 
+ #include "component.h"
+ 
+--- Sources/API/MikMod/streamed_mikmod_sample.h
++++ Sources/API/MikMod/streamed_mikmod_sample.h	2002/06/07 10:10:13
+@@ -22,7 +22,12 @@
+ #ifndef header_streamed_mikmod_sample
+ #define header_streamed_mikmod_sample
+ 
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
++
+ #include "../core.h"
+ #include "../Sound/stream_soundprovider.h"
+ #include "../Sound/soundbuffer.h"
+--- Sources/API/Signals/slot.h
++++ Sources/API/Signals/slot.h	2002/06/07 10:11:48
+@@ -20,7 +20,11 @@
+ #define header_slot
+ 
+ #include "slot_generic.h"
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
+ 
+ //: Slot class
+ class CL_Slot
+--- Sources/API/Sound/SoundProviders/stream_provider_raw.h
++++ Sources/API/Sound/SoundProviders/stream_provider_raw.h	2002/06/07 10:12:15
+@@ -22,7 +22,12 @@
+ #ifndef header_streamed_raw_sample
+ #define header_streamed_raw_sample
+ 
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
++
+ #include "../stream_soundprovider.h"
+ #include "../soundbuffer.h"
+ 
+--- Sources/API/Sound/SoundProviders/stream_provider_wave.h
++++ Sources/API/Sound/SoundProviders/stream_provider_wave.h	2002/06/07 10:12:31
+@@ -22,7 +22,12 @@
+ #ifndef header_streamed_wave_sample
+ #define header_streamed_wave_sample
+ 
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
++
+ #include "../../Core/IOData/inputsource.h"
+ #include "../stream_soundprovider.h"
+ #include "../soundbuffer.h"
+--- Sources/API/Sound/sound.h
++++ Sources/API/Sound/sound.h
+@@ -20,7 +20,11 @@
+ #define header_sound
+ 
+ #include <vector>
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
+ #include "soundbuffer.h"
+ #include "../Core/System/cl_assert.h"
+ 
+--- Sources/API/Sound/soundbuffer_session.h
++++ Sources/API/Sound/soundbuffer_session.h	2002/06/07 10:13:10
+@@ -19,7 +19,11 @@
+ #ifndef header_soundbuffer_session
+ #define header_soundbuffer_session
+ 
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
+ 
+ class CL_SoundCard;
+ class CL_SoundPlayBackDesc;
+--- Sources/API/efence.h
++++ Sources/API/efence.h	2002/06/07 10:13:32
+@@ -23,7 +23,7 @@
+ 
+ #ifndef WIN32
+ 
+-#include <stdlib.h>
++#include <cstdlib>
+ 
+ void *operator new(size_t size)
+ {
+--- Sources/Core/IOData/Unix/directory_scanner_unix.h
++++ Sources/Core/IOData/Unix/directory_scanner_unix.h	2002/06/07 10:14:43
+@@ -21,7 +21,11 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <dirent.h>
+-#include <stdio.h>
++#ifndef WIN32
++#include <cstdio>
++#else
++#include <cstdio>
++#endif
+ #include <unistd.h>
+ 
+ class CL_DirectoryScanner_Unix : public CL_DirectoryScanner_Generic
+--- Sources/Display/Display/DirectFB/display_directfb.cpp
++++ Sources/Display/Display/DirectFB/display_directfb.cpp	2002/06/07 10:34:33
+@@ -17,12 +17,12 @@
+ #ifdef USE_DIRECTFB
+ 
+ 
+-#include <stdlib.h>
+-#include <stdio.h>
+-#include <string.h>
+-#include <iostream>
++#include <cstdlib>
++#include <cstdio>
++#include <cstring>
++#include <cmath>
+ 
+-#include <math.h>
++#include <iostream>
+ 
+ #include <API/Display/Display/mousecursor.h>
+ #include <API/Display/Display/cliprect.h>
+@@ -177,7 +177,7 @@
+ 
+       if (fullscreen)
+ 	{
+-	  cerr << "CL_DirectFB_DisplayCard: Falling back to DFSCL_NORMAL" << endl;
++	  std::cerr << "CL_DirectFB_DisplayCard: Falling back to DFSCL_NORMAL" << std::endl;
+ 	  dfb->SetCooperativeLevel (dfb, DFSCL_NORMAL);
+ 	  ret = dfb->SetVideoMode (dfb, get_width(), get_height(), bpp);
+ 	}
+--- Sources/Display/Display/Generic/blitters.h
++++ Sources/Display/Display/Generic/blitters.h	2002/06/07 10:16:15
+@@ -20,7 +20,11 @@
+ #define header_blitters
+ 
+ class CL_Target;
++#ifndef WIN32
++#include <cstdlib>
++#else
+ #include <stdlib.h>
++#endif
+ #include "API/Display/Display/cliprect.h"
+ /*
+ #include "API/Display/Display/surfaceprovider.h"
+--- Sources/GL/GLX/displaycard_glx.cpp
++++ Sources/GL/GLX/displaycard_glx.cpp	2002/06/07 10:17:46
+@@ -363,7 +363,8 @@
+ 
+ void (*CL_GLX_DisplayCard::get_proc_address(const std::string& function_name))()
+ {
+-	return glXGetProcAddressARB((GLubyte*)function_name.c_str());
++	return glXGetProcAddress(reinterpret_cast<GLubyte*>(
++			const_cast<char *>(function_name.c_str())));
+ }
+ 
+ 
+--- Sources/GUI/component_manager_generic.h
++++ Sources/GUI/component_manager_generic.h	2002/06/07 10:18:14
+@@ -14,7 +14,11 @@
+ #include <string>
+ #include <stack>
+ #include <vector>
++#ifndef WIN32
++#include <cstdio>
++#else
+ #include <stdio.h>
++#endif
+ 
+ #include "API/GUI/component_manager.h"
+ #include "API/GUI/stylemanager.h"
+--- Sources/JPEG/provider_jpeg_generic.h
++++ Sources/JPEG/provider_jpeg_generic.h	2002/06/07 10:19:26
+@@ -23,7 +23,12 @@
+ #define XMD_H
+ #endif
+ 
++#ifndef WIN32
++#include <cstdio>
++#else
+ #include <stdio.h>
++#endif
++
+ extern "C"
+ {
+ 	#include <jpeglib.h>
+--- Sources/Network/Generic/network_delivery_socket.h
++++ Sources/Network/Generic/network_delivery_socket.h	2002/06/07 10:20:17
+@@ -20,18 +20,19 @@
+ 
+ #ifdef WIN32
+ 	#include <windows.h>
++	#include <string.h>
+ #else
++	#include <cstring>
++	#include <cerrno>
+ 	#include <sys/time.h>
+ 	#include <sys/types.h>
+ 	#include <sys/socket.h>
+ 	#include <arpa/inet.h>
+ 	#include <netinet/in.h>
+ 	#include <unistd.h>
+-	#include <errno.h>
+ 	#include <fcntl.h>
+ #endif
+ 
+-#include <string.h>
+ #include <list>
+ #include <queue>
+ 
+--- Sources/Network/Unix/unix_pipe_connection.h
++++ Sources/Network/Unix/unix_pipe_connection.h	2002/06/07 10:21:00
+@@ -20,14 +20,20 @@
+ #ifndef header_network_delivery_pipe
+ #define header_network_delivery_pipe
+ 
++#ifndef WIN32
++#include <cerrno>
++#include <cstring>
++#else
++#include <errno.h>
++#include <string.h>
++#endif
++
+ #include <sys/time.h>
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <arpa/inet.h>
+ #include <netinet/in.h>
+ #include <unistd.h>
+-#include <errno.h>
+-#include <string.h>
+ #include <list>
+ 
+ #include "Network/Generic/network_delivery_impl.h"
+--- Sources/SmallJPEG/jpgd/main.h
++++ Sources/SmallJPEG/jpgd/main.h	2002/06/07 10:21:45
+@@ -22,6 +22,15 @@
+ #ifndef MAIN_H
+ #define MAIN_H
+ 
++#ifndef WIN32
++#include <cstdlib>
++#include <cstdio>
++#include <cmath>
++#include <cstring>
++#include <cctype>
++#include <csetjmp>
++#include <cassert>
++#else
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <math.h>
+@@ -29,6 +38,7 @@
+ #include <ctype.h>
+ #include <setjmp.h>
+ #include <assert.h>
++#endif
+ 
+ typedef   signed char  schar;       /*  8 bits     */
+ typedef unsigned char  uchar;       /*  8 bits     */

@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# messagebus:   The D-BUS systemwide message bus
+#
+# description:  This is a daemon which broadcasts notifications of system events \
+#               and other messages. See http://www.freedesktop.org/software/dbus/
+#
+# processname: dbus-daemon
+# pidfile: /var/run/dbus/dbus.pid
+#
+#
+# This script came with the source code of dbus.
+# Basically only the text above is all that is left of the original script.
+# The GWARE team modified this file so it would actually WORK =)
+# Don Tanner - Gware Team Member - Sun Feb 20 22:29:37 CST 2005
+
+PIDFILE=/var/run/dbus/dbus.pid
+
+start() {
+    if [ -x /usr/bin/dbus-daemon ];then
+	echo "Starting message bus:  /usr/bin/dbus-daemon --system"
+    	/usr/bin/dbus-daemon --system 1> /dev/null 2> /dev/null
+    fi
+}
+
+stop() {
+    echo -n "Stopping system message bus: "
+        if [ -e "$PIDFILE" ]; then
+                # The nice way
+                pid=`cat $PIDFILE`
+                kill $pid
+                rm -f $PIDFILE
+		echo "Stopped daemon successfully and removed the pidfile"
+        else
+                killall dbus-daemon 1> /dev/null 2> /dev/null
+		echo "No pidfile found. We used killall to make sure."
+        fi
+}
+
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart}"
+        ;;
+esac

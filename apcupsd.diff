@@ -1,0 +1,17 @@
+--- platforms/slackware/Makefile.in.orig	2003-09-14 08:57:40.000000000 +0100
++++ platforms/slackware/Makefile.in	2005-08-03 08:51:58.000000000 +0100
+@@ -16,9 +16,11 @@
+ 
+ install:
+ 	@echo "Slackware distribution installation"
+-	$(INSTALL_PROGRAM) -m 744 apcupsd /etc/rc.d/rc.apcupsd
+-	$(INSTALL_PROGRAM) -d -m 755 @LOCKDIR@/subsys
+-	@-rcfile=/etc/rc.d/rc.6; \
++	$(INSTALL_PROGRAM) -d -m 755 $(DESTDIR)/etc/rc.d
++	$(INSTALL_PROGRAM) -m 744 apcupsd $(DESTDIR)/etc/rc.d/rc.apcupsd.new
++	$(INSTALL_PROGRAM) -d -m 755 $(DESTDIR)@LOCKDIR@/subsys
++	$(INSTALL_PROGRAM) -m 744 /etc/rc.d/rc.6 $(DESTDIR)/etc/rc.d/rc.6.new
++	@-rcfile=$(DESTDIR)/etc/rc.d/rc.6.new; \
+ 	grep -q @sysconfdir@/apccontrol $$rcfile; \
+ 	if [ $$? -ne 0 ]; then \
+ 	    echo "Patching $$rcfile"; \

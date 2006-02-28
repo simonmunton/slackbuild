@@ -1,0 +1,156 @@
+diff -ur swftools-0.6.1/lib/modules/swfaction.c swftools-0.6.1.new/lib/modules/swfaction.c
+--- swftools-0.6.1/lib/modules/swfaction.c	2004-02-02 11:08:50.000000000 +0000
++++ swftools-0.6.1.new/lib/modules/swfaction.c	2004-09-03 14:00:07.000000000 +0100
+@@ -38,7 +38,7 @@
+ u: url (string)
+ t: target (string)
+ l: label (string)
+-C: constant pool header (byte)
++C: constant pool header (word)
+ c: constant pool entry (string)
+ s: skip (byte) (number of actions)
+ m: method (byte) swf_GetUrl2:(0=none, 1=get, 2=post)/GotoFrame2:(1=play)
+@@ -251,6 +251,8 @@
+ 		return 1+4; //float
+ 	    } else if (type == 2) {
+ 		return 1+0; //NULL
++	    } else if (type == 3) {
++		return 1+0; //Undefined
+ 	    } else if (type == 4) {
+ 		return 1+1; //register
+ 	    } else if (type == 5) {
+@@ -261,6 +263,8 @@
+ 		return 1+4; //int
+ 	    } else if (type == 8) {
+ 		return 1+1; //lookup
++	    } else if (type == 9) {
++		return 1+2; //lookup 16
+ 	    } else return 1;
+ 	    break;
+ 	}
+@@ -312,7 +316,7 @@
+     while(atag)
+     {
+ 	char*indent = &spaces[sizeof(spaces)-1-countpos*4];
+-	U8 poollen = 0;
++	U16 poollen = 0;
+ 	for(t=0;t<definedactions;t++)
+ 	    if(actions[t].op == atag->op)
+ 		break;
+@@ -350,7 +354,7 @@
+ #endif
+ 		  } break;
+ 		  case 'C': {
+-		      poollen = *data;
++		      poollen = *(U16*)data;
+ 		      entry = 0;
+ 		      printf("(%d entries)", poollen);
+ 		  } break;
+@@ -426,6 +430,8 @@
+ 			  printf(" Float:%f", *(float*)&f);
+ 		      } else if (type == 2) {
+ 			  printf(" NULL");
++		      } else if (type == 3) {
++			  printf(" Undefined");
+ 		      } else if (type == 4) {
+ 			  printf(" register:%d", *value);
+ 		      } else if (type == 5) {
+@@ -452,6 +458,13 @@
+ 			  if (lookup[*value])
+ 			    printf(" (\"%s\")",lookup[*value]);
+ #endif
++		      } else if (type == 9) {
++			  U32 offset = value[0]+(value[1]<<8);
++			  printf(" Lookup16:%d", offset);
++#ifdef MAX_LOOKUP
++			  if (lookup[offset])
++			    printf(" (\"%s\")",lookup[offset]);
++#endif
+ 		      } else {
+ 			  printf(" UNKNOWN[%02x]",type);
+ 		      }
+@@ -518,7 +531,7 @@
+     int count = 0;
+     while(atag)
+     {
+-	U8 poollen = 0;
++	U16 poollen = 0;
+ 	for(t=0;t<definedactions;t++)
+ 	    if(actions[t].op == atag->op)
+ 		break;
+@@ -563,7 +576,7 @@
+ 			}
+ 		    } break;
+ 		    case 'C': {
+-			poollen = (*data);
++			poollen = (*(U16*)data);
+ 		    } break;
+ 		    case 'o': {
+ 		    } break;
+@@ -964,6 +977,12 @@
+     *(U8*)atag->tmp = 2; //NULL
+     return atag;
+ }
++ActionTAG* action_PushUndefined(ActionTAG*atag) 
++{
++    atag = swf_AddActionTAG(atag, ACTION_PUSH, 0, 1);
++    *(U8*)atag->tmp = 3; //Undefined
++    return atag;
++}
+ ActionTAG* action_PushBoolean(ActionTAG*atag, char c) 
+ {
+     atag = swf_AddActionTAG(atag, ACTION_PUSH, 0, 2);
+@@ -985,6 +1004,14 @@
+     *(U8*)&atag->tmp[1] = index;
+     return atag;
+ }
++ActionTAG* action_PushLookup16(ActionTAG*atag, U16 index) 
++{
++    atag = swf_AddActionTAG(atag, ACTION_PUSH, 0, 3);
++    *(U8*)atag->tmp = 9; //lookup
++    *(U8*)&atag->tmp[1] = index;
++    *(U8*)&atag->tmp[2] = index>>8;
++    return atag;
++}
+ ActionTAG* action_PushString(ActionTAG*atag, char*str) 
+ {
+     int l = strlen(str);
+diff -ur swftools-0.6.1/lib/modules/swftools.c swftools-0.6.1.new/lib/modules/swftools.c
+--- swftools-0.6.1/lib/modules/swftools.c	2004-07-11 10:56:52.000000000 +0100
++++ swftools-0.6.1.new/lib/modules/swftools.c	2004-09-03 12:33:15.000000000 +0100
+@@ -119,6 +119,7 @@
+     case ST_GLYPHNAMES: //pseudodefine
+     case ST_VIDEOFRAME: //pseudodefine
+     case ST_NAMECHARACTER: //pseudodefine
++    case ST_DOINITACTION: //pseudodefine
+       id = swf_GetU16(t);
+       break;
+   }
+diff -ur swftools-0.6.1/src/swfdump.c swftools-0.6.1.new/src/swfdump.c
+--- swftools-0.6.1/src/swfdump.c	2004-07-18 12:25:05.000000000 +0100
++++ swftools-0.6.1.new/src/swfdump.c	2004-09-03 14:16:16.000000000 +0100
+@@ -579,9 +579,9 @@
+ 	ascii[t&15] = printable(tag->data[t]);
+ 	if((t && ((t&15)==15)) || (t==tag->len-1))
+ 	{
+-	    int s,p=((t-1)&15)+1;
++	    int s,p=((t)&15)+1;
+ 	    ascii[p] = 0;
+-	    for(s=p;s<16;s++) {
++	    for(s=p-1;s<16;s++) {
+ 		printf("   ");
+ 	    }
+ 	    if(t==tag->len-1)
+@@ -975,6 +975,12 @@
+             actions = swf_ActionGet(tag);
+             swf_DumpActions(actions, myprefix);
+         }
++        else if(tag->id == ST_DOINITACTION && action) {
++            ActionTAG*actions;
++            swf_GetU16(tag); // id
++            actions = swf_ActionGet(tag);
++            swf_DumpActions(actions, myprefix);
++        }
+ 	else if(tag->id == ST_DEFINEBUTTON && action) {
+ 	    dumpButtonActions(tag, myprefix);
+ 	}

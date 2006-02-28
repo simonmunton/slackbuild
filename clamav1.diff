@@ -1,0 +1,37 @@
+--- clamav-0.88/clamav-milter/clamav-milter.c.orig	2005-10-25 22:40:59.000000000 +0100
++++ clamav-0.88/clamav-milter/clamav-milter.c	2006-01-10 22:26:13.000000000 +0000
+@@ -2851,6 +2851,10 @@
+ 			smfi_addheader(ctx, "X-Virus-Status", buf);
+ 		}
+ 
++		if(quarantine_dir) {
++			qfile(privdata, sendmailId, virusname);
++		}
++
+ 		if(use_syslog) {
+ 			/*
+ 			 * Setup err as a list of recipients
+@@ -3017,8 +3021,6 @@
+ 		}
+ 
+ 		if(quarantine_dir) {
+-			qfile(privdata, sendmailId, virusname);
+-
+ 			/*
+ 			 * Cleanup filename here otherwise clamfi_free() will
+ 			 * delete the file that we wish to keep because it
+@@ -4209,6 +4211,14 @@
+ 	}
+ 	offset = (off_t)0;
+ 	ret = sendfile(fout, fin, &offset, statb.st_size);
++	if (ret < 0 && errno == EINVAL) {
++		unsigned char buf[512];
++		ssize_t n;
++
++		ret = 0;
++		while(ret >= 0 && (n = read(fin, buf, sizeof buf)) > 0)
++			ret = write(fout, buf, n);
++	}    
+ 	close(fin);
+ 	if(ret < 0) {
+ 		perror(newfile);
