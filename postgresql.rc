@@ -1,0 +1,64 @@
+#!/bin/sh
+# Start/stop/restart postgresql.
+#
+
+# To allow outside connections to the database uncomment the next line.
+# If you don't need incoming network connections, then leave the line
+# commented to improve system security.
+#ALLOW_TCPIP="-i"
+
+PIDFILE=/var/lib/pgsql/data/postmaster.pid
+
+# Start postgresql:
+postgresql_start() {
+  if [ -x /usr/bin/postmaster ]; then
+    # If there is an old PID file, clean it up:
+    if [ -r $PIDFILE ]; then
+      if ! ps axc | grep /usr/bin/postmaster 1> /dev/null 2> /dev/null ; then
+        echo "Cleaning up old $PIDFILE."
+        rm -f $PIDFILE
+      fi
+    fi
+  (su - postgres -c "/usr/bin/postmaster -D /var/lib/pgsql/data $ALLOW_TCPIP  </dev/null >>/var/lib/pgsql/data/server.log 2>&1 </dev/null &" )
+  fi
+}
+
+# Stop postgresql:
+postgresql_stop() {
+  # If there is no PID file, ignore this request...
+  if [ -r $PIDFILE ]; then
+    kill `cat $PIDFILE`
+    # Wait at least one minute for it to exit, as we don't know how big the DB is...
+    for second in 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 \
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 60 ; do
+      if [ ! -r $PIDFILE ]; then
+        break;
+      fi
+      sleep 1
+    done
+    if [ "$second" = "60" ]; then
+      echo "WARNING:  Gave up waiting for postgresql to exit!"
+      sleep 15
+    fi
+  fi
+}
+
+# Restart postgresql:
+postgresql_restart() {
+  postgresql_stop
+  postgresql_start
+}
+
+case "$1" in
+'start')
+  postgresql_start
+  ;;
+'stop')
+  postgresql_stop
+  ;;
+'restart')
+  postgresql_restart
+  ;;
+*)
+  echo "usage $0 start|stop|restart"
+esac
