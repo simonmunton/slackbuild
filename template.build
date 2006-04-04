@@ -2,6 +2,7 @@
 #
 CWD=`pwd`
 PKGNAME=TEMPLATE
+PKGDIR=~/tmp/new/
 PKG_EXT=.tar.gz
 TAR_OPTS=xzvf
 VERSION=
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -74,6 +74,19 @@ ln -sf `readlink $f.gz`.gz $f.gz
 done
 fi
 
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
 if [ -d $PKG/usr/info ]
 then
 rm $PKG/usr/info/dir
@@ -112,11 +125,38 @@ EOF
 
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
 install-info --info-dir=/usr/info /usr/info/TEMPLATE.info.gz
 EOF
 fi
 
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
+EOF
+fi
+
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+( cd $PKG/var/lib/scrollkeeper && rm -r * )
+
+cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/scrollkeeper-update ]; then
+  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
+fi
+EOF
+fi
+
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"

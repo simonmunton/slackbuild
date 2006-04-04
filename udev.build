@@ -1,10 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=TEMPLATE
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-VERSION=
+PKGNAME=udev
+PKGDIR=~/tmp/new/u
+PKG_EXT=.tar.bz2
+TAR_OPTS=xjvf
+VERSION=089
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -39,15 +39,31 @@ cd $PKGNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
 
-make || exit
+EXTRAS="extras/ata_id extras/cdrom_id extras/dasd_id extras/edd_id extras/path_id extras/run_directory extras/scsi_id extras/usb_id extras/volume_id"
 
-make install DESTDIR=$PKG
+make EXTRAS="$EXTRAS" || exit
+
+make install DESTDIR=$PKG EXTRAS="$EXTRAS"
+
+mv $PKG/usr/share/man $PKG/usr
+
+cp etc/udev/*rules $PKG/etc/udev/rules.d
+cp $CWD/udev.rules $PKG/etc/udev/rules.d/50-udev.rules
+
+mkdir -p $PKG/sbin
+#cp extras/path_id $PKG/sbin
+#chmod +x $PKG/sbin/path_id
+
+ln -s /lib/udev/ata_id $PKG/sbin
+ln -s /lib/udev/cdrom_id $PKG/sbin
+ln -s /lib/udev/edd_id $PKG/sbin
+ln -s /lib/udev/path_id $PKG/sbin
+ln -s /lib/udev/usb_id $PKG/sbin
+ln -s /lib/udev/vol_id $PKG/sbin
+ln -s /lib/udev/dasd_id $PKG/sbin
+
+mkdir -p $PKG/lib/udev/devices
 
 # fix links
 for f in `find $PKG -type l`
@@ -56,7 +72,7 @@ do
   then
     (cd `dirname $f`
      linkname=`basename $f`
-     ln -sf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
+     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
     )
   fi
 done
@@ -74,6 +90,19 @@ ln -sf `readlink $f.gz`.gz $f.gz
 done
 fi
 
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
 if [ -d $PKG/usr/info ]
 then
 rm $PKG/usr/info/dir
@@ -84,7 +113,7 @@ fi
 
 mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* FAQ INSTALL NEWS PLANS README* RELEASE-NOTES TODO docs \
   $PKG/usr/doc/$PKGNAME-$VERSION
 
 mkdir -p $PKG/install
@@ -97,44 +126,63 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-TEMPLATE: TEMPLATE
-TEMPLATE:
-TEMPLATE: 
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
+udev: udev
+udev:
+udev: 
+udev:
+udev:
+udev:
+udev:
+udev:
+udev:
+udev:
+udev:
 EOF
 
-cat <<EOF > $PKG/install/doinst.sh
-#!/bin/sh
-config() {
-  NEW="\$1"
-  OLD="\`dirname \$NEW\`/\`basename \$NEW .new\`"
-  # If there's no config file by that name, mv it over:
-  if [ ! -r \$OLD ]; then
-    mv \$NEW \$OLD
-  elif [ "\`cat \$OLD | md5sum\`" = "\`cat \$NEW | md5sum\`" ]; then # toss the redundant copy
-    rm \$NEW
-  fi
-  # Otherwise, we leave the .new copy for the admin to consider...
-}
+cat $CWD/udev-doinst.sh > $PKG/install/doinst.sh
 
-config etc/rc.d/rc.udev.new
-		      
-EOF
+mkdir -p $PKG/etc/rc.d
+cp $CWD/udev-rc.udev.new $PKG/etc/rc.d/rc.udev.new
+
+mkdir -p $PKG/lib/udev
+cp $CWD/udev-floppy-extra-devs.sh $PKG/lib/udev/floppy-extra-devs.sh
 
 if [ -d $PKG/usr/info ]
 then
 cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/TEMPLATE.info.gz
+install-info --info-dir=/usr/info /usr/info/udev.info.gz
+EOF
+fi
+
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
+EOF
+fi
+
+
+if [ -d $PKG/var/lib/scrollkeeper ]
+then
+( cd $PKG/var/lib/scrollkeeper && rm -r * )
+
+cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/scrollkeeper-update ]; then
+  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
+fi
 EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+mknod $PKG/lib/udev/devices/null c 1 3; \
+chmod 666 $PKG/lib/udev/devices/null; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
