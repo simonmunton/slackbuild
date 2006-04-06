@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=TEMPLATE
-PKGDIR=~/tmp/new/
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-VERSION=
+PKGNAME=dogtail
+PKGDIR=~/tmp/gnome
+PKG_EXT=.tar.bz2
+TAR_OPTS=xjvf
+VERSION=0.4.3
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -39,15 +39,19 @@ cd $PKGNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+#CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+#CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib
 
-make || exit
+./setup.py build 
 
-make install DESTDIR=$PKG
+./setup.py install --root=$PKG
+
+#make || exit
+
+#make install DESTDIR=$PKG
 
 # fix links
 for f in `find $PKG -type l`
@@ -100,17 +104,8 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$PKGNAME-$VERSION
 
-if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
-then
-mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
-
-if [ -d $PKG/usr/share/doc/$PKGNAME ]
-then
 mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$PKGNAME-$VERSION
 rm -rf $PKG/usr/share/doc
-fi
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -122,24 +117,24 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-TEMPLATE: TEMPLATE
-TEMPLATE:
-TEMPLATE: 
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
+dogtail: dogtail
+dogtail:
+dogtail: 
+dogtail:
+dogtail:
+dogtail:
+dogtail:
+dogtail:
+dogtail:
+dogtail:
+dogtail:
 EOF
 
 if [ -d $PKG/usr/info ]
 then
 cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/TEMPLATE.info.gz
+install-info --info-dir=/usr/info /usr/info/dogtail.info.gz
 EOF
 fi
 

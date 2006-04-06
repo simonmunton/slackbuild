@@ -1,10 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=mono
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-VERSION=1.1.13.6
+PKGNAME=gconf-editor
+PKGDIR=~/tmp/gnome
+PKG_EXT=.tar.bz2
+TAR_OPTS=xjvf
+VERSION=2.14.0
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/m/mono
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -45,9 +45,21 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
-make
+make || exit
 
 make install DESTDIR=$PKG
+
+# fix links
+for f in `find $PKG -type l`
+do
+  if [[ `readlink $f` =~ "$PKG.*" ]]
+  then
+    (cd `dirname $f`
+     linkname=`basename $f`
+     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
+    )
+  fi
+done
 
 if [ -d $PKG/usr/man ]
 then
@@ -56,6 +68,19 @@ find $PKG/usr/man -exec gzip {} \;
 
 # make links point to right places
 for f in `find $PKG/usr/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
 do
 mv $f $f.gz
 ln -sf `readlink $f.gz`.gz $f.gz
@@ -72,7 +97,7 @@ fi
 
 mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
-  AUTHORS COPYING INSTALL* README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$PKGNAME-$VERSION
 
 mkdir -p $PKG/install
@@ -85,26 +110,56 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-mono: mono
-mono:
-mono:
-mono:
-mono:
-mono:
-mono:
-mono:
-mono:
-mono:
-mono:
+gconf-editor: gconf-editor
+gconf-editor:
+gconf-editor: 
+gconf-editor:
+gconf-editor:
+gconf-editor:
+gconf-editor:
+gconf-editor:
+gconf-editor:
+gconf-editor:
+gconf-editor:
 EOF
 
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/mono.info.gz
+install-info --info-dir=/usr/info /usr/info/gconf-editor.info.gz
+EOF
+fi
+
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
+EOF
+fi
+
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
+
+cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/scrollkeeper-update ]; then
+  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
+fi
 EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root.bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
