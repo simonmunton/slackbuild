@@ -2,10 +2,11 @@
 #
 CWD=`pwd`
 PKGNAME=MPlayer
-VERSION=1.0pre7try2
+PKGDIR=~/tmp/new/m/MPlayer
+VERSION=cvs-20060405
 VERSIONEXTRA=
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
+PKG_EXT=.tar.gz
+TAR_OPTS=xzvf
 ARCH=i486
 BUILD=1sm
 USERNAME=`id -un`
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/m/MPlayer
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -37,21 +37,28 @@ if [ ! -d $PKGNAME-$VERSION ]
 then 
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
-(cd $PKGNAME-$VERSION
- patch -p1 < ../mplayer.diff
-)
+#(cd $PKGNAME-$VERSION
+# patch -p1 < ../mplayer.diff
+#)
 (cd $PKGNAME-$VERSION/libavcodec
+ mkdir amr
+ (cd amr
+ unzip ~/tmp/new/a/amr/nb/26073-530.zip
+ unzip 26073*.zip
+ mv c-code/* .
+ )
  mkdir amr_float
- cd amr_float
- unzip ~/tmp/new/a/amr/26104-610.zip
+ (cd amr_float
+ unzip ~/tmp/new/a/amr/nb-float/26104-540.zip
  unzip 26104*.zip
  mv c-code/* .
- cd ..
+ )
  mkdir amrwb_float
- cd amrwb_float
- unzip ~/tmp/new/a/amr/26204-600.zip
+ (cd amrwb_float
+ unzip ~/tmp/new/a/amr/wb-float/26204-530.zip
  unzip 26204*.zip
  mv c-code/* .
+ )
 )
 fi
 
@@ -94,7 +101,7 @@ cp -a DOCS/HTML/en $PKG/usr/doc/$PKGNAME-$VERSION/html
 
 
 mkdir -p $PKG/usr/lib/codecs
-tar xjf $PKGDIR/codecs/$CODECS$PKG_EXT
+tar xjf $PKGDIR/codecs/$CODECS.tar.bz2
 mv $CODECS/* $PKG/usr/lib/codecs
 
 mkdir -p $PKG/usr/share/mplayer/font
