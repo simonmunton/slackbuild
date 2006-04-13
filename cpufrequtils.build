@@ -1,10 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=loudmouth
+PKGNAME=cpufrequtils
+PKGDIR=~/tmp/new/c
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=1.0.3
+VERSION=001
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/gnome
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -74,6 +74,19 @@ ln -sf `readlink $f.gz`.gz $f.gz
 done
 fi
 
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
 if [ -d $PKG/usr/info ]
 then
 rm $PKG/usr/info/dir
@@ -97,24 +110,36 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-loudmouth: loudmouth
-loudmouth:
-loudmouth: 
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
+cpufrequtils: cpufrequtils
+cpufrequtils:
+cpufrequtils: 
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
+cpufrequtils:
 EOF
 
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/loudmouth.info.gz
+install-info --info-dir=/usr/info /usr/info/cpufrequtils.info.gz
+EOF
+fi
+
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
 EOF
 fi
 
@@ -132,4 +157,6 @@ EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"

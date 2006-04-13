@@ -1,10 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=loudmouth
+PKGNAME=powersave
+PKGDIR=~/tmp/new/p
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=1.0.3
+VERSION=0.12.7
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/gnome
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -43,11 +43,16 @@ CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --enable-docs
 
 make || exit
 
 make install DESTDIR=$PKG
+
+mkdir -p $PKG/etc/rc.d
+mv $PKG/etc/init.d/powersaved $PKG/etc/rc.d/rc.powersaved
+rm -rf $PKG/etc/init.d
 
 # fix links
 for f in `find $PKG -type l`
@@ -74,6 +79,19 @@ ln -sf `readlink $f.gz`.gz $f.gz
 done
 fi
 
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
 if [ -d $PKG/usr/info ]
 then
 rm $PKG/usr/info/dir
@@ -87,6 +105,9 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$PKGNAME-$VERSION
 
+mv $PKG/usr/share/doc/packages/powersave/* $PKG/usr/doc/$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
 # HOW TO EDIT THIS FILE:
@@ -97,24 +118,36 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-loudmouth: loudmouth
-loudmouth:
-loudmouth: 
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
-loudmouth:
+powersave: powersave
+powersave:
+powersave: 
+powersave:
+powersave:
+powersave:
+powersave:
+powersave:
+powersave:
+powersave:
+powersave:
 EOF
 
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/loudmouth.info.gz
+install-info --info-dir=/usr/info /usr/info/powersave.info.gz
+EOF
+fi
+
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
 EOF
 fi
 
@@ -132,4 +165,6 @@ EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
