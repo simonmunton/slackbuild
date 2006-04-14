@@ -5,7 +5,7 @@ PKGNAME=seahorse
 PKGDIR=~/tmp/gnome
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=0.9.0
+VERSION=0.9.1
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -44,7 +44,8 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --disable-update-mime-database
+	    --disable-update-mime-database \
+	    --disable-scrollkeeper
 
 make || exit
 
@@ -132,11 +133,6 @@ install-info --info-dir=/usr/info /usr/info/seahorse.info.gz
 EOF
 fi
 
-cat <<EOF >> $PKG/install/doinst.sh
-#
-update-mime-database /usr/share/mime/
-EOF
-
 if [ -d $PKG/etc/gconf/schemas ]
 then
 schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
@@ -149,10 +145,29 @@ done
 EOF
 fi
 
-
-if [ -d $PKG/var/lib/scrollkeeper ]
+if [ -d $PKG/usr/share/applications ]
 then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-desktop-database
+EOF
+fi
+
+if [ -d $PKG/usr/share/mime ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-mime-database /usr/share/mime
+EOF
+fi
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
+
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
