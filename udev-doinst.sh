@@ -11,3 +11,4 @@ config() {
   # Otherwise, we leave the .new copy for the admin to consider...
 }
 config etc/rc.d/rc.udev.new
+config etc/rc.d/rc.udev_retry.new

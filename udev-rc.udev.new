@@ -29,24 +29,23 @@ udev_start() {
 	    mount -n -o mode=0620,gid=5 -t devpts devpts /dev/pts
 	fi
 
-# if distro hasn't already done part of this ... load core,
-# and mount usbfs 
-modprobe -q usbcore >/dev/null 2>&1
-if [ -d /proc/bus/usb ]; then
-  # if it's not mounted, try to mount it
-  if [ -z "`grep " /proc/bus/usb " /proc/mounts`" ]; then
-    if grep -q -E "^[^#][^[:space:]]+[[:space:]]+/proc/bus/usb/?[[:space:]]" /etc/fstab; then
-      mount /proc/bus/usb
-    else
-      if grep -q usbfs /proc/filesystems; then
-	mount -t usbfs usbfs /proc/bus/usb
-      else
-	mount -t usbdevfs usbdevfs /proc/bus/usb
-      fi
-    fi
-  fi
-fi
-
+	# if distro hasn't already done part of this ... load core,
+	# and mount usbfs 
+	modprobe -q usbcore >/dev/null 2>&1
+	if [ -d /proc/bus/usb ]; then
+	  # if it's not mounted, try to mount it
+	  if [ -z "`grep " /proc/bus/usb " /proc/mounts`" ]; then
+	    if grep -q -E "^[^#][^[:space:]]+[[:space:]]+/proc/bus/usb/?[[:space:]]" /etc/fstab; then
+	      mount /proc/bus/usb
+	    else
+	      if grep -q usbfs /proc/filesystems; then
+		mount -t usbfs usbfs /proc/bus/usb
+	      else
+		mount -t usbdevfs usbdevfs /proc/bus/usb
+	      fi
+	    fi
+	  fi
+	fi
 
 	# populate initial /dev with the static nodes
 	cp --preserve=all --recursive --remove-destination /lib/udev/devices/* /dev
@@ -57,44 +56,17 @@ fi
 	# trigger cold plug events
 	/sbin/udevtrigger
 
-#	# generate events with the sysfs trigger
-#	list=$(echo /sys/bus/*/devices/*/uevent)
-#	list="$list $(echo /sys/class/*/*/uevent)"
-#	list="$list $(echo /sys/block/*/uevent /sys/block/*/*/uevent)"
-#	for i in $list; do
-#	    case "$i" in
-#		*/device/uevent)
-#		    # skip followed device symlinks
-#		    continue
-#		    ;;
-#
-#		*/class/mem/*|*/class/tty/*)
-#		    first="$first $i"
-#		    ;;
-#
-#		*/block/md*)
-#		    last="$last $i"
-#		    ;;
-#
-#		*/*)
-#		    default="$default $i"
-#		    ;;
-#	    esac
-#	done
-#
-#	# trigger the sorted events
-#	for i in $first $default $last; do
-#	    echo "add" > "$i"
-#	done
+	# Now wait for udevd to process the uevents we triggered
+	/sbin/udevsettle
 
-  # wait for the events to finish
-  sleep 2
-  loop=300
-  while test -d $udev_root/.udev/queue; do
-    sleep 0.1;
-    test "$loop" -gt 0 || break
-    loop=$(($loop - 1))
-  done
+	# wait for the events to finish
+	#sleep 2
+	#loop=300
+	#while test -d $udev_root/.udev/queue; do
+	#  sleep 0.1;
+	#  test "$loop" -gt 0 || break
+	#  loop=$(($loop - 1))
+	#done
 }
 
 udev_stop() {
