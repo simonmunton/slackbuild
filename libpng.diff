@@ -1,17 +1,17 @@
---- scripts/makefile.linux.orig	2004-12-03 00:14:31.000000000 +0000
-+++ scripts/makefile.linux	2005-08-01 19:59:53.000000000 +0100
-@@ -99,12 +99,12 @@
- $(LIBNAME).so.$(PNGVER): $(OBJSDLL)
- 	$(CC) -shared -Wl,-soname,$(LIBNAME).so.$(PNGMAJ) \
- 	-o $(LIBNAME).so.$(PNGVER) \
--	$(OBJSDLL)
-+	$(OBJSDLL) -lz -lm
+--- libpng-1.2.10/scripts/makefile.linux.orig	2006-04-23 04:45:06.000000000 +0100
++++ libpng-1.2.10/scripts/makefile.linux	2006-04-25 22:43:36.000000000 +0100
+@@ -110,12 +110,12 @@
+ 	$(LN_SF) $(LIBSOVER) $(LIBSOMAJ)
  
- libpng.so.3.$(PNGMIN): $(OBJSDLL)
- 	$(CC) -shared -Wl,-soname,libpng.so.3 \
- 	-o libpng.so.3.$(PNGMIN) \
--	$(OBJSDLL)
-+	$(OBJSDLL) -lz -lm
+ $(LIBSOVER): $(OBJSDLL)
+-	$(CC) -shared -Wl,-soname,$(LIBSOMAJ) -o $(LIBSOVER) $(OBJSDLL)
++	$(CC) -shared -Wl,-soname,$(LIBSOMAJ) -o $(LIBSOVER) $(OBJSDLL)  -lz -lm
  
- pngtest: pngtest.o $(LIBNAME).so
+ $(OLDSOVER): $(OBJSDLL)
+ 	$(CC) -shared -Wl,-soname,$(OLDSOMAJ) \
+ 	-o $(OLDSOVER) \
+-	$(OBJSDLL)
++	$(OBJSDLL)  -lz -lm
+ 
+ pngtest: pngtest.o $(LIBSO)
  	$(CC) -o pngtest $(CFLAGS) pngtest.o $(LDFLAGS)

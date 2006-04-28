@@ -131,10 +131,40 @@ install-info --info-dir=/usr/info /usr/info/monkey-bubble.info.gz
 EOF
 fi
 
-
-if [ -d $PKG/var/lib/scrollkeeper ]
+if [ -d $PKG/etc/gconf/schemas ]
 then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
+EOF
+fi
+
+if [ -d $PKG/usr/share/applications ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-desktop-database
+EOF
+fi
+
+if [ -d $PKG/usr/share/mime ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-mime-database /usr/share/mime
+EOF
+fi
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
@@ -145,4 +175,6 @@ EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"

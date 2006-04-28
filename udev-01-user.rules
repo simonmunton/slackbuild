@@ -4,20 +4,22 @@
 # fields.  See the udev man page for a full description of them.
 
 # permissions for IDE CD devices
-BUS="ide", KERNEL="*[!0-9]", PROGRAM="/bin/cat /proc/ide/%k/media", RESULT="cdrom*", NAME="%k", GROUP:="cdrecording", MODE="0660"
+BUS=="ide", KERNEL=="*[!0-9]", PROGRAM="/bin/cat /proc/ide/%k/media", RESULT=="cdrom*", NAME="%k", GROUP:="cdrecording", MODE="0660"
 
 # cdrom/dvd devices
-KERNEL="hdc", SYMLINK="dvd cdrom"
+KERNEL=="hdc", SYMLINK="dvd cdrom"
 
 # v4l devices
-KERNEL="video0",	SYMLINK:="video0 video", MODE:="0660"
-#KERNEL="video0",	NAME="v4l/video%n", SYMLINK="video%n video", GROUP="video"
+KERNEL=="video0",	SYMLINK:="video0 video", MODE:="0660"
+#KERNEL=="video0",	NAME="v4l/video%n", SYMLINK="video%n video", GROUP="video"
 
-KERNEL="sda*",		MODE:="0666"
+KERNEL=="sda*",		MODE:="0666"
 
-ACTION="add", DEVPATH="/devices/*", $sysfs{modalias}=="?*", RUN+="/sbin/modprobe $sysfs{modalias}"
+ACTION=="add", DEVPATH=="/devices/*", SYSFS{modalias}=="?*", RUN+="/sbin/modprobe $SYSFS{modalias}"
 
-ACTION="add", SUBSYSTEM=="usb", ENV{PRODUCT}=="4b8/121/*", RUN+="/lib/udev/epson2480"
+ACTION=="add", SUBSYSTEM=="usb", ENV{PRODUCT}=="4b8/121/*", RUN+="/lib/udev/epson2480"
 
-ACTION="add", KERNEL="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_start"
-ACTION="remove", KERNEL="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_stop"
+ACTION=="add", KERNEL=="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_start"
+ACTION=="remove", KERNEL=="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_stop"
+
+SUBSYSTEM=="scsi_device", ACTION=="add", SYSFS{type}=="1", RUN+="/sbin/modprobe st"

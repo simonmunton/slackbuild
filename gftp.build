@@ -2,12 +2,13 @@
 #
 CWD=`pwd`
 PKGNAME=gftp
-VERSION=2.0.18
-VERSIONEXTRA=
+PKGDIR=~/tmp/new/g
 PKG_EXT=.tar.gz
 TAR_OPTS=xzvf
+VERSION=2.0.18
+VERSIONEXTRA=
 ARCH=i486
-BUILD=1
+BUILD=1sm
 USERNAME=`id -un`
 GROUP=`id -gn`
 
@@ -17,7 +18,6 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/g
 PKG=/tmp/package-$PKGNAME
 
 if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
@@ -45,9 +45,21 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
-make
+make || exit
 
 make install DESTDIR=$PKG
+
+# fix links
+for f in `find $PKG -type l`
+do
+  if [[ `readlink $f` =~ "$PKG.*" ]]
+  then
+    (cd `dirname $f`
+     linkname=`basename $f`
+     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
+    )
+  fi
+done
 
 if [ -d $PKG/usr/man ]
 then
@@ -56,6 +68,19 @@ find $PKG/usr/man -exec gzip {} \;
 
 # make links point to right places
 for f in `find $PKG/usr/man -type l`
+do
+mv $f $f.gz
+ln -sf `readlink $f.gz`.gz $f.gz
+done
+fi
+
+if [ -d $PKG/usr/X11R6/man ]
+then
+# compress man pages
+find $PKG/usr/X11R6/man -exec gzip {} \;
+
+# make links point to right places
+for f in `find $PKG/usr/X11R6/man -type l`
 do
 mv $f $f.gz
 ln -sf `readlink $f.gz`.gz $f.gz
@@ -72,8 +97,20 @@ fi
 
 mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
-  AUTHORS BUGS COPYING* HACKING MAINTAINERS NEWS README* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$PKGNAME-$VERSION
+
+if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
+then
+mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+fi
+
+if [ -d $PKG/usr/share/doc/$PKGNAME ]
+then
+mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+fi
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -100,11 +137,56 @@ EOF
 
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
 install-info --info-dir=/usr/info /usr/info/gftp.info.gz
 EOF
 fi
 
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
+cat <<EOF >> $PKG/install/doinst.sh
+#
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
+EOF
+fi
+
+if [ -d $PKG/usr/share/applications ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-desktop-database
+EOF
+fi
+
+if [ -d $PKG/usr/share/mime ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-mime-database /usr/share/mime
+EOF
+fi
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
+
+cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/scrollkeeper-update ]; then
+  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
+fi
+EOF
+fi
+
 cd $PKG
-su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"

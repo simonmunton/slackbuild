@@ -5,7 +5,7 @@ PKGNAME=xchat
 PKGDIR=~/tmp/new/x
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=2.6.1
+VERSION=2.6.2
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -131,14 +131,40 @@ install-info --info-dir=/usr/info /usr/info/xchat.info.gz
 EOF
 fi
 
+if [ -d $PKG/etc/gconf/schemas ]
+then
+schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
 cat <<EOF >> $PKG/install/doinst.sh
 #
-GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/apps_xchat_url_handler.schemas
+for n in $schemas
+do
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+done
 EOF
+fi
 
-if [ -d $PKG/var/lib/scrollkeeper ]
+if [ -d $PKG/usr/share/applications ]
 then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-desktop-database
+EOF
+fi
+
+if [ -d $PKG/usr/share/mime ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-mime-database /usr/share/mime
+EOF
+fi
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
@@ -149,4 +175,6 @@ EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
