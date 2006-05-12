@@ -19,7 +19,17 @@ ACTION=="add", DEVPATH=="/devices/*", SYSFS{modalias}=="?*", RUN+="/sbin/modprob
 
 ACTION=="add", SUBSYSTEM=="usb", ENV{PRODUCT}=="4b8/121/*", RUN+="/lib/udev/epson2480"
 
+KERNEL=="ttyACM[0-9]*",	NAME="ttyACM%n", MODE="0666"
+ACTION=="add", SUBSYSTEM=="usb", ENV{PRODUCT}=="22b8/4901/*", RUN+="/lib/udev/moto_v220"
+ACTION=="add", SUBSYSTEM=="usb", ENV{PRODUCT}=="22b8/4902/*", RUN+="/lib/udev/moto_v220"
+
 ACTION=="add", KERNEL=="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_start"
 ACTION=="remove", KERNEL=="eth[0-9]", RUN+="/etc/rc.d/rc.inet1 %k_stop"
 
 SUBSYSTEM=="scsi_device", ACTION=="add", SYSFS{type}=="1", RUN+="/sbin/modprobe st"
+
+ACTION=="add", SUBSYSTEM=="usb_device", \
+        PROGRAM="/bin/sh -c 'K=%k; K=$${K#usbdev}; printf bus/usb/%%03i/%%03i $${K%%%%.*} $${K#*.}'", \
+        NAME="%c", MODE="0644"
+
+		

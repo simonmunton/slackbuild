@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 CWD=`pwd`
-PKGNAME=librsvg
-PKGDIR=~/tmp/gnome
+PKGNAME=gdb
+PKGDIR=~/tmp/gnu/gdb
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=2.14.4
+VERSION=6.4.50.20060512
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -33,19 +33,24 @@ if [ ! -d $PKGNAME-$VERSION ]
 then 
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+(cd $PKGNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
 fi
 
 cd $PKGNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
 
-make || exit
+CFLAGS="-O2 -ggdb -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -ggdb -march=i486 $CPUOPT=i686" \
+./configure --prefix=/opt/avr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --target=avr
+
+make -j4 || exit
 
 make install DESTDIR=$PKG
 
@@ -95,10 +100,22 @@ rm $PKG/usr/info/dir
 find $PKG/usr/info -exec gzip {} \;
 fi
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+mkdir -p $PKG/usr/doc/avr-$PKGNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  $PKG/usr/doc/avr-$PKGNAME-$VERSION
+
+if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
+then
+mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/avr-$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+fi
+
+if [ -d $PKG/usr/share/doc/$PKGNAME ]
+then
+mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/avr-$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+fi
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -110,24 +127,28 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-librsvg: librsvg
-librsvg:
-librsvg: 
-librsvg:
-librsvg:
-librsvg:
-librsvg:
-librsvg:
-librsvg:
-librsvg:
-librsvg:
+avr-gdb: avr-gdb
+avr-gdb:
+avr-gdb: 
+avr-gdb:
+avr-gdb:
+avr-gdb:
+avr-gdb:
+avr-gdb:
+avr-gdb:
+avr-gdb:
+avr-gdb:
 EOF
 
 if [ -d $PKG/usr/info ]
 then
+infos=`ls $PKG/usr/info | grep \.info\.gz | tr '\012' ' '`
 cat <<EOF >> $PKG/install/doinst.sh
 #
-install-info --info-dir=/usr/info /usr/info/librsvg.info.gz
+for n in $infos
+do
+  install-info --info-dir=/usr/info /usr/info/\$n
+done
 EOF
 fi
 
@@ -143,10 +164,28 @@ done
 EOF
 fi
 
-
-if [ -d $PKG/var/lib/scrollkeeper ]
+if [ -d $PKG/usr/share/applications ]
 then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-desktop-database
+EOF
+fi
+
+if [ -d $PKG/usr/share/mime ]
+then
+cat <<EOF >> $PKG/install/doinst.sh
+#
+/usr/bin/update-mime-database /usr/share/mime
+EOF
+fi
+
+if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+then
+  if [ -d $PKG/var/lib/scrollkeeper ]
+  then
+    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+  fi
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
@@ -156,7 +195,12 @@ fi
 EOF
 fi
 
+if [ -d $PKG/usr/local ]
+then
+  echo WARNING --- usr/local directory exists
+fi
+
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+makepkg avr-$PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
