@@ -5,7 +5,7 @@ PKGNAME=gdm
 PKGDIR=~/tmp/gnome
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=2.14.5
+VERSION=2.14.6
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -47,6 +47,9 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 	    --with-prefetch
 
 make || exit
+
+mkdir -p $PKG/var/lib/log/gdm
+mkdir -p $PKG/var/lib/gdm
 
 make install DESTDIR=$PKG
 
@@ -170,5 +173,9 @@ fi
 
 cd $PKG
 su -c "chown -R root.root *; \
+chmod -R 755 *; \
+chmod 755 var/log/gdm; \
+chmod 1770 var/lib/gdm; \
+chown root:gdm var/lib/gdm; \
 makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
