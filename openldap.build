@@ -2,12 +2,12 @@
 #
 CWD=`pwd`
 PKGNAME=openldap
-VERSION=2.3.19
+VERSION=2.3.23
 VERSIONEXTRA=
 PKG_EXT=.tgz
 TAR_OPTS=xzvf
 ARCH=i486
-BUILD=1sm
+BUILD=2sm
 USERNAME=`id -un`
 GROUP=`id -gn`
 
@@ -47,11 +47,55 @@ CFLAGS="-O2 -march=i486 $CPUOPT=i686 -I/usr/include/db4" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686 -I/usr/include/db4" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --with-cyrus-sasl \
+	    --with-tls \
+	    --with-readline \
+	    --with-threads \
+	    --enable-debug \
+	    --enable-syslog \
+	    --enable-dynamic \
+	    --enable-local \
+	    --enable-proctitle \
+	    --enable-shared 
 
-make
+#  --prefix=/usr \
+#  --localstatedir=/var/lib \
+#  --sysconfdir=/etc \
+#  --with-cyrus-sasl \
+#  --with-tls \
+#  --with-readline \
+#  --with-threads \
+#  --enable-debug \
+#  --enable-syslog \
+#  --enable-dynamic \
+#  --enable-local \
+#  --enable-proctitle \
+#  --disable-ipv6 \
+#  --disable-static \
+#  --enable-shared \
+#  --disable-slapd \
+#  --disable-slurpd
+
+make depend
+
+make || exit
 
 make install DESTDIR=$PKG
+
+(cd $PKG/etc/openldap
+ rm ldap.conf.default slapd.conf.default
+ mv ldap.conf ldap.conf.new
+ mv slapd.conf slapd.conf.new
+ cat << EOF >> ldap.conf.new
+
+# In order to avoid problems with self-signed certificates using TLS:
+# "TLS certificate verification: Error, self signed certificate"
+# See also 'man ldap.conf' or http://www.openldap.org/doc/admin/tls.html
+TLS_REQCERT allow
+
+EOF
+)
 
 if [ -d $PKG/usr/man ]
 then
@@ -102,9 +146,11 @@ openldap:
 openldap:
 EOF
 
+cat $CWD/openldap-doinst.sh >> $PKG/install/doinst.sh
+
 if [ -d $PKG/usr/info ]
 then
-cat <<EOF > $PKG/install/doinst.sh
+cat <<EOF >> $PKG/install/doinst.sh
 #
 install-info --info-dir=/usr/info /usr/info/openldap.info.gz
 EOF

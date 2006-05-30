@@ -2,12 +2,20 @@
 #
 CWD=`pwd`
 PKGNAME=hugin
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
-VERSION=0.5-rc2
+PKG_EXT=.tar.gz
+TAR_OPTS=xzvf
+VERSION=0.5
 #VERSION=0.5_cvs050602
 ARCH=i486
 BUILD=1sm
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+CPUOPT="-mcpu"
+GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
+case $GCCVER in
+  3.4*|4.*) CPUOPT="-mtune" ;;
+esac
 
 PKGDIR=~/tmp/new/h
 PKG=/tmp/package-$PKGNAME
@@ -25,7 +33,7 @@ if [ ! -d $PKGNAME-$VERSION ]
 then 
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$PKG_EXT
-mv hugin-0.5 $PKGNAME-$VERSION
+#mv hugin-0.5 $PKGNAME-$VERSION
 fi
 
 cd $PKGNAME-$VERSION
@@ -107,4 +115,4 @@ EOF
 fi
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root.bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R simon.users $PKG"
+su -c "chown -R root.root *; chown -R root.bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
