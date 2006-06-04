@@ -5,7 +5,7 @@ PKGNAME=poppler
 PKGDIR=~/tmp/new/p
 PKG_EXT=.tar.gz
 TAR_OPTS=xzvf
-VERSION=0.5.1
+VERSION=0.5.3
 VERSIONEXTRA=
 ARCH=i486
 BUILD=1sm
@@ -36,12 +36,12 @@ then
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
 
 (cd $PKGNAME-$VERSION/qt
- sed -e '/$(POPPLER_QT_CXXFLAGS)/a \
-        $(X_CFLAGS) \\
-' -e '/$(POPPLER_QT_LIBS)/a \
-        $(X_LIBS) \\
-' Makefile.in > Makefile.in.new
-  mv Makefile.in.new Makefile.in
+# sed -e '/$(POPPLER_QT_CXXFLAGS)/a \
+#        $(X_CFLAGS) \\
+#' -e '/$(POPPLER_QT_LIBS)/a \
+#        $(X_LIBS) \\
+#' Makefile.in > Makefile.in.new
+#  mv Makefile.in.new Makefile.in
 )
 fi
 
@@ -54,7 +54,9 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --enable-zlib
+	    --disable-poppler-qt4 \
+	    --enable-zlib \
+	    --enable-gtk-doc
 
 make || exit
 

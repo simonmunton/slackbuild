@@ -1,0 +1,34 @@
+--- pyvorbis-1.4/src/pyvorbisfile.h.orig	2006-06-03 23:07:04.000000000 +0100
++++ pyvorbis-1.4/src/pyvorbisfile.h	2006-06-04 08:10:29.000000000 +0100
+@@ -8,7 +8,6 @@
+   PyObject_HEAD
+   OggVorbis_File *ovf;
+   PyObject *py_file;
+-  FILE *c_file;
+ } py_vorbisfile;
+ 
+ #define PY_VORBISFILE(x) (((py_vorbisfile *)x)->ovf)
+--- pyvorbis-1.4/src/pyvorbisfile.c.orig	2003-12-19 07:11:02.000000000 +0000
++++ pyvorbis-1.4/src/pyvorbisfile.c	2006-06-04 08:23:27.000000000 +0100
+@@ -190,9 +190,6 @@
+     /* If file was opened from a file object, decref it, so it can
+        close */
+     Py_DECREF(py_self->py_file);
+-  } else {
+-    /* Otherwise, we opened the file and should close it. */
+-    fclose(py_self->c_file);
+   }
+ 
+   PyMem_DEL(self);
+@@ -260,10 +257,8 @@
+   
+   retval = ov_open(file, self->ovf, initial, ibytes);
+ 
+-  self->c_file = file;
+   if (retval < 0) {
+-    if (fname != NULL)
+-      fclose(file);
++    fclose(file);
+     Py_XDECREF(self->py_file);
+ 
+     return v_error_from_code(retval, "Error opening file: ");
