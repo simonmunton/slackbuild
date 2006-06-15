@@ -2,10 +2,10 @@
 #
 CWD=`pwd`
 PKGNAME=libtheora
-VERSION=1.0alpha4
+VERSION=1.0alpha6
 VERSIONEXTRA=
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
+PKG_EXT=.tar.gz
+TAR_OPTS=xzvf
 ARCH=i486
 BUILD=1
 USERNAME=`id -un`
@@ -33,7 +33,9 @@ if [ ! -d $PKGNAME-$VERSION ]
 then 
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
-(cd $PKGNAME-$VERSION; patch -p1 < ../libtheora.diff)
+(cd $PKGNAME-$VERSION
+# patch -p1 < ../libtheora.diff
+)
 fi
 
 cd $PKGNAME-$VERSION
@@ -76,8 +78,18 @@ cp -a \
   COPYING README* \
   $PKG/usr/doc/$PKGNAME-$VERSION
 
+if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
+then
 mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
-rmdir $PKG/usr/share
+rm -rf $PKG/usr/share/doc
+fi
+
+if [ -d $PKG/usr/share/doc/$PKGNAME ]
+then
+mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$PKGNAME-$VERSION
+rm -rf $PKG/usr/share/doc
+fi
+
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc

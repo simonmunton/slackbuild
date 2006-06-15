@@ -2,12 +2,14 @@
 #
 CWD=`pwd`
 PKGNAME=boost
+PKGDIR=~/tmp/new/b
+PKG=/tmp/package-$PKGNAME
 PKG_EXT=.tar.bz2
 TAR_OPTS=xjvf
-VERSION=1_32_0
+VERSION=1_33_1
 VERSIONEXTRA=
 ARCH=i486
-BUILD=2
+BUILD=1sm
 USERNAME=`id -un`
 GROUP=`id -gn`
 
@@ -17,12 +19,10 @@ case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 
-PKGDIR=~/tmp/new/b
-PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
   exit
 fi
 
@@ -33,7 +33,10 @@ if [ ! -d ${PKGNAME}_$VERSION ]
 then 
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
-(cd ${PKGNAME}_$VERSION; patch -p0 < $CWD/boost-base.patch; patch -p0 < $CWD/boost-gcc-tools.patch)
+(cd ${PKGNAME}_$VERSION
+# patch -p0 < $CWD/boost-base.patch
+# patch -p0 < $CWD/boost-gcc-tools.patch
+)
 fi
 
 cd ${PKGNAME}_$VERSION
@@ -43,9 +46,13 @@ cd ${PKGNAME}_$VERSION
 
 PATH=`pwd`/tools/build/jam_src/bin.linuxx86:$PATH
 
-PYTHON_VERSION=2.3 bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
-PYTHON_VERSION=2.3 bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
+export PYTHON_VERSION
+
+bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
+
+bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
 
 (cd $PKG/usr/include; ln -s boost*/boost boost)
 

@@ -44,7 +44,7 @@ if [ ! -e etc/rc.d/rc.local ]; then
 	echo "#!/bin/sh" > etc/rc.d/rc.local
 	chmod 755 etc/rc.d/rc.local
 fi
-run=`grep "sh /etc/rc.d/rc.postgresql" etc/rc.d/rc.local`
+run=`grep "/etc/rc.d/rc.postgresql" etc/rc.d/rc.local`
 if [[ "${run}" == "" ]]; then	
 	echo "" >> etc/rc.d/rc.local
 	echo "if [ -x /etc/rc.d/rc.postgresql ]; then" >> etc/rc.d/rc.local
