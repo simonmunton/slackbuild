@@ -2,10 +2,10 @@
 #
 CWD=`pwd`
 PKGNAME=libgphoto2
-VERSION=2.1.6
+VERSION=2.2.0
 VERSIONEXTRA=
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
+PKG_EXT=.tar.bz2
+TAR_OPTS=xjvf
 ARCH=i486
 BUILD=1sm
 USERNAME=`id -un`
@@ -34,7 +34,7 @@ then
 #cd /tmp
 tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
 (cd $PKGNAME-$VERSION
- patch -p1 < ../libgphoto2.diff
+# patch -p1 < ../libgphoto2.diff
 )
 fi
 
@@ -51,6 +51,26 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 make
 
 make install DESTDIR=$PKG
+
+mkdir -p $PKG/usr/share/hal/fdi/information/10freedesktop $PKG/etc/udev/rules.d $PKG/etc/hotplug/usb
+
+LD_LIBRARY_PATH=$PKG/usr/lib \
+CAMLIBS=$PKG/usr/lib/libgphoto2/$VERSION \
+$PKG/usr/lib/libgphoto2/print-camera-list hal-fdi > $PKG/usr/share/hal/fdi/information/10freedesktop/10-camera-libgphoto2.fdi
+
+LD_LIBRARY_PATH=$PKG/usr/lib \
+CAMLIBS=$PKG/usr/lib/libgphoto2/$VERSION \
+$PKG/usr/lib/libgphoto2/print-camera-list udev-rules > $PKG/etc/udev/rules.d/70-libghoto2.rules
+
+LD_LIBRARY_PATH=$PKG/usr/lib \
+CAMLIBS=$PKG/usr/lib/libgphoto2/$VERSION \
+$PKG/usr/lib/libgphoto2/print-camera-list usb-usermap > $PKG/etc/hotplug/usb/libghoto2.usermap
+
+cp packaging/linux-hotplug/usbcam* $PKG/etc/hotplug/usb
+(cd $PKG/etc/hotplug/usb
+ chmod +x *
+ ln -s usbcam.group usbcam
+)
 
 if [ -d $PKG/usr/man ]
 then
