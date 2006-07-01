@@ -1,55 +1,80 @@
 #!/bin/bash
 #
-. build_funcs
-
-TARNAME=TEMPLATE
-TARDIR=~/tmp/new/
+CWD=`pwd`
+PKGNAME=blender
+PKGDIR=~/tmp/new/b
 PKG_EXT=.tar.gz
 TAR_OPTS=xzvf
-TAR_PROG=tar
-VERSION=
+VERSION=2.41
 VERSIONEXTRA=
-BUILD=1
+ARCH=i486
+BUILD=1sm
+USERNAME=`id -un`
+GROUP=`id -gn`
 
-FULL_TARNAME=$TARDIR/$TARNAME-$VERSION$VERSIONEXTRA$PKG_EXT
-
-pre_unpack
+CPUOPT="-mcpu"
+GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
+case $GCCVER in
+  3.4*|4.*) CPUOPT="-mtune" ;;
+esac
 
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
   exit
 fi
 
 rm -rf $PKG
 mkdir -p $PKG
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d $PKGNAME-$VERSION ]
 then 
 #cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+mkdir $PKGNAME-$VERSION
+(cd $PKGNAME-$VERSION
+ tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+ (cd $PKGNAME
+  patch -p1 < $CWD/blender.diff
+ )
 )
 fi
 
-pre_configure
-
-cd $TARNAME-$VERSION
+cd $PKGNAME-$VERSION/$PKGNAME
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
 
-make || exit
 
-make install DESTDIR=$PKG
+scons BUILD_BLENDER_PLAYER=1 BUILD_BLENDER_PLUGIN=1 || exit
+
+
+mkdir -p $PKG/usr/share/blender/.blender $PKG/usr/share/blender/plugins $PKG/usr/bin
+
+cp -pr release/scripts $PKG/usr/share/blender/.blender
+cp -pr bin/.blender/*  $PKG/usr/share/blender/.blender
+cp -pr bin/.blender/.*  $PKG/usr/share/blender/.blender
+cp -pr release/plugins $PKG/usr/share/blender
+chmod +x $PKG/usr/share/blender/plugins/bmake
+mkdir -p $PKG/usr/share/blender/plugins/include
+cp source/blender/blenpluginapi/*.h $PKG/usr/share/blender/plugins/include
+cp release/text/* $PKG/usr/share/blender
+cp blender blenderplayer $PKG/usr/share/blender
+
+cat << EOF > $PKG/usr/bin/blender
+#!/bin/bash
+#
+/usr/share/blender/blender $*
+EOF
+
+cat << EOF > $PKG/usr/bin/blenderplayer
+#!/bin/bash
+#
+/usr/share/blender/blenderplayer $*
+EOF
+
+chmod +x $PKG/usr/bin/*
 
 # fix links
 for f in `find $PKG -type l`
@@ -97,20 +122,20 @@ rm $PKG/usr/info/dir
 find $PKG/usr/info -exec gzip {} \;
 fi
 
-mkdir -p $PKG/usr/doc/$TARNAME-$VERSION
+mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  $PKG/usr/doc/$PKGNAME-$VERSION
 
-if [ -d $PKG/usr/share/doc/$TARNAME-$VERSION ]
+if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
 then
-mv $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
+mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
 rm -rf $PKG/usr/share/doc
 fi
 
-if [ -d $PKG/usr/share/doc/$TARNAME ]
+if [ -d $PKG/usr/share/doc/$PKGNAME ]
 then
-mv $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
+mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$PKGNAME-$VERSION
 rm -rf $PKG/usr/share/doc
 fi
 
@@ -124,17 +149,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-TEMPLATE: TEMPLATE
-TEMPLATE:
-TEMPLATE: 
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
-TEMPLATE:
+blender: blender
+blender:
+blender: 
+blender:
+blender:
+blender:
+blender:
+blender:
+blender:
+blender:
+blender:
 EOF
 
 if [ -d $PKG/usr/info ]
@@ -199,5 +224,5 @@ fi
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
