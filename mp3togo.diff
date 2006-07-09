@@ -1,0 +1,32 @@
+--- mp3togo-0.5.6/mp3togo/tags.py.orig	2006-07-03 13:44:59.000000000 +0100
++++ mp3togo-0.5.6/mp3togo/tags.py	2006-07-03 13:46:09.000000000 +0100
+@@ -156,6 +156,20 @@
+ 						d[key] = int(self._tags[key][0])
+ 					else:
+ 						d[key] = int(genres.get(self._tags[key][0], '255'))
++				elif key == 'TRACKNUMBER' and fmt == 'mp3':
++					s = self._tags[key][0]
++					l = len(s)
++					v = -1
++
++					while v == -1 and l > 1:
++						try:
++							v = int(s[0:l])
++						except:
++							v = -1
++							l = l - 1
++
++					if v != -1:
++							d[key] = v
+ 				else:	
+ 					d[key] = self._tags[key][0]
+ 			# No! don't unlock here dumbass! return from puttags
+@@ -192,6 +206,8 @@
+ 				out.setGenre(g)
+ 				if d.has_key('COMMENT'):
+ 					out.addComment(d['COMMENT'])
++				if d.has_key('TRACKNUMBER'):
++					out.setTrackNum((d['TRACKNUMBER'], None))
+ 				out.update()
+ 				del out
+ 			elif HAVE_ID3:
