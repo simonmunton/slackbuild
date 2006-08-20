@@ -1,0 +1,31 @@
+--- mozilla/gfx/src/gtk/nsFontMetricsUtils.cpp.orig	2005-03-27 21:14:17.000000000 -0500
++++ mozilla/gfx/src/gtk/nsFontMetricsUtils.cpp	2006-07-28 08:35:28.000000000 -0400
+@@ -143,11 +143,24 @@
+ PRBool
+ NS_IsPangoEnabled(void)
+ {
+-    char *val = PR_GetEnv("MOZ_DISABLE_PANGO");
+-    if (val)
+-        return FALSE;
++    static PRBool beenHere;
++    static PRBool pangoEnabled;
+ 
+-    return TRUE;
++    if (!beenHere) {
++        beenHere = PR_TRUE;
++
++        char *val = PR_GetEnv("MOZ_DISABLE_PANGO");
++        pangoEnabled = !(val);
++
++        if (pangoEnabled) {
++            nsCOMPtr<nsIPref> prefService = do_GetService(NS_PREF_CONTRACTID);
++            if (prefService)
++                prefService->SetDefaultCharPref("general.useragent.extra.pango",
++                                                "pango-text");
++        }
++    }
++
++    return pangoEnabled;
+ }
+ 
+ #endif
