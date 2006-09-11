@@ -1,46 +1,50 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=boost
-PKGDIR=~/tmp/new/b
-PKG=/tmp/package-$PKGNAME
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
+. build_funcs
+
+TARNAME=boost
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/b
+TAR_EXT=.tar.bz2
 VERSION=1_33_1
 VERSIONEXTRA=
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+BUILD=1
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#BUILD_SUFFIX=
+#ARCH=
 
 
-if [ ! -f $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT ]
+FULL_TARNAME=$TARDIR/$TARNAME${TARNAMEEXTRA}_$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
+
+PKG=/tmp/package-$PKGNAME
+
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d ${PKGNAME}_$VERSION ]
+if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
-(cd ${PKGNAME}_$VERSION
-# patch -p0 < $CWD/boost-base.patch
-# patch -p0 < $CWD/boost-gcc-tools.patch
+mv ${TARNAME}_$VERSION $TARNAME-$VERSION
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
 )
 fi
 
-cd ${PKGNAME}_$VERSION
+pre_configure
+
+cd $TARNAME-$VERSION
 #chown -R root.root .
+find . -perm 666 -exec chmod 644 {} \;
+find . -perm 664 -exec chmod 644 {} \;
 
 (cd tools/build/jam_src;build.sh)
 
@@ -50,37 +54,28 @@ PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
 export PYTHON_VERSION
 
-bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
+#bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
 
-bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
+bjam --prefix=/usr --with-python-root=/usr
+
+#bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
+
+bjam --prefix=$PKG/usr --with-python-root=/usr install
 
 (cd $PKG/usr/include; ln -s boost*/boost boost)
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+fix_links
 
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
+compress_manpages
 
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
+compress_info
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
-  LICENSE_1_0.txt README* \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  LICENSE* AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  $PKG/usr/doc/$TARNAME-$VERSION
+
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -95,23 +90,19 @@ cat <<EOF > $PKG/install/slack-desc
 boost: boost
 boost:
 boost: 
-boost: 
-boost: 
-boost: 
-boost: 
-boost: 
+boost:
+boost:
+boost:
+boost:
+boost:
 boost:
 boost:
 boost:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF > $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/boost.info.gz
-EOF
-fi
+post_install
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root.bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+makepkg $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
