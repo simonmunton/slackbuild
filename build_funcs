@@ -215,6 +215,34 @@ EOF
 fi
 
 ##############################################################
+# if usr/lib/gtk-2.0/*/loaders exists, run
+# gdk-pixbuf-query-loaders
+#
+if [ -d $PKG/usr/lib/gtk-2.0/*/loaders ]
+then
+  cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/gdk-pixbuf-query-loaders ]; then
+  gdk-pixbuf-query-loaders > /etc/gtk-2.0/gdk-pixbuf.loaders
+fi
+EOF
+fi
+
+##############################################################
+# if usr/lib/gtk-2.0/*/immodule exists, run
+# gtk-query-immodules-2.0
+#
+if [ -d $PKG/usr/lib/gtk-2.0/*/immodule ]
+then
+  cat <<EOF >> $PKG/install/doinst.sh
+#
+if [ -x /usr/bin/gtk-query-immodules-2.0 ]; then
+  gtk-query-immodules-2.0 > /etc/gtk-2.0/gtk.immodules
+fi
+EOF
+fi
+
+##############################################################
 # warn if usr/local exists
 #
 if [ -d $PKG/usr/local ]
