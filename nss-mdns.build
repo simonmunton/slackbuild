@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libbtctl
+TARNAME=nss-mdns
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
-TAR_EXT=.tar.bz2
-VERSION=0.8.0
+TARDIR=~/tmp/new/n
+TAR_EXT=.tar.gz
+VERSION=0.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -76,17 +76,27 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-libbtctl: libbtctl
-libbtctl:
-libbtctl: 
-libbtctl:
-libbtctl:
-libbtctl:
-libbtctl:
-libbtctl:
-libbtctl:
-libbtctl:
-libbtctl:
+nss-mdns: nss-mdns
+nss-mdns:
+nss-mdns: 
+nss-mdns:
+nss-mdns:
+nss-mdns:
+nss-mdns:
+nss-mdns:
+nss-mdns:
+nss-mdns:
+nss-mdns:
+EOF
+
+cat <<EOF >> $PKG/install/doinst.sh
+#
+if ! grep mdns4 etc/nsswitch.conf
+then
+  cp etc/nsswitch.conf etc/nsswitch.conf.pre-nss-mdns
+  sed -e '/^hosts:/s/dns/mdns4_minimal [NOTFOUND=return] dns mdns4/' etc/nsswitch.conf.pre-nss-mdns > etc/nsswitch.conf
+fi
+
 EOF
 
 post_install
