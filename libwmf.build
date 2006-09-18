@@ -1,41 +1,46 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=libwmf
+. build_funcs
+
+TARNAME=libwmf
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/l
+TAR_EXT=.tar.gz
 VERSION=0.2.8.4
 VERSIONEXTRA=
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+BUILD=1
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#BUILD_SUFFIX=
+#ARCH=noarch
 
-PKGDIR=~/tmp/new/l
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
+
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
 fi
 
-cd $PKGNAME-$VERSION
+pre_configure
+
+cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
@@ -46,38 +51,21 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --localstatedir=/var/lib \
 	    --enable-static=no
 
-make
+make || exit
 
 make install DESTDIR=$PKG
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+fix_links
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_manpages
 
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
+compress_info
 
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
-  AUTHORS BUILDING COPYING CREDITS NEWS README TODO \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  $PKG/usr/doc/$TARNAME-$VERSION
 
-mv $PKG/usr/share/doc/libwmf $PKG/usr/doc/$PKGNAME-$VERSION
-rmdir $PKG/usr/share/doc
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -102,13 +90,10 @@ libwmf:
 libwmf:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF > $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/libwmf.info.gz
-EOF
-fi
+post_install
 
 cd $PKG
-su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
