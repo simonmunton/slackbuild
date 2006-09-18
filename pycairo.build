@@ -3,15 +3,21 @@
 . build_funcs
 
 TARNAME=pycairo
+TARNAMEEXTRA=
 TARDIR=~/tmp/new/c/cairo
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-TAR_PROG=tar
-VERSION=1.2.0
+TAR_EXT=.tar.gz
+VERSION=1.2.2
 VERSIONEXTRA=
 BUILD=1
 
-FULL_TARNAME=$TARDIR/$TARNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#BUILD_SUFFIX=
+#ARCH=
+
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
 
 pre_unpack
 
@@ -22,9 +28,6 @@ then
   echo Can\'t find $FULL_TARNAME
   exit
 fi
-
-rm -rf $PKG
-mkdir -p $PKG
 
 if [ ! -d $TARNAME-$VERSION ]
 then 
@@ -51,68 +54,17 @@ make || exit
 
 make install DESTDIR=$PKG
 
-# fix links
-for f in `find $PKG -type l`
-do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
-  then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
-    )
-  fi
-done
+fix_links
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+compress_manpages
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_info
 
-if [ -d $PKG/usr/X11R6/man ]
-then
-# compress man pages
-find $PKG/usr/X11R6/man -exec gzip {} \;
-
-# make links point to right places
-for f in `find $PKG/usr/X11R6/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
-
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
-
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$TARNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$TARNAME-$VERSION
 
-if [ -d $PKG/usr/share/doc/$TARNAME-$VERSION ]
-then
-mv $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
-
-if [ -d $PKG/usr/share/doc/$TARNAME ]
-then
-mv $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -137,65 +89,7 @@ pycairo:
 pycairo:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-infos=`ls $PKG/usr/info | grep \.info\.gz | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $infos
-do
-  install-info --info-dir=/usr/info /usr/info/\$n
-done
-EOF
-fi
-
-if [ -d $PKG/etc/gconf/schemas ]
-then
-schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $schemas
-do
-  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
-done
-EOF
-fi
-
-if [ -d $PKG/usr/share/applications ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-desktop-database
-EOF
-fi
-
-if [ -d $PKG/usr/share/mime ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-mime-database /usr/share/mime
-EOF
-fi
-
-if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
-then
-  if [ -d $PKG/var/lib/scrollkeeper ]
-  then
-    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
-  fi
-
-cat <<EOF >> $PKG/install/doinst.sh
-#
-if [ -x /usr/bin/scrollkeeper-update ]; then
-  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
-fi
-EOF
-fi
-
-if [ -d $PKG/usr/local ]
-then
-  echo WARNING --- usr/local directory exists
-fi
+post_install
 
 cd $PKG
 su -c "chown -R root.root *; \

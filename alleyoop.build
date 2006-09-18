@@ -1,41 +1,46 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=alleyoop
-PKGDIR=~/tmp/new/a
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-VERSION=0.9.2
-VERSIONEXTRA=
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+. build_funcs
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+TARNAME=alleyoop
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/a
+TAR_EXT=.tar.gz
+VERSION=0.9.3
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
 
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
 fi
 
-cd $PKGNAME-$VERSION
+pre_configure
+
+cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
@@ -49,68 +54,17 @@ make || exit
 
 make install DESTDIR=$PKG
 
-# fix links
-for f in `find $PKG -type l`
-do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
-  then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
-    )
-  fi
-done
+fix_links
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+compress_manpages
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_info
 
-if [ -d $PKG/usr/X11R6/man ]
-then
-# compress man pages
-find $PKG/usr/X11R6/man -exec gzip {} \;
-
-# make links point to right places
-for f in `find $PKG/usr/X11R6/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
-
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
-
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  $PKG/usr/doc/$TARNAME-$VERSION
 
-if [ -d $PKG/usr/share/doc/$PKGNAME-$VERSION ]
-then
-mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
-
-if [ -d $PKG/usr/share/doc/$PKGNAME ]
-then
-mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$PKGNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -135,58 +89,10 @@ alleyoop:
 alleyoop:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/alleyoop.info.gz
-EOF
-fi
-
-if [ -d $PKG/etc/gconf/schemas ]
-then
-schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $schemas
-do
-  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
-done
-EOF
-fi
-
-if [ -d $PKG/usr/share/applications ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-desktop-database
-EOF
-fi
-
-if [ -d $PKG/usr/share/mime ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-mime-database /usr/share/mime
-EOF
-fi
-
-if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
-then
-  if [ -d $PKG/var/lib/scrollkeeper ]
-  then
-    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
-  fi
-
-cat <<EOF >> $PKG/install/doinst.sh
-#
-if [ -x /usr/bin/scrollkeeper-update ]; then
-  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
-fi
-EOF
-fi
+post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

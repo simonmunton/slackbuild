@@ -6,7 +6,7 @@ TARNAME=firefox
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m/mozilla/firefox
 TAR_EXT=.tar.bz2
-VERSION=1.5.0.6
+VERSION=1.5.0.7
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -57,10 +57,13 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 MAKE_FLAGS=mozappdir=/usr/lib/firefox_devel includedir=/usr/include/firefox idldir=/usr/share/idl/firefox
 make $MAKE_FLAGS || exit
 
-mkdir -p $PKG/usr/include/$TARNAME/nss
-cp -f dist/public/nss/*.h $PKG/usr/include/$TARNAME/nss/
-
 make $MAKE_FLAGS install DESTDIR=$PKG
+
+mv $PKG/usr/include/firefox $PKG/usr/include/firefox-$VERSION
+ln -s /usr/include/firefox-$VERSION $PKG/usr/include/firefox
+
+mkdir -p $PKG/usr/include/firefox-$VERSION/nss
+cp -f dist/public/nss/*.h $PKG/usr/include/firefox-$VERSION/nss/
 
 LIB_LIST="libnspr4.so libnss3.so libnssckbi.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
 for file in $LIB_LIST
@@ -71,8 +74,6 @@ done
 mv $PKG/usr/bin/firefox $PKG/usr/lib/firefox_devel
 
 #rm -rf $PKG/usr/bin $PKG/usr/lib/firefox
-mv $PKG/usr/include/firefox $PKG/usr/include/firefox-$VERSION
-ln -s /usr/include/firefox-$VERSION $PKG/usr/include/firefox
 
 mv $PKG/usr/share/idl/firefox $PKG/usr/share/idl/firefox-$VERSION
 ln -s /usr/share/idl/firefox-$VERSION $PKG/usr/share/idl/firefox
