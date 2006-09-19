@@ -134,13 +134,16 @@ post_install ()
 if [ -d $PKG/usr/info ]
 then
   infos=`ls $PKG/usr/info | grep \.info\.gz | tr '\012' ' '`
-  cat <<EOF >> $PKG/install/doinst.sh
+  if [ -n "$infos" ]
+  then
+    cat <<EOF >> $PKG/install/doinst.sh
 #
 for n in $infos
 do
   install-info --info-dir=/usr/info /usr/info/\$n
 done
 EOF
+  fi
 fi
 
 ##############################################################
@@ -149,13 +152,16 @@ fi
 if [ -d $PKG/etc/gconf/schemas ]
 then
   schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-  cat <<EOF >> $PKG/install/doinst.sh
+  if [ -n "$schemas" ]
+  then
+    cat <<EOF >> $PKG/install/doinst.sh
 #
 for n in $schemas
 do
   GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
 done
 EOF
+  fi
 fi
 
 ##############################################################
@@ -181,18 +187,21 @@ EOF
 fi
 
 ##############################################################
-# if usr/share/icons exists, run update-mime-database
+# if usr/share/icons exists, run gtk-update-icon-cache
 #
 if [ -d $PKG/usr/share/icons ]
 then
-  icons=`ls $PKG/usr/share/icons`
-  cat <<EOF >> $PKG/install/doinst.sh
+  icons=`find $PKG/usr/share/icons -type d -maxdepth 1 | grep -v "^$PKG/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
+  if [ -n "$icons" ]
+  then
+    cat <<EOF >> $PKG/install/doinst.sh
 #
 for n in $icons
 do
   gtk-update-icon-cache -f -t /usr/share/icons/\$n
 done
 EOF
+  fi
 fi
 
 ##############################################################
@@ -250,4 +259,3 @@ then
   echo WARNING --- usr/local directory exists
 fi
 }
-

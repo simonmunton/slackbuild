@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=metacity
+TARNAME=lua
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
-TAR_EXT=.tar.bz2
-VERSION=2.16.2
+TARDIR=~/tmp/new/l
+TAR_EXT=.tar.gz
+VERSION=5.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -14,7 +14,7 @@ BUILD=1
 #TAR_OPTS=
 #PKGNAME=
 #BUILD_SUFFIX=
-#ARCH=
+#ARCH=noarch
 
 
 FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
@@ -44,15 +44,10 @@ cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
 
-make || exit
+make linux || exit
 
-make install DESTDIR=$PKG
+make install INSTALL_TOP=$PKG/usr
 
 fix_links
 
@@ -61,8 +56,10 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* COPYRIGHT HISTORY INSTALL NEWS PLANS README* TODO doc \
   $PKG/usr/doc/$TARNAME-$VERSION
+
+rm $PKG/usr/doc/$TARNAME-$VERSION/doc/*.1
 
 fix_docs
 
@@ -76,17 +73,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-metacity: metacity
-metacity:
-metacity: 
-metacity:
-metacity:
-metacity:
-metacity:
-metacity:
-metacity:
-metacity:
-metacity:
+lua: lua
+lua:
+lua: 
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
 EOF
 
 post_install
