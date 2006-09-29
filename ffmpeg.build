@@ -1,71 +1,88 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=ffmpeg
-VERSION=0.4.9-pre1
+. build_funcs
+
+TARNAME=ffmpeg
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/f
+TAR_EXT=.tar.gz
+VERSION=20060926
 VERSIONEXTRA=
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-ARCH=i486
 BUILD=1
-USERNAME=`id -un`
-GROUP=`id -gn`
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
 
-PKGDIR=~/tmp/new/f
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
+
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
 fi
 
-cd $PKGNAME-$VERSION
+pre_configure
+
+cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
 CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --enable-mp3lame \
-	    --enable-vorbis \
-	    --enable-faad \
-	    --enable-a52 \
-	    --enable-gpl \
-	    --enable-faac \
-	    --enable-pp \
-	    --enable-shared
-make
-cd doc
-make
-cd ..
+            --enable-mp3lame \
+	    --enable-libogg \
+            --enable-vorbis \
+	    --enable-xvid \
+            --enable-faad \
+            --enable-a52 \
+            --enable-gpl \
+            --enable-faac \
+	    --enable-dts \
+            --enable-pp \
+            --enable-shared
 
-make install prefix=$PKG/usr bindir=$PKG/usr/bin mandir=$PKG/usr/man
+#	    --enable-x264 
 
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+make || exit
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+(cd doc; make)
+
+make install DESTDIR=$PKG prefix=$PKG/usr bindir=$PKG/usr/bin mandir=$PKG/usr/man
+
+cp version.h $PKG/usr/include/ffmpeg
+
+
+fix_links
+
+compress_manpages
+
+compress_info
+
 cp -a \
   COPYING CREDITS INSTALL README* doc/TODO doc/*html doc/*conf \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  $PKG/usr/doc/$TARNAME-$VERSION
+
+fix_docs
+
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
 # HOW TO EDIT THIS FILE:
@@ -89,5 +106,10 @@ ffmpeg:
 ffmpeg:
 EOF
 
+post_install
+
 cd $PKG
-su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+chown -R $USERNAME.$GROUP $PKG"

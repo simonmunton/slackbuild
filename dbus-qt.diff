@@ -1,0 +1,41 @@
+--- dbus-0.62/qt3/connection.cpp.orig	2005-09-30 16:20:08.000000000 +0100
++++ dbus-0.62/qt3/connection.cpp	2006-09-24 22:30:53.000000000 +0100
+@@ -106,7 +106,7 @@
+ 
+ void Connection::close()
+ {
+-  dbus_connection_disconnect( d->connection );
++  dbus_connection_close( d->connection );
+ }
+ 
+ void Connection::flush()
+--- dbus-0.62/qt3/Makefile.in.orig	2006-06-12 13:26:10.000000000 +0100
++++ dbus-0.62/qt3/Makefile.in	2006-09-24 22:35:18.000000000 +0100
+@@ -59,8 +59,7 @@
+ libLTLIBRARIES_INSTALL = $(INSTALL)
+ LTLIBRARIES = $(lib_LTLIBRARIES)
+ am__DEPENDENCIES_1 =
+-@HAVE_QT3_TRUE@libdbus_qt_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+-@HAVE_QT3_TRUE@	$(top_builddir)/dbus/libdbus-1.la
++@HAVE_QT3_TRUE@libdbus_qt_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+ am__libdbus_qt_1_la_SOURCES_DIST = $(top_srcdir)/qt3/dbus-qthread.cpp \
+ 	$(top_srcdir)/qt3/message.cpp $(top_srcdir)/qt3/connection.cpp \
+ 	$(top_srcdir)/qt3/integrator.cpp $(top_srcdir)/qt3/server.cpp \
+@@ -361,7 +360,7 @@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
+-@HAVE_QT3_TRUE@INCLUDES = -I$(top_srcdir) $(DBUS_CLIENT_CFLAGS) $(DBUS_QT3_CXXFLAGS)
++@HAVE_QT3_TRUE@INCLUDES = $(DBUS_CLIENT_CFLAGS) $(DBUS_QT3_CXXFLAGS) -I$(includedir)/dbus-1.0 -I$(libdir)/dbus-1.0/include
+ @HAVE_QT3_TRUE@dbusincludedir = $(includedir)/dbus-1.0/dbus
+ @HAVE_QT3_TRUE@lib_LTLIBRARIES = libdbus-qt-1.la
+ @HAVE_QT3_TRUE@dbusinclude_HEADERS = \
+@@ -379,7 +378,7 @@
+ @HAVE_QT3_TRUE@	$(top_srcdir)/qt3/server.h
+ 
+ @HAVE_QT3_TRUE@CLEANFILES = connection.moc integrator.moc server.moc
+-@HAVE_QT3_TRUE@libdbus_qt_1_la_LIBADD = $(DBUS_QT3_LIBS) $(top_builddir)/dbus/libdbus-1.la
++@HAVE_QT3_TRUE@libdbus_qt_1_la_LIBADD = $(DBUS_QT3_LIBS) -ldbus-1
+ @HAVE_QT3_TRUE@libdbus_qt_1_la_LDFLAGS = -version-info 1:0 -no-undefined
+ all: all-am
+ 

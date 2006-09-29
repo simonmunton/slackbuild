@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=kinoplus
+TARNAME=x264
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/k/kino
-TAR_EXT=.tar.gz
-VERSION=0.3.5
+TARDIR=~/tmp/new/x
+TAR_EXT=.tar.bz2
+VERSION=snapshot-20060925-2245
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,7 +35,10 @@ then
 #cd /tmp
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
 (cd $TARNAME-$VERSION
- patch -p1 < $CWD/kinoplus.diff
+#patch -p1 < $CWD/.diff
+ cd gtk
+ mv Makefile Makefile.orig
+ sed -e 's/-lintl//' Makefile.orig > Makefile
 )
 fi
 
@@ -49,9 +52,15 @@ CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --enable-mp4-output \
+	    --enable-shared \
+	    --enable-visualize \
+	    --enable-gtk 
 
 make || exit
+
+mkdir -p $PKG/usr/{lib/pkgconfig,include,bin}
 
 make install DESTDIR=$PKG
 
@@ -62,7 +71,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/*txt \
   $PKG/usr/doc/$TARNAME-$VERSION
 
 fix_docs
@@ -77,17 +86,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-kinoplus: kinoplus
-kinoplus:
-kinoplus: 
-kinoplus:
-kinoplus:
-kinoplus:
-kinoplus:
-kinoplus:
-kinoplus:
-kinoplus:
-kinoplus:
+x264: x264
+x264:
+x264: 
+x264:
+x264:
+x264:
+x264:
+x264:
+x264:
+x264:
+x264:
 EOF
 
 post_install

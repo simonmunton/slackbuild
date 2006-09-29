@@ -1,116 +1,80 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=p7zip
-PKGDIR=~/tmp/new/p
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
-VERSION=4.42
-VERSIONEXTRA=_src_all
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+. build_funcs
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+TARNAME=p7zip
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/p
+TAR_EXT=.tar.bz2
+VERSION=4.43
+VERSIONEXTRA=_src_all
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=$TARDIR/$TARNAME${TARNAMEEXTRA}_$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
 
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d ${PKGNAME}_$VERSION ]
+if [ ! -d ${TARNAME}_$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/${PKGNAME}_$VERSION$VERSIONEXTRA$PKG_EXT
-(cd ${PKGNAME}_$VERSION
-# patch -p1 < ../p7zip.diff
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd ${TARNAME}_$VERSION
+#patch -p1 < $CWD/.diff
 )
 fi
 
-cd ${PKGNAME}_$VERSION
+pre_configure
+
+cd ${TARNAME}_$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
 find . -perm 600 -exec chmod 644 {} \;
 
-
 make all2 DEST_BIN=/usr/bin DEST_SHARE=/usr/lib/p7zip DEST_MAN=/usr/man  || exit
 
-make install DESTDIR=$PKG  DEST_BIN=$PKG/usr/bin DEST_SHARE=$PKG/usr/lib/p7zip DEST_MAN=$PKG/usr/man 
+./install.sh /usr/bin /usr/lib/p7zip /usr/man $PKG /usr/doc/$TARNAME-$VERSION
 
 # fix the bad install script
 (cd $PKG
  chmod -R +w *
 )
-(cd $PKG/usr/bin
- for f in *
- do
-   sed -e "s@$PKG@@" $f > $f.new
-   mv $f.new $f
- done
-)
+#(cd $PKG/usr/bin
+# for f in *
+# do
+#   sed -e "s@$PKG@@" $f > $f.new
+#   mv $f.new $f
+# done
+#)
 
-# fix links
-for f in `find $PKG -type l`
-do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
-  then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
-    )
-  fi
-done
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+fix_links
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_manpages
 
-if [ -d $PKG/usr/X11R6/man ]
-then
-# compress man pages
-find $PKG/usr/X11R6/man -exec gzip {} \;
+compress_info
 
-# make links point to right places
-for f in `find $PKG/usr/X11R6/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
-
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
-
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO DOCS \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  $PKG/usr/doc/$TARNAME-$VERSION
+
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -135,40 +99,10 @@ p7zip:
 p7zip:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/p7zip.info.gz
-EOF
-fi
-
-if [ -d $PKG/etc/gconf/schemas ]
-then
-schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $schemas
-do
-  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
-done
-EOF
-fi
-
-
-if [ -d $PKG/var/lib/scrollkeeper ]
-then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
-
-cat <<EOF >> $PKG/install/doinst.sh
-#
-if [ -x /usr/bin/scrollkeeper-update ]; then
-  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
-fi
-EOF
-fi
+post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
