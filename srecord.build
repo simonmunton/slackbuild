@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=geda-utils
+TARNAME=srecord
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/geda
+TARDIR=~/tmp/new/s
 TAR_EXT=.tar.gz
-VERSION=20060906
+VERSION=1.26
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +18,7 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$VERSION/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
 
 pre_unpack
 
@@ -42,6 +42,10 @@ fi
 pre_configure
 
 cd $TARNAME-$VERSION
+
+# tidy up
+rm .bindir man{/,/man[15]/}.mandir
+
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
@@ -53,7 +57,7 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 
 make || exit
 
-make install DESTDIR=$PKG
+make install RPM_BUILD_ROOT=$PKG
 
 fix_links
 
@@ -62,7 +66,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO etc/reference.ps \
   $PKG/usr/doc/$TARNAME-$VERSION
 
 fix_docs
@@ -77,17 +81,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-geda-utils: geda-utils
-geda-utils:
-geda-utils: 
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
+srecord: srecord
+srecord:
+srecord: 
+srecord:
+srecord:
+srecord:
+srecord:
+srecord:
+srecord:
+srecord:
+srecord:
 EOF
 
 post_install

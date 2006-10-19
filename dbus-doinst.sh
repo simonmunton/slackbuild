@@ -50,3 +50,6 @@ if [[ "${run}" == "" ]]; then
 	echo ";;" >> etc/rc.d/rc.local
 	echo "esac" >> etc/rc.d/rc.local
 fi
+
+#
+/usr/bin/dbus-uuidgen --ensure
