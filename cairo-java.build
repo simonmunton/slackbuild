@@ -1,41 +1,47 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=cairo-java
-PKGDIR=~/tmp/gnome
-PKG_EXT=.tar.bz2
-TAR_OPTS=xjvf
-VERSION=1.0.5
-VERSIONEXTRA=
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+. build_funcs
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+TARNAME=cairo-java
+TARNAMEEXTRA=
+TARDIR=~/tmp/gnome
+TAR_EXT=.tar.bz2
+VERSION=1.0.6
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
 
 PKG=/tmp/package-$PKGNAME
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+if [ ! -f $FULL_TARNAME ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find $FULL_TARNAME
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
 fi
 
-cd $PKGNAME-$VERSION
+pre_configure
+
+cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
@@ -49,46 +55,17 @@ make || exit
 
 make install DESTDIR=$PKG
 
-# fix links
-for f in `find $PKG -type l`
-do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
-  then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
-    )
-  fi
-done
+fix_links
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+compress_manpages
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_info
 
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
-
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  $PKG/usr/doc/$TARNAME-$VERSION
 
-mv $PKG/usr/share/doc/$PKGNAME-$VERSION/* $PKG/usr/doc/$PKGNAME-$VERSION
-rm -rf $PKG/usr/share/doc
+fix_docs
 
 mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
@@ -100,39 +77,23 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-cairo-java: cairo-java
-cairo-java:
-cairo-java: 
-cairo-java:
-cairo-java:
-cairo-java:
-cairo-java:
-cairo-java:
-cairo-java:
-cairo-java:
-cairo-java:
+$PKGNAME: $PKGNAME $VERSION
+$PKGNAME:
+$PKGNAME: 
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF > $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/cairo-java.info.gz
-EOF
-fi
-
-
-if [ -d $PKG/var/lib/scrollkeeper ]
-then
-( cd $PKG/var/lib/scrollkeeper && rm -r * )
-
-cat <<EOF >> $PKG/install/doinst.sh
-#
-if [ -x /usr/bin/scrollkeeper-update ]; then
-  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
-fi
-EOF
-fi
+post_install
 
 cd $PKG
-su -c "chown -R root.root *; chown -R root:bin $PKG/usr/bin; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
