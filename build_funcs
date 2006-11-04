@@ -15,6 +15,38 @@ GROUP=`id -gn`
 
 : ${ARCH:=i486}
 
+
+# if TAR_EXT not set, try and guess it
+#
+if [ "x$TAR_EXT" == "x" ]
+then
+  if [ -f ${FULL_TARNAME}.tar.gz ]
+  then
+    TAR_EXT=.tar.gz
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  elif [ -f ${FULL_TARNAME}.tgz ]
+  then
+    TAR_EXT=.tgz
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  elif [ -f ${FULL_TARNAME}.tar.bz2 ]
+  then
+    TAR_EXT=.tar.bz2
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  elif [ -f ${FULL_TARNAME}.tbz ]
+  then
+    TAR_EXT=.tbz
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  elif [ -f ${FULL_TARNAME}.zip ]
+  then
+    TAR_EXT=.zip
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  elif [ -f ${FULL_TARNAME}.7z ]
+  then
+    TAR_EXT=.7z
+    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+  fi
+fi
+
 # guess tar program and tar opts
 
 case $TAR_EXT in
@@ -31,6 +63,11 @@ case $TAR_EXT in
   .zip)
     : ${TAR_PROG:=unzip}
     : ${TAR_OPTS:=}
+    ;;
+
+  .7z)
+    : ${TAR_PROG:=7z}
+    : ${TAR_OPTS:=e}
     ;;
 
 esac
@@ -115,19 +152,19 @@ fix_docs ()
 {
 if [ -d $PKG/usr/share/doc/$TARNAME-$VERSION ]
 then
-  mv $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
+  mv -f $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
   rm -rf $PKG/usr/share/doc
 fi
 
 if [ -d $PKG/usr/share/doc/$TARNAME ]
 then
-  mv $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
+  mv -f $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
   rm -rf $PKG/usr/share/doc
 fi
 
 if [ -d $PKG/usr/share/doc/$PKGNAME ]
 then
-  mv $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$TARNAME-$VERSION
+  mv -f $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$TARNAME-$VERSION
   rm -rf $PKG/usr/share/doc
 fi
 }
@@ -265,4 +302,36 @@ if [ -d $PKG/usr/local ]
 then
   echo WARNING --- usr/local directory exists
 fi
+
+if [ -d $PKG/usr/share/doc ]
+then
+  echo WARNING --- usr/share/doc directory exists
+fi
+}
+
+
+doinst_config()
+{
+mkdir -p $PKG/install
+
+cat << EOF >> $PKG/install/doinst.sh
+#
+config() {
+  NEW="\$1"
+  OLD="\`dirname \$NEW\`/\`basename \$NEW .new\`"
+  # If there's no config file by that name, mv it over:
+  if [ ! -r \$OLD ]; then
+    mv \$NEW \$OLD
+  elif [ "\`cat \$OLD | md5sum\`" = "\`cat \$NEW | md5sum\`" ]; then # toss the redundant copy
+    rm \$NEW
+  fi
+  # Otherwise, we leave the .new copy for the admin to consider...
+}
+
+EOF
+
+for n in $*
+do
+  echo config $n >> $PKG/install/doinst.sh
+done
 }
