@@ -5,8 +5,8 @@
 TARNAME=hal
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/h
-TAR_EXT=.tar.gz
-VERSION=0.5.7.1
+#TAR_EXT=.tar.gz
+VERSION=0.5.8.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,10 +35,12 @@ then
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
 (cd $TARNAME-$VERSION
 #patch -p1 < $CWD/.diff
- for f in $CWD/hal-0.5.7*.patch
- do
-   patch -p1 < $f
- done
+# patch -p1 < $CWD/hal-0.5.7-conf.in.patch
+# patch -p1 < $CWD/hal-0.5.7-dbus-deprecated.patch
+# patch -p1 < $CWD/hal-0.5.7-fix-fedora-power-save.patch
+# patch -p1 < $CWD/hal-0.5.7-fix-for-nfs-and-autofs.patch
+# patch -p1 < $CWD/hal-0.5.7-lid-open-fix.patch
+# patch -p1 < $CWD/hal-0.5.7-pcmcia-readers.patch
 )
 fi
 
@@ -61,7 +63,8 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --with-init-scripts=slackware \
             --with-pid-file=/var/run/hald.pid \
             --with-dbus-sys=/etc/dbus-1/system.d \
-            --with-hotplug=/etc/hotplug.d
+            --with-hotplug=/etc/hotplug.d \
+	    --enable-policy-kit=no
 
 make || exit
 
@@ -114,5 +117,6 @@ post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

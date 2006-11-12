@@ -1,0 +1,191 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=cups
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/c
+#TAR_EXT=.tar.gz
+VERSION=1.2.6
+VERSIONEXTRA=-source
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+
+pre_unpack
+
+PKG=/tmp/package-$PKGNAME
+
+if [ ! -f $FULL_TARNAME ]
+then
+  echo Can\'t find $FULL_TARNAME
+  exit
+fi
+
+if [ ! -d $TARNAME-$VERSION ]
+then 
+#cd /tmp
+$TAR_PROG $TAR_OPTS $FULL_TARNAME
+(cd $TARNAME-$VERSION
+#patch -p1 < $CWD/.diff
+)
+fi
+
+pre_configure
+
+cd $TARNAME-$VERSION
+#chown -R root.root .
+find . -perm 666 -exec chmod 644 {} \;
+find . -perm 664 -exec chmod 644 {} \;
+CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+./configure \
+	    --disable-pam
+
+#--prefix=/usr \
+#            --sysconfdir=/etc \
+#	    --localstatedir=/var \
+#	    --disable-pam
+
+make || exit
+
+mkdir -p $PKG/etc/cups
+mkdir -p $PKG/var/spool
+
+make install BUILDROOT=$PKG
+
+# For full CUPS SMB support, you'll need to install the cups-samba
+# package from the source in this directory.  There's no easy way
+# to add that to a package build, and the requests aren't pouring in,
+# so you'll have to install it yourself.  It's easy to do.
+
+# However, this will get you the most useful SMB support for free.
+( cd $PKG/usr/lib/cups/backend
+  if [ ! -e smb ]; then
+    ln -sf /usr/bin/smbspool smb
+  fi
+)
+
+# Adjust for BSD init scripts.  Note that rc.cups will have to be
+# started from somewhere, like rc.M or rc.inet2.
+( cd $PKG/etc/rc.d
+  mv init.d/cups rc.cups
+  rm -r init.d rc?.d )
+
+# Handle this as a config file, and non-executable in a default install:
+mv $PKG/etc/rc.d/rc.cups $PKG/etc/rc.d/rc.cups.new
+chmod 644 $PKG/etc/rc.d/rc.cups.new
+
+# Adjust/expand docs:
+( mkdir -p $PKG/usr/doc
+  mv $PKG/usr/share/doc/cups/* $PKG/usr/doc/cups-$VERSION
+  rm -rf $PKG/usr/share/doc
+  cd $PKG/usr/doc
+  ln -sf cups-$VERSION cups )
+
+# Apply no-clobber fix to conffiles:
+( cd $PKG/etc/cups
+  for file in * ; do
+    if [ -f $file ]; then
+      mv $file $file.new
+    fi
+  done )
+
+# Use symlinks to certain binaries so that CUPS and LPRng can coexist:
+SUFFIX=cups
+for file in \
+usr/bin/cancel \
+usr/bin/lp \
+usr/bin/lpq \
+usr/bin/lpr \
+usr/bin/lprm \
+usr/bin/lpstat \
+usr/sbin/lpc ; do
+  ( cd $PKG
+    mv ${file} ${file}-${SUFFIX}
+    ( cd `dirname ${file}` ; ln -sf `basename ${file}`-${SUFFIX} `basename ${file}` )
+  )
+done
+
+# Now fix the associated man pages:
+mv $PKG/usr/man/man1/cancel.1.gz $PKG/usr/man/man1/cancel-${SUFFIX}.1.gz
+mv $PKG/usr/man/man1/lp.1.gz $PKG/usr/man/man1/lp-${SUFFIX}.1.gz
+mv $PKG/usr/man/man1/lpq.1.gz $PKG/usr/man/man1/lpq-${SUFFIX}.1.gz
+mv $PKG/usr/man/man1/lpr.1.gz $PKG/usr/man/man1/lpr-${SUFFIX}.1.gz
+mv $PKG/usr/man/man1/lprm.1.gz $PKG/usr/man/man1/lprm-${SUFFIX}.1.gz
+mv $PKG/usr/man/man1/lpstat.1.gz $PKG/usr/man/man1/lpstat-${SUFFIX}.1.gz
+mv $PKG/usr/man/man8/lpc.8.gz $PKG/usr/man/man8/lpc-${SUFFIX}.8.gz
+( cd $PKG/usr/man/man1
+  ln -sf cancel-${SUFFIX}.1.gz cancel.1.gz
+  ln -sf lp-${SUFFIX}.1.gz lp.1.gz
+  ln -sf lpq-${SUFFIX}.1.gz lpq.1.gz
+  ln -sf lpr-${SUFFIX}.1.gz lpr.1.gz
+  ln -sf lprm-${SUFFIX}.1.gz lprm.1.gz
+  ln -sf lpstat-${SUFFIX}.1.gz lpstat.1.gz
+)
+( cd $PKG/usr/man/man8
+  ln -sf lpc-${SUFFIX}.8.gz lpc.8.gz
+)
+
+fix_links
+
+#compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  $PKG/usr/doc/$TARNAME-$VERSION
+
+fix_docs
+
+mkdir -p $PKG/install
+cat <<EOF > $PKG/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+    |-----handy-ruler------------------------------------------------------|
+cups: CUPS (Common UNIX Printing System)
+cups:
+cups: The Common UNIX Printing System provides a portable printing layer for
+cups: UNIX(R)-like operating systems. It has been developed by Easy Software
+cups: Products to promote a standard printing solution for all UNIX vendors
+cups: and users.  CUPS uses the Internet Printing Protocol ("IPP") as the
+cups: basis for managing print jobs and queues.  The CUPS package includes
+cups: System V and Berkeley command-line interfaces, a PostScript RIP
+cups: package for supporting non-PostScript printer drivers, and tools for
+cups: creating additional printer drivers and other CUPS services.
+cups:
+EOF
+
+doinst_config etc/rc.d/rc.cups.new
+cat << EOF >> $PKG/install/doinst.sh
+for file in etc/cups/*.new ; do
+  config \$file
+done
+EOF
+
+post_install
+
+
+cd $PKG
+su -c "chown -R root.root *; \
+chgrp lp $PKG/etc/cups $PKG/etc/cups/interfaces $PKG/etc/cups/ppd $PKG/etc/cups/ssl \
+         $PKG/var/lib/spool/cups $PKG/var/lib/spool/cups/tmp $PKG/var/lib/cache/cups \
+         $PKG/etc/cups/cupsd.conf.default.new $PKG/etc/cups/cupsd.conf.new; \
+chgrp sys $PKG/var/lib/run/cup/certs; \
+chmod 4755 $PKG/usr/bin/lppasswd; \
+makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
