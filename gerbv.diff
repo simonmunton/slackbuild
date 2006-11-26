@@ -1,0 +1,25 @@
+--- gerbv-1.0.2/src/drill.c.orig	2006-07-25 22:47:59.000000000 +0100
++++ gerbv-1.0.2/src/drill.c	2006-11-22 20:56:23.000000000 +0000
+@@ -418,6 +418,12 @@
+ 	image->format->y_dec += 1;
+     }
+ 
++    if(  unit == MM ) {
++
++	image->format->x_dec -= 1;
++	image->format->y_dec -= 1;
++    }
++
+     /* Restore the necessary things back to their default state */
+     for (i = 0; i < APERTURE_MAX; i++) {
+ 	if (image->aperture[i] != NULL) {
+@@ -649,6 +655,9 @@
+     } else if (strncmp(op, "71", 2) == 0) {
+ 	eat_line(fd);
+ 	return DRILL_M_METRIC;
++    } else if (strncmp(op, "ET", 2) == 0) {
++	eat_line(fd);
++	return DRILL_M_METRIC;
+     } else if (strncmp(op, "72", 2) == 0) {
+ 	eat_line(fd);
+ 	return DRILL_M_IMPERIAL;

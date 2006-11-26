@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=lsof
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=4.77
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}_${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ] 
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ tar xvf ${TARNAME}_${VERSION}_src.tar
+#patch -p1 < $CWD/.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}/${TARNAME}_${VERSION}_src
+
+fix_perms
+
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+echo n | ./Configure linux
+
+make || exit
+
+strip lsof
+mkdir -p ${PKG}/usr/bin
+cat lsof > ${PKG}/usr/bin/lsof
+# No, NOT suid.
+chmod 755 ${PKG}/usr/bin/lsof
+
+mkdir -p ${PKG}/usr/man/man8
+cat lsof.8 > ${PKG}/usr/man/man8/lsof.8.gz
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO 00* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+    |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

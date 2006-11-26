@@ -67,7 +67,7 @@ case $TAR_EXT in
 
   .7z)
     : ${TAR_PROG:=7z}
-    : ${TAR_OPTS:=e}
+    : ${TAR_OPTS:=x}
     ;;
 
 esac
@@ -88,9 +88,31 @@ GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *
 case $GCCVER in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
-
 }
 
+
+fix_perms ()
+{
+find . -perm 666 -exec chmod 644 {} \;
+find . -perm 664 -exec chmod 644 {} \;
+find . -perm 600 -exec chmod 644 {} \;
+find . -perm 444 -exec chmod 644 {} \;
+find . -perm 400 -exec chmod 644 {} \;
+find . -perm 440 -exec chmod 644 {} \;
+find . -perm 777 -exec chmod 755 {} \;
+find . -perm 775 -exec chmod 755 {} \;
+find . -perm 511 -exec chmod 755 {} \;
+find . -perm 711 -exec chmod 755 {} \;
+find . -perm 555 -exec chmod 755 {} \;
+}
+
+strip_binaries ()
+{
+( cd ${PKG}
+  find . | xargs file | grep "executable" | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null
+  find . | xargs file | grep "shared object" | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null
+)
+}
 
 fix_links ()
 {
@@ -107,8 +129,29 @@ do
 done
 }
 
+perllocalpod ()
+{
+(cd ${PKG}
+ PERLLOCALPOD=`find . -name perllocal.pod`
+ if [ -n "$PERLLOCALPOD" ]; then
+   mkdir -p install
+   mv ${PERLLOCALPOD} install/slack-perllocal.pod
+   cat >> install/doinst.sh <<EOF
+#
+cat >> ${PERLLOCALPOD/.\//} < install/slack-perllocal.pod
+EOF
+ fi
+)
+}
+
 compress_manpages ()
 {
+if [ -d $PKG/usr/share/man ]
+then
+  echo moving usr/share/man
+  mv $PKG/usr/share/man $PKG/usr
+fi
+
 if [ -d $PKG/usr/man ]
 then
   # compress man pages
@@ -167,6 +210,13 @@ then
   mv -f $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$TARNAME-$VERSION
   rm -rf $PKG/usr/share/doc
 fi
+
+if [ -d $PKG/usr/doc/$TARNAME ]
+then
+  mv -f $PKG/usr/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
+  rm -rf $PKG/usr/doc/$TARNAME
+fi
+
 }
 
 
@@ -306,6 +356,11 @@ fi
 if [ -d $PKG/usr/share/doc ]
 then
   echo WARNING --- usr/share/doc directory exists
+fi
+
+if [ -d $PKG/tmp ]
+then
+  echo WARNING --- tmp directory exists
 fi
 }
 
