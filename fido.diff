@@ -1,0 +1,63 @@
+--- fido-0.1.08/src/libs/librmrtsp/test/testreal.c.orig	2006-11-29 06:11:58.000000000 +0000
++++ fido-0.1.08/src/libs/librmrtsp/test/testreal.c	2006-12-02 18:50:35.000000000 +0000
+@@ -214,11 +214,12 @@
+ 	GString * gstr = g_string_sized_new(128);
+ 	const uint8_t * result = NULL;
+ 	size_t result_size;
++	const struct b64_test_s * p;
+ 
+ 	START("Base64 decoder.");
+ 
+ 	/* Loop for each test case. */
+-	for (const struct b64_test_s * p = &b64_tests[0]; p->encoded; p++)
++	for (p = &b64_tests[0]; p->encoded; p++)
+ 	{
+ 		/* Construct SDP containing code. */
+ 		g_string_printf(gstr, "m=audio 0 RTP/AVP 101\r\n"
+@@ -388,7 +389,8 @@
+ /* Dump array of matches to the console. */
+ static void asm_dump_matches(const int * matches, int num)
+ {
+-	for (int i = 0; i < num; i++)
++	int i;
++	for (i = 0; i < num; i++)
+ 		printf("%d ", matches[i]);
+ }
+ 
+@@ -410,8 +412,9 @@
+ 	test = (num_matches == stest_ptr->num_matches);
+ 	if (test)
+ 	{
++		int i;
+ 		/* Loop comparing matched rules. */
+-		for (int i = 0; i < num_matches; i++)
++		for (i = 0; i < num_matches; i++)
+ 			test = test && stest_ptr->matches[i];
+ 	}
+ 
+@@ -444,12 +447,13 @@
+ {
+ 	bool test, total = true;
+ 	int test_count;
++	const struct asm_test_s * test_ptr;
+ 
+ 	START("ASM rule book parser.");
+ 
+ 	/* Loop for each test case. */
+ 	test_count = 0;
+-	for (const struct asm_test_s * test_ptr = &asm_tests[0];
++	for (test_ptr = &asm_tests[0];
+ 	     test_ptr->rule_book;
+ 	     test_ptr++, test_count++)
+ 	{
+@@ -464,8 +468,9 @@
+ 		/* Otherwise, run each sub-test. */
+ 		else
+ 		{
++			const struct asm_sub_test_s *stest_ptr;
+ 			/* Loop for each sub-test. */
+-			for (const struct asm_sub_test_s *stest_ptr =&test_ptr->sub_test[0];
++			for (stest_ptr =&test_ptr->sub_test[0];
+ 			     stest_ptr->bandwidth;
+ 			     stest_ptr++)
+ 			{

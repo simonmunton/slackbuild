@@ -3,120 +3,74 @@
 . build_funcs
 
 TARNAME=ode
+TARNAMEEXTRA=-src
 TARDIR=~/tmp/new/o
-PKG_EXT=.zip
-TAR_OPTS=
-TAR_PROG=unzip
-VERSION=0.6
+#TAR_EXT=.tar.gz
+VERSION=0.7
 VERSIONEXTRA=
 BUILD=1
 
-FULL_TARNAME=$TARDIR/$TARNAME-src-$VERSION$VERSIONEXTRA$PKG_EXT
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-LDFLAGS="-L/usr/X11/lib" \
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
 make || exit
 
-make install DESTDIR=$PKG
+make install DESTDIR=${PKG}
 
-# fix links
-for f in `find $PKG -type l`
-do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
-  then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
-    )
-  fi
-done
+#strip_binaries
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+fix_links
 
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
+compress_manpages
 
-if [ -d $PKG/usr/X11R6/man ]
-then
-# compress man pages
-find $PKG/usr/X11R6/man -exec gzip {} \;
+compress_info
 
-# make links point to right places
-for f in `find $PKG/usr/X11R6/man -type l`
-do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
-done
-fi
-
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
-
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
-
-mkdir -p $PKG/usr/doc/$TARNAME-$VERSION
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-if [ -d $PKG/usr/share/doc/$TARNAME-$VERSION ]
-then
-mv $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
+fix_docs
 
-if [ -d $PKG/usr/share/doc/$TARNAME ]
-then
-mv $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
-rm -rf $PKG/usr/share/doc
-fi
-
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -125,80 +79,23 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-ode: ode
-ode:
-ode: 
-ode:
-ode:
-ode:
-ode:
-ode:
-ode:
-ode:
-ode:
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-infos=`ls $PKG/usr/info | grep \.info\.gz | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $infos
-do
-  install-info --info-dir=/usr/info /usr/info/\$n
-done
-EOF
-fi
+post_install
 
-if [ -d $PKG/etc/gconf/schemas ]
-then
-schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-cat <<EOF >> $PKG/install/doinst.sh
-#
-for n in $schemas
-do
-  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
-done
-EOF
-fi
-
-if [ -d $PKG/usr/share/applications ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-desktop-database
-EOF
-fi
-
-if [ -d $PKG/usr/share/mime ]
-then
-cat <<EOF >> $PKG/install/doinst.sh
-#
-/usr/bin/update-mime-database /usr/share/mime
-EOF
-fi
-
-if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
-then
-  if [ -d $PKG/var/lib/scrollkeeper ]
-  then
-    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
-  fi
-
-cat <<EOF >> $PKG/install/doinst.sh
-#
-if [ -x /usr/bin/scrollkeeper-update ]; then
-  /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
-fi
-EOF
-fi
-
-if [ -d $PKG/usr/local ]
-then
-  echo WARNING --- usr/local directory exists
-fi
-
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

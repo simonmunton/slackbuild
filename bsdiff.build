@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=liblo
+TARNAME=bsdiff
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.23
+VERSION=4.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/bsdiff.diff
 )
 fi
 
@@ -47,13 +47,11 @@ fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+make PREFIX=/usr || exit
 
-make || exit
+mkdir -p ${PKG}/usr/{bin,man/man1}
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr INSTALL=install
 
 #strip_binaries
 

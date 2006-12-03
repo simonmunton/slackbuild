@@ -32,8 +32,8 @@ fi
 if [ ! -d $TARNAME-$VERSION ]
 then 
 #cd /tmp
-mv ${TARNAME}_$VERSION $TARNAME-$VERSION
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
+mv ${TARNAME}_$VERSION $TARNAME-$VERSION
 (cd $TARNAME-$VERSION
 #patch -p1 < $CWD/.diff
 )
@@ -104,5 +104,6 @@ post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$VERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

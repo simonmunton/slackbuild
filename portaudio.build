@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=liblo
+TARNAME=pa_snapshot
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.23
+VERSION=v18
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
-#PKGVERSION=
+PKGNAME=portaudio
+PKGVERSION=v18_ss
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}_${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,7 +33,8 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+mv portaudio ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
 )
@@ -47,13 +48,15 @@ fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+DLL_LIBS=-lpthread \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
 make || exit
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{lib,include}
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr
 
 #strip_binaries
 

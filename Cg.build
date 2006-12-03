@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=liblo
+TARNAME=Cg
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.23
+VERSION=1.4.1_x86
 VERSIONEXTRA=
 BUILD=1
 
@@ -32,7 +32,10 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mkdir ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+)
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
@@ -45,15 +48,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
-
-make || exit
-
-make install DESTDIR=${PKG}
+cp -a * ${PKG}
+mv ${PKG}/usr/share/man ${PKG}/usr
+mv ${PKG}/usr/local/Cg/docs/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rm -rf ${PKG}/usr/local ${PKG}/usr/share
 
 #strip_binaries
 
