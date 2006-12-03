@@ -1,0 +1,62 @@
+--- blobwars-1.05/makefile~	2005-05-11 22:07:07.000000000 +0100
++++ blobwars-1.05/makefile	2006-12-03 16:56:44.000000000 +0000
+@@ -9,12 +9,11 @@
+ DEMO = 0
+ 
+ PREFIX=$(DESTDIR)/usr
+-BINDIR = $(PREFIX)/games/
+-DATADIR = $(PREFIX)/share/games/parallelrealities/
+-DOCDIR = $(PREFIX)/share/doc/$(PROG)/
+-ICONDIR = $(PREFIX)/share/icons/
+-KDE = $(PREFIX)/share/applnk/Games/Arcade/
+-GNOME = $(PREFIX)/share/gnome/apps/Games/
++BINDIR = $(PREFIX)/bin/
++DATADIR = $(PREFIX)/share/blobwars/
++DOCDIR = $(PREFIX)/share/$(PROG)/doc/
++ICONDIR = $(PREFIX)/share/icons/hicolor/
++DESKTOPDIR = $(PREFIX)/share/applications/
+ 
+ CXXFLAGS += `sdl-config --cflags` -DVERSION=$(VERSION) -DRELEASE=$(RELEASE) -DUSEPAK=$(USEPAK) -DDEMO=$(DEMO)
+ CXXFLAGS += -DPAKNAME=\"$(PAKNAME)\" -DPAKLOCATION=\"$(DATADIR)\" -DUNIX -DGAMEPLAYMANUAL=\"$(DOCDIR)index.html\" -Wall
+@@ -51,7 +50,6 @@
+ 
+ mapeditor: $(MAPOBJS)
+ 	$(CXX) $(LIBS) $(MAPOBJS) -o mapeditor
+-	strip mapeditor
+ 
+ # cleaning everything that can be automatically recreated with "make".
+ clean:
+@@ -68,21 +66,18 @@
+ 	mkdir -p $(BINDIR)
+ 	mkdir -p $(DATADIR)
+ 	mkdir -p $(DOCDIR)
+-	mkdir -p $(ICONDIR)
+-	mkdir -p $(ICONDIR)mini
+-	mkdir -p $(ICONDIR)large
+-	mkdir -p $(KDE)
+-	mkdir -p $(GNOME)
+-
+-	strip $(PROG)
+-	install -o root -g games -m 755 $(PROG) $(BINDIR)$(PROG)
+-	install -o root -g games -m 644 $(PAKNAME) $(DATADIR)$(PAKNAME)
+-	install -o root -g games -m 644 $(DOCS) $(DOCDIR)
+-	cp $(ICONS)$(PROG).png $(ICONDIR)
+-	cp $(ICONS)$(PROG)-mini.png $(ICONDIR)mini/$(PROG).png
+-	cp $(ICONS)$(PROG)-large.png $(ICONDIR)large/$(PROG).png
+-	cp $(ICONS)$(PROG).desktop $(KDE)
+-	cp $(ICONS)$(PROG).desktop $(GNOME)
++	mkdir -p $(ICONDIR)16x16/apps
++	mkdir -p $(ICONDIR)32x32/apps
++	mkdir -p $(ICONDIR)64x64/apps
++	mkdir -p $(DESKTOPDIR)
++
++	install -m 755 $(PROG) $(BINDIR)$(PROG)
++	install -m 644 $(PAKNAME) $(DATADIR)$(PAKNAME)
++	cp $(ICONS)$(PROG).png $(ICONDIR)32x32/apps
++	cp $(ICONS)$(PROG)-mini.png $(ICONDIR)16x16/apps/$(PROG).png
++	cp $(ICONS)$(PROG)-large.png $(ICONDIR)64x64/apps/$(PROG).png
++	cp $(ICONS)$(PROG).desktop $(DESKTOPDIR)
++	cp $(DOCS) $(DOCDIR)
+ 
+ uninstall:
+ 	$(RM) $(BINDIR)$(PROG)
