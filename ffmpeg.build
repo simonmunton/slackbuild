@@ -6,7 +6,7 @@ TARNAME=ffmpeg
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/f
 TAR_EXT=.tar.gz
-VERSION=20060926
+VERSION=20061208
 VERSIONEXTRA=
 BUILD=1
 
@@ -37,6 +37,26 @@ $TAR_PROG $TAR_OPTS $FULL_TARNAME
 (cd $TARNAME-$VERSION
 #patch -p1 < $CWD/.diff
 )
+(cd $TARNAME-$VERSION/libavcodec
+ mkdir amr
+ (cd amr
+ unzip ~/tmp/new/a/amr/nb/26073-530.zip
+ unzip 26073*.zip
+ mv c-code/* .
+ )
+ mkdir amr_float
+ (cd amr_float
+ unzip ~/tmp/new/a/amr/nb-float/26104-540.zip
+ unzip 26104*.zip
+ mv c-code/* .
+ )
+ mkdir amrwb_float
+ (cd amrwb_float
+ unzip ~/tmp/new/a/amr/wb-float/26204-530.zip
+ unzip 26204*.zip
+ mv c-code/* .
+ )
+)
 fi
 
 pre_configure
@@ -58,9 +78,15 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --enable-faac \
 	    --enable-dts \
             --enable-pp \
+	    --enable-amr_nb \
+	    --enable-amr_wb \
+	    --enable-libgsm \
+	    --enable-x264  \
+	    --enable-swscaler \
             --enable-shared
 
-#	    --enable-x264 
+#	    --enable-amr_nb-fixed \
+#
 
 make || exit
 

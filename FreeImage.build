@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=mjpegtools
+TARNAME=FreeImage
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m/mjpegtools
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=1.8.0
+VERSION=392
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,9 +33,12 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/mjpegtools.diff
+#patch -p1 < ${CWD}/.diff
+
+ sed -e 's/-o root -g root//' Makefile > Makefile.zzz
+ mv Makefile.zzz Makefile
 )
 fi
 
@@ -47,15 +50,12 @@ fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --with-dv-yv12 
-#            --with-jpeg-mmx=$CWD/jpeg-mmx-0.1.5
-
 make || exit
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{include,lib}
+
+make -i install DESTDIR=${PKG} INCDIR=${PKG}/usr/include INSTALLDIR=${PKG}/usr/lib
+
 
 #strip_binaries
 

@@ -1,0 +1,40 @@
+--- freepop-0.6.0/freepop/client/maptileclient.cpp.orig	2005-02-17 06:54:45.000000000 +0000
++++ freepop-0.6.0/freepop/client/maptileclient.cpp	2006-12-07 14:16:27.000000000 +0000
+@@ -575,7 +575,7 @@
+ }
+ 
+ void MapTileClient::loadSprites(Rules* r) {
+-    sprites = new (CL_Sprite*)[40];
++    sprites = new CL_Sprite*[40];
+     for (int i = 0; i < 20; ++i) {
+         if (i != 15) {
+             sprites[i] = new CL_Sprite(getSpriteName(r, i, false),
+--- freepop-0.6.0/freepop/client/playeroptionsdialog.cpp.orig	2005-02-17 00:25:01.000000000 +0000
++++ freepop-0.6.0/freepop/client/playeroptionsdialog.cpp	2006-12-07 14:25:26.000000000 +0000
+@@ -52,7 +52,7 @@
+ }
+ 
+ unsigned int PlayerOptionsDialog::getColour() const {
+-    return CL_Color(red.get_value(), green.get_value(), blue.get_value());
++    return CL_Color(red.get_value(), green.get_value(), blue.get_value()).color;
+ }
+ 
+ CL_Signal_v0& PlayerOptionsDialog::sigApply() {
+--- freepop-0.6.0/configure.ac.orig	2005-02-14 00:37:05.000000000 +0000
++++ freepop-0.6.0/configure.ac	2006-12-07 14:11:48.000000000 +0000
+@@ -55,12 +55,12 @@
+ AC_CHECK_HEADER([boost/utility.hpp], [], AC_MSG_ERROR([*** boost headers not found!]))
+ 
+ # Checks for libraries.
+-PKG_CHECK_MODULES(CLAN_COMMON, clanCore-0.7 clanApp-0.7 clanNetwork-0.7)
+-PKG_CHECK_MODULES(CLAN_CLIENT, clanDisplay-0.7 clanGL-0.7 clanSDL-0.7 clanGUI-0.7 clanGUIStyleSilver-0.7 clanSound-0.7 clanVorbis-0.7)
++PKG_CHECK_MODULES(CLAN_COMMON, clanCore-0.8 clanApp-0.8 clanNetwork-0.8)
++PKG_CHECK_MODULES(CLAN_CLIENT, clanDisplay-0.8 clanGL-0.8 clanSDL-0.8 clanGUI-0.8 clanGUIStyleSilver-0.8 clanSound-0.8 clanVorbis-0.8)
+ # TODO Use --enable-readline or something; Warn user when disabling.
+ AC_HAVE_LIBRARY(readline, [AC_SUBST(READLINE_LIBS, [-lreadline])],
+     [AC_DEFINE([NO_READLINE], [1], [Define if use of readline is disabled.])])
+-AC_HAVE_LIBRARY(boost_filesystem, [AC_SUBST(BOOST_LIBS, [-lboost_filesystem])],
++AC_HAVE_LIBRARY(boost_filesystem-gcc, [AC_SUBST(BOOST_LIBS, [-lboost_filesystem-gcc])],
+     [AC_MSG_ERROR([*** boost libs not found!])])
+ 
+ # Output.

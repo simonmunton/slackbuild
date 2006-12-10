@@ -1,0 +1,65 @@
+--- SMC-0.99.3/data/Makefile.am.orig	2006-06-23 14:53:30.000000000 +0100
++++ SMC-0.99.3/data/Makefile.am	2006-12-07 15:48:58.000000000 +0000
+@@ -1,14 +1,14 @@
+ install-data-local:
+-	install -c -d $(pkgdatadir); \
+-	cp -R font $(pkgdatadir); \
+-	cp -R gui $(pkgdatadir); \
+-	cp -R icon $(pkgdatadir); \
+-	cp -R music $(pkgdatadir); \
+-	cp -R pixmaps $(pkgdatadir); \
+-	cp -R schemes $(pkgdatadir); \
+-	cp -R sounds $(pkgdatadir); \
+-	cp -R world $(pkgdatadir); \
+-	cp -R levels $(pkgdatadir);
++	install -c -d $(DESTDIR)$(pkgdatadir); \
++	cp -R font $(DESTDIR)$(pkgdatadir); \
++	cp -R gui $(DESTDIR)$(pkgdatadir); \
++	cp -R icon $(DESTDIR)$(pkgdatadir); \
++	cp -R music $(DESTDIR)$(pkgdatadir); \
++	cp -R pixmaps $(DESTDIR)$(pkgdatadir); \
++	cp -R schemes $(DESTDIR)$(pkgdatadir); \
++	cp -R sounds $(DESTDIR)$(pkgdatadir); \
++	cp -R world $(DESTDIR)$(pkgdatadir); \
++	cp -R levels $(DESTDIR)$(pkgdatadir);
+ 
+ uninstall-local:
+ 	rm -rf $(pkgdatadir)/font; \
+--- SMC-0.99.3/src/Makefile.am.orig	2006-10-10 07:43:10.000000000 +0100
++++ SMC-0.99.3/src/Makefile.am	2006-12-07 15:29:55.000000000 +0000
+@@ -19,6 +19,7 @@
+    core/math/vector.cpp \ 
+    core/math/rect.cpp \ 
+    player/player.cpp \ 
++   enemies/spika.cpp \ 
+    enemies/rokko.cpp \ 
+    enemies/enemy.cpp \ 
+    enemies/gumba.cpp \ 
+@@ -28,7 +29,6 @@
+    enemies/thromp.cpp \ 
+    enemies/eato.cpp \ 
+    enemies/gee.cpp \ 
+-   gui/dialog.cpp \ 
+    gui/hud.cpp \ 
+    gui/menu.cpp \ 
+    gui/menu_data.cpp \ 
+@@ -36,7 +36,7 @@
+    input/mouse.cpp \ 
+    input/keyboard.cpp \ 
+    level/level.cpp \ 
+-   level/level_background.h \ 
++   level/level_background.cpp \ 
+    level/global_effect.cpp \ 
+    level/level_settings.cpp \ 
+    level/leveleditor.cpp \ 
+--- SMC-0.99.3/src/core/main.cpp.orig	2006-11-03 04:21:48.000000000 +0000
++++ SMC-0.99.3/src/core/main.cpp	2006-12-09 23:04:32.000000000 +0000
+@@ -110,7 +110,7 @@
+ #ifdef POSIX
+ 	user_data_dir = (string)getenv( "HOME" ) + "/.smc/";
+ 
+-	mkdir( user_data_dir, S_IRWXU );
++	mkdir( user_data_dir.c_str(), S_IRWXU );
+ #endif
+ 
+ 	pCamera = new cCamera();
