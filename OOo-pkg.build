@@ -1,0 +1,181 @@
+#!/bin/sh
+#
+
+# Set initial variables:
+CWD=`pwd`
+PKG=/tmp/package-ooo
+
+# Change to the version of OOo you are using this script with
+VERSION=2.1.0
+
+# 2.0 hack - directory versions don't match package name versions
+S_VERSION=2.1
+
+# Most of the packages are i586. Edit this only if that changes
+ARCH=${ARCH:-i586}
+
+# Most OOo packages are build 1 - edit this if that changes
+BUILD=6
+
+# As of 2.0.2 the menus have a different build revision
+BUILD_MENU=5
+
+# Change to the name of the file you downloaded from OOo
+# Usually in the form of: OOo_$VERSION_LinuxIntel_install.tar.gz
+INPUT=~/tmp/new/o/OpenOffice/OOo_${VERSION}_LinuxIntel_install_en-US.tar.gz
+
+# Destination of outputted files
+DESTINATION=/tmp
+
+if [ ! -r $INPUT ]; then
+echo "Cannot find $INPUT Terminating..."
+echo "Check that VERSION and INPUT are correct, and that you are running this SlackBuild in the same \
+directory as the input file."
+exit
+fi
+
+# Extract a package, and then delete the original RPM file
+# Argument 1: Package Name
+# Argument 2: Architecture
+function extractPackage
+{
+      RPM=$1
+
+      rpm2cpio $RPM | cpio -imd -R 0:0 2> /dev/null
+      rm $RPM
+
+      # Fix directory permissions problem
+      find . -type d -perm 700 -exec chmod 755 {} \;
+}
+
+
+rm -rf $PKG
+mkdir -p $PKG
+cd $PKG
+tar xzvf $INPUT
+
+# If we can't find the RPMS directory, find it and put it somewhere
+# that it can be accessed
+if [ ! -r RPMS ]; then
+  find . -name "RPMS" | xargs -i'{}' mv '{}' $PKG
+fi
+
+# Add desktop integration RPMS to the other RPMS
+mv $PKG/RPMS/desktop-integration/* $PKG/RPMS
+
+# Delete the RedHat, Mandrake/ Mandriva and Free Desktop menus
+# Do *not* add SuSE here - that package is needed later
+rm $PKG/RPMS/openoffice.org-redhat*
+rm $PKG/RPMS/openoffice.org-mandr*
+rm $PKG/RPMS/openoffice.org-freedesktop*
+rm $PKG/RPMS/openoffice.org-debian*
+
+# Add any other packages you don't want here in the form
+# rm $PKG/RPMS/openofficeorg-$PACKAGENAME*
+
+mv $PKG/RPMS/*.rpm $PKG
+rm -rf $PKG/RPMS
+
+# Build Slackware menus for KDE & Gnome/ XFCE/ Free Desktop compliant
+
+mkdir -p $PKG/package/usr/doc/openoffice.org-$VERSION
+
+find $PKG/O* -name "LICENSE*" -exec cp {} $PKG/package/usr/doc/openoffice.org-$VERSION \;
+find $PKG/O* -name "README*" -exec cp {} $PKG/package/usr/doc/openoffice.org-$VERSION \;
+
+chmod -x $PKG/package/usr/doc/openoffice.org-$VERSION/*
+
+cd $PKG/package
+
+# Dirty hack until I can find a nice way to fix the multiple build revisions problem
+(  
+  RPM=openoffice.org-suse-menus-${S_VERSION}-${BUILD_MENU}.noarch.rpm
+  rpm2cpio $PKG/$RPM | cpio -imd -R 0:0 2> /dev/null
+  rm $PKG/$RPM
+
+  # Fix directory permissions problem
+  find . -type d -perm 700 -exec chmod 755 {} \;
+)
+
+mv $PKG/package/opt/gnome/share/* $PKG/package/usr/share
+rm -rf $PKG/package/opt/gnome
+mv $PKG/package/opt/kde3 $PKG/package/opt/kde
+
+# Backwards compatibility with older beta candidates
+rm -rf $PKG/package/opt/kde/share/applnk
+
+cd $PKG/package/usr/share/applications
+
+# Remove all the incorrect symlinks
+rm $PKG/package/usr/share/applications/*
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/printeradmin.desktop openoffice.org-${S_VERSION}-printeradmin.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/base.desktop openoffice.org-${S_VERSION}-base.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/calc.desktop openoffice.org-${S_VERSION}-calc.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/draw.desktop openoffice.org-${S_VERSION}-draw.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/math.desktop openoffice.org-${S_VERSION}-math.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/impress.desktop openoffice.org-${S_VERSION}-impress.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/writer.desktop openoffice.org-${S_VERSION}-writer.desktop
+ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/qstart.desktop openoffice.org-${S_VERSION}-qstart.desktop
+# ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/printer.desktop openoffice.org-${S_VERSION}-printer.desktop
+
+# Replace the binaries in /usr/bin - correct link to file
+cd $PKG/package
+rm $PKG/package/usr/bin/*
+
+cat << _EOF_ > $PKG/package/usr/bin/openoffice.org-${S_VERSION}
+#!/bin/sh
+exec /opt/openoffice.org${S_VERSION}/program/soffice "\$@"
+_EOF_
+
+cat << _EOF_ > $PKG/package/usr/bin/openoffice.org-${S_VERSION}-printeradmin
+#!/bin/sh
+exec /opt/openoffice.org${S_VERSION}/program/spadmin
+_EOF_
+
+# GNOME concession - if I'm missing anything else here, please let me know
+mkdir -p $PKG/package/install
+
+icons=`find $PKG/package/usr/share/icons -type d -maxdepth 1 | grep -v "^$PKG/package/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
+
+cat << _EOF_ > $PKG/package/install/doinst.sh
+if which update-mime-database; then update-mime-database /usr/share/mime; fi
+if which update-desktop-database; then update-desktop-database; fi
+for n in $icons
+do
+  gtk-update-icon-cache -f -t /usr/share/icons/\$n
+done
+_EOF_
+
+chmod a+x $PKG/package/install/doinst.sh
+chmod -R 755 $PKG/package/usr/bin
+
+for file in $PKG/openoffice.org*-$VERSION-*.rpm
+do
+    extractPackage $file
+done
+
+#    buildPackage 
+cat > $PKG/package/install/slack-desc << EOF
+openoffice.org: openoffice.org (OpenOffice.org Office Suite)
+openoffice.org:
+openoffice.org: OpenOffice.org the product is a multi-platform office productivity
+openoffice.org: suite. It includes the key desktop applications, such as a word
+openoffice.org: processor, spreadsheet, presentation manager, and drawing program,
+openoffice.org: with a user interface and feature set similar to other office suites.
+openoffice.org: Sophisticated and flexible, OpenOffice.org also works transparently
+openoffice.org: with a variety of file formats, including those of Microsoft Office.
+openoffice.org:
+openoffice.org:
+openoffice.org:
+EOF
+
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n $PKG/openoffice.org-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
+
+cd $PKG
+rm -rf $PKG/package

@@ -2,17 +2,18 @@
 #
 . build_funcs
 
-TARNAME=dia
+TARNAME=wxGTK
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
-#TAR_EXT=.tar.bz2
-VERSION=0.96-pre1
+TARDIR=~/tmp/new/w/wxWidgets
+#TAR_EXT=.tar.gz
+VERSION=2.6.3
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=wxGTK-unicode
+#PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -34,7 +35,8 @@ then
 #cd /tmp
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
 (cd $TARNAME-$VERSION
- patch -p1 < $CWD/dia-0.96-pre1.diff
+#patch -p1 < $CWD/.diff
+ tar xf $TARDIR/wxWidgets-2.6.3-Patch-2.tar.gz
 )
 fi
 
@@ -49,12 +51,27 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-            --with-python \
-            --enable-gnome
+            --with-gtk \
+            --with-gnomeprint \
+            --with-opengl \
+            --enable-geometry \
+            --enable-sound \
+            --with-sdl \
+            --enable-display \
+	    --enable-unicode
 
 make || exit
+make -C contrib/src/animate || exit
+make -C contrib/src/gizmos || exit
+make -C contrib/src/stc || exit
 
 make install DESTDIR=$PKG
+make -C contrib/src/animate install DESTDIR=$PKG
+make -C contrib/src/gizmos install DESTDIR=$PKG
+make -C contrib/src/stc install DESTDIR=$PKG
+
+#rm $PKG/usr/bin/wx-config
+#ln -s /usr/lib/wx/config/gtk2-ansi-release-2.6 $PKG/usr/bin/wx-config
 
 fix_links
 
@@ -78,17 +95,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-dia: dia
-dia:
-dia: 
-dia:
-dia:
-dia:
-dia:
-dia:
-dia:
-dia:
-dia:
+$PKGNAME: $PKGNAME $VERSION
+$PKGNAME:
+$PKGNAME: 
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
+$PKGNAME:
 EOF
 
 post_install
