@@ -2,19 +2,19 @@
 #
 . build_funcs
 
-TARNAME=glib
+TARNAME=lua
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
-#TAR_EXT=.tar.bz2
-VERSION=2.12.5
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=5.0.3
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=glib2
+PKGNAME=lua50
 #BUILD_SUFFIX=
-#ARCH=
+#ARCH=noarch
 
 
 FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
@@ -44,17 +44,20 @@ cd $TARNAME-$VERSION
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-debug=minimal \
-            --enable-static
 
 make || exit
 
-make install DESTDIR=$PKG
+make install INSTALL_ROOT=$PKG/usr
+
+mv ${PKG}/usr/bin/lua ${PKG}/usr/bin/lua50
+mv ${PKG}/usr/bin/luac ${PKG}/usr/bin/luac50
+mkdir ${PKG}/usr/include/lua50
+mv ${PKG}/usr/include/*.h ${PKG}/usr/include/lua50
+mv ${PKG}/usr/lib/liblua.a ${PKG}/usr/lib/liblua50.a
+mv ${PKG}/usr/lib/liblualib.a ${PKG}/usr/lib/liblualib50.a
+mv ${PKG}/usr/man/man1/lua.1 ${PKG}/usr/man/man1/lua50.1
+mv ${PKG}/usr/man/man1/luac.1 ${PKG}/usr/man/man1/luac50.1
+
 
 fix_links
 
@@ -63,8 +66,10 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* COPYRIGHT HISTORY INSTALL NEWS PLANS README* TODO doc \
   $PKG/usr/doc/$TARNAME-$VERSION
+
+rm $PKG/usr/doc/$TARNAME-$VERSION/doc/*.1
 
 fix_docs
 
@@ -78,17 +83,17 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-glib2: glib2
-glib2:
-glib2: 
-glib2:
-glib2:
-glib2:
-glib2:
-glib2:
-glib2:
-glib2:
-glib2:
+lua: lua
+lua:
+lua: 
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
+lua:
 EOF
 
 post_install

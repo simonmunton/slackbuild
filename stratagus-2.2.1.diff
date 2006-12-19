@@ -1,0 +1,16 @@
+--- stratagus-2.2.1/src/tolua/tolua++.h.orig	2006-09-17 22:29:15.000000000 +0100
++++ stratagus-2.2.1/src/tolua/tolua++.h	2006-12-19 12:24:49.000000000 +0000
+@@ -38,6 +38,13 @@
+ #include "lua.h"
+ #include "lauxlib.h"
+ 
++#define lua_dobuffer(L, s, l, n) \
++        (luaL_loadbuffer(L, s, l, n) || lua_pcall(L, 0, LUA_MULTRET, 0))
++
++#define lua_setgcthreshold(L,n) lua_gc(L, (n) == 0 ? LUA_GCCOLLECT : LUA_GCRESTART, 0)
++
++#define lua_unboxpointer(L,i)     (*(void **)(lua_touserdata(L, i)))
++
+ struct tolua_Error
+ {
+ 	int index;
