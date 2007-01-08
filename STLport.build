@@ -1,67 +1,76 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=STLport
+. build_funcs
+
+TARNAME=STLport
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
 VERSION=4.6.2
-ARCH=i486
-BUILD=1sm
-USERNAME=`id -un`
-GROUP=`id -gn`
+VERSIONEXTRA=
+BUILD=1
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
 
-PKGDIR=~/tmp/new/s
-PKG=/tmp/package-$PKGNAME
 
-rm -rf $PKG
-mkdir -p $PKG
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
-if [ ! -d $PKGNAME-$VERSION ]
-then 
-#cd /tmp
-tar xzvf $PKGDIR/$PKGNAME-$VERSION.tar.gz
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
 fi
 
-cd $PKGNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
-make
+make || exit
 
-make install DESTDIR=$PKG
+make install DESTDIR=${PKG}
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
-fi
+#strip_binaries
 
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
+fix_links
 
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
+compress_manpages
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+compress_info
+
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS README* \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p $PKG/install
+fix_docs
 
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -70,26 +79,23 @@ cat <<EOF > $PKG/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-STLport: STLport
-STLport:
-STLport: 
-STLport:
-STLport:
-STLport:
-STLport:
-STLport:
-STLport:
-STLport:
-STLport:
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF > $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/STLport.info.gz
-EOF
-fi
+post_install
 
-cd $PKG
-su -c "chown -R root.root *; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
