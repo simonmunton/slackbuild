@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=intltool
+TARNAME=lapack
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.35.4
+VERSION=3.1.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,7 +35,8 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/lapack-3.1.0.diff
+# cp make.inc.example make.inc
 )
 fi
 
@@ -45,15 +46,51 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+mkdir -p  ${PKG}/usr/lib
 
-make || exit
+# Build the static dlamch, dsecnd, lsame, second, slamch bits
+pushd INSTALL
+make clean
+make NOOPT="-funroll-all-loops -Os" OPTS="-funroll-all-loops -O3" dlamch.o dsecnd.o lsame.o second.o slamch.o
+popd
 
-make install DESTDIR=${PKG}
+# Build the static lapack library
+pushd SRC
+make clean
+make FFLAGS="-funroll-all-loops -O3" CFLAGS="-funroll-all-loops -O3" static
+cp liblapack.a ${PKG}/usr/lib
+popd
+
+# Build the shared dlamch, dsecnd, lsame, second, slamch bits
+pushd INSTALL
+make clean
+make NOOPT="-funroll-all-loops -Os -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" \
+        dlamch.o dsecnd.o lsame.o second.o slamch.o
+popd
+
+# Build the shared lapack library
+pushd SRC
+make clean
+make FFLAGS="-funroll-all-loops -O3 -fPIC" CFLAGS="-funroll-all-loops -O3 -fPIC" shared
+cp liblapack.so.3.1.0 ${PKG}/usr/lib
+(cd ${PKG}/usr/lib
+ ln -s liblapack.so.3.1.0 liblapack.so
+)
+popd
+
+# Buuld the static with pic dlamch, dsecnd, lsame, second, slamch bits
+#pushd INSTALL
+#make clean
+#make NOOPT="-funroll-all-loops -Os -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" \
+#        dlamch.o dsecnd.o lsame.o second.o slamch.o
+#popd
+
+# Build the static with pic lapack library
+pushd SRC
+#make clean
+make FFLAGS="-funroll-all-loops -O3 -fPIC" CFLAGS="-funroll-all-loops -O3 -fPIC" static
+cp liblapack.a ${PKG}/usr/lib/liblapack_pic.a
+popd
 
 #strip_binaries
 
@@ -64,7 +101,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

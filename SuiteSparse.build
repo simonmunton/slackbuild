@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=intltool
+TARNAME=SuiteSparse
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/s/SuiteSparse
 #TAR_EXT=.tar.gz
-VERSION=0.35.4
+VERSION=2.3.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -33,9 +33,10 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/SuiteSparse-2.3.1.diff
+ tar xf ~/tmp/new/m/metis-4.0.tar.gz
 )
 fi
 
@@ -45,15 +46,13 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
-
 make || exit
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{include,lib}
+
+cp {AMD,BTF,CAMD,CHOLMOD,KLU,UMFPACK}/Lib/*.a ${PKG}/usr/lib
+cp {AMD,BTF,CAMD,CHOLMOD,KLU,UMFPACK}/Include/* ${PKG}/usr/include
+cp UFconfig/*.h ${PKG}/usr/include
 
 #strip_binaries
 
@@ -66,6 +65,13 @@ compress_info
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/{AMD,CAMD,CHOLMOD,KLU,UMFPACK}
+cp AMD/Doc/*pdf ${PKG}/usr/doc/${TARNAME}-${VERSION}/AMD
+cp CAMD/Doc/*pdf ${PKG}/usr/doc/${TARNAME}-${VERSION}/CAMD
+cp CHOLMOD/Doc/*pdf ${PKG}/usr/doc/${TARNAME}-${VERSION}/CHOLMOD
+cp KLU/Doc/*pdf ${PKG}/usr/doc/${TARNAME}-${VERSION}/KLU
+cp UMFPACK/Doc/*pdf ${PKG}/usr/doc/${TARNAME}-${VERSION}/UMFPACK
 
 fix_docs
 

@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=intltool
+TARNAME=lapack
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.35.4
+VERSION=3.1.0
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=blas
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/blas-3.1.0.diff
 )
 fi
 
@@ -45,15 +45,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+mkdir -p ${PKG}/usr/lib
 
-make || exit
+(cd BLAS/SRC
+make clean
+#FFLAGS="-funroll-all-loops -O0" make dcabs1.o
+FFLAGS="-funroll-all-loops -O3" CFLAGS="-funroll-all-loops -O3" make static || exit
+cp libblas.a ${PKG}/usr/lib
+make clean
+#FFLAGS="-funroll-all-loops -O0 -fPIC" make dcabs1.o
+FFLAGS="-funroll-all-loops -O3 -fPIC" CFLAGS="-funroll-all-loops -O3 -fPIC" make shared || exit
+cp libblas.so.3.1.0 ${PKG}/usr/lib
+)
 
-make install DESTDIR=${PKG}
+(cd ${PKG}/usr/lib
+ ln -s libblas.so.3.1.0 libblas.so
+)
 
 #strip_binaries
 
@@ -63,9 +70,12 @@ compress_manpages
 
 compress_info
 
+mkdir -p ${PKG}/usr/doc/blas-${VERSION}
+rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ${TARDIR}/blasqr.ps \
+  ${PKG}/usr/doc/blas-${VERSION}
 
 fix_docs
 
