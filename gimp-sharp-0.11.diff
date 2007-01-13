@@ -12,17 +12,6 @@
  		done
  # Tell versions [3.59,3.63) of GNU make to not export all variables.
  # Otherwise a system limit (for SysV at least) may be exceeded.
---- gimp-sharp-0.11/plug-ins/Colorize/Makefile.in.orig	2007-01-05 18:59:57.000000000 +0000
-+++ gimp-sharp-0.11/plug-ins/Colorize/Makefile.in	2007-01-09 14:20:26.000000000 +0000
-@@ -212,7 +212,7 @@
- CLEANFILES = Colorize.exe
- lib_LTLIBRARIES = libumfpackwrapper.la
- libumfpackwrapper_la_SOURCES = umfpackwrapper.c
--libumfpackwrapper_la_LDFLAGS = -version-info 0 -lumfpack -lamd -lblas
-+libumfpackwrapper_la_LDFLAGS = -version-info 0 -lumfpack -lamd -lf77blas -latlas -lg2c
- all: all-recursive
- 
- .SUFFIXES:
 --- gimp-sharp-0.11/plug-ins/Forge/Makefile.in.orig	2007-01-05 18:59:58.000000000 +0000
 +++ gimp-sharp-0.11/plug-ins/Forge/Makefile.in	2007-01-09 14:39:13.000000000 +0000
 @@ -505,8 +505,9 @@
@@ -208,14 +197,14 @@
  		done
  # Tell versions [3.59,3.63) of GNU make to not export all variables.
  # Otherwise a system limit (for SysV at least) may be exceeded.
---- gimp-sharp-0.11/configure.orig	2007-01-05 18:59:51.000000000 +0000
-+++ gimp-sharp-0.11/configure	2007-01-09 13:54:16.000000000 +0000
-@@ -19400,7 +19400,7 @@
-   echo $ECHO_N "(cached) $ECHO_C" >&6
- else
-   ac_check_lib_save_LIBS=$LIBS
--LIBS="-lumfpack -lblas -lamd -lm $LIBS"
-+LIBS="-lumfpack -lf77blas -latlas -lg2c -lamd -lm $LIBS"
- cat >conftest.$ac_ext <<_ACEOF
- /* confdefs.h.  */
- _ACEOF
+--- gimp-sharp-0.11/plug-ins/Colorize/Colorize.cs.orig	2007-01-06 14:40:44.000000000 +0000
++++ gimp-sharp-0.11/plug-ins/Colorize/Colorize.cs	2007-01-10 21:37:58.000000000 +0000
+@@ -156,7 +156,7 @@
+       table.Attach(useChroma, 0, 1, 4, 5);
+ 
+       CheckButton useEntireImage = 
+-	new CheckButton(_("Unselected areas are mask"));
++	new CheckButton(_("Use the entire image, even when the selected area is smaller"));
+       useEntireImage.Active = _useEntireImage;
+       useEntireImage.Toggled += delegate(object sender, EventArgs args) {
+ 	_useEntireImage = useEntireImage.Active;

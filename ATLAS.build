@@ -6,7 +6,7 @@ TARNAME=atlas
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.7.24
+VERSION=3.6.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,7 +35,8 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ATLAS ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${TARDIR}/atlas3_3.6.0-20.diff
+ patch -p1 < ${CWD}/ATLAS.diff
 )
 fi
 
@@ -45,22 +46,254 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir build
-cd build
+########### build it like debian and fedora #######################
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-../configure --prefix=/usr
+chmod +x debian/config.expect debian/ab
+#sed -i debian/ab -e s/g77/gfortran/
 
-make || exit
+# choose one type
+#TYPE=custom base sse sse2 3dnow
+TYPE=sse2
+NBIT=1
+VER=${VERSION}
+VER_MAJOR=3
+SOURCEDIR=`pwd`
+PKGVERSION=${VERSION}_${TYPE}
 
-make check
-make ptcheck
-make time
+########## Static Libraries ##########################################
+#for TYPE in ${TYPES}; do
+  if [ "${TYPE}" = "3dnow" ]; then
+    TDN=y
+  else
+    TDN=n
+  fi
+  BUILD_DIR=Linux_${TYPE}_static
+  ARCH_DIR=${BUILD_DIR} CACHE_SIZE= BIT=${NBIT} \
+    DEFAULTS=y TDNCOMP=${TDN} debian/config.expect
+  cat Make.${BUILD_DIR} |\
+	sed -e "s, TOPdir = \(.*\), TOPdir = `pwd`,1" \
+	    -e "s, FLAPACKlib = , FLAPACKlib = /usr/lib/liblapack.a,1" >foo
+  mv foo Make.${BUILD_DIR}
+  make killall arch=${BUILD_DIR}
+  make startup arch=${BUILD_DIR}
+echo "############### 1"
+  if [ "${TYPE}" = "custom" ]; then
+    BUILD_DATA_DIR=atlas-${TYPE}-i386
+    if [ -a ${SOURCEDIR}/${BUILD_DATA_DIR}.tgz ]; then
+      tar zxf ${SOURCEDIR}/${BUILD_DATA_DIR}.tgz
+    else
+      make install arch=${BUILD_DIR} >out 2>&1 &
+      pid=$!
+      echo Waiting on ${pid}
+      tail -f --pid ${pid} out &
+      wait ${pid}
+      rm -rf ${BUILD_DATA_DIR}
+      mkdir -p ${BUILD_DATA_DIR}
+      cat out | sed -e "s,`pwd`,TOPDIR,g" -e "s,${BUILD_DIR},CARCH,g" | \
+		gzip -9 | uuencode - >${BUILD_DATA_DIR}/build.uu
+      rm -f out
+      mkdir -p ${BUILD_DATA_DIR}/include
+      cp include/${BUILD_DIR}/* ${BUILD_DATA_DIR}/include
+      mkdir -p ${BUILD_DATA_DIR}/mm
+      cp tune/blas/gemm/${BUILD_DIR}/res/* ${BUILD_DATA_DIR}/mm
+      mkdir -p ${BUILD_DATA_DIR}/mv
+      cp tune/blas/gemv/${BUILD_DIR}/res/* ${BUILD_DATA_DIR}/mv
+      mkdir -p ${BUILD_DATA_DIR}/r1
+      cp tune/blas/ger/${BUILD_DIR}/res/* ${BUILD_DATA_DIR}/r1
+      mkdir -p ${BUILD_DATA_DIR}/l1
+      cp tune/blas/level1/${BUILD_DIR}/res/* ${BUILD_DATA_DIR}/l1
+      tar zcf ${SOURCEDIR}/${BUILD_DATA_DIR}.tgz ${BUILD_DATA_DIR}
+    fi
+  else
+    BUILD_DATA_DIR=debian/i386/${TYPE}
+  fi
 
-make install DESTDIR=${PKG}/usr
+  cp ${BUILD_DATA_DIR}/mm/* tune/blas/gemm/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/mv/* tune/blas/gemv/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/r1/* tune/blas/ger/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/l1/* tune/blas/level1/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/include/* include/${BUILD_DIR}
 
-cd ..
+echo "############### 2"
+
+#  cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
+#	sed -e s/g77/gfortran/ -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
+#	carch=${BUILD_DIR} fpic="-Wa,--noexecstack" debug= | bash -x -e
+  cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
+	debian/ab topdir=`pwd` \
+	carch=${BUILD_DIR} fpic="-Wa,--noexecstack" debug= | bash -x -e
+  mv lib/${BUILD_DIR}/liblapack.a lib/${BUILD_DIR}/liblapack_atlas.a
+
+echo "############### 3"
+
+  # Create replacement for BLAS and LAPACK Libraries
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/libatlas.a
+    ar x ../lib/${BUILD_DIR}/libf77blas.a
+    ar x ../lib/${BUILD_DIR}/libcblas.a
+  popd
+  rm -f lib/${BUILD_DIR}/libblas.a
+  ar r lib/${BUILD_DIR}/libblas.a tmp/*.o
+  rm -rf tmp
+
+  mkdir tmp
+  pushd tmp
+    ar x /usr/lib/liblapack.a
+    ar x ../lib/${BUILD_DIR}/liblapack_atlas.a
+    ar x ../lib/${BUILD_DIR}/libcblas.a
+  popd
+  rm -f lib/${BUILD_DIR}/liblapack.a
+  ar r lib/${BUILD_DIR}/liblapack.a tmp/*.o
+  rm -rf tmp
+
+echo "############### 4"
+
+  ########## Shared Libraries ##########################################
+  BUILD_DIR=Linux_${TYPE}_shared
+  ARCH_DIR=${BUILD_DIR} CACHE_SIZE= BIT=${NBIT} \
+      DEFAULTS=y TDNCOMP=${TDN} debian/config.expect
+  cat Make.${BUILD_DIR} |\
+	sed -e "s, TOPdir = \(.*\), TOPdir = `pwd`,1" \
+	    -e "s, FLAPACKlib = , FLAPACKlib = /usr/lib/liblapack_pic.a,1" \
+	    -e "s, F77FLAGS = \(.*\), F77FLAGS = \1 -fPIC,1" \
+	    -e "s, CCFLAGS = \(.*\), CCFLAGS = \1 -fPIC,1" \
+	    -e "s, MMFLAGS = \(.*\), MMFLAGS = \1 -fPIC,1" \
+	    -e "s, XCCFLAGS = \(.*\), XCCFLAGS = \1 -fPIC,1" >foo
+  mv foo Make.${BUILD_DIR}
+  make killall arch=${BUILD_DIR}
+  make startup arch=${BUILD_DIR}
+
+echo "############### 5"
+
+  cp ${BUILD_DATA_DIR}/mm/* tune/blas/gemm/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/mv/* tune/blas/gemv/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/r1/* tune/blas/ger/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/l1/* tune/blas/level1/${BUILD_DIR}/res
+  cp ${BUILD_DATA_DIR}/include/* include/${BUILD_DIR}
+
+#  cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
+#	sed -e s/g77/gfortran/ -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
+#	carch=${BUILD_DIR} fpic="-Wa,--noexecstack -fPIC" debug= | bash -x -e
+  cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
+	debian/ab topdir=`pwd` \
+	carch=${BUILD_DIR} fpic="-Wa,--noexecstack -fPIC" debug= | bash -x -e
+  mv lib/${BUILD_DIR}/liblapack.a lib/${BUILD_DIR}/liblapack_atlas.a
+
+echo "############### 6"
+
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/libatlas.a
+    rm -f ilaenv.o
+  popd
+  cc -shared -Wl,-soname=libatlas.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/libatlas.so.${VER} tmp/*.o -lm
+  ln -s libatlas.so.${VER} lib/${BUILD_DIR}/libatlas.so.${VER_MAJOR}
+  ln -s libatlas.so.${VER} lib/${BUILD_DIR}/libatlas.so
+  rm -rf tmp
+
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/libcblas.a
+    rm -f ilaenv.o
+  popd
+  cc -shared -Wl,-soname=libcblas.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/libcblas.so.${VER} tmp/*.o -L lib/${BUILD_DIR} -latlas
+  ln -s libcblas.so.${VER} lib/${BUILD_DIR}/libcblas.so.${VER_MAJOR}
+  ln -s libcblas.so.${VER} lib/${BUILD_DIR}/libcblas.so
+  rm -rf tmp
+
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/libf77blas.a
+    rm -f ilaenv.o
+  popd
+  cc -shared -Wl,-soname=libf77blas.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/libf77blas.so.${VER} tmp/*.o \
+	-L lib/${BUILD_DIR} -latlas -lg2c
+#	-L lib/${BUILD_DIR} -latlas -lgfortran
+  ln -s libf77blas.so.${VER} lib/${BUILD_DIR}/libf77blas.so.${VER_MAJOR}
+  ln -s libf77blas.so.${VER} lib/${BUILD_DIR}/libf77blas.so
+  rm -rf tmp
+
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/liblapack_atlas.a
+    rm -f ilaenv.o
+  popd
+  cc -shared -Wl,-soname=liblapack_atlas.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/liblapack_atlas.so.${VER} tmp/*.o \
+	-L lib/${BUILD_DIR} -lcblas -lf77blas
+  ln -s liblapack_atlas.so.${VER} lib/${BUILD_DIR}/liblapack_atlas.so.${VER_MAJOR}
+  ln -s liblapack_atlas.so.${VER} lib/${BUILD_DIR}/liblapack_atlas.so
+  rm -rf tmp
+
+  # Create replacement for BLAS and LAPACK Libraries
+  mkdir tmp
+  pushd tmp
+    ar x ../lib/${BUILD_DIR}/libatlas.a
+    ar x ../lib/${BUILD_DIR}/libf77blas.a
+    ar x ../lib/${BUILD_DIR}/libcblas.a
+  popd
+  cc -shared -Wl,-soname=libblas.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lg2c
+#	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lgfortran
+  ln -s libblas.so.${VER} lib/${BUILD_DIR}/libblas.so.${VER_MAJOR}
+  ln -s libblas.so.${VER} lib/${BUILD_DIR}/libblas.so
+  rm -rf tmp
+
+  mkdir tmp
+  pushd tmp
+    ar x /usr/lib/liblapack_pic.a
+    ar x ../lib/${BUILD_DIR}/liblapack_atlas.a
+    ar x ../lib/${BUILD_DIR}/libcblas.a
+  popd
+  cc -shared -Wl,-soname=liblapack.so.${VER_MAJOR} \
+	-o lib/${BUILD_DIR}/liblapack.so.${VER} tmp/*.o \
+	-L lib/${BUILD_DIR} -lblas -lg2c
+#	-L lib/${BUILD_DIR} -lblas -lgfortran
+  ln -s liblapack.so.${VER} lib/${BUILD_DIR}/liblapack.so.${VER_MAJOR}
+  ln -s liblapack.so.${VER} lib/${BUILD_DIR}/liblapack.so
+  rm -rf tmp
+#done
+
+echo "############### 7"
+
+#install
+#mkdir -p ${PKG}/etc/ld.so.conf.d
+mkdir -p ${PKG}/usr/include/atlas
+cp -a include/*.h ${PKG}/usr/include/atlas
+
+LIBNAMES="libatlas libcblas libf77blas liblapack_atlas libblas liblapack"
+#for TYPE in ${TYPES}; do
+#  if [ "${TYPE}" = "base" ]; then
+#    EXTDIR="atlas"
+#    echo "/usr/lib/atlas" \
+#      > ${PKG}/etc/ld.so.conf.d/atlas-${ARCH}.conf
+#  elif [ "${TYPE}" = "custom" ]; then
+#    EXTDIR="atlas-custom"
+#    echo "/usr/lib/atlas-custom" \
+#      > ${PKG}/etc/ld.so.conf.d/atlas-custom-${ARCH}.conf
+#  else
+#    EXTDIR=${TYPE}
+#    if [ "${TYPE}" != "sse2" ]; then
+#      echo "/usr/lib/${TYPE}" \
+#        > ${PKG}/etc/ld.so.conf.d/atlas-${TYPE}.conf
+#    fi
+#  fi
+
+#  mkdir -p ${PKG}/usr/lib/${EXTDIR}
+  mkdir -p ${PKG}/usr/lib
+  for LIB in ${LIBNAMES}; do
+    LIBS="lib/Linux_${TYPE}_static/${LIB}.a lib/Linux_${TYPE}_shared/${LIB}.so*"
+#    cp -a ${LIBS} ${PKG}/usr/lib/${EXTDIR}
+    cp -a ${LIBS} ${PKG}/usr/lib
+  done
+#done
+
+echo "############### 8"
+
 
 #strip_binaries
 
@@ -85,18 +318,19 @@ cat <<EOF > ${PKG}/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
+            |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
+${PKGNAME}: The ATLAS (Automatically Tuned Linear Algebra Software) project is an
+${PKGNAME}: ongoing research effort focusing on applying empirical techniques in
+${PKGNAME}: order to provide portable performance. At present, it provides C and
+${PKGNAME}: Fortran77 interfaces to a portably efficient BLAS implementation, as
+${PKGNAME}: well as a few routines from LAPACK.
 ${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: The performance improvements in ATLAS are obtained largely via
+${PKGNAME}: compile-time optimizations and tend to be specific to a given hardware
+${PKGNAME}: configuration.
+${PKGNAME}: 
+${PKGNAME}: 
 EOF
 
 post_install
