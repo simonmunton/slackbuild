@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=fwbuilder
-TARNAMEEXTRA=
-TARDIR=~/tmp/new/f
+TARNAME=digit
+TARNAMEEXTRA=-src
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=2.1.8
+VERSION=4_0
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=engauge-digitizer
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -33,9 +33,9 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv digitizer ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/engauge-digitizer.diff
 )
 fi
 
@@ -45,17 +45,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+qmake -unix digitizer.pro
 
 make || exit
 
-make install DDIR=${PKG}
+mkdir -p ${PKG}/usr/share/engauge-digitizer ${PKG}/usr/bin ${PKG}/usr/man/man1
+cp bin/engauge ${PKG}/usr/bin
+cp -pr usermanual ${PKG}/usr/share/engauge-digitizer
+cp debian/engauge.1 ${PKG}/usr/man/man1
+chmod -R -x,+X ${PKG}/usr/share/engauge-digitizer
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -69,6 +69,8 @@ cp -a \
 
 fix_docs
 
+mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/engauge-digitizer-${VERSION}
+
 mkdir -p ${PKG}/install
 cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
@@ -80,15 +82,21 @@ cat <<EOF > ${PKG}/install/slack-desc
 
     |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
+${PKGNAME}: Interactively extracts numbers from bitmap graphs or maps
+${PKGNAME}: This digitizing software converts an image file showing a graph or map into
+${PKGNAME}: xy data (coordinates). Some people use it for obtaining the original data
+${PKGNAME}: from graphs in scientific publications.
+${PKGNAME}: Features:
+${PKGNAME}:    * Automatic grid line removal
+${PKGNAME}:    * Automatic point matching
+${PKGNAME}:    * Automatic curve tracing
+${PKGNAME}:    * Automatic axes matching
+${PKGNAME}:    * Handles cartesian, polar, linear and logarithmic graphs
+${PKGNAME}:    * Support for drag-and-drop and copy-and-paste
+${PKGNAME}:    * Context sensitive help, user manual and tutorials explain every feature
+${PKGNAME}:    * Preview windows give immediate feedback while modifying settings
 ${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}:  Homepage: http://digitizer.sourceforge.net/
 ${PKGNAME}:
 EOF
 
