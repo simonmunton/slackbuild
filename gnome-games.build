@@ -6,7 +6,7 @@ TARNAME=gnome-games
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 TAR_EXT=.tar.bz2
-VERSION=2.16.2
+VERSION=2.16.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -48,11 +48,32 @@ CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --disable-schemas-install
 
 make || exit
 
 make install DESTDIR=$PKG
+
+(cd ${PKG}/var/lib/games
+ LIST=`ls  | tr '\012' ' '`
+ for f in *
+ do
+   mv $f $f.new
+ done
+ cat << EOF >> ${PKG}/install/doinst.sh
+#
+for f in ${LIST}
+do
+  if [ -f var/lib/games/\${f} ]
+  then
+    rm var/lib/games/\${f}.new
+  else
+    mv var/lib/games/\${f}.new var/lib/games/\${f}
+  fi
+done
+EOF
+)
 
 fix_links
 
@@ -66,7 +87,6 @@ cp -a \
 
 fix_docs
 
-mkdir -p $PKG/install
 cat <<EOF > $PKG/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
@@ -94,5 +114,8 @@ post_install
 cd $PKG
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
+chown games.games var/lib/games/*; \
+chgrp games usr/bin/{glines,gnibbles,gnobots2,gnometris,gnomine,gnotravex,gnotski,gtali,iagno,mahjongg,same-gnome} ; \
+chmod g+s usr/bin/{glines,gnibbles,gnobots2,gnometris,gnomine,gnotravex,gnotski,gtali,iagno,mahjongg,same-gnome} ; \
 makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

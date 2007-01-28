@@ -18,38 +18,38 @@ GROUP=`id -gn`
 
 # if TAR_EXT not set, try and guess it
 #
-if [ "x$TAR_EXT" == "x" ]
+if [ "x${TAR_EXT}" == "x" ]
 then
   if [ -f ${FULL_TARNAME}.tar.gz ]
   then
     TAR_EXT=.tar.gz
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   elif [ -f ${FULL_TARNAME}.tgz ]
   then
     TAR_EXT=.tgz
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   elif [ -f ${FULL_TARNAME}.tar.bz2 ]
   then
     TAR_EXT=.tar.bz2
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   elif [ -f ${FULL_TARNAME}.tbz ]
   then
     TAR_EXT=.tbz
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   elif [ -f ${FULL_TARNAME}.zip ]
   then
     TAR_EXT=.zip
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   elif [ -f ${FULL_TARNAME}.7z ]
   then
     TAR_EXT=.7z
-    FULL_TARNAME=$FULL_TARNAME$TAR_EXT
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
   fi
 fi
 
 # guess tar program and tar opts
 
-case $TAR_EXT in
+case ${TAR_EXT} in
   .tar.gz|.tgz)
     : ${TAR_PROG:=tar}
     : ${TAR_OPTS:=xzvf}
@@ -78,14 +78,14 @@ esac
 
 pre_configure ()
 {
-rm -rf $PKG
-mkdir -p $PKG
-mkdir -p $PKG/usr/doc/$TARNAME-$VERSION
-
+rm -rf ${PKG}
+mkdir -p ${PKG}
+mkdir -p ${PKG}/usr/doc/$TARNAME-$VERSION
+mkdir -p ${PKG}/install
 
 CPUOPT="-mcpu"
 GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
+case ${GCCVER} in
   3.4*|4.*) CPUOPT="-mtune" ;;
 esac
 }
@@ -122,13 +122,13 @@ strip_binaries ()
 fix_links ()
 {
 # fix links
-for f in `find $PKG -type l`
+for f in `find ${PKG} -type l`
 do
-  if [[ `readlink $f` =~ "$PKG.*" ]]
+  if [[ `readlink ${f}` =~ "${PKG}.*" ]]
   then
-    (cd `dirname $f`
-     linkname=`basename $f`
-     ln -snf `readlink $linkname | sed -e "s@$PKG@@"` $linkname
+    (cd `dirname ${f}`
+     linkname=`basename ${f}`
+     ln -snf `readlink ${linkname} | sed -e "s@${PKG}@@"` ${linkname}
     )
   fi
 done
@@ -138,8 +138,7 @@ perllocalpod ()
 {
 (cd ${PKG}
  PERLLOCALPOD=`find . -name perllocal.pod`
- if [ -n "$PERLLOCALPOD" ]; then
-   mkdir -p install
+ if [ -n "${PERLLOCALPOD}" ]; then
    mv ${PERLLOCALPOD} install/slack-perllocal.pod
    cat >> install/doinst.sh <<EOF
 #
@@ -151,81 +150,81 @@ EOF
 
 compress_manpages ()
 {
-if [ -d $PKG/usr/share/man ]
+if [ -d ${PKG}/usr/share/man ]
 then
   echo moving usr/share/man
-  mv $PKG/usr/share/man $PKG/usr
+  mv ${PKG}/usr/share/man ${PKG}/usr
 fi
 
-if [ -d $PKG/usr/man ]
+if [ -d ${PKG}/usr/man ]
 then
   # compress man pages
-  find $PKG/usr/man -exec gzip {} \;
+  find ${PKG}/usr/man -exec gzip {} \;
 
   # make links point to right places
-  for f in `find $PKG/usr/man -type l`
+  for f in `find ${PKG}/usr/man -type l`
   do
-    mv $f $f.gz
-    ln -sf `readlink $f.gz`.gz $f.gz
+    mv ${f} ${f}.gz
+    ln -sf `readlink ${f}.gz`.gz ${f}.gz
   done
 fi
 
-if [ -d $PKG/usr/X11R6/man ]
+if [ -d ${PKG}/usr/X11R6/man ]
 then
   # compress man pages
-  find $PKG/usr/X11R6/man -exec gzip {} \;
+  find ${PKG}/usr/X11R6/man -exec gzip {} \;
 
   # make links point to right places
-  for f in `find $PKG/usr/X11R6/man -type l`
+  for f in `find ${PKG}/usr/X11R6/man -type l`
   do
-    mv $f $f.gz
-    ln -sf `readlink $f.gz`.gz $f.gz
+    mv ${f} ${f}.gz
+    ln -sf `readlink ${f}.gz`.gz ${f}.gz
   done
 fi
 }
 
 compress_info ()
 {
-if [ -d $PKG/usr/share/info ]
+if [ -d ${PKG}/usr/share/info ]
 then
   echo moving usr/share/info
-  mv $PKG/usr/share/info $PKG/usr
+  mv ${PKG}/usr/share/info ${PKG}/usr
 fi
 
-if [ -d $PKG/usr/info ]
+if [ -d ${PKG}/usr/info ]
 then
-  rm $PKG/usr/info/dir
+  rm ${PKG}/usr/info/dir
 
   # compress info pages
-  find $PKG/usr/info -exec gzip {} \;
+  find ${PKG}/usr/info -exec gzip {} \;
 fi
 }
 
 
 fix_docs ()
 {
-if [ -d $PKG/usr/share/doc/$TARNAME-$VERSION ]
+if [ -d ${PKG}/usr/share/doc/${TARNAME}-${VERSION} ]
 then
-  mv -f $PKG/usr/share/doc/$TARNAME-$VERSION/* $PKG/usr/doc/$TARNAME-$VERSION
-  rm -rf $PKG/usr/share/doc
+  mv -f ${PKG}/usr/share/doc/${TARNAME}-${VERSION}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  rm -rf ${PKG}/usr/share/doc
 fi
 
-if [ -d $PKG/usr/share/doc/$TARNAME ]
+if [ -d ${PKG}/usr/share/doc/${TARNAME} ]
 then
-  mv -f $PKG/usr/share/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
-  rm -rf $PKG/usr/share/doc
+  mv -f ${PKG}/usr/share/doc/${TARNAME}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  rm -rf ${PKG}/usr/share/doc
 fi
 
-if [ -d $PKG/usr/share/doc/$PKGNAME ]
+if [ -d ${PKG}/usr/share/doc/${PKGNAME} ]
 then
-  mv -f $PKG/usr/share/doc/$PKGNAME/* $PKG/usr/doc/$TARNAME-$VERSION
-  rm -rf $PKG/usr/share/doc
+  mv -f ${PKG}/usr/share/doc/${PKGNAME}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  rm -rf ${PKG}/usr/share/doc
 fi
 
-if [ -d $PKG/usr/doc/$TARNAME ]
+if [ -d ${PKG}/usr/doc/${TARNAME} ]
 then
-  mv -f $PKG/usr/doc/$TARNAME/* $PKG/usr/doc/$TARNAME-$VERSION
-  rm -rf $PKG/usr/doc/$TARNAME
+  mv -f ${PKG}/usr/doc/${TARNAME}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  rm -rf ${PKG}/usr/doc/${TARNAME}
 fi
 
 }
@@ -236,16 +235,16 @@ post_install ()
 ##############################################################
 # if info dir exists, do install-info
 #
-if [ -d $PKG/usr/info ]
+if [ -d ${PKG}/usr/info ]
 then
-  infos=`ls $PKG/usr/info | grep \.info\.gz | tr '\012' ' '`
-  if [ -n "$infos" ]
+  infos=`ls ${PKG}/usr/info | grep \.info\.gz | tr '\012' ' '`
+  if [ -n "${infos}" ]
   then
-    cat <<EOF >> $PKG/install/doinst.sh
+    cat <<EOF >> ${PKG}/install/doinst.sh
 #
-for n in $infos
+for n in ${infos}
 do
-  install-info --info-dir=/usr/info /usr/info/\$n
+  install-info --info-dir=/usr/info /usr/info/\${n}
 done
 EOF
   fi
@@ -254,16 +253,16 @@ fi
 ##############################################################
 # if gconf schemas exist, run gconftool
 #
-if [ -d $PKG/etc/gconf/schemas ]
+if [ -d ${PKG}/etc/gconf/schemas ]
 then
-  schemas=`ls $PKG/etc/gconf/schemas | tr '\012' ' '`
-  if [ -n "$schemas" ]
+  schemas=`ls ${PKG}/etc/gconf/schemas | tr '\012' ' '`
+  if [ -n "${schemas}" ]
   then
-    cat <<EOF >> $PKG/install/doinst.sh
+    cat <<EOF >> ${PKG}/install/doinst.sh
 #
-for n in $schemas
+for n in ${schemas}
 do
-  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\$n
+  GCONF_CONFIG_SOURCE=xml:merged:/etc/gconf/gconf.xml.defaults /usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/\${n}
 done
 EOF
   fi
@@ -272,9 +271,9 @@ fi
 ##############################################################
 # if usr/share/applications exists, run update-desktop-database
 #
-if [ -d $PKG/usr/share/applications ]
+if [ -d ${PKG}/usr/share/applications ]
 then
-  cat <<EOF >> $PKG/install/doinst.sh
+  cat <<EOF >> ${PKG}/install/doinst.sh
 #
 /usr/bin/update-desktop-database
 EOF
@@ -283,9 +282,9 @@ fi
 ##############################################################
 # if usr/share/mime exists, run update-mime-database
 #
-if [ -d $PKG/usr/share/mime ]
+if [ -d ${PKG}/usr/share/mime ]
 then
-  cat <<EOF >> $PKG/install/doinst.sh
+  cat <<EOF >> ${PKG}/install/doinst.sh
 #
 /usr/bin/update-mime-database /usr/share/mime
 EOF
@@ -294,16 +293,16 @@ fi
 ##############################################################
 # if usr/share/icons exists, run gtk-update-icon-cache
 #
-if [ -d $PKG/usr/share/icons ]
+if [ -d ${PKG}/usr/share/icons ]
 then
-  icons=`find $PKG/usr/share/icons -type d -maxdepth 1 | grep -v "^$PKG/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
-  if [ -n "$icons" ]
+  icons=`find ${PKG}/usr/share/icons -type d -maxdepth 1 | grep -v "^${PKG}/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
+  if [ -n "${icons}" ]
   then
-    cat <<EOF >> $PKG/install/doinst.sh
+    cat <<EOF >> ${PKG}/install/doinst.sh
 #
-for n in $icons
+for n in ${icons}
 do
-  gtk-update-icon-cache -f -t /usr/share/icons/\$n
+  gtk-update-icon-cache -f -t /usr/share/icons/\${n}
 done
 EOF
   fi
@@ -313,14 +312,14 @@ fi
 # if var/lib/scrollkeeper or usr/share/omf exist, run
 # scrollkeeper-update
 #
-if [ -d $PKG/var/lib/scrollkeeper -o -d $PKG/usr/share/omf ]
+if [ -d ${PKG}/var/lib/scrollkeeper -o -d ${PKG}/usr/share/omf ]
 then
-  if [ -d $PKG/var/lib/scrollkeeper ]
+  if [ -d ${PKG}/var/lib/scrollkeeper ]
   then
-    ( cd $PKG/var/lib/scrollkeeper && rm -r * )
+    ( cd ${PKG}/var/lib/scrollkeeper && rm -r * )
   fi
 
-  cat <<EOF >> $PKG/install/doinst.sh
+  cat <<EOF >> ${PKG}/install/doinst.sh
 #
 if [ -x /usr/bin/scrollkeeper-update ]; then
   /usr/bin/scrollkeeper-update -p /var/lib/scrollkeeper 1> /dev/null 2> /dev/null
@@ -332,9 +331,9 @@ fi
 # if usr/lib/gtk-2.0/*/loaders exists, run
 # gdk-pixbuf-query-loaders
 #
-if [ -d $PKG/usr/lib/gtk-2.0/*/loaders ]
+if [ -d ${PKG}/usr/lib/gtk-2.0/*/loaders ]
 then
-  cat <<EOF >> $PKG/install/doinst.sh
+  cat <<EOF >> ${PKG}/install/doinst.sh
 #
 if [ -x /usr/bin/gdk-pixbuf-query-loaders ]; then
   gdk-pixbuf-query-loaders > /etc/gtk-2.0/gdk-pixbuf.loaders
@@ -346,9 +345,9 @@ fi
 # if usr/lib/gtk-2.0/*/immodule exists, run
 # gtk-query-immodules-2.0
 #
-if [ -d $PKG/usr/lib/gtk-2.0/*/immodule ]
+if [ -d ${PKG}/usr/lib/gtk-2.0/*/immodule ]
 then
-  cat <<EOF >> $PKG/install/doinst.sh
+  cat <<EOF >> ${PKG}/install/doinst.sh
 #
 if [ -x /usr/bin/gtk-query-immodules-2.0 ]; then
   gtk-query-immodules-2.0 > /etc/gtk-2.0/gtk.immodules
@@ -359,24 +358,24 @@ fi
 ##############################################################
 # warn if usr/local exists
 #
-if [ -d $PKG/usr/local ]
+if [ -d ${PKG}/usr/local ]
 then
   echo WARNING --- usr/local directory exists
 fi
 
-if [ -d $PKG/usr/share/doc ]
+if [ -d ${PKG}/usr/share/doc ]
 then
   echo WARNING --- usr/share/doc directory exists
 fi
 
-if [ -d $PKG/tmp ]
+if [ -d ${PKG}/tmp ]
 then
   echo WARNING --- tmp directory exists
 fi
 
 (cd ${PKG}
  PERLLOCALPOD=`find . -name perllocal.pod`
- if [ -n "$PERLLOCALPOD" ]; then
+ if [ -n "${PERLLOCALPOD}" ]; then
   echo WARNING --- perllocal.pod exists
  fi
 )
@@ -386,9 +385,7 @@ fi
 
 doinst_config()
 {
-mkdir -p $PKG/install
-
-cat << EOF >> $PKG/install/doinst.sh
+cat << EOF >> ${PKG}/install/doinst.sh
 #
 config() {
   NEW="\$1"
@@ -406,6 +403,6 @@ EOF
 
 for n in $*
 do
-  echo config $n >> $PKG/install/doinst.sh
+  echo config ${n} >> ${PKG}/install/doinst.sh
 done
 }
