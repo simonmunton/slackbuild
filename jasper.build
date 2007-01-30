@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=mpeg4ip
+TARNAME=jasper
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=1.5.0.1
+VERSION=1.900.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,17 +45,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-./bootstrap
-
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --enable-shared
 
 make || exit
 
 make install DESTDIR=${PKG}
+
+rm ${PKG}/usr/bin/tmrdemo
 
 #strip_binaries
 
@@ -66,7 +67,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/*pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
