@@ -47,11 +47,19 @@ fix_perms
 
 cd src
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/firefox/nspr" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/firefox/nspr" \
 make -f Makefile.ref BUILD_OPT=1 JS_THREADSAFE=1 || exit
 
-make -f Makefile.ref BUILD_OPT=1 JS_THREADSAFE=1 LCJAR= all export ship DIST=${PKG}/usr
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/firefox/nspr" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/firefox/nspr" \
+make -f Makefile.ref BUILD_OPT=1 JS_THREADSAFE=1 LCJAR= all export JS_DIST=${PKG}/usr
+
+(cd ${PKG}/usr
+ mv include jsapi
+ mkdir include
+ mv jsapi include
+)
 
 #strip_binaries
 

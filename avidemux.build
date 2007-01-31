@@ -6,7 +6,7 @@ TARNAME=avidemux
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.0.42
+VERSION=2.3.0
 VERSIONEXTRA=
 BUILD=2
 
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/avidemux-2.0.42.diff
+# patch -p1 < ${CWD}/avidemux-2.0.42.diff
 )
 fi
 
@@ -45,11 +45,12 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/X11/include" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/X11/include" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --with-jsapi-include=/usr/include/jsapi
 
 make || exit
 

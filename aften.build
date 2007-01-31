@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libdca
+TARNAME=aften
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=0.0.2
+VERSION=0.06
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,17 +45,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+mkdir build
+(cd build
 
-make || exit
+ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+ cmake .. -DCMAKE_INSTALL_PREFIX:STRING="/usr"
 
-make install DESTDIR=${PKG}
+ make || exit
 
-cp -p libdts/dts_internal.h ${PKG}/usr/include
+ make install DESTDIR=${PKG}
+
+ (cd ${PKG}/usr/include
+  mkdir aften 
+  mv *.h aften
+ )
+)
 
 #strip_binaries
 

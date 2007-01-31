@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libdca
+TARNAME=nspr
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=0.0.2
+VERSION=4.6.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,17 +45,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+cd mozilla/nsprpub
+
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --with-dist-prefix=${PKG}/usr
 
 make || exit
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} NSDISTMODE=copy
 
-cp -p libdts/dts_internal.h ${PKG}/usr/include
+rm -f ${PKG}/usr/bin/*so
+(cd ${PKG}/usr
+ mv lib ${TARNAME}-${VERSION}
+ mkdir lib
+ mv ${TARNAME}-${VERSION} lib
+ cd lib
+ ln -s ${TARNAME}-${VERSION}/* .
+)
 
 #strip_binaries
 
