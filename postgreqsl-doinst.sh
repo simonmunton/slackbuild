@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ###
-# Place the dbus init script.
+# Place the postgresql init script.
 ###
 config() {
   NEW="$1"
@@ -54,3 +54,4 @@ if [[ "${run}" == "" ]]; then
 	echo "	/etc/rc.d/rc.postgresql start" >> etc/rc.d/rc.local
 	echo "fi" >> etc/rc.d/rc.local
 fi
+
