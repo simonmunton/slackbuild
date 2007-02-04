@@ -1,0 +1,47 @@
+--- amarok-1.4.4/amarok/src/mediadevice/ipod/ipodmediadevice.cpp.orig	2006-10-26 21:40:20.000000000 +0100
++++ amarok-1.4.4/amarok/src/mediadevice/ipod/ipodmediadevice.cpp	2007-02-04 16:17:40.000000000 +0000
+@@ -302,7 +302,7 @@
+     track->genre = g_strdup( metaBundle.genre()->utf8() );
+ 
+ 
+-    track->unk208 = 0x01; // for audio
++    track->mediatype = 0x01; // for audio
+     if(type=="wav")
+     {
+         track->filetype = g_strdup( "wav" );
+@@ -323,7 +323,7 @@
+ #else
+         track->flag3 |= 0x01; // remember current position in track
+ #endif
+-        track->unk208 = 0x08; // for audiobooks
++        track->mediatype = 0x08; // for audiobooks
+     }
+     else if(type=="m4v" || type=="mp4v" || type=="mov" || type=="mpg" || type=="mp4")
+     {
+@@ -331,7 +331,7 @@
+ #ifdef HAVE_ITDB_SKIP_SHUFFLE_FLAG
+         track->movie_flag = 0x01; // for videos
+ #endif
+-        track->unk208 = 0x02; // for videos
++        track->mediatype = 0x02; // for videos
+     }
+     else if(type=="aa")
+     {
+@@ -341,7 +341,7 @@
+ #else
+         track->flag3 |= 0x01; // remember current position in track
+ #endif
+-        track->unk208 = 0x08; // for audiobooks
++        track->mediatype = 0x08; // for audiobooks
+ 
+         TagLib::Audible::File f( QFile::encodeName( propertiesBundle.url().path() ) );
+         TagLib::Audible::Tag *t = f.getAudibleTag();
+@@ -384,7 +384,7 @@
+ #ifdef HAVE_ITDB_MARK_UNPLAYED
+         track->mark_unplayed = podcastInfo->listened ? 0x01 : 0x02;
+ #endif
+-        track->unk208 = track->unk208==0x02 ? 0x06 : 0x04; // video or audio podcast
++        track->mediatype = track->mediatype==0x02 ? 0x06 : 0x04; // video or audio podcast
+         track->flag4 = 0x01; // also show description on iPod
+         QString plaindesc = podcastInfo->description;
+         plaindesc.replace( QRegExp("<[^>]*>"), "" );
