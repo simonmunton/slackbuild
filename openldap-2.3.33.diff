@@ -1,0 +1,61 @@
+--- openldap-2.3.33/include/ldap_defaults.h.orig	2007-01-02 21:43:46.000000000 +0000
++++ openldap-2.3.33/include/ldap_defaults.h	2007-02-05 21:20:57.000000000 +0000
+@@ -47,7 +47,7 @@
+ 	/* location of the default slapd config file */
+ #define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
+ #define SLAPD_DEFAULT_CONFIGDIR		LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.d"
+-#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "openldap-data"
++#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "lib" LDAP_DIRSEP "openldap-data"
+ #define SLAPD_DEFAULT_DB_MODE		0600
+ #define SLAPD_DEFAULT_UCDATA		LDAP_DATADIR LDAP_DIRSEP "ucdata"
+ 	/* default max deref depth for aliases */
+--- openldap-2.3.33/servers/slapd/Makefile.in.orig	2007-01-02 21:43:53.000000000 +0000
++++ openldap-2.3.33/servers/slapd/Makefile.in	2007-02-05 21:25:04.000000000 +0000
+@@ -429,10 +429,10 @@
+ 	fi
+ 
+ install-db-config: FORCE
+-	@-$(MKDIR) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir)
+-	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-data
++	@-$(MKDIR) $(DESTDIR)$(localstatedir)/lib $(DESTDIR)$(sysconfdir)
++	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/lib/openldap-data
+ 	$(INSTALL) $(INSTALLFLAGS) -m 600 $(srcdir)/DB_CONFIG \
+-		$(DESTDIR)$(localstatedir)/openldap-data/DB_CONFIG.example
++		$(DESTDIR)$(localstatedir)/lib/openldap-data/DB_CONFIG.example
+ 	$(INSTALL) $(INSTALLFLAGS) -m 600 $(srcdir)/DB_CONFIG \
+ 		$(DESTDIR)$(sysconfdir)/DB_CONFIG.example
+ 
+--- openldap-2.3.33/servers/slapd/slapd.conf.orig	2004-06-18 03:49:08.000000000 +0100
++++ openldap-2.3.33/servers/slapd/slapd.conf	2007-02-05 21:33:33.000000000 +0000
+@@ -62,6 +62,6 @@
+ # The database directory MUST exist prior to running slapd AND 
+ # should only be accessible by the slapd and slap tools.
+ # Mode 700 recommended.
+-directory	%LOCALSTATEDIR%/openldap-data
++directory	%LOCALSTATEDIR%/lib/openldap-data
+ # Indices to maintain
+ index	objectClass	eq
+--- openldap-2.3.33/servers/slurpd/slurp.h.orig	2007-02-05 21:22:17.000000000 +0000
++++ openldap-2.3.33/servers/slurpd/slurp.h	2007-02-05 21:21:59.000000000 +0000
+@@ -67,7 +67,7 @@
+ #define SERVICE_NAME	OPENLDAP_PACKAGE "-slurpd"
+ 
+ /* Default directory for slurpd's private copy of replication logs */
+-#define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "openldap-slurp"
++#define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "lib" LDAP_DIRSEP "openldap-slurp"
+ 
+ /* Default name for slurpd's private copy of the replication log */
+ #define	DEFAULT_SLURPD_REPLOGFILE	"slurpd.replog"
+--- openldap-2.3.33/servers/slurpd/Makefile.in.orig	2007-01-02 21:44:11.000000000 +0000
++++ openldap-2.3.33/servers/slurpd/Makefile.in	2007-02-05 21:25:22.000000000 +0000
+@@ -56,8 +56,8 @@
+ version.o: version.c $(OBJS) $(SLURPD_L)
+ 
+ install-local-srv: FORCE
+-	-$(MKDIR) $(DESTDIR)$(libexecdir)
+-	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-slurp
++	-$(MKDIR) $(DESTDIR)$(libexecdir)/lib
++	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/lib/openldap-slurp
+ 	@(								\
+ 	    for prg in $(PROGRAMS); do					\
+ 		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\

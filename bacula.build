@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=openldap
+TARNAME=bacula
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/o
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.3.33
+VERSION=2.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -35,8 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/openldap-2.3.33.diff
- patch -p0 < ${CWD}/openldap-ntlm.diff
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
@@ -49,42 +48,62 @@ fix_perms
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-            --with-cyrus-sasl \
-            --with-tls \
-            --with-readline \
-            --with-threads \
-            --enable-debug \
-            --enable-syslog \
-            --enable-dynamic \
-            --enable-local \
-            --enable-proctitle \
-            --enable-shared
+            --sysconfdir=/etc/bacula \
+            --localstatedir=/var/lib \
+	    --with-pid-dir=/var/run \
+	    --with-scriptdir=/etc/bacula/scripts \
+	    --with-working-dir=/var/lib/bacula/working \
+	    --with-subsys-dir=/var/lock/subsys \
+	    --enable-gnome \
+	    --enable-wx-console \
+	    --enable-tray-monitor \
+	    --with-sqlite3 \
+	    --with-x \
+	    --with-openssl \
+	    --enable-readline
 
-make depend
 
 make || exit
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/var/lock/subsys ${PKG}/var/run ${PKG}/etc/rc.d
+touch ${PKG}/etc/rc.d/rc.local
 
-(cd ${PKG}/etc/openldap
- rm ldap.conf.default slapd.conf.default
- mv ldap.conf ldap.conf.new
- mv slapd.conf slapd.conf.new
- cat << EOF >> ldap.conf.new
+make install install-autostart DESTDIR=${PKG}
 
-# In order to avoid problems with self-signed certificates using TLS:
-# "TLS certificate verification: Error, self signed certificate"
-# See also 'man ldap.conf' or http://www.openldap.org/doc/admin/tls.html
-TLS_REQCERT allow
+mv ${PKG}/etc/rc.d/rc.local ${PKG}/install/slack-rc.local.new
 
-EOF
+(cd ${PKG}/etc/rc.d
+ rm rc.local.bak
+ for f in functions.bacula rc.bacula-dir rc.bacula-fd rc.bacula-sd
+ do
+   mv $f $f.new
+ done
 )
 
-chmod 700 ${PKG}/var/lib/openldap-data
+doinst_config etc/rc.d/functions.bacula.new etc/rc.d/rc.bacula-dir.new etc/rc.d/rc.bacula-fd.new etc/rc.d/rc.bacula-sd.new
 
-doinst_config etc/openldap/ldap.conf.new etc/openldap/slapd.conf.new
+(cd ${PKG}/etc/bacula
+ HOSTNAME=`hostname`
+ for f in bacula-dir.conf bacula-fd.conf bacula-sd.conf bconsole.conf gnome-console.conf tray-monitor.conf wx-console.conf
+ do
+   sed -e "s/$HOSTNAME/HOSTNAME/" $f > $f.new
+   rm $f
+ done
+)
+
+doinst_config etc/bacula/bacula-dir.conf.new etc/bacula/bacula-fd.conf.new etc/bacula/bacula-sd.conf.new etc/bacula/bconsole.conf.new etc/bacula/gnome-console.conf.new etc/bacula/tray-monitor.conf.new etc/bacula/wx-console.conf.new
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+run=\`grep "/etc/rc.d/rc.bacula" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        cat install/slack-rc.local.new >> etc/rc.d/rc.local
+fi
+
+EOF
 
 #strip_binaries
 
@@ -127,6 +146,5 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root *; \
-find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

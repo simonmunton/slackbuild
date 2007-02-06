@@ -385,7 +385,9 @@ fi
 
 doinst_config()
 {
-cat << EOF >> ${PKG}/install/doinst.sh
+if [ ${WRITTEN_CONFIG:-no} == "no" ]
+then
+  cat << EOF >> ${PKG}/install/doinst.sh
 #
 config() {
   NEW="\$1"
@@ -400,9 +402,37 @@ config() {
 }
 
 EOF
+  WRITTEN_CONFIG=yes
+fi
 
 for n in $*
 do
   echo config ${n} >> ${PKG}/install/doinst.sh
 done
 }
+
+
+doinst_addusergrp()
+{
+if [ "x$2" == "x" ]
+then
+  echo "*** doinst_addusergrp() requires user and group argument"
+  return
+fi
+
+cat << EOF >> ${PKG}/install/doinst.sh
+###
+# Create $1 user in $2 group if they don't exist.
+###
+group_exists=`grep ^$2 etc/group`
+if [[ "${group_exists}" == "" ]]; then
+        groupadd $2
+fi
+user_exists=`grep ^$1 etc/passwd`
+if [[ "${user_exists}" == "" ]]; then
+        useradd $1 -g $2
+fi
+
+EOF
+}
+
