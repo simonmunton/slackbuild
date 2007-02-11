@@ -1,18 +1,18 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=Gtk2
+TARNAME=SDL_gfx
 TARNAMEEXTRA=
-TARDIR=~/tmp/cpan/MINICPAN/authors/id/T/TS/TSCH
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.142
+VERSION=2.0.16
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=perl_${TARNAME}
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < $CWD/.diff
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
@@ -45,20 +45,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-if [ -f Build.PL ]
-then
-  perl Build.PL
-  ./Build
-  ./Build test
-  ./Build install --destdir=${PKG}
-else
-  perl Makefile.PL
-  make
-  make test
-  make install DESTDIR=${PKG}
-fi
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
 
-perllocalpod
+make || exit
+
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -83,7 +78,7 @@ cat <<EOF > ${PKG}/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
+          |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
 ${PKGNAME}: 
