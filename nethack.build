@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=gecko-sharp
+TARNAME=nethack
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m/mono
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=2.0-0.12
-VERSIONEXTRA=
+VERSION=3.4.3
+VERSIONEXTRA=-src
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=${TARNAME}2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION//./}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -35,7 +35,10 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ patch -p1 < ${CWD}/nethack-3.4.3.diff
+ (cd sys/unix
+  sh ./setup.sh
+ )
 )
 fi
 
@@ -45,15 +48,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
 
 make || exit
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr GAMEUID=${USERNAME} GAMEGRP=${GROUP}
+
+(cd doc
+ make
+ mkdir -p ${PKG}/usr/man/man6
+ make manpages MANDIR=${PKG}/usr/man/man6
+)
+
+cat sys/unix/nethack.sh > ${PKG}/usr/games/nethack
 
 #strip_binaries
 
@@ -64,7 +70,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/Guidebook \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -97,5 +103,18 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
+chown games.games usr/games/lib/nethackdir usr/games/lib/nethackdir/save ; \
+chmod 0775 usr/games/lib/nethackdir usr/games/lib/nethackdir/save ; \
+( cd usr/games/lib/nethackdir ; \
+  chown games.games nhdat x11tiles NetHack.ad pet_mark.xbm rip.xpm license ; \
+  chmod 0664 nhdat x11tiles NetHack.ad pet_mark.xbm rip.xpm license ; \
+  chown games.games nethack recover ; \
+  chown games.games perm record logfile ; \
+  chmod 0664 perm record logfile ; \
+) ; \
+chmod 02755 usr/games/lib/nethackdir/nethack ; \
+chmod 0755 usr/games/lib/nethackdir/recover ; \
+chown games.games usr/games/nethack ; \
+chmod 0755 usr/games/nethack ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

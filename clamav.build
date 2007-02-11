@@ -5,7 +5,7 @@
 TARNAME=clamav
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/c
-TAR_EXT=.tar.gz
+#TAR_EXT=.tar.gz
 VERSION=0.88.7
 VERSIONEXTRA=
 BUILD=1
@@ -56,11 +56,26 @@ make || exit
 
 make install DESTDIR=$PKG
 
-mkdir -p $PKG/etc                                                                             
-cp etc/*conf $PKG/etc                                                                         
-mv $PKG/etc/clamav.conf $PKG/etc/clamav.conf.new                                              
-mv $PKG/etc/clamd.conf $PKG/etc/clamd.conf.new                                                
+mkdir -p $PKG/etc
+cp etc/*conf $PKG/etc
+#mv $PKG/etc/clamav.conf $PKG/etc/clamav.conf.new
+mv $PKG/etc/clamd.conf $PKG/etc/clamd.conf.new
 mv $PKG/etc/freshclam.conf $PKG/etc/freshclam.conf.new
+
+mkdir -p ${PKG}/etc/logrotate.d
+cat > ${PKG}/etc/logrotate.d/clamav.new << EOF
+/var/log/clamav/clamd.log {
+    size 900k
+    postrotate
+        /bin/killall -HUP clamd 2>/dev/null || true
+    endscript
+}
+/var/log/clamav/freshclam.log {
+    size 900k
+}
+EOF
+
+doinst_config etc/logrotate.d/clamav.new etc/clamd.conf.new etc/freshclam.conf.new
 
 fix_links
 

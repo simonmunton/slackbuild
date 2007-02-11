@@ -1,0 +1,234 @@
+--- nethack-3.4.3/sys/unix/Makefile.doc.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/sys/unix/Makefile.doc	2007-02-09 22:01:15.000000000 +0000
+@@ -22,8 +22,8 @@
+ # Not appropriate for creating Guidebook.txt.
+ # GUIDECMD = cat Guidebook.txt
+ # The following works better with groff-1.18, eg on Linux
+-# GUIDECMD = tbl tmac.n Guidebook.mn | nroff -c -Tascii | $(COLCMD)
+-GUIDECMD = tbl tmac.n Guidebook.mn | nroff | $(COLCMD)
++GUIDECMD = tbl tmac.n Guidebook.mn | nroff -c -Tascii | $(COLCMD)
++# GUIDECMD = tbl tmac.n Guidebook.mn | nroff | $(COLCMD)
+ 
+ # the basic guidebook
+ Guidebook:	Guidebook.mn
+--- nethack-3.4.3/include/config.h.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/include/config.h	2007-02-09 15:22:45.000000000 +0000
+@@ -43,9 +43,9 @@
+  * Some combinations make no sense.  See the installation document.
+  */
+ #define TTY_GRAPHICS	/* good old tty based graphics */
+-/* #define X11_GRAPHICS */	/* X11 interface */
+-/* #define QT_GRAPHICS */	/* Qt interface */
+-/* #define GNOME_GRAPHICS */	/* Gnome interface */
++#define X11_GRAPHICS 	/* X11 interface */
++/* #define QT_GRAPHICS */ 	/* Qt interface */
++/* #define GNOME_GRAPHICS */ 	/* Gnome interface */
+ /* #define MSWIN_GRAPHICS */	/* Windows NT, CE, Graphics */
+ 
+ /*
+@@ -126,7 +126,7 @@
+  * would allow:
+  *  xpmtoppm <x11tiles.xpm | pnmscale 1.25 | ppmquant 90 >x11tiles_big.xpm
+  */
+-/* # define USE_XPM */		/* Disable if you do not have the XPM library */
++# define USE_XPM 		/* Disable if you do not have the XPM library */
+ # ifdef USE_XPM
+ #  define GRAPHIC_TOMBSTONE	/* Use graphical tombstone (rip.xpm) */
+ # endif
+@@ -169,8 +169,8 @@
+ 
+ #ifdef UNIX
+ /* path and file name extension for compression program */
+-#define COMPRESS "/usr/bin/compress"	/* Lempel-Ziv compression */
+-#define COMPRESS_EXTENSION ".Z"		/* compress's extension */
++#define COMPRESS "/usr/bin/gzip"	/* Lempel-Ziv compression */
++#define COMPRESS_EXTENSION ".gz"		/* compress's extension */
+ /* An example of one alternative you might want to use: */
+ /* #define COMPRESS "/usr/local/bin/gzip" */	/* FSF gzip compression */
+ /* #define COMPRESS_EXTENSION ".gz" */		/* normal gzip extension */
+@@ -185,7 +185,7 @@
+  *	a tar-like file, thus making a neater installation.  See *conf.h
+  *	for detailed configuration.
+  */
+-/* #define DLB */	/* not supported on all platforms */
++#define DLB 	/* not supported on all platforms */
+ 
+ /*
+  *	Defining INSURANCE slows down level changes, but allows games that
+@@ -349,7 +349,7 @@
+  */
+ 
+ /*#define GOLDOBJ */	/* Gold is kept on obj chains - Helge Hafting */
+-/*#define AUTOPICKUP_EXCEPTIONS */ /* exceptions to autopickup */
++#define AUTOPICKUP_EXCEPTIONS  /* exceptions to autopickup */
+ 
+ /* End of Section 5 */
+ 
+--- nethack-3.4.3/include/unixconf.h.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/include/unixconf.h	2007-02-09 14:59:51.000000000 +0000
+@@ -37,7 +37,7 @@
+ #define NETWORK		/* if running on a networked system */
+ 			/* e.g. Suns sharing a playground through NFS */
+ /* #define SUNOS4 */	/* SunOS 4.x */
+-/* #define LINUX */	/* Another Unix clone */
++#define LINUX 	/* Another Unix clone */
+ /* #define CYGWIN32 */	/* Unix on Win32 -- use with case sensitive defines */
+ /* #define GENIX */	/* Yet Another Unix Clone */
+ /* #define HISX */	/* Bull Unix for XPS Machines */
+@@ -132,7 +132,7 @@
+  * "extra output" method is used, but not all systems provide access to
+  * a fine-grained timer.
+  */
+-/* #define TIMED_DELAY */	/* usleep() */
++#define TIMED_DELAY 	/* usleep() */
+ #endif
+ 
+ /*
+--- nethack-3.4.3/sys/unix/Makefile.src.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/sys/unix/Makefile.src	2007-02-09 15:15:59.000000000 +0000
+@@ -61,7 +61,7 @@
+ #	if you get setcgtty() warnings during execution, you are feeding gcc
+ #		a non-ANSI <sys/ioctl.h> -- either run fixincludes on it or use
+ #		-traditional in CFLAGS
+-# CC = gcc
++CC = gcc
+ #
+ #	For Bull DPX/2 systems at B.O.S. 2.0 or higher use the following:
+ #
+@@ -124,8 +124,8 @@
+ 
+ # flags for Linux
+ #   compile normally
+-# CFLAGS = -O2 -fomit-frame-pointer -I../include
+-# LFLAGS = -L/usr/X11R6/lib
++CFLAGS = -O2 -fomit-frame-pointer -I../include
++LFLAGS = -L/usr/X11R6/lib
+ #   OR compile backwards compatible a.out format
+ # CFLAGS = -O2 -b i486-linuxaout -fomit-frame-pointer -I../include
+ # LFLAGS = -b i486-linuxaout -L/usr/X11R6/lib
+@@ -151,8 +151,8 @@
+ # flags for debugging:
+ # CFLAGS = -g -I../include
+ 
+-CFLAGS = -O -I../include
+-LFLAGS = 
++#CFLAGS = -O -I../include
++#LFLAGS = 
+ 
+ # The Qt and Be window systems are written in C++, while the rest of
+ # NetHack is standard C.  If using Qt, uncomment the LINK line here to get
+@@ -214,8 +214,8 @@
+ 
+ #
+ #
+-WINSRC = $(WINTTYSRC)
+-WINOBJ = $(WINTTYOBJ)
++WINSRC = $(WINTTYSRC) $(WINX11SRC)
++WINOBJ = $(WINTTYOBJ) $(WINX11OBJ)
+ 
+ # on some systems the termcap library is in -ltermcap or -lcurses
+ # on 386 Xenix, the -ltermlib tputs() seems not to work; use -lcurses instead
+@@ -230,18 +230,18 @@
+ # WINTTYLIB = -ltermcap
+ # WINTTYLIB = -lcurses
+ # WINTTYLIB = -lcurses16
+-# WINTTYLIB = -lncurses
+-WINTTYLIB = -ltermlib
++WINTTYLIB = -lncurses
++# WINTTYLIB = -ltermlib
+ #
+ # libraries for X11
+ # If USE_XPM is defined in config.h, you will also need -lXpm here.
+-WINX11LIB = -lXaw -lXmu -lXext -lXt -lX11
++# WINX11LIB = -lXaw -lXmu -lXext -lXt -lX11
+ # WINX11LIB = -lXaw -lXmu -lXt -lX11
+-# WINX11LIB = -lXaw -lXmu -lXext -lXt -lXpm -lX11 -lm
++WINX11LIB = -lXaw -lXmu -lXext -lXt -lXpm -lX11 -lm
+ # WINX11LIB = -lXaw -lXmu -lXpm -lXext -lXt -lX11 -lSM -lICE -lm # BSD/OS 2.0
+ #
+ # libraries for Qt
+-WINQTLIB = -L$(QTDIR)/lib -lqt
++WINQTLIB = -L$(QTDIR)/lib -lqt-mt
+ #
+ # libraries for KDE (with Qt)
+ WINKDELIB = -lkdecore -lkdeui -lXext
+@@ -255,7 +255,7 @@
+ # libraries for BeOS 
+ WINBELIB = -lbe
+ 
+-WINLIB = $(WINTTYLIB)
++WINLIB = $(WINTTYLIB) $(WINX11LIB)
+ 
+ # any other strange libraries your system needs (for Sysunix only -- the more
+ # specialized targets should already be right)
+--- nethack-3.4.3/sys/unix/Makefile.utl.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/sys/unix/Makefile.utl	2007-02-09 15:06:49.000000000 +0000
+@@ -15,7 +15,7 @@
+ 
+ # if you are using gcc as your compiler,
+ #	uncomment the CC definition below if it's not in your environment
+-# CC = gcc
++CC = gcc
+ #
+ #	For Bull DPX/2 systems at B.O.S. 2.0 or higher use the following:
+ #
+@@ -72,8 +72,8 @@
+ 
+ # flags for Linux
+ #   compile normally
+-# CFLAGS = -O2 -fomit-frame-pointer -I../include
+-# LFLAGS = -L/usr/X11R6/lib
++CFLAGS = -O2 -fomit-frame-pointer -I../include
++LFLAGS = -L/usr/X11R6/lib
+ #   OR compile backwards compatible a.out format
+ # CFLAGS = -O2 -b i486-linuxaout -fomit-frame-pointer -I../include
+ # LFLAGS = -b i486-linuxaout -L/usr/X11R6/lib
+@@ -101,11 +101,11 @@
+ 
+ # yacc/lex programs to use to generate *_comp.h, *_lex.c, and *_yacc.c.
+ # if, instead of yacc/lex you have bison/flex, comment/uncomment the following.
+-YACC     = yacc
+-LEX      = lex
+-# YACC     = bison -y
++#YACC     = yacc
++#LEX      = lex
++YACC     = bison -y
+ # YACC     = byacc
+-# LEX      = flex
++LEX      = flex
+  
+ # these are the names of the output files from YACC/LEX. Under MS-DOS
+ # and similar systems, they may differ
+--- nethack-3.4.3/sys/unix/Makefile.top.orig	2003-12-07 23:39:13.000000000 +0000
++++ nethack-3.4.3/sys/unix/Makefile.top	2007-02-09 15:08:31.000000000 +0000
+@@ -18,14 +18,14 @@
+ GAME     = nethack
+ # GAME     = nethack.prg
+ GAMEUID  = games
+-GAMEGRP  = bin
++GAMEGRP  = games
+ 
+ # Permissions - some places use setgid instead of setuid, for instance
+ # See also the option "SECURE" in include/config.h
+-GAMEPERM = 04755
+-FILEPERM = 0644
++GAMEPERM = 02755
++FILEPERM = 0664
+ EXEPERM  = 0755
+-DIRPERM  = 0755
++DIRPERM  = 0775
+ 
+ # GAMEDIR also appears in config.h as "HACKDIR".
+ # VARDIR may also appear in unixconf.h as "VAR_PLAYGROUND" else GAMEDIR
+@@ -40,9 +40,9 @@
+ SHELLDIR = $(PREFIX)/games
+ 
+ # per discussion in Install.X11 and Install.Qt
+-VARDATND = 
++# VARDATND = 
+ # VARDATND = x11tiles NetHack.ad pet_mark.xbm
+-# VARDATND = x11tiles NetHack.ad pet_mark.xbm rip.xpm
++VARDATND = x11tiles NetHack.ad pet_mark.xbm rip.xpm
+ # for Atari/Gem
+ # VARDATND = nh16.img title.img GEM_RSC.RSC rip.img
+ # for BeOS

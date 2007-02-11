@@ -60,40 +60,38 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --with-sqlite3 \
 	    --with-x \
 	    --with-openssl \
-	    --enable-readline
-
+	    --enable-readline \
+	    --with-dir-password=DIR_PASSWORD \
+	    --with-fd-password=FD_PASSWORD \
+	    --with-sd-password=SD_PASSWORD \
+	    --with-mon-dir-password=MON_DIR_PASSWORD \
+	    --with-mon-fd-password=MON_FD_PASSWORD \
+	    --with-mon-sd-password=MON_SD_PASSWORD \
+	    --with-dir-user=bacula \
+	    --with-dir-group=bacula \
+	    --with-sd-user=bacula \
+	    --with-sd-group=disk \
+	    --with-fd-user=root \
+	    --with-fd-group=bacula
 
 make || exit
 
 mkdir -p ${PKG}/var/lock/subsys ${PKG}/var/run ${PKG}/etc/rc.d
 touch ${PKG}/etc/rc.d/rc.local
 
-make install install-autostart DESTDIR=${PKG}
+make install install-autostart DESTDIR=${PKG} dir_user=${USERNAME} dir_group=${GROUP} sd_user=${USERNAME} sd_group=${GROUP} fd_user=${USERNAME} fd_group=${GROUP}
+
+mkdir -p ${PKG}/etc/logrotate.d
+cp scripts/logrotate ${PKG}/etc/logrotate.d/bacula.new
+doinst_config etc/logrotate.d/bacula.new
 
 mv ${PKG}/etc/rc.d/rc.local ${PKG}/install/slack-rc.local.new
 
-(cd ${PKG}/etc/rc.d
- rm rc.local.bak
- for f in functions.bacula rc.bacula-dir rc.bacula-fd rc.bacula-sd
- do
-   mv $f $f.new
- done
-)
-
-doinst_config etc/rc.d/functions.bacula.new etc/rc.d/rc.bacula-dir.new etc/rc.d/rc.bacula-fd.new etc/rc.d/rc.bacula-sd.new
-
-(cd ${PKG}/etc/bacula
- HOSTNAME=`hostname`
- for f in bacula-dir.conf bacula-fd.conf bacula-sd.conf bconsole.conf gnome-console.conf tray-monitor.conf wx-console.conf
- do
-   sed -e "s/$HOSTNAME/HOSTNAME/" $f > $f.new
-   rm $f
- done
-)
-
-doinst_config etc/bacula/bacula-dir.conf.new etc/bacula/bacula-fd.conf.new etc/bacula/bacula-sd.conf.new etc/bacula/bconsole.conf.new etc/bacula/gnome-console.conf.new etc/bacula/tray-monitor.conf.new etc/bacula/wx-console.conf.new
+doinst_addusergrp bacula bacula
 
 cat >> ${PKG}/install/doinst.sh << EOF
+usermod -G disk bacula
+
 if [ ! -e etc/rc.d/rc.local ]; then
         echo "#!/bin/sh" > etc/rc.d/rc.local
         chmod 755 etc/rc.d/rc.local
@@ -103,7 +101,63 @@ if [[ "\${run}" == "" ]]; then
         cat install/slack-rc.local.new >> etc/rc.d/rc.local
 fi
 
+dir_password=\`openssl rand -base64 33\`
+fd_password=\`openssl rand -base64 33\`
+sd_password=\`openssl rand -base64 33\`
+mon_dir_password=\`openssl rand -base64 33\`
+mon_fd_password=\`openssl rand -base64 33\`
+mon_sd_password=\`openssl rand -base64 33\`
+
+HOSTNAME=\`hostname\`
+
+(cd etc/bacula
+ for f in *conf.new
+ do
+   sed -e "s/@HOSTNAME@/\${HOSTNAME}/" \\
+       -e "s!MON_DIR_PASSWORD!\${mon_dir_password}!" \\
+       -e "s!MON_FD_PASSWORD!\${mon_fd_password}!" \\
+       -e "s!MON_SD_PASSWORD!\${mon_sd_password}!" \\
+       -e "s!DIR_PASSWORD!\${dir_password}!" \\
+       -e "s!FD_PASSWORD!\${fd_password}!" \\
+       -e "s!SD_PASSWORD!\${sd_password}!" \\
+       \${f} > \${f}.\$\$
+   mv \${f}.\$\$ \${f}
+ done
+)
+
+chown -R bacula.bacula var/lib/bacula/working
+chown -R root.bacula etc/bacula
+chown root.disk etc/bacula/dvd-handler.new etc/bacula/mtx-changer.new etc/bacula/bacula-sd.conf.new
+
 EOF
+
+(cd ${PKG}/etc/rc.d
+ rm rc.local.bak
+ list=`ls | tr '\012' ' '`
+ for f in ${list}
+ do
+   mv ${f} ${f}.new
+   doinst_config etc/rc.d/${f}.new
+ done
+)
+
+(cd ${PKG}/etc/bacula
+ HOSTNAME=`hostname`
+ list=`ls | tr '\012' ' '`
+ for f in ${list}
+ do
+   case $f in
+     *conf)
+        sed -e "s/${HOSTNAME}/@HOSTNAME@/" -e "s!${CWD}/${TARNAME}-${VERSION}!/home!" ${f} > ${f}.new
+        rm ${f}
+	;;
+     *)
+        mv ${f} ${f}.new
+	;;
+   esac
+   doinst_config etc/bacula/${f}.new
+ done
+)
 
 #strip_binaries
 
