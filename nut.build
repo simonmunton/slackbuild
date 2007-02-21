@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=dejavu-ttf
+TARNAME=nut
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/d
+TARDIR=~
 #TAR_EXT=.tar.gz
-VERSION=2.15
+VERSION=2.0.5
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=fonts_dejavu
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -24,35 +24,57 @@ pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
 
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/nut-2.0.5.diff
+)
+fi
+
 pre_configure
 
-DESTDIR=usr/X11R6/lib/X11/fonts/TTF
+cd ${TARNAME}-${VERSION}
 
-mkdir -p ${PKG}/${DESTDIR}
+fix_perms
 
-(cd ${PKG}/usr/doc
- ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
- mv ${TARNAME}${TARNAMEEXTRA}-${VERSION}/*ttf ${PKG}/${DESTDIR}
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --with-drivers=hidups \
+	    --mandir=/usr/man \
+	    --datadir=/usr/share/nut \
+	    --with-user=nut
+
+make || exit
+make usb || exit
+
+make install install-usb install-conf install-lib DESTDIR=${PKG}
+
+mkdir -p ${PKG}/var/state/ups
+
+(cd ${PKG}/etc
+ for f in *sample
+ do
+   f1=${f/%sample/new}
+   mv $f $f1
+   doinst_config etc/$f1
+ done
 )
 
-touch ${PKG}/${DESTDIR}/{fonts.dir,fonts.scale}
 
-cat >> ${PKG}/install/doinst.sh << EOF
-#
-if [ -x usr/X11R6/bin/mkfontscale ]; then
-  echo "Creating font.scale:  /usr/X11R6/bin/mkfontscale"
-  usr/X11R6/bin/mkfontscale ${DESTDIR}
-fi
-if [ -x usr/X11R6/bin/mkfontdir ]; then
-  echo "Creating font.dir:  /usr/X11R6/bin/mkfontdir"
-  usr/X11R6/bin/mkfontdir ${DESTDIR}
-fi
-if [ -x usr/X11R6/bin/fc-cache ]; then
-  echo "Updating X font indexes:  /usr/X11R6/bin/fc-cache"
-  usr/X11R6/bin/fc-cache
-fi
-
-EOF
+chmod 0640 ${PKG}/etc/{upsd.conf,upsd.users,upsmon.conf}.new
+	
+doinst_addusergrp nut nut
 
 #strip_binaries
 
@@ -96,5 +118,8 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod 0700 var/state/ups ; \
+chown nut:nut var/state/ups ; \
+chown root:nut etc/{upsd.conf,upsd.users,upsmon.conf}.new ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

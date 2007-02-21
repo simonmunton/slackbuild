@@ -1,0 +1,278 @@
+--- nut-2.0.5/drivers/unitekalphausb.c.orig	2007-02-16 15:00:57.000000000 +0000
++++ nut-2.0.5/drivers/unitekalphausb.c	2007-02-20 12:36:43.000000000 +0000
+@@ -0,0 +1,235 @@
++/*
++ unitekalphausb.c - driver for Unitek alpha UPS
++
++ Copyright (C) 2007
++ 
++ This program is free software; you can redistribute it and/or modify
++ it under the terms of the GNU General Public License as published by
++ the Free Software Foundation; either version 2 of the License, or
++ (at your option) any later version.
++
++ This program is distributed in the hope that it will be useful,
++ but WITHOUT ANY WARRANTY; without even the implied warranty of
++ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ GNU General Public License for more details.
++
++ You should have received a copy of the GNU General Public License
++ along with this program; if not, write to the Free Software
++ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++*/
++
++
++#include "main.h"
++#include <usb.h>
++
++
++#define DRV_VERSION "0.1"
++
++
++void upsdrv_initups(void);
++void upsdrv_cleanup(void);
++
++
++
++usb_dev_handle *upsdev = NULL;
++
++
++
++#define UNITEK_GET_STATUS	3
++#define UNITEK_SHORT_TEST	4
++#define UNITEK_TEST_UNTIL_LOW	5
++#define UNITEK_TEST_LONG	6	/* buflen = test time + 0x64 */
++#define UNITEK_TOGGLE BEEPER	7
++#define UNITEK_CANCEL_TEST	11
++#define UNITEK_GET_MODEL	12
++#define UNITEK_GET_RATINGS	13
++
++
++int do_command(int command, char *buf, int buflen)
++{
++  int len;
++
++  len = usb_get_string (upsdev, command, 0x409, buf, buflen);
++
++  if (len)
++    {
++      /* convert unicode to ascii */
++      char *p = buf + 2;
++      int n = len -2;
++
++      while (n--)
++	{
++	  *buf++ = *p;
++	  p += 2;
++	}
++      *buf = '\0';
++    }
++
++  return len;
++}
++
++
++void upsdrv_initups(void)
++{
++
++  struct usb_device *device;
++  struct usb_bus *bus;
++  struct usb_device *roottree;
++
++  experimental_driver=1;	
++
++  usb_init ();
++  usb_find_busses ();
++  usb_find_devices ();
++
++  for (bus = usb_busses; bus; bus = bus->next)
++    {
++      roottree = bus->devices;
++      for (device = roottree; device; device = device->next)
++        {
++          if ((device->descriptor.idVendor == 0x0001) &&
++              (device->descriptor.idProduct == 0x0000))
++	    {
++	      upsdev = usb_open(device);
++	      if (upsdev)
++		{
++		  usb_claim_interface (upsdev, 0);
++		  return;
++		}
++	    }
++	}
++    }
++
++  printf("Unable to find Unitek alpha UPS device on USB bus \n\n");
++
++  fatalx("Fatal error: unusable configuration");
++}
++
++void upsdrv_cleanup(void)
++{
++    upslogx(LOG_ERR, "CLOSING\n");
++
++    usb_release_interface (upsdev, 0);
++
++    usb_close (upsdev);
++}
++
++
++void upsdrv_initinfo(void)
++{
++  char buf[256];
++  char buf1[256];
++  int res;
++  int retry = 0;
++
++  /* Set driver version info */
++  dstate_setinfo("driver.version.internal", "%s", DRV_VERSION);
++
++  /* Get information on UPS from UPS */
++  do 
++    res = do_command (UNITEK_GET_MODEL, buf, sizeof buf);
++  while (retry++ < 3 && (res <= 0 || res != 0x50));
++
++  if (res <= 0 || res != 0x50)
++    fatal_with_errno("Could not communicate with the ups");
++
++  sprintf(buf1, "%16.16s", buf+1);
++  dstate_setinfo("ups.mfr", buf1);
++
++  sprintf(buf1, "%20.20s", buf+17);
++  dstate_setinfo("ups.model", buf1);
++
++  /* Display startup banner */
++  printf("Model = %s\n", dstate_getinfo("ups.model"));
++}
++
++void upsdrv_updateinfo(void)
++{
++  char buf[256];
++  int res;
++  char flag1, flags[256];
++  float Vin, x1, Vout, load, freq, Vbat, Temp;
++
++  /* Get information from UPS */
++  res = do_command (UNITEK_GET_STATUS, buf, sizeof buf);
++
++  if (res <= 0 || res != 0x60)
++    {
++      /*upslogx(LOG_ERR, "Short read from UPS");*/
++      /*dstate_datastale();*/
++      dstate_dataok();
++      return;
++    }
++
++  /* status looks like "(220.0 165.0 220.0 000 50.0 24.3 00.0 00001010" where first char can be 0x20, 0x28, 0x30
++   *                    | |     |     |     |   |    |    |      |
++   *                    | |     |     |     |   |    |    |      +---  flags: OnBat, ?, ?, ?, ?, ?, Bat charge OK?, ?
++   *                    | |     |     |     |   |    |    +----------  Temperature
++   *                    | |     |     |     |   |    +---------------  Battery voltage
++   *                    | |     |     |     |   +--------------------  Input frequency
++   *                    | |     |     |     +------------------------  % Load (when on battery)
++   *                    | |     |     +------------------------------  Output voltage
++   *                    | |     +------------------------------------  Unknown
++   *                    | +------------------------------------------  Input voltage
++   *                    +--------------------------------------------  Flag - unknown - 0x20, 0x28, 0x30
++   */
++
++  if (sscanf (buf, "%c%f %f %f %f %f %f %f %s", &flag1, &Vin, &x1, &Vout, &load, &freq, &Vbat, &Temp, flags) != 9)
++    {
++      upslogx(LOG_ERR, "Bad status");
++      dstate_datastale();
++      return;
++    }
++
++  dstate_setinfo("input.voltage", "%.1f", Vin);
++  dstate_setinfo("output.voltage", "%.1f", Vout);
++  dstate_setinfo("ups.load", "%.1f", load);
++  dstate_setinfo("output.frequency", "%.1f", freq);
++  dstate_setinfo("battery.voltage", "%.1f", Vbat);
++  dstate_setinfo("ups.temperature", "%.1f", Temp);
++
++  status_init ();
++
++/*  if (buf[38] == '0') */
++  if (flags[0] == '0')
++    status_set("OL");
++  else
++    status_set("OB");
++
++  if (flags[6] == '0')
++    status_set("LB");
++
++  status_commit();
++
++  dstate_dataok();
++}
++
++
++
++void upsdrv_shutdown(void)
++{
++	/* tell the UPS to shut down, then return - DO NOT SLEEP HERE */
++
++	/* maybe try to detect the UPS here, but try a shutdown	even if
++		 it doesn't respond at first if possible */
++}
++
++
++
++
++void upsdrv_help(void)
++{
++}
++
++/* list flags and values that you want to receive via -x */
++void upsdrv_makevartable(void)
++{
++}
++
++void upsdrv_banner(void)
++{
++	printf("Network UPS Tools - Unitek alpha UPS driver %s (%s)\n\n",
++		DRV_VERSION, UPS_VERSION);
++}
++
++
+--- nut-2.0.5/drivers/Makefile.in.orig	2007-01-03 11:36:48.000000000 +0000
++++ nut-2.0.5/drivers/Makefile.in	2007-02-16 14:18:22.000000000 +0000
+@@ -129,6 +129,15 @@
+ 		../common/parseconf.o \
+ 		$(LIBOBJ) $(LIBUSB_LIBS) $(LDFLAGS)
+ 
++# ==========================================================================
++# Special case: unitekalphausb.c driver - development version (early beta)
++
++unitekalphausb: unitekalphausb.o main.o dstate.o ../common/state.o \
++		../common/upsconf.o ../common/parseconf.o $(LIBDEP) $(STRLCPY)
++	$(CC) $(CFLAGS) -o $@ unitekalphausb.o \
++		main.o dstate.o ../common/state.o ../common/upsconf.o \
++		../common/parseconf.o \
++		$(LIBOBJ) $(LIBUSB_LIBS) $(LDFLAGS)
+ 
+ # ==========================================================================
+ # Special case: mge-shut driver
+--- nut-2.0.5/configure.orig	2007-01-03 14:17:48.000000000 +0000
++++ nut-2.0.5/configure	2007-02-16 14:20:20.000000000 +0000
+@@ -8683,7 +8683,7 @@
+ else
+ 	{ echo "$as_me:$LINENO: result: $LIBUSB_CFLAGS" >&5
+ echo "${ECHO_T}$LIBUSB_CFLAGS" >&6; }
+-	USB_DRIVER_LIST="newhidups bcmxcp_usb tripplite_usb"
++	USB_DRIVER_LIST="newhidups bcmxcp_usb tripplite_usb unitekalphausb"
+ 	USBPAGES="newhidups.8 bcmxcp_usb.8 tripplite_usb.8"
+ fi
+ 
+--- nut-2.0.5/configure.in.orig	2007-01-03 14:17:48.000000000 +0000
++++ nut-2.0.5/configure.in	2007-02-16 14:20:41.000000000 +0000
+@@ -357,7 +357,7 @@
+ 	AC_MSG_RESULT(not found)
+ else
+ 	AC_MSG_RESULT($LIBUSB_CFLAGS)
+-	USB_DRIVER_LIST="newhidups bcmxcp_usb tripplite_usb"
++	USB_DRIVER_LIST="newhidups bcmxcp_usb tripplite_usb unitekalphausb"
+ 	USBPAGES="newhidups.8 bcmxcp_usb.8 tripplite_usb.8"
+ fi
+ 
