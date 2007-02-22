@@ -2,7 +2,7 @@
 #
 . build_funcs
 
-TARNAME=avr-gcc
+TARNAME=gcc
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnu/gcc
 #TAR_EXT=.tar.gz
@@ -45,13 +45,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2" \
+CXXFLAGS="-O2" \
 ./configure --prefix=/opt/avr \
-            --target=avr --enable-languages="c,c++" \
+            --target=avr \
+	    --enable-languages="c,c++" \
             --disable-nls
 
 make || exit
+
+make all-target-libstdc++-v3 || exit
 
 make install DESTDIR=${PKG}
 

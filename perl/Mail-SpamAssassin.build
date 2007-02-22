@@ -1,18 +1,18 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=binutils
+TARNAME=Mail-SpamAssassin
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnu/binutils
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/F/FE/FELICITY
 #TAR_EXT=.tar.gz
-VERSION=2.16.1
+VERSION=3.1.8
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=avr-binutils
+PKGNAME=perl_${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+#patch -p1 < $CWD/.diff
 )
 fi
 
@@ -45,17 +45,29 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/opt/avr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --target=avr \
-            --enable-install-libbfd
+if [ -f Build.PL ]
+then
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG}
+else
+  perl Makefile.PL
+  make
+  make test
+  make install DESTDIR=${PKG}
+fi
 
-make || exit
+perllocalpod
 
-make install DESTDIR=${PKG}
+(cd ${PKG}/etc/mail/spamassassin
+ list=`ls | tr '\012' ' '`
+ for f in ${list}
+ do
+   mv ${f} ${f}.new
+   doinst_config etc/mail/spamassassin/${f}.new
+ done
+)
 
 #strip_binaries
 

@@ -6,7 +6,7 @@ TARNAME=cups
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.2.7
+VERSION=1.2.8
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -18,35 +18,35 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 #cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
+cd ${TARNAME}-${VERSION}
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure \
 	    --disable-pam
 
@@ -57,10 +57,10 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 
 make || exit
 
-mkdir -p $PKG/etc/cups
-mkdir -p $PKG/var/spool
+mkdir -p ${PKG}/etc/cups
+mkdir -p ${PKG}/var/spool
 
-make install BUILDROOT=$PKG
+make install BUILDROOT=${PKG}
 
 # For full CUPS SMB support, you'll need to install the cups-samba
 # package from the source in this directory.  There's no easy way
@@ -68,7 +68,7 @@ make install BUILDROOT=$PKG
 # so you'll have to install it yourself.  It's easy to do.
 
 # However, this will get you the most useful SMB support for free.
-( cd $PKG/usr/lib/cups/backend
+( cd ${PKG}/usr/lib/cups/backend
   if [ ! -e smb ]; then
     ln -sf /usr/bin/smbspool smb
   fi
@@ -76,26 +76,26 @@ make install BUILDROOT=$PKG
 
 # Adjust for BSD init scripts.  Note that rc.cups will have to be
 # started from somewhere, like rc.M or rc.inet2.
-( cd $PKG/etc/rc.d
+( cd ${PKG}/etc/rc.d
   mv init.d/cups rc.cups
   rm -r init.d rc?.d )
 
 # Handle this as a config file, and non-executable in a default install:
-mv $PKG/etc/rc.d/rc.cups $PKG/etc/rc.d/rc.cups.new
-chmod 644 $PKG/etc/rc.d/rc.cups.new
+mv ${PKG}/etc/rc.d/rc.cups ${PKG}/etc/rc.d/rc.cups.new
+chmod 644 ${PKG}/etc/rc.d/rc.cups.new
 
 # Adjust/expand docs:
-( mkdir -p $PKG/usr/doc
-  mv $PKG/usr/share/doc/cups/* $PKG/usr/doc/cups-$VERSION
-  rm -rf $PKG/usr/share/doc
-  cd $PKG/usr/doc
-  ln -sf cups-$VERSION cups )
+( mkdir -p ${PKG}/usr/doc
+  mv ${PKG}/usr/share/doc/cups/* ${PKG}/usr/doc/cups-${VERSION}
+  rm -rf ${PKG}/usr/share/doc
+  cd ${PKG}/usr/doc
+  ln -sf cups-${VERSION} cups )
 
 # Apply no-clobber fix to conffiles:
-( cd $PKG/etc/cups
+( cd ${PKG}/etc/cups
   for file in * ; do
-    if [ -f $file ]; then
-      mv $file $file.new
+    if [ -f ${file} ]; then
+      mv ${file} ${file}.new
     fi
   done )
 
@@ -109,22 +109,22 @@ usr/bin/lpr \
 usr/bin/lprm \
 usr/bin/lpstat \
 usr/sbin/lpc ; do
-  ( cd $PKG
+  ( cd ${PKG}
     mv ${file} ${file}-${SUFFIX}
     ( cd `dirname ${file}` ; ln -sf `basename ${file}`-${SUFFIX} `basename ${file}` )
   )
 done
 
 # Now fix the associated man pages:
-mv $PKG/usr/share/man $PKG/usr
-mv $PKG/usr/man/man1/cancel.1.gz $PKG/usr/man/man1/cancel-${SUFFIX}.1.gz
-mv $PKG/usr/man/man1/lp.1.gz $PKG/usr/man/man1/lp-${SUFFIX}.1.gz
-mv $PKG/usr/man/man1/lpq.1.gz $PKG/usr/man/man1/lpq-${SUFFIX}.1.gz
-mv $PKG/usr/man/man1/lpr.1.gz $PKG/usr/man/man1/lpr-${SUFFIX}.1.gz
-mv $PKG/usr/man/man1/lprm.1.gz $PKG/usr/man/man1/lprm-${SUFFIX}.1.gz
-mv $PKG/usr/man/man1/lpstat.1.gz $PKG/usr/man/man1/lpstat-${SUFFIX}.1.gz
-mv $PKG/usr/man/man8/lpc.8.gz $PKG/usr/man/man8/lpc-${SUFFIX}.8.gz
-( cd $PKG/usr/man/man1
+mv ${PKG}/usr/share/man ${PKG}/usr
+mv ${PKG}/usr/man/man1/cancel.1.gz ${PKG}/usr/man/man1/cancel-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man1/lp.1.gz ${PKG}/usr/man/man1/lp-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man1/lpq.1.gz ${PKG}/usr/man/man1/lpq-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man1/lpr.1.gz ${PKG}/usr/man/man1/lpr-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man1/lprm.1.gz ${PKG}/usr/man/man1/lprm-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man1/lpstat.1.gz ${PKG}/usr/man/man1/lpstat-${SUFFIX}.1.gz
+mv ${PKG}/usr/man/man8/lpc.8.gz ${PKG}/usr/man/man8/lpc-${SUFFIX}.8.gz
+( cd ${PKG}/usr/man/man1
   ln -sf cancel-${SUFFIX}.1.gz cancel.1.gz
   ln -sf lp-${SUFFIX}.1.gz lp.1.gz
   ln -sf lpq-${SUFFIX}.1.gz lpq.1.gz
@@ -132,7 +132,7 @@ mv $PKG/usr/man/man8/lpc.8.gz $PKG/usr/man/man8/lpc-${SUFFIX}.8.gz
   ln -sf lprm-${SUFFIX}.1.gz lprm.1.gz
   ln -sf lpstat-${SUFFIX}.1.gz lpstat.1.gz
 )
-( cd $PKG/usr/man/man8
+( cd ${PKG}/usr/man/man8
   ln -sf lpc-${SUFFIX}.8.gz lpc.8.gz
 )
 
@@ -144,12 +144,16 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+(cd ${PKG}/usr/doc
+ ln -sf cups-${VERSION} cups
+)
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -172,7 +176,7 @@ cups:
 EOF
 
 doinst_config etc/rc.d/rc.cups.new
-cat << EOF >> $PKG/install/doinst.sh
+cat << EOF >> ${PKG}/install/doinst.sh
 for file in etc/cups/*.new ; do
   config \$file
 done
@@ -181,12 +185,12 @@ EOF
 post_install
 
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
-chgrp lp $PKG/etc/cups $PKG/etc/cups/interfaces $PKG/etc/cups/ppd $PKG/etc/cups/ssl \
-         $PKG/var/lib/spool/cups $PKG/var/lib/spool/cups/tmp $PKG/var/lib/cache/cups \
-         $PKG/etc/cups/cupsd.conf.default.new $PKG/etc/cups/cupsd.conf.new; \
-chgrp sys $PKG/var/lib/run/cup/certs; \
-chmod 4755 $PKG/usr/bin/lppasswd; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+chgrp lp ${PKG}/etc/cups ${PKG}/etc/cups/interfaces ${PKG}/etc/cups/ppd ${PKG}/etc/cups/ssl \
+         ${PKG}/var/lib/spool/cups ${PKG}/var/lib/spool/cups/tmp ${PKG}/var/lib/cache/cups \
+         ${PKG}/etc/cups/cupsd.conf.default.new ${PKG}/etc/cups/cupsd.conf.new; \
+chgrp sys ${PKG}/var/lib/run/cup/certs; \
+chmod 4755 ${PKG}/usr/bin/lppasswd; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
