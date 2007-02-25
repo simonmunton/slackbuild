@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=swfdec
+TARNAME=motion
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.4.2
+VERSION=3.2.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -DFFMPEG_AVWRITEFRAME_NEWAPI" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
@@ -54,6 +54,14 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 make || exit
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/etc
+ mv motion-dist.conf motion.conf.new
+ chmod -x motion.conf.new
+ doinst_config etc/motion.conf.new
+)
+
+chmod -R -x,+X ${PKG}/usr/{doc,man,share}
 
 #strip_binaries
 

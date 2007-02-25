@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
 VERSION=0.9.6
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -51,9 +51,16 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
+sed -i -e 's@/usr/etc@/etc@' config.h
+
 make || exit
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/etc
+ mv vgrabbj.conf vgrabbj.conf.new
+ doinst_config etc/vgrabbj.conf.new
+)
 
 #strip_binaries
 
