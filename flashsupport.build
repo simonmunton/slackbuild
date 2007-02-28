@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=lame
+TARNAME=flashsupport
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=3.97
+VERSION=20061121
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,6 +36,7 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+ sed -i -e 's@#define OSS@//#define OSS@' flashsupport.c
 )
 fi
 
@@ -45,20 +46,12 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-nasm \
-            --enable-decoder \
-            --enable-brhist \
-            --enable-mp3x \
-            --with-gtk-prefix=/usr
+gcc -shared -O2 -march=i486 ${CPUOPT}=i686 -Wall -Werror -lssl flashsupport.c -o libflashsupport.so
 
-make || exit
+ldd libflashsupport.so
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/lib
+cp libflashsupport.so ${PKG}/usr/lib
 
 #strip_binaries
 
@@ -69,7 +62,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO *html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

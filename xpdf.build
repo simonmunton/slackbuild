@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=lame
+TARNAME=xpdf
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/x/xpdf
 #TAR_EXT=.tar.gz
-VERSION=3.97
+VERSION=3.02
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,6 +36,7 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+ patch -p1 --verbose < ${CWD}/xpdfrc.diff
 )
 fi
 
@@ -47,18 +48,41 @@ fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-nasm \
-            --enable-decoder \
-            --enable-brhist \
-            --enable-mp3x \
-            --with-gtk-prefix=/usr
+./configure --prefix=/usr/X11R6 \
+	    --enable-a4-paper 
 
 make || exit
 
 make install DESTDIR=${PKG}
+
+# Add cyrillic support.  Can't leave that out.
+tar xzvf ${TARDIR}/xpdf-cyrillic-2003-jun-28.tar.gz
+(cd xpdf-cyrillic
+ patch -p1 < ${CWD}/xpdf-cyrillic.diff
+ mkdir -p ${PKG}/usr/X11R6/share/xpdf/cyrillic
+ cat Bulgarian.nameToUnicode > ${PKG}/usr/X11R6/share/xpdf/cyrillic/Bulgarian.nameToUnicode
+ cat KOI8-R.unicodeMap > ${PKG}/usr/X11R6/share/xpdf/cyrillic/KOI8-R.unicodeMap
+ cat add-to-xpdfrc >> ${PKG}/usr/X11R6/etc/xpdfrc
+)
+
+# Add latin2 support:
+tar xzvf ${TARDIR}/xpdf-latin2-2002-oct-22.tar.gz
+(cd xpdf-latin2
+ patch -p1 < ${CWD}/xpdf-latin2.diff
+ mkdir -p ${PKG}/usr/X11R6/share/xpdf/latin2
+ cat Latin2.unicodeMap > ${PKG}/usr/X11R6/share/xpdf/latin2/Latin2.unicodeMap
+ cat add-to-xpdfrc >> ${PKG}/usr/X11R6/etc/xpdfrc
+)
+
+# Add greek support:
+tar xzvf ${TARDIR}/xpdf-greek-2003-jun-28.tar.gz
+(cd xpdf-greek
+ patch -p1 < ${CWD}/xpdf-greek.diff
+ mkdir -p ${PKG}/usr/X11R6/share/xpdf/greek
+ cat ISO-8859-7.unicodeMap > ${PKG}/usr/X11R6/share/xpdf/greek/ISO-8859-7.unicodeMap
+ cat Greek.nameToUnicode > ${PKG}/usr/X11R6/share/xpdf/greek/Greek.nameToUnicode
+ cat add-to-xpdfrc >> ${PKG}/usr/X11R6/etc/xpdfrc
+)
 
 #strip_binaries
 
@@ -69,7 +93,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ANNOUNCE AUTHORS CHANGES COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

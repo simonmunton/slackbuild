@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=lame
+TARNAME=pdftk
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=3.97
+VERSION=1.41
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,20 +45,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-nasm \
-            --enable-decoder \
-            --enable-brhist \
-            --enable-mp3x \
-            --with-gtk-prefix=/usr
+(cd pdftk
+ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+ make -f Makefile.Generic || exit
+)
 
-make || exit
+mkdir -p ${PKG}/usr/bin
+cp pdftk/pdftk ${PKG}/usr/bin
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/man/man1
+cp debian/pdftk.1 ${PKG}/usr/man/man1
 
 #strip_binaries
 
@@ -69,7 +66,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO *html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -86,12 +83,27 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
+${PKGNAME}: A useful tool for manipulating PDF documents
+${PKGNAME}: If PDF is electronic paper, then pdftk is an electronic stapler-remover,
+${PKGNAME}: hole-punch, binder, secret-decoder-ring, and X-Ray-glasses. Pdftk is a
+${PKGNAME}: simple tool for doing everyday things with PDF documents. Keep one in the
+${PKGNAME}: top drawer of your desktop and use it to:
+${PKGNAME}:  - Merge PDF documents
+${PKGNAME}:  - Split PDF pages into a new document
+${PKGNAME}:  - Decrypt input as necessary (password required)
+${PKGNAME}:  - Encrypt output as desired
+${PKGNAME}:  - Fill PDF Forms with FDF Data and/or Flatten Forms
+${PKGNAME}:  - Apply a Background Watermark
+${PKGNAME}:  - Report PDF on metrics, including metadata and bookmarks
+${PKGNAME}:  - Update PDF Metadata
+${PKGNAME}:  - Attach Files to PDF Pages or the PDF Document
+${PKGNAME}:  - Unpack PDF Attachments
+${PKGNAME}:  - Burst a PDF document into single pages
+${PKGNAME}:  - Uncompress and re-compress page streams
+${PKGNAME}:  - Repair corrupted PDF (where possible)
 ${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}:  Author: Sid Steward <ssteward@accesspdf.com>
+${PKGNAME}:  Homepage: http://www.accesspdf.com/pdftk
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
