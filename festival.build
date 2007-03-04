@@ -1,0 +1,212 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=festival
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/f/festival/1.96beta
+#TAR_EXT=.tar.gz
+VERSION=1.96
+VERSIONEXTRA=-beta
+BUILD=1
+
+TARNAME1=speech_tools-1.2.96-beta.tar.gz
+TARNAME2=festlex_POSLEX.tar.gz
+TARNAME3=festlex_OALD.tar.gz
+TARNAME4=festlex_CMU.tar.gz
+TARNAME5=festvox_rablpc16k.tar.gz
+TARNAME6=festvox_rablpc8k.tar.gz
+TARNAME7=festvox_kallpc16k.tar.gz
+TARNAME8=festvox_kallpc8k.tar.gz
+TARNAME9=/festvox_kedlpc16k.tar.gz
+TARNAME10=/festvox_kedlpc8k.tar.gz
+TARNAME11=/festvox_ellpc11k.tar.gz
+TARNAME12=/festvox_cmu_us_bdl_arctic_hts.tar.gz
+TARNAME13=/festvox_cmu_us_slt_arctic_hts.tar.gz
+TARNAME14=/festvox_cmu_us_jmk_arctic_hts.tar.gz
+TARNAME15=/festvox_cmu_us_awb_arctic_hts.tar.gz
+TARNAME16=
+TARNAME17=
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+mkdir ${TARNAME}
+cd ${TARNAME}
+
+if [ ! -d ${TARNAME} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+unpack ${TARDIR}/${TARNAME1}
+unpack ${TARDIR}/${TARNAME2}
+unpack ${TARDIR}/${TARNAME3}
+unpack ${TARDIR}/${TARNAME4}
+unpack ${TARDIR}/${TARNAME5}
+unpack ${TARDIR}/${TARNAME6}
+unpack ${TARDIR}/${TARNAME7}
+unpack ${TARDIR}/${TARNAME8}
+unpack ${TARDIR}/${TARNAME9}
+unpack ${TARDIR}/${TARNAME10}
+unpack ${TARDIR}/${TARNAME11}
+unpack ${TARDIR}/${TARNAME12}
+unpack ${TARDIR}/${TARNAME13}
+unpack ${TARDIR}/${TARNAME14}
+unpack ${TARDIR}/${TARNAME15}
+
+#mv ${TARNAME} ${TARNAME}-${VERSION}
+(cd ${TARNAME}
+ ln -s ../speech_tools .
+ patch -p1 < ${CWD}/festival-1.95-fsstnd.patch
+ patch -p1 < ${CWD}/festival-buildroot.patch
+ patch -p1 < ${CWD}/festival-1.95-shared-build.patch
+ patch -p1 < ${CWD}/festival-1.95-sonamehack.patch
+)
+fi
+
+pre_configure
+
+fix_perms
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/festival/speech_tools/lib:$PATH
+export PATH=`pwd`/festival/bin:$PATH
+
+(cd speech_tools
+
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+ make CXXFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -fPIC" \
+      CFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -O0 -fPIC" || exit
+)
+
+cd festival
+
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+FTLIBDIR=/usr/share/festival make CXXFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -fPIC" \
+				  CFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -O0 -fPIC" || exit
+
+(cd lib/dicts/oald
+
+ make CXXFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -fPIC" \
+      CFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -O0 -fPIC" || exit
+)
+
+(cd lib/dicts/cmu
+
+ make CXXFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -fPIC" \
+      CFLAGS="-fpermissive -Wno-deprecated -Wno-non-template-friend -O0 -fPIC" || exit
+)
+
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/{bin,lib,libexec/speech-tools}
+cp -a speech_tools/bin/* ${PKG}/usr/libexec/speech-tools
+rm ${PKG}/usr/libexec/speech-tools/Makefile
+cp -a speech_tools/lib/lib{*.a,*.so*} ${PKG}/usr/lib
+
+mkdir -p ${PKG}/usr/share/festival
+cp -a lib/* ${PKG}/usr/share/festival
+cp -a bin/* ${PKG}/usr/bin
+rm -f ${PKG}/usr/share/festival/Makefile ${PKG}/usr/share/festival/*.americandefault
+
+# We want the real festival, not the wrapper script
+rm -f ${PKG}/usr/bin/{Makefile,VCLocalRules}
+mkdir -p ${PKG}/usr/man/man1
+cp -a doc/*.1 ${PKG}/usr/man/man1
+
+mkdir -p ${PKG}/usr/include/speech_tools
+mkdir -p ${PKG}/usr/include/festival
+cp -a src/include/* ${PKG}/usr/include/festival
+cp -aR speech_tools/include/* ${PKG}/usr/include/speech_tools
+cp -a src/lib/libFestival.a ${PKG}/usr/lib
+
+# symlinks into buildtree evil
+for i in ${PKG}/usr/libexec/speech-tools/*; do
+        if [ -h "$i" ]; then
+                a=`readlink "$i"`
+                rm -f "$i"
+                cp -a "$a" ${PKG}/usr/libexec/speech-tools/
+        fi
+done
+for i in ${PKG}/usr/bin/*; do
+        if [ -h "$i" ]; then
+                a=`readlink "$i"`
+                rm -f "$i"
+                cp -a "$a" ${PKG}/usr/bin/
+        fi
+done
+
+
+# Remove some files we don't need
+rm -rf ${PKG}/usr/include/speech_tools/win32
+rm -rf ${PKG}/usr/include/speech_tools/Makefile
+rm -rf ${PKG}/usr/include/festival/Makefile
+rm -f  ${PKG}/usr/share/festival/etc/unknown_Linux/.made
+rm -f ${PKG}/usr/bin/{est_gdb,est_examples,est_program}
+rm -f ${PKG}/usr/libexec/speech-tools/{build_docbook_index,cxx_to_docbook}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

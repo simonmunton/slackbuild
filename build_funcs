@@ -3,6 +3,39 @@
 CWD=`pwd`
 
 
+guess_tar_prog ()
+{
+# guess tar program and tar opts
+
+case $1 in
+  *.tar.gz|*.tgz)
+    : ${TAR_PROG:=tar}
+    : ${TAR_OPTS:=xzvf}
+    ;;
+
+  *.tar.bz2|*.tbz)
+    : ${TAR_PROG:=tar}
+    : ${TAR_OPTS:=xjvf}
+    ;;
+
+  *.zip)
+    : ${TAR_PROG:=unzip}
+    : ${TAR_OPTS:=}
+    ;;
+
+  *.7z)
+    : ${TAR_PROG:=7z}
+    : ${TAR_OPTS:=x}
+    ;;
+esac
+}
+
+unpack ()
+{
+guess_tar_prog $1
+
+${TAR_PROG} ${TAR_OPTS} $1
+}
 
 pre_unpack ()
 {
@@ -47,32 +80,7 @@ then
   fi
 fi
 
-# guess tar program and tar opts
-
-case ${TAR_EXT} in
-  .tar.gz|.tgz)
-    : ${TAR_PROG:=tar}
-    : ${TAR_OPTS:=xzvf}
-    ;;
-
-  .tar.bz2|.tbz)
-    : ${TAR_PROG:=tar}
-    : ${TAR_OPTS:=xjvf}
-    ;;
-
-  .zip)
-    : ${TAR_PROG:=unzip}
-    : ${TAR_OPTS:=}
-    ;;
-
-  .7z)
-    : ${TAR_PROG:=7z}
-    : ${TAR_OPTS:=x}
-    ;;
-
-esac
-
-
+guess_tar_prog ${TAR_EXT}
 }
 
 

@@ -1,0 +1,62 @@
+diff -ur festival.orig/speech_tools/config/config.in festival/speech_tools/config/config.in
+--- festival.orig/speech_tools/config/config.in	2004-05-29 14:34:39.000000000 -0400
++++ festival/speech_tools/config/config.in	2005-01-06 00:25:41.491945757 -0500
+@@ -61,7 +61,7 @@
+ # VERBOSE=1
+ #DEBUG=1
+ # PROFILE=gprof
+-#SHARED=2
++SHARED=2
+ 
+ ## Directory specific selections which override the above
+ 
+diff -ur festival.orig/speech_tools/config/rules/bin_process.mak festival/speech_tools/config/rules/bin_process.mak
+--- festival.orig/speech_tools/config/rules/bin_process.mak	2004-01-27 18:56:39.000000000 -0500
++++ festival/speech_tools/config/rules/bin_process.mak	2005-01-06 00:27:20.487633432 -0500
+@@ -74,9 +74,9 @@
+ 	@echo
+ 
+ .link_main: 
+-	@$(MAKE) MADE_FROM_ABOVE=1 --no-print-directory -C '$(PROJECT_MAIN_DIR)' BIN=TOP/$(DIRNAME) LIBDIR=MAIN/TOP/$(PROJECT_LIBRARY_DIR) MAIN='$($(PROJECT_PREFIX)_HOME)' .link_main$(S)
++	@$(MAKE) MADE_FROM_ABOVE=1 --no-print-directory -C '$(PROJECT_MAIN_DIR)' BIN=TOP/$(DIRNAME) LIBDIR=MAIN/TOP/$(PROJECT_LIBRARY_DIR) MAIN='$($(PROJECT_PREFIX)_HOME)' .link_main2
+ 
+-.link_main_static: FORCE
++.link_main2: FORCE
+ 	@echo
+ 	@$(ECHO_N) "Main Links:"
+ 	@for i in $(ALL_EXECS) ;\
+@@ -87,34 +87,6 @@
+ 	done
+ 	@echo
+ 
+-.link_main_shared: FORCE
+-	@echo
+-	@$(ECHO_N) "Main Scripts:"
+-	@for i in $(ALL_EXECS) ;\
+-	    do \
+-	    b=`basename "$$i"`;\
+-	    $(ECHO_N) " $$b"; \
+-	    $(NAWK) -f "$(EST)/config/rules/script_process.awk" \
+-				scriptname="$$b" \
+-				project="$(PROJECT_NAME)" \
+-				version="$(PROJECT_VERSION)" \
+-				systemtype="$(MACHINETYPE)_$(OSTYPE)$(OSREV)" \
+-				topdir="$($(PROJECT_PREFIX)_HOME)" \
+-				main="$(MAIN)/$(DIRNAME)" \
+-				lib="$($(PROJECT_PREFIX)_HOME)/$(PROJECT_LIBRARY_DIR)" \
+-				est="'$(EST_HOME)'" \
+-				classpath="$(SYSTEM_JAVA_CLASSPATH)" \
+-				perl="$(PERL)" \
+-				javahome="$(JAVA_HOME)" \
+-				java="$(JAVA)" \
+-				javac="$(JAVAC)" \
+-				java_version="$(EST_JAVA_VERSION)" \
+-				ldpath="$(SYSTEM_LD_LIBRARY_PATH)" \
+-				$(PROJECT_SCRIPTS_DIR)/shared_script  > "$(subst TOP,$(TOP),$(BIN))/$$b" ;\
+-	    chmod +x "$(subst TOP,$(TOP),$(BIN))/$$b" ;\
+-	done
+-	@echo
+-
+ 
+ .process_scripts: 
+ 	@$(MAKE) MADE_FROM_ABOVE=1 --no-print-directory -C '$(PROJECT_SCRIPTS_DIR)' BIN=TOP/$(DIRNAME) BIN_TOP='$(TOP)' .process_scripts_real
