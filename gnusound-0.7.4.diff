@@ -1,0 +1,84 @@
+--- gnusound-0.7.4/modules/file_ffmpeg.c.orig	2005-06-19 16:44:25.000000000 +0100
++++ gnusound-0.7.4/modules/file_ffmpeg.c	2007-03-07 09:52:03.000000000 +0000
+@@ -77,7 +77,7 @@
+     if(stream_index < 0 || stream_index >= fc->nb_streams)
+         return -1;
+ 
+-    enc = &fc->streams[stream_index]->codec;
++    enc = fc->streams[stream_index]->codec;
+     codec = avcodec_find_decoder(enc->codec_id);
+     if(!codec)
+         return -1;
+@@ -99,7 +99,7 @@
+     int err, i, audio_index = -1;
+ 
+     memset(&format_params, 0, sizeof(format_params));
+-    format_params.image_format = NULL;
++//    format_params.image_format = NULL;
+     format_params.initial_pause = 1; /* we force a pause when starting an RTSP
+                                         stream */
+ 
+@@ -117,7 +117,7 @@
+     }
+     
+     for(i = 0; i < fc->nb_streams; i++) {
+-        AVCodecContext *enc = &fc->streams[i]->codec;
++        AVCodecContext *enc = fc->streams[i]->codec;
+         switch(enc->codec_type) {
+         case CODEC_TYPE_AUDIO:
+             DEBUG("found audio stream %d\n", i);
+@@ -146,7 +146,7 @@
+         return cmd_new_error_val("Could not open audio stream");
+     }        
+ 
+-    codec = avcodec_find_decoder(fc->streams[audio_index]->codec.codec_id);
++    codec = avcodec_find_decoder(fc->streams[audio_index]->codec->codec_id);
+     snprintf(ffmpeg_data->format_name, sizeof(ffmpeg_data->format_name),
+              "%s/%s", fc->iformat->name, codec->name);
+ 
+@@ -155,8 +155,8 @@
+     ffmpeg_data->audio_stream = fc->streams[audio_index];
+ 
+     params->sample_type = SAMPLE_TYPE_INT_16;
+-    params->sample_rate = ffmpeg_data->audio_stream->codec.sample_rate;
+-    params->channels = ffmpeg_data->audio_stream->codec.channels;
++    params->sample_rate = ffmpeg_data->audio_stream->codec->sample_rate;
++    params->channels = ffmpeg_data->audio_stream->codec->channels;
+     params->frame_count = -1;
+ 
+     av_read_play(fc);
+@@ -227,7 +227,7 @@
+          * the decode buffer.
+          */
+ 
+-        len = avcodec_decode_audio(&ffmpeg_data->audio_stream->codec,
++        len = avcodec_decode_audio(ffmpeg_data->audio_stream->codec,
+                                    (int16_t *)ffmpeg_data->decode_buf,
+                                    &frame_size,
+                                    (ffmpeg_data->packet.data + 
+@@ -274,14 +274,14 @@
+      * could save a memcpy() here, but this is cleaner.
+      */
+ 
+-    copied = MIN(count * ffmpeg_data->audio_stream->codec.channels * 2, 
++    copied = MIN(count * ffmpeg_data->audio_stream->codec->channels * 2, 
+                  ffmpeg_data->decode_buf_avail);
+     memcpy(buf, ffmpeg_data->decode_buf + ffmpeg_data->decode_buf_offset,
+            copied);
+     ffmpeg_data->decode_buf_offset += copied;
+     ffmpeg_data->decode_buf_avail -= copied;
+ 
+-    return copied / (ffmpeg_data->audio_stream->codec.channels * 2);
++    return copied / (ffmpeg_data->audio_stream->codec->channels * 2);
+ }
+ 
+ static long
+@@ -299,7 +299,7 @@
+     if(ffmpeg_data->packet.data) 
+         av_free_packet(&ffmpeg_data->packet);
+         
+-    enc = &ffmpeg_data->audio_stream->codec;
++    enc = ffmpeg_data->audio_stream->codec;
+     avcodec_close(enc);
+     av_close_input_file(ffmpeg_data->format_context);
+ 

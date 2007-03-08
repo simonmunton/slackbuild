@@ -2,13 +2,17 @@
 #
 . build_funcs
 
+# build order
+#    1.  libgeda   2. symbols   3. gschem   4. gnetlist   5. gsymcheck
+#    6. gattrib   7. utils   8. docs   9. examples
+
 TARNAME=libgeda
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g/geda
 TAR_EXT=.tar.gz
-VERSION=20061020
+VERSION=20070216
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,42 +22,42 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$VERSION/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${VERSION}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 #cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
+cd ${TARNAME}-${VERSION}
 #chown -R root.root .
 find . -perm 666 -exec chmod 644 {} \;
 find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
 make || exit
 
-make install DESTDIR=$PKG
+make install DESTDIR=${PKG}
 
 fix_links
 
@@ -63,12 +67,12 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -92,8 +96,8 @@ EOF
 
 post_install
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

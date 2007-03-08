@@ -2,27 +2,23 @@
 #
 . build_funcs
 
-# build order
-#    1. libgeda   2. symbols   3. gschem   4. gnetlist   5. gsymcheck
-#    6. gattrib   7. utils     8. docs     9. examples
-
-TARNAME=geda-utils
+TARNAME=wxGTK
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/geda
+TARDIR=~/tmp/new/w/wxWidgets
 #TAR_EXT=.tar.gz
-VERSION=20070216
+VERSION=2.8.1
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=wxGTK-2.8-unicode
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${VERSION}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -40,6 +36,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+# tar xf ${TARDIR}/wxWidgets-2.6.3-Patch-2.tar.gz
 )
 fi
 
@@ -53,11 +50,26 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+            --with-gtk \
+            --with-gnomeprint \
+            --with-opengl \
+            --enable-geometry \
+            --enable-sound \
+            --with-sdl \
+            --enable-display \
+	    --enable-unicode
 
 make || exit
+make -C contrib/src || exit
+#make -C contrib/src/stc || exit
 
 make install DESTDIR=${PKG}
+make -C contrib/src install DESTDIR=${PKG}
+#make -C contrib/src/stc install DESTDIR=${PKG}
+
+#rm ${PKG}/usr/bin/wx-config
+#ln -s /usr/lib/wx/config/gtk2-ansi-release-2.6 ${PKG}/usr/bin/wx-config
 
 fix_links
 
@@ -68,9 +80,6 @@ compress_info
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-mv ${PKG}/usr/share/doc/* ${PKG}/usr/doc
-rm -rf ${PKG}/usr/share/doc
 
 fix_docs
 
@@ -84,17 +93,19 @@ cat <<EOF > ${PKG}/install/slack-desc
 # customary to leave one space after the ':'.
 
     |-----handy-ruler------------------------------------------------------|
-geda-utils: geda-utils
-geda-utils:
-geda-utils: 
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
-geda-utils:
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: wxWidgets is a free C++ library for cross-platform GUI 
+${PKGNAME}: development. With wxWidgets, you can create applications for 
+${PKGNAME}: different GUIs (GTK+, Motif, MS Windows, MacOS X, Windows CE,
+${PKGNAME}: GPE) from the same source code.
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
 post_install

@@ -1,0 +1,58 @@
+--- mpgedit-0.72beta3/mpgedit/install.sh.orig	2006-01-01 23:43:26.000000000 +0000
++++ mpgedit-0.72beta3/mpgedit/install.sh	2007-03-07 15:36:36.000000000 +0000
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ product=mpgedit_0.7p2
+-install_root=/usr/local
++#install_root=/usr/
+ 
+ man1="mpgedit.1 xmpgedit.1 decoder.so.1 mp3decoder.sh.1
+       scramble_times.pl.1 scramble.pl.1 unscramble.pl.1"
+@@ -172,34 +172,6 @@
+   )
+   fi
+   
+-  if [ -f "/etc/ld.so.conf" ]; then
+-    line=`grep $install_root/lib /etc/ld.so.conf`
+-    if [ -z "$line" ]; then
+-  
+-      # Short-circuit interactive question if -y provided on command line
+-      #
+-      if [ $Y_FLAG = "NO" ]; then
+-        echo
+-        echo "$install_root/lib not found in /etc/ld.so.conf"
+-        echo "This is needed for proper operation of mpgedit"
+-        echo
+-        echo -n "  Do you want to add this now? [Y/n] "
+-        read line
+-        line=`echo $line | tr '[A-Z]' '[a-z]'`
+-      else
+-        line=$Y_FLAG
+-      fi
+-      if [ "$line" != "n" -a "$line" != "no" ]; then
+-        echo "updating /etc/ld.so.conf..."
+-        echo "$install_root/lib" >> /etc/ld.so.conf
+-      fi
+-    fi
+-     # Always run ldconfig, even if install path was previously in ld.so.conf,
+-     # because this install may have added new libraries not previously in
+-     # the library cache.
+-    /sbin/ldconfig
+-  fi
+-
+   if [ $F_FLAG = "YES" ]; then
+     do_man_config $man_base
+     do_gtkrc_config
+@@ -313,12 +285,6 @@
+ #
+ # ============================ main =======================
+ #
+-uid=`id | sed -e 's/uid=\([0-9][0-9]*\).*/\1/'`
+-if [ $uid != 0 ]; then
+-  echo "ERROR: Can only install '$product' as root"
+-  exit 1;
+-fi
+-
+ PATH=$PATH:/usr/sbin:/usr/bin
+ export PATH
+ 
