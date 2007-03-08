@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=mpgedit
+TARNAME=quantumminigolf
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.72beta3
-VERSIONEXTRA=_src
+VERSION=1.0.0
+VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
@@ -33,9 +33,9 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}_${VERSION/./-}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION}-src ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/mpgedit-0.72beta3.diff
+ patch -p1 < ${CWD}/quantumminigolf-1.0.0.diff
 )
 fi
 
@@ -43,19 +43,23 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
-cd ${TARNAME}
-
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-make -f makefile.linux || exit
+make || exit
 
-install_root=${PKG}/usr ./install.sh
 
-chmod -x ${PKG}/usr/share/xmpgedit/*
-mkdir ${PKG}/usr/share/pixmaps
-mv ${PKG}/usr/share/xmpgedit ${PKG}/usr/share/pixmaps
+chmod -x fonts/* gfx/* tracks/*
+mkdir -p ${PKG}/usr/share/quantumminigolf ${PKG}/usr/games
+cp -pr fonts gfx tracks quantumminigolf ${PKG}/usr/share/quantumminigolf
+
+cat > ${PKG}/usr/games/quantumminigolf << EOF
+#!/bin/bash
+#
+cd /usr/share/quantumminigolf
+./quantumminigolf $*
+EOF
+
+chmod +x ${PKG}/usr/games/quantumminigolf
 
 #strip_binaries
 

@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=mpgedit
+TARNAME=gnuplot
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=0.72beta3
-VERSIONEXTRA=_src
+VERSION=4.2.0
+VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
@@ -33,9 +33,9 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}_${VERSION/./-}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/mpgedit-0.72beta3.diff
+#patch -p1 < ${CWD}/.diff
 )
 fi
 
@@ -43,19 +43,22 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
-cd ${TARNAME}
-
 fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-make -f makefile.linux || exit
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --datadir=/usr/share/gnuplot \
+	    --with-png \
+	    --with-gd \
+	    --with-plot=/usr \
+	    --with-readline
 
-install_root=${PKG}/usr ./install.sh
+make || exit
 
-chmod -x ${PKG}/usr/share/xmpgedit/*
-mkdir ${PKG}/usr/share/pixmaps
-mv ${PKG}/usr/share/xmpgedit ${PKG}/usr/share/pixmaps
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -66,8 +69,11 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  BUGS CodeStyle Copyright FAQ INSTALL NEWS PATCHLEVEL PGPKEYS PORTING README README.1ST README.exp TODO VERSION \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp -a demo ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rm -f ${PKG}/usr/doc/${TARNAME}-${VERSION}/demo/Make*
 
 fix_docs
 
