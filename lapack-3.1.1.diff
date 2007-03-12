@@ -1,0 +1,23 @@
+--- lapack-3.1.1/SRC/Makefile.orig	2007-02-23 21:33:05.000000000 +0000
++++ lapack-3.1.1/SRC/Makefile	2007-03-09 13:55:42.000000000 +0000
+@@ -297,6 +297,9 @@
+ 	$(ARCH) $(ARCHFLAGS) $@ $(ALLOBJ)
+ 	$(RANLIB) $@
+ 
++shared: $(ALLOBJ)
++	gcc $(CFLAGS) -shared -Wl,-soname,liblapack.so.3 -o liblapack.so.3.1.1 $(ALLOBJ) -lblas -lm -lg2c -lc
++
+ single: $(SLASRC) $(ALLAUX) $(SCLAUX) 
+ 	$(ARCH) $(ARCHFLAGS) ../$(LAPACKLIB) $(SLASRC) $(ALLAUX) \
+ 	$(SCLAUX)
+--- lapack-3.1.1/make.inc.orig	2007-02-23 20:07:35.000000000 +0000
++++ lapack-3.1.1/make.inc	2007-03-09 11:28:37.000000000 +0000
+@@ -10,7 +10,7 @@
+ #
+ #  The machine (platform) identifier to append to the library names
+ #
+-PLAT = _LINUX
++PLAT = 
+ #  
+ #  Modify the FORTRAN and OPTS definitions to refer to the
+ #  compiler and desired compiler options for your machine.  NOOPT
