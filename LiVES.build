@@ -5,8 +5,8 @@
 TARNAME=LiVES
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
-TAR_EXT=.tar.bz2
-VERSION=0.9.6
+#TAR_EXT=.tar.bz2
+VERSION=0.9.8.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -75,6 +75,9 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   $PKG/usr/doc/$TARNAME-$VERSION
 
+mv ${PKG}/usr/share/doc/lives*/* $PKG/usr/doc/$TARNAME-$VERSION
+rmdir ${PKG}/usr/share/doc/lives* ${PKG}/usr/share/doc
+
 fix_docs
 
 mkdir -p $PKG/install
@@ -104,5 +107,6 @@ post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

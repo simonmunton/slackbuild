@@ -5,8 +5,8 @@
 TARNAME=firefox
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m/mozilla/firefox
-TAR_EXT=.tar.bz2
-VERSION=1.5.0.7
+#TAR_EXT=.tar.bz2
+VERSION=2.0.0.2
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -35,10 +35,18 @@ then
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
 mv mozilla $TARNAME-$VERSION
 (cd $TARNAME-$VERSION
- for f in $CWD/firefox*.patch
- do 
-   patch -p1 < $f
- done
+# patch -p1 < ${CWD}/firefox-1.5-pango-ua.patch
+# patch -p1 < ${CWD}/firefox-nopangoxft.patch 
+ patch -p1 < ${CWD}/firefox-1.5-pango-cursor-position.patch
+ patch -p1 < ${CWD}/firefox-0.7.3-psfonts.patch
+ patch -p1 < ${CWD}/firefox-1.5-theme-change.patch
+ patch -p1 < ${CWD}/firefox-1.1-default-applications.patch
+ patch -p1 < ${CWD}/firefox-2.0-link-layout.patch
+ patch -p1 < ${CWD}/firefox-1.1-uriloader.patch
+ patch -p1 < ${CWD}/firefox-2.0-pango-printing.patch
+ patch -p1 < ${CWD}/firefox-1.5-bullet-bill.patch
+ patch -p1 < ${CWD}/firefox-1.5-embedwindow-visibility.patch
+ patch -p1 < ${CWD}/firefox-1.5-nopangoxft.patch
 )
 fi
 
@@ -123,5 +131,6 @@ post_install
 
 cd $PKG
 su -c "chown -R root.root *; \
-makepkg $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
