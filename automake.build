@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=qt-x11-opensource-src
+TARNAME=automake
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/gnu/automake
 #TAR_EXT=.tar.gz
-VERSION=4.2.3
+VERSION=1.10
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=qt4
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+#patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,48 +45,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-echo yes |
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure -prefix /usr/lib/qt4 \
-            -debug-and-release \
-            -release \
-            -system-zlib \
-            -system-libpng \
-            -system-libmng \
-            -system-libjpeg \
-            -qt-gif \
-            -stl \
-            -no-g++-exceptions \
-            -plugin-sql-mysql \
-            -plugin-sql-psql \
-            -plugin-sql-sqlite \
-            -I /usr/include/mysql \
-            -v
-
-#           -release \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --infodir=/usr/info
 
 make || exit
 
-make install INSTALL_ROOT=$PKG
+make install DESTDIR=${PKG}
 
-mkdir -p $PKG/usr/lib/pkgconfig
-mv $PKG/usr/lib/qt4/lib/*.pc $PKG/usr/lib/pkgconfig
-(cd $PKG/usr/lib/pkgconfig
- for n in *
- do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
- done
-
-cd $PKG/usr/lib/qt4/lib
- for n in *.la *.prl
- do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
- done
+# Change hard links to symlinks:
+#SHORTNAME=`echo ${VERSION} | cut -f1,2 -d .`
+( cd ${PKG}/usr/bin
+  rm -f aclocal
+  ln -sf aclocal-* aclocal
+  rm -rf automake
+  ln -sf automake-* automake
 )
 
-mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
-ln -s /usr/lib/qt-$VERSION $PKG/usr/lib/qt4
+# Create local aclocal dir:
+mkdir -p ${PKG}/usr/share/aclocal
 
 #strip_binaries
 
@@ -97,7 +77,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* THANKS TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -114,12 +94,15 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: automake (a Makefile generator)
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This is Automake, a Makefile generator.  It was inspired by the 4.4BSD
+${PKGNAME}: make and include files, but aims to be portable and to conform to the
+${PKGNAME}: GNU standards for Makefile variables and targets.  Automake is a Perl
+${PKGNAME}: script.  The input files are called Makefile.am.  The output files are
+${PKGNAME}: called Makefile.in; they are intended for use with Autoconf.  Automake
+${PKGNAME}: requires certain things to be done in your configure.in.  You must
+${PKGNAME}: install the "m4" and "perl" packages to be able to use automake.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

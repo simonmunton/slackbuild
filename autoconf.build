@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=qt-x11-opensource-src
+TARNAME=autoconf
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/gnu/autoconf
 #TAR_EXT=.tar.gz
-VERSION=4.2.3
+VERSION=2.61
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=qt4
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+#patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,48 +45,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-echo yes |
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure -prefix /usr/lib/qt4 \
-            -debug-and-release \
-            -release \
-            -system-zlib \
-            -system-libpng \
-            -system-libmng \
-            -system-libjpeg \
-            -qt-gif \
-            -stl \
-            -no-g++-exceptions \
-            -plugin-sql-mysql \
-            -plugin-sql-psql \
-            -plugin-sql-sqlite \
-            -I /usr/include/mysql \
-            -v
-
-#           -release \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --infodir=/usr/info \
+	    --mandir=/usr/man
 
 make || exit
 
-make install INSTALL_ROOT=$PKG
-
-mkdir -p $PKG/usr/lib/pkgconfig
-mv $PKG/usr/lib/qt4/lib/*.pc $PKG/usr/lib/pkgconfig
-(cd $PKG/usr/lib/pkgconfig
- for n in *
- do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
- done
-
-cd $PKG/usr/lib/qt4/lib
- for n in *.la *.prl
- do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
- done
-)
-
-mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
-ln -s /usr/lib/qt-$VERSION $PKG/usr/lib/qt4
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -97,7 +66,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS BUGS COPYING* INSTALL NEWS PLANS README* THANKS TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -114,12 +83,15 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: autoconf (generate configuration scripts)
+${PKGNAME}: GNU autoconf is an extensible package of m4 macros that produce shell
+${PKGNAME}: scripts to automatically configure software source code packages.
+${PKGNAME}: These scripts can adapt the packages to many kinds of UNIX-like
+${PKGNAME}: systems without manual user intervention.  Autoconf creates a
+${PKGNAME}: configuration script for a package from a template file that lists the
+${PKGNAME}: operating system features that the package can use, in the form of m4
+${PKGNAME}: macro calls.  You must install the "m4" package to be able to use
+${PKGNAME}: autoconf.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

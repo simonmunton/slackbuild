@@ -52,11 +52,20 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
             --with-openldap=yes \
             --enable-pilot-conduits=yes \
             --enable-exchange=yes \
-            --with-krb5=/usr
+            --with-krb5=/usr \
+	    --enable-nss
 
 make || exit
 
 make install DESTDIR=$PKG
+
+if [ ! -d ${PKG}/usr/include/evolution-2.10/composer ]
+then
+  mkdir -p ${PKG}/usr/include/evolution-2.10/composer
+  cp composer/*.h ${PKG}/usr/include/evolution-2.10/composer
+else
+  echo "${PKG}/usr/include/evolution-2.10/composer exists"
+fi
 
 fix_links
 
