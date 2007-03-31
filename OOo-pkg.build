@@ -6,19 +6,19 @@ CWD=`pwd`
 PKG=/tmp/package-ooo
 
 # Change to the version of OOo you are using this script with
-VERSION=2.1.0
+VERSION=2.2.0
 
 # 2.0 hack - directory versions don't match package name versions
-S_VERSION=2.1
+S_VERSION=2.2
 
 # Most of the packages are i586. Edit this only if that changes
 ARCH=${ARCH:-i586}
 
 # Most OOo packages are build 1 - edit this if that changes
-BUILD=6
+BUILD=9134
 
 # As of 2.0.2 the menus have a different build revision
-BUILD_MENU=5
+BUILD_MENU=9119
 
 # Change to the name of the file you downloaded from OOo
 # Usually in the form of: OOo_$VERSION_LinuxIntel_install.tar.gz
@@ -122,15 +122,24 @@ ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/qstart.desktop openoffice.org-$
 cd $PKG/package
 rm $PKG/package/usr/bin/*
 
-cat << _EOF_ > $PKG/package/usr/bin/openoffice.org-${S_VERSION}
+cat << _EOF_ > $PKG/package/usr/bin/openoffice.org${S_VERSION}
 #!/bin/sh
 exec /opt/openoffice.org${S_VERSION}/program/soffice "\$@"
 _EOF_
 
-cat << _EOF_ > $PKG/package/usr/bin/openoffice.org-${S_VERSION}-printeradmin
+(cd $PKG/package/usr/bin
+ ln -s openoffice.org${S_VERSION} openoffice.org
+)
+
+cat << _EOF_ > $PKG/package/usr/bin/openoffice.org${S_VERSION}-printeradmin
 #!/bin/sh
 exec /opt/openoffice.org${S_VERSION}/program/spadmin
 _EOF_
+
+(cd $PKG/package/usr/bin
+ ln -s openoffice.org${S_VERSION}-printeradmin openoffice.org-printeradmin
+)
+
 
 # GNOME concession - if I'm missing anything else here, please let me know
 mkdir -p $PKG/package/install
