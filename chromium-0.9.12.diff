@@ -1,0 +1,283 @@
+--- chromium-0.9.12/src/define.h.orig	2001-02-10 02:33:24.000000000 +0000
++++ chromium-0.9.12/src/define.h	2007-04-05 11:44:55.000000000 +0100
+@@ -42,12 +42,14 @@
+ 
+ #define MAX_BUFF 256
+ 
++#define PKGBINDIR "/usr/bin"
+ #ifdef PKGBINDIR
+ #define CHROMIUM_EXEC PKGBINDIR"/chromium"
+ #else 
+ #define CHROMIUM_EXEC "./chromium"
+ #endif //PKGBINDIR
+ 
++#define PKGDATADIR "/usr/games/chromium"
+ #ifdef PKGDATADIR
+ #define CHROMIUM_DATA_DIR PKGDATADIR"/data"
+ #else
+--- chromium-0.9.12/src/NCString.cpp.orig	2001-05-20 18:04:58.000000000 +0100
++++ chromium-0.9.12/src/NCString.cpp	2007-04-05 11:44:55.000000000 +0100
+@@ -5,6 +5,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <limits.h>
++#include <stdarg.h>
+ 
+ /**
+  * ctor
+--- chromium-0.9.12/src/Makefile.orig	2001-05-22 06:25:50.000000000 +0100
++++ chromium-0.9.12/src/Makefile	2007-04-05 11:50:32.000000000 +0100
+@@ -15,7 +15,7 @@
+ INCPATH	=	-I../support/include -I../support/glpng/include -I/usr/X11R6/include
+ LINK	=	g++
+ LFLAGS	=	
+-LIBS	=	$(SUBLIBS) -L../support/glpng/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib $(GL_LIBS) $(AL_LIBS) $(SDL_LIBS) $(SMPEG_LIBS) $(VORBIS_LIBS)
++LIBS	=	$(SUBLIBS) -L../support/glpng/lib -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib $(GL_LIBS) $(AL_LIBS) $(SDL_LIBS) $(SMPEG_LIBS) $(VORBIS_LIBS) -lz
+ MOC	=	$(QTDIR)/bin/moc
+ UIC	=	$(QTDIR)/bin/uic
+ 
+--- chromium-0.9.12/src-setup/HelpPage.cpp.orig	2001-02-08 05:18:59.000000000 +0000
++++ chromium-0.9.12/src-setup/HelpPage.cpp	2007-04-05 11:44:55.000000000 +0100
+@@ -22,8 +22,6 @@
+ 	cgroup.setColor(QColorGroup::Base, QColor(70, 60, 100));
+ 	cgroup.setColor(QColorGroup::Text, QColor(220, 220, 220));
+ 	QFont	font("Helvetica", 12, false);
+-	page->setPaperColorGroup(cgroup);
+-	page->setLinkColor(QColor(192, 192, 255));
+ 	page->setFont(font);
+ 
+ 	backBut = new QPushButton(this);
+--- chromium-0.9.12/src-setup/Makefile.orig	2001-05-21 08:47:11.000000000 +0100
++++ chromium-0.9.12/src-setup/Makefile	2007-04-05 11:44:55.000000000 +0100
+@@ -15,7 +15,7 @@
+ INCPATH	=	-I$(QTDIR)/include
+ LINK	=	g++
+ LFLAGS	=	
+-LIBS	=	$(SUBLIBS) -L$(QTDIR)/lib -L/usr/X11R6/lib  $(AL_LIBS) $(SDL_LIBS) $(SMPEG_LIBS) $(VORBIS_LIBS) -lm -pthread -lqt -lXext -lX11 -lm
++LIBS	=	$(SUBLIBS) -L$(QTDIR)/lib -L/usr/X11R6/lib  $(AL_LIBS) $(SDL_LIBS) $(SMPEG_LIBS) $(VORBIS_LIBS) -lm -pthread -lqt-mt -lXext -lX11 -lm
+ MOC	=	$(QTDIR)/bin/moc
+ UIC	=	$(QTDIR)/bin/uic
+ 
+--- chromium-0.9.12/src-setup/main.cpp.orig	2001-05-10 16:49:36.000000000 +0100
++++ chromium-0.9.12/src-setup/main.cpp	2007-04-05 12:00:34.000000000 +0100
+@@ -70,8 +70,10 @@
+ 	a.setFont(font);
+ 
+ #if QT_VERSION >= 220
++#ifndef QT_NO_STYLE_SGI
+ 	a.setStyle(new QSGIStyle());
+ #endif
++#endif
+ 
+ 	MainWidget mainWidget;
+ 	
+--- chromium-0.9.12/support/glpng/src/png/png.h.orig	2001-02-08 05:08:15.000000000 +0000
++++ chromium-0.9.12/support/glpng/src/png/png.h	2007-04-05 11:44:55.000000000 +0100
+@@ -105,7 +105,7 @@
+  */
+ 
+ /* include the compression library's header */
+-#include "../zlib/zlib.h"
++#include <zlib.h>
+ 
+ /* include all user configurable info */
+ #include "pngconf.h"
+--- chromium-0.9.12/support/glpng/src/Makefile.orig	2001-02-08 05:03:24.000000000 +0000
++++ chromium-0.9.12/support/glpng/src/Makefile	2007-04-05 11:44:55.000000000 +0100
+@@ -23,16 +23,7 @@
+ ####### Files
+ 
+ HEADERS =	png/png.h \
+-		png/pngconf.h \
+-		zlib/infblock.h \
+-		zlib/infcodes.h \
+-		zlib/inffast.h \
+-		zlib/inffixed.h \
+-		zlib/inftrees.h \
+-		zlib/infutil.h \
+-		zlib/zconf.h \
+-		zlib/zlib.h \
+-		zlib/zutil.h
++		png/pngconf.h
+ SOURCES =	glpng.c \
+ 		png/png.c \
+ 		png/pngerror.c \
+@@ -44,16 +35,7 @@
+ 		png/pngrtran.c \
+ 		png/pngrutil.c \
+ 		png/pngset.c \
+-		png/pngtrans.c \
+-		zlib/adler32.c \
+-		zlib/crc32.c \
+-		zlib/infblock.c \
+-		zlib/infcodes.c \
+-		zlib/inffast.c \
+-		zlib/inflate.c \
+-		zlib/inftrees.c \
+-		zlib/infutil.c \
+-		zlib/zutil.c
++		png/pngtrans.c
+ OBJECTS =	glpng.o \
+ 		png/png.o \
+ 		png/pngerror.o \
+@@ -65,16 +47,7 @@
+ 		png/pngrtran.o \
+ 		png/pngrutil.o \
+ 		png/pngset.o \
+-		png/pngtrans.o \
+-		zlib/adler32.o \
+-		zlib/crc32.o \
+-		zlib/infblock.o \
+-		zlib/infcodes.o \
+-		zlib/inffast.o \
+-		zlib/inflate.o \
+-		zlib/inftrees.o \
+-		zlib/infutil.o \
+-		zlib/zutil.o
++		png/pngtrans.o
+ INTERFACES =	
+ UICDECLS =	
+ UICIMPLS =	
+@@ -143,120 +116,45 @@
+ 
+ png/png.o: png/png.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngerror.o: png/pngerror.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngget.o: png/pngget.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngmem.o: png/pngmem.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngpread.o: png/pngpread.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngread.o: png/pngread.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngrio.o: png/pngrio.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngrtran.o: png/pngrtran.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngrutil.o: png/pngrutil.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngset.o: png/pngset.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+ png/pngtrans.o: png/pngtrans.c \
+ 		png/png.h \
+-		png/../zlib/zlib.h \
+ 		png/pngconf.h
+ 
+-zlib/adler32.o: zlib/adler32.c \
+-		zlib/zlib.h \
+-		zlib/zconf.h
+-
+-zlib/crc32.o: zlib/crc32.c \
+-		zlib/zlib.h \
+-		zlib/zconf.h
+-
+-zlib/infblock.o: zlib/infblock.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/infblock.h \
+-		zlib/inftrees.h \
+-		zlib/infcodes.h \
+-		zlib/infutil.h
+-
+-zlib/infcodes.o: zlib/infcodes.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/inftrees.h \
+-		zlib/infblock.h \
+-		zlib/infcodes.h \
+-		zlib/infutil.h \
+-		zlib/inffast.h
+-
+-zlib/inffast.o: zlib/inffast.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/inftrees.h \
+-		zlib/infblock.h \
+-		zlib/infcodes.h \
+-		zlib/infutil.h \
+-		zlib/inffast.h
+-
+-zlib/inflate.o: zlib/inflate.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/infblock.h
+-
+-zlib/inftrees.o: zlib/inftrees.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/inftrees.h \
+-		zlib/inffixed.h
+-
+-zlib/infutil.o: zlib/infutil.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h \
+-		zlib/infblock.h \
+-		zlib/inftrees.h \
+-		zlib/infcodes.h \
+-		zlib/infutil.h
+-
+-zlib/zutil.o: zlib/zutil.c \
+-		zlib/zutil.h \
+-		zlib/zlib.h \
+-		zlib/zconf.h
+-
+--- chromium-0.9.12/support/openal/Makefile.orig	2001-02-08 05:09:44.000000000 +0000
++++ chromium-0.9.12/support/openal/Makefile	2007-04-05 11:44:55.000000000 +0100
+@@ -4,7 +4,7 @@
+ 
+ linux: FORCE
+ 	mkdir -p ./lib
+-	cd linux; sh autogen.sh; $(OPENAL_CONFIG_OPTS); $(MAKE)
++	cd linux; cp /usr/share/libtool/config.* .; $(OPENAL_CONFIG_OPTS); $(MAKE)
+ 	cp ./linux/src/libopenal.a ./lib
+ 
+ clean:
+--- chromium-0.9.12/configure.orig	2001-05-11 06:17:12.000000000 +0100
++++ chromium-0.9.12/configure	2007-04-05 11:53:48.000000000 +0100
+@@ -158,7 +158,7 @@
+ ## set up other config.mak variables
+ ######################################################################
+ GL_LIBS="-lglpng -lGL -lGLU -lm"
+-AL_LIBS="-L../support/openal/lib -lopenal -ldl" 
++AL_LIBS="../support/openal/lib/libopenal.a" 
+ AL_CFLAGS="-I../support/openal/linux/include -I../support/openal/include"
+ 
+ ## write out config.mak

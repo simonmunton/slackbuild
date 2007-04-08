@@ -36,7 +36,7 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 unpack ${TARDIR}/${TARNAME}-data-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 mv Chromium-0.9 ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/chromium-0.9.12.diff
 )
 fi
 
@@ -46,13 +46,51 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+#-DGLX_GLXEXT_LEGACY
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure 
+./configure --disable-smpeg --enable-vorbis
 
 make || exit
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/bin
+mkdir -p ${PKG}/usr/games/chromium/data
+cp bin/* ${PKG}/usr/bin
+find -name CVS | xargs rm -rf
+cp -rf data ${PKG}/usr/games/chromium/
+
+mkdir -p ${PKG}/usr/share/applications
+cat > ${PKG}/usr/share/applications/Chromium.desktop << EOF
+[Desktop Entry]
+Encoding=UTF-8
+Categories=Application;Game;ArcadeGame
+X-Desktop-File-Install-Version=0.2
+Name=Chromium
+Comment=A fast paced, arcade-style space shooter
+Comment[de]=Ein schnelles Arcade Weltraum Ballerspiel
+Icon=chromium.xpm
+Exec=chromium
+Terminal=0
+Type=Application
+EOF
+cat > ${PKG}/usr/share/applications/x-Chromium-Setup.desktop << EOF
+[Desktop Entry]
+Encoding=UTF-8
+Categories=Application;Game;ArcadeGame
+X-Desktop-File-Install-Version=0.2
+Name=Chromium Configuration
+Namr[de]=Chromium Konfiguration
+Comment=A configuration editor for Chromium
+Comment[de]=Das Konfigurationsprogramm von Chromium
+Icon=chromium.xpm
+Exec=chromium-setup
+Terminal=0
+Type=Application
+EOF
+
+mkdir -p ${PKG}/usr/share/pixmaps
+cp ${CWD}/chromium.xpm ${PKG}/usr/share/pixmaps
 
 #strip_binaries
 
@@ -80,13 +118,23 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
+${PKGNAME}: You are captain of the cargo ship Chromium B.S.U., responsible for
+${PKGNAME}: delivering supplies to our troops on the front line. Your ship
+${PKGNAME}: has a small fleet of robotic fighters which you control from the
+${PKGNAME}: relative safety of the Chromium vessel.
+${PKGNAME}: - Do not let ANY enemy ships get past your fighters! Each enemy
+${PKGNAME}: ship that makes it past the bottom of the screen will attack
+${PKGNAME}: the Chromium, and you lose a fighter.
+${PKGNAME}: - Use your fighters as weapons! Crash into enemies to destroy them
+${PKGNAME}: before they can get past you.
+${PKGNAME}: - Strategic suicide is a powerful tactic! When the Chromium
+${PKGNAME}: launches a new fighter, it releases a high energy burst which
+${PKGNAME}: destroys all enemies in range.
+${PKGNAME}: - Self-destruct to preserve your ammunition! A double-right-click
+${PKGNAME}: will cause your current fighter to self-destruct. Before the
+${PKGNAME}: ship blows up, it ejects its ammunition so that the next fighter
+${PKGNAME}: can pick it up.
 ${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
 EOF
