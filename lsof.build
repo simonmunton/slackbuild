@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=4.77
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,9 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
  tar xvf ${TARNAME}_${VERSION}_src.tar
-#patch -p1 < $CWD/.diff
+ (cd ${TARNAME}_${VERSION}_src
+  patch -p0 < ${TARDIR}/lsof-4.77-linux.patch
+ )
 )
 fi
 
@@ -59,7 +61,7 @@ cat lsof > ${PKG}/usr/bin/lsof
 chmod 755 ${PKG}/usr/bin/lsof
 
 mkdir -p ${PKG}/usr/man/man8
-cat lsof.8 > ${PKG}/usr/man/man8/lsof.8.gz
+cat lsof.8 > ${PKG}/usr/man/man8/lsof.8
 
 fix_links
 

@@ -6,7 +6,7 @@ TARNAME=postgresql
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=8.2.1
+VERSION=8.2.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -61,6 +61,10 @@ cp ${CWD}/postgresql.rc ${PKG}/etc/rc.d/rc.postgresql.new
 
 cat ${CWD}/postgreqsl-doinst.sh >> ${PKG}/install/doinst.sh
 
+mkdir -p ${PKG}/var/lib/pgsql/data
+
+doinst_addusergrp postgres postgres
+
 #strip_binaries
 
 fix_links
@@ -103,5 +107,7 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
+chown -R postgres.postgres var/lib/pgsql ; \
+chmod -R 700 var/lib/pgsql ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

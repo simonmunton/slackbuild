@@ -66,6 +66,26 @@ udev_start() {
 	# Now wait for udevd to process the uevents we triggered
 	/sbin/udevsettle
 
+	while read fsname dir type opts; do
+	  case "$dir" in
+	    /)
+	      case "$fsname" in
+	        /dev/*)
+	          if [ ! -e "$fsname" ]; then
+	            rootcpio=$(echo / | cpio --quiet -o -H newc)
+	            major=0x${rootcpio:62:8}
+	            minor=0x${rootcpio:70:8}
+	            if [ $((major)) -ne 0 ] ; then
+	              mknod -m640 $fsname b $major $minor
+	            fi
+	          fi
+	          break;
+	          ;;
+	      esac
+	      ;;
+	  esac
+	done < /proc/mounts
+
 	# wait for the events to finish
 	#sleep 2
 	#loop=300
