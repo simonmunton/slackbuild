@@ -6,7 +6,7 @@ TARNAME=qdvdauthor
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.1.4
+VERSION=1.0.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -47,18 +47,20 @@ fix_perms
 
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --build-qslideshow --with-xine-support --with-mplayer-support
+./configure --build-qslideshow --build-qplayer --with-xine-support --with-mplayer-support
 
 #make || exit
 
-#make install DESTDIR=${PKG}
+make install INSTALL_ROOT=${PKG}
 
 mkdir -p $PKG/usr/bin
-cp bin/qslideshow bin/qdvdauthor $PKG/usr/bin/
+cp bin/qslideshow bin/qdvdauthor bin/qplayer bin/qrender $PKG/usr/bin/
 
 mkdir -p $PKG/usr/share/pixmaps $PKG/usr/share/applications
 cp qdvdauthor.png $PKG/usr/share/pixmaps
 cp qdvdauthor.desktop $PKG/usr/share/applications
+
+mkdir -p $PKG/usr/share/qdvdauthor/{animated,static,transition}
 
 #strip_binaries
 
@@ -69,8 +71,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+chmod -R -x,+X ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
+
+find ${PKG}/usr/doc/${TARNAME}-${VERSION} -name CVS -exec rm -rf {} \;
 
 fix_docs
 

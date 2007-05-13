@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=anjuta
+TARNAME=dvd-slideshow-themes
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=2.1.3
+VERSION=0.8.0-1
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ BUILD=1
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/anjuta-2.1.3.diff
+#patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,21 +45,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
-
-make || exit
-
-make install DESTDIR=${PKG}
-
-(cd ${PKG}/usr/share/gnome/help
- mv anjuta-faqs anjuta
- mv anjuta-manual/C/* anjuta/C
- rm -rf anjuta-manual
-)
+mkdir -p ${PKG}/opt/dvd-slideshow/themes
+cp -pr * ${PKG}/opt/dvd-slideshow/themes
+rm ${PKG}/opt/dvd-slideshow/themes/themes.readme.txt
 
 #strip_binaries
 
@@ -70,7 +58,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO themes.readme.txt \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
