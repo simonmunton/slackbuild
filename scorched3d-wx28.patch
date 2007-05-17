@@ -1,0 +1,46 @@
+--- scorched/src/GLEXT/GLGif.cpp~	2006-12-20 17:03:59.000000000 +0100
++++ scorched/src/GLEXT/GLGif.cpp	2006-12-20 17:06:09.000000000 +0100
+@@ -122,28 +122,28 @@
+ 
+ bool GLGif::loadFromStream(wxInputStream *ifStream)
+ {
+-	wxGIFDecoder decoder(ifStream);
+-	unsigned int result = decoder.ReadGIF();
++	wxGIFDecoder decoder;
++	wxGIFErrorCode result = decoder.LoadGIF(*ifStream);
+ 	if (result != wxGIF_OK) return false;
+ 
+-	bits_ = new unsigned char[decoder.GetWidth() * decoder.GetHeight() * 3];
+-	width_ = (int) decoder.GetWidth();
+-	height_ = (int) decoder.GetHeight();
+-	unsigned char* pal = decoder.GetPalette();
+-	unsigned char* src = decoder.GetData() + 
+-		(decoder.GetHeight() * decoder.GetWidth()) - decoder.GetWidth();
++	width_ = (int) decoder.GetFrameSize(0).GetWidth();
++	height_ = (int) decoder.GetFrameSize(0).GetHeight();
++	bits_ = new unsigned char[width_ * height_ * 3];
++	unsigned char* pal = decoder.GetPalette(0);
++	unsigned char* src = decoder.GetData(0) + 
++		(height_ * width_) - width_;
+ 	unsigned char* dst = bits_;
+ 
+-    for (unsigned int y = 0; 
+-		y < decoder.GetHeight();
+-		y++, src-=decoder.GetWidth()*2)
++    for (int y = 0; 
++		y < height_;
++		y++, src-=width_*2)
+     {
+-		for (unsigned int x = 0;
+-			x < decoder.GetWidth();
++		for (int x = 0;
++			x < width_;
+ 			x++, src++)
+ 		{
+-			DIALOG_ASSERT(src >= decoder.GetData() &&
+-				src < decoder.GetData() + decoder.GetWidth() * decoder.GetHeight());
++			DIALOG_ASSERT(src >= decoder.GetData(0) &&
++				src < decoder.GetData(0) + width_ * height_);
+ 
+ 			*(dst++) = pal[3 * (*src) + 0];
+ 			*(dst++) = pal[3 * (*src) + 1];

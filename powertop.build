@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=latex2html
+TARNAME=powertop
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2002-2-1
+VERSION=1.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -33,13 +33,9 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+# mv ${TARNAME} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/latex2html-2002-2-1.diff
-
- for i in Dos Mac OS2 Win32; do
-   rm -f L2hos/${i}.pm
- done
+#patch -p1 < ${CWD}/
 )
 fi
 
@@ -49,25 +45,13 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir -p ${PKG}/usr/bin
+
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --libdir=/usr/share/latex2html \
-	    --shlibdir=/usr/share/latex2html
-
 make || exit
 
 make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/man/man1
-cp *.1 ${PKG}/usr/man/man1
-
-for f in cweb2html/cweb2html makeseg/makeseg makemap
-do
-  perl -pi -e "s,/usr/local/bin/perl,/usr/bin/perl," ${PKG}/usr/share/latex2html/${f}
-done
 
 #strip_binaries
 
@@ -82,15 +66,6 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
-
-cat >> ${PKG}/install/doinst.sh << EOF
-#
-if [ -x usr/share/texmf/bin/mktexlsr ]
-then
-  usr/share/texmf/bin/mktexlsr
-fi
-
-EOF
 
 mkdir -p ${PKG}/install
 cat <<EOF > ${PKG}/install/slack-desc
