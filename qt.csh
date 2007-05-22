@@ -20,4 +20,3 @@ if ( $?CPLUS_INCLUDE_PATH ) then
 else
     setenv CPLUS_INCLUDE_PATH $QTDIR/include
 endif
-setenv MANPATH ${MANPATH}:$QTDIR/doc/man

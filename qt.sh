@@ -18,8 +18,6 @@ if [ ! "$CPLUS_INCLUDE_PATH" = "" ]; then
 else
   CPLUS_INCLUDE_PATH=$QTDIR/include
 fi
-MANPATH="$MANPATH:$QTDIR/doc/man"
 PATH="$PATH:$QTDIR/bin"
 export QTDIR
 export CPLUS_INCLUDE_PATH
-export MANPATH

@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=qt
+TARNAME=qt-x11-free
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=
+VERSION=3.3.8
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=qt
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,7 +35,40 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+
+ sed -i -e "/^QMAKE_CFLAGS_RELEASE/ s/-O2/-O2 -march=i686 -mtune=i686/" mkspecs/linux-g++/qmake.conf
+
+ patch -p2 < ${CWD}/qt3-patches/0001-dnd_optimization.patch
+ patch -p2 < ${CWD}/qt3-patches/0002-dnd_active_window_fix.patch
+ patch -p2 < ${CWD}/qt3-patches/0005-qpixmap_mitshm.patch
+ patch -p2 < ${CWD}/qt3-patches/0007-qpixmap_constants.patch
+ patch -p2 < ${CWD}/qt3-patches/0015-qiconview-finditem.patch
+ patch -p2 < ${CWD}/qt3-patches/0016-qiconview-rebuildcontainer.patch
+ patch -p2 < ${CWD}/qt3-patches/0017-qiconview-ctrl_rubber.patch
+ patch -p2 < ${CWD}/qt3-patches/0020-designer-deletetabs.patch
+ patch -p2 < ${CWD}/qt3-patches/0032-fix_rotated_randr.diff
+ patch -p2 < ${CWD}/qt3-patches/0035-qvaluelist-streaming-operator.patch
+ patch -p2 < ${CWD}/qt3-patches/0036-qprogressbar-optimization.patch
+ patch -p2 < ${CWD}/qt3-patches/0038-dragobject-dont-prefer-unknown.patch
+ patch -p2 < ${CWD}/qt3-patches/0044-qscrollview-windowactivate-fix.diff
+ patch -p2 < ${CWD}/qt3-patches/0046-qiconview-no-useless-scrollbar.diff
+ patch -p2 < ${CWD}/qt3-patches/0047-fix-kmenu-width.diff
+ patch -p2 < ${CWD}/qt3-patches/0048-qclipboard_hack_80072.patch
+ patch -p2 < ${CWD}/qt3-patches/0049-qiconview-rubber_on_move.diff
+ patch -p2 < ${CWD}/qt3-patches/0056-khotkeys_input_84434.patch
+ patch -p2 < ${CWD}/qt3-patches/0059-qpopup_has_mouse.patch
+ patch -p2 < ${CWD}/qt3-patches/0060-qpopup_ignore_mousepos.patch
+ patch -p2 < ${CWD}/qt3-patches/0061-qscrollview-propagate-horizontal-wheelevent.patch
+ patch -p0 < ${CWD}/qt3-patches/0073-xinerama-aware-qpopup.patch
+ patch -p0 < ${CWD}/qt3-patches/0076-fix-qprocess.diff
+ patch -p0 < ${CWD}/qt3-patches/0077-utf8-decoder-fixes.diff
+ patch -p2 < ${CWD}/qt3-patches/auto-license.diff
+ patch -p2 < ${CWD}/qt3-patches/dont-use-includehints.diff
+ patch -p2 < ${CWD}/qt3-patches/q_export-visibility.diff
+ patch -p0 < ${CWD}/qt3-patches/qt-font-default-subst.diff
+
+ patch -p1 < ${CWD}/qt-x11.diff
+ patch -p1 < ${CWD}/qt.mysql.h.diff
 )
 fi
 
@@ -45,15 +78,66 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+#./configure -prefix /usr/lib/qt-${VERSION} \
+#	    -release \
+#	    -system-zlib \
+#	    -system-libpng \
+#	    -qt-imgfmt-png \
+#	    -system-libmng \
+#	    -qt-imgfmt-mng \
+#	    -system-libjpeg \
+#	    -qt-imgfmt-jpeg \
+#	    -qt-gif \
+#	    -thread \
+#	    -stl \
+#	    -no-g++-exceptions \
+#	    -xft \
+#	    -plugin-sql-mysql \
+#	    -plugin-sql-psql \
+#	    -I/usr/include/postgresql/server \
+#	    -plugin-sql-odbc \
+#	    -plugin-sql-sqlite \
+#	    -plugin-style-cde \
+#	    -plugin-style-compact \
+#	    -qt-style-motif \
+#	    -plugin-style-motifplus \
+#	    -plugin-style-platinum \
+#	    -plugin-style-sgi \
+#	    -plugin-style-windows \
+#	    -enable-opengl
 
-make || exit
+#make -i symlinks sub-src sub-tools || exit
 
-make install DESTDIR=${PKG}
+make install INSTALL_ROOT=${PKG}
+
+# Add man pages:
+mkdir -p ${PKG}/usr/man
+cp -a doc/man/* ${PKG}/usr/man
+
+chmod -R -x,+X ${PKG}/usr/lib/qt-${VERSION}/include
+
+# The infamous qt -> qt-${VERSION} link that lets us cheat on the QTDIR ;-)
+(cd ${PKG}/usr/lib
+ ln -sf qt-${VERSION} qt
+)
+
+mkdir -p ${PKG}/etc/profile.d
+cat ${CWD}/qt.sh > ${PKG}/etc/profile.d/qt.sh
+cat ${CWD}/qt.csh > ${PKG}/etc/profile.d/qt.csh
+chmod 755 ${PKG}/etc/profile.d/*
+
+mkdir -p ${PKG}/usr/bin
+( cd ${PKG}/usr/bin
+  for file in assistant designer linguist lrelease lupdate moc qm2ts qmake qtconfig uic ; do
+    ln -sf /usr/lib/qt/bin/${file} .
+  done
+)
+
+mkdir -p ${PKG}/usr/lib/pkgconfig
+( cd ${PKG}/usr/lib/pkgconfig
+  ln -sf /usr/lib/${PKGNAME}-${VERSION}/lib/pkgconfig/qt-mt.pc .
+)
+
 
 #strip_binaries
 
@@ -64,8 +148,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  FAQ INSTALL LICENSE.GPL LICENSE.QPL MANIFEST PLATFORMS README* changes* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+(cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+ ln -sf /usr/lib/${TARNAME}-${VERSION}/doc/html . 
+)
+
+cat ${CWD}/qt-doinst.sh >> ${PKG}/install/doinst.sh
 
 fix_docs
 
