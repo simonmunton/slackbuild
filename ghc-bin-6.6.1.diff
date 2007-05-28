@@ -1,0 +1,75 @@
+--- ghc-6.6.1/Makefile.in.orig	2007-04-26 01:37:36.000000000 +0100
++++ ghc-6.6.1/Makefile.in	2007-05-27 11:34:44.000000000 +0100
+@@ -200,9 +200,9 @@
+ 	@echo "Finished configuring..to use, add `pwd`/bin/$(platform) to your PATH."
+ 
+ install-dirs ::
+-	$(INSTALL_DIR) $(bindir)
+-	(cd lib/$(platform); find . -type d -exec sh -c '../../$(INSTALL_DIR) $$0 $(libdir)/$$0' {} \; )
+-	(cd share; find . -type d -exec sh -c '../$(INSTALL_DIR) $(datadir)/$$0' {} \; )
++	$(INSTALL_DIR) $(DESTDIR)$(bindir)
++	(cd lib/$(platform); find . -type d -exec sh -c '../../$(INSTALL_DIR) $$0 $(DESTDIR)$(libdir)/$$0' {} \; )
++	(cd share; find . -type d -exec sh -c '../$(INSTALL_DIR) $(DESTDIR)$(datadir)/$$0' {} \; )
+ 
+ install :: config-pkgs install-dirs install-bin install-libs install-datas install-docs postinstall denounce
+ 
+@@ -227,23 +227,23 @@
+ postinstall:
+ 	@if test -x "./post-install-script" ; then \
+ 		echo "Running project-specific post-install script ..." ; \
+-		./post-install-script $(platform) $(libdir) ; \
++		./post-install-script $(platform) $(DESTDIR)$(libdir) ; \
+ 		echo "Done" ; \
+ 	fi
+ 
+ install-bin:
+ 	for i in $(PACKAGE_BIN_INSTALL) ""; do \
+-	   if test -n "$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i $(bindir); fi; \
++	   if test -n "$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i $(DESTDIR)$(bindir); fi; \
+ 	done;
+ 	for i in $(PACKAGE_BINS) ""; do \
+-	   if test -n "$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i$(exeext) $(bindir); fi; \
++	   if test -n "$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i$(exeext) $(DESTDIR)$(bindir); fi; \
+ 	done;
+ 	for i in $(PACKAGE_OPT_BINS) ""; do \
+-	   if test -n "$$i" -a ! -f "$(bindir)/$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i$(exeext) $(bindir); fi; \
++	   if test -n "$$i" -a ! -f "$(bindir)/$$i" ; then $(INSTALL_BIN) bin/$(platform)/$$i$(exeext) $(DESTDIR)$(bindir); fi; \
+ 	done;
+ 	@for i in $(VERSION_SYMLINKS_FOR) ""; do \
+ 	   if [ "x$$i" != "x" ]; then 		\
+-	   	( cd $(bindir); 		\
++	   	( cd $(DESTDIR)$(bindir); 		\
+ 		  if ( $(PERL) -e '$$fn="'$$i'"; exit ((! -f $$fn || -l $$fn) ? 0 : 1);' ); then \
+ 	   	     echo "Creating a symbolic link from $$i-$(version) to $$i"; \
+ 	   	     $(RM) $$i; \
+@@ -259,11 +259,11 @@
+ 
+ 
+ install-libs:
+-	(cd lib/$(platform); find . -type f -exec sh -c '$(CP) $$0 $(libdir)/$$0' {} \; )
++	(cd lib/$(platform); find . -type f -exec sh -c '$(CP) $$0 $(DESTDIR)$(libdir)/$$0' {} \; )
+ 
+ install-datas:
+ 	for i in `(cd share; find . -type f )`; do \
+-	   $(INSTALL_DATA) share/$$i $(datadir)/$$i; \
++	   $(INSTALL_DATA) share/$$i $(DESTDIR)$(datadir)/$$i; \
+ 	done
+ 
+ show-install-setup:
+@@ -279,13 +279,13 @@
+ .PHONY: show-install-setup install-docs install-dirs-docs
+ 
+ install-docs : install-dirs-docs
+-	if test -d share/html ; then $(CP) -r share/html/* $(htmldir) ; fi
++	if test -d share/html ; then $(CP) -r share/html/* $(DESTDIR)$(htmldir) ; fi
+ 	for i in share/*.ps; do \
+ 		if test -f "$$i"; then \
+-		      $(CP) $$i $(psdir) ; \
++		      $(CP) $$i $(DESTDIR)$(psdir) ; \
+ 		fi \
+ 	done
+ 
+ install-dirs-docs:
+-	$(INSTALL_DIR) $(htmldir) 
++	$(INSTALL_DIR) $(DESTDIR)$(htmldir) 
+ 

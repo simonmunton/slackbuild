@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=wxPython
-TARNAMEEXTRA=-src
-TARDIR=~/tmp/new/w
+TARNAME=haddock
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=2.8.4.0
-VERSIONEXTRA=
+VERSION=0.8
+VERSIONEXTRA=-src
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=wxPython-unicode
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -33,9 +33,9 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/wxPython-2.8.1.1.diff
+#patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,11 +45,19 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd wxPython
+runhaskell Setup.lhs configure --prefix=/usr
+runhaskell Setup.lhs build
+(cd doc
+test -f configure || autoreconf
+./configure
+make html
+)
 
-python setup.py build_ext --inplace --debug  || exit
+runhaskell Setup.lhs copy --destdir=${PKG}
 
-python setup.py install --root=${PKG}
+#make || exit
+
+#make install DESTDIR=${PKG}
 
 #strip_binaries
 

@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=wxPython
-TARNAMEEXTRA=-src
-TARDIR=~/tmp/new/w
+TARNAME=radeontool
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=2.8.4.0
+VERSION=1.5
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=wxPython-unicode
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -33,9 +33,12 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/wxPython-2.8.1.1.diff
+ patch -p0 < ${CWD}/radeontool-1.5.diff
+ patch -p0 < ${CWD}/radeontool-fix-option-handling.diff
+ patch -p0 < ${CWD}/radeontool-get-rid-of-lspci.diff
+ patch -p1 < ${CWD}/radeontool-badusage.diff
 )
 fi
 
@@ -45,11 +48,12 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd wxPython
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make || exit
 
-python setup.py build_ext --inplace --debug  || exit
-
-python setup.py install --root=${PKG}
+mkdir -p ${PKG}/sbin
+cp radeontool ${PKG}/sbin
 
 #strip_binaries
 
@@ -60,7 +64,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS CHANGES COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
