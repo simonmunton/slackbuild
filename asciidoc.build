@@ -6,7 +6,7 @@ TARNAME=asciidoc
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=7.1.0
+VERSION=8.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,6 +36,7 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+ sed -i -e "s@/usr/local@${PKG}/usr@" -e "s@/etc/vim@${PKG}/usr/share/vim/vim70@" -e "s@/etc/asciidoc@${PKG}/etc/asciidoc@" install.sh
 )
 fi
 
@@ -45,14 +46,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir -p ${PKG}/etc/asciidoc/{filters,docbook-xsl,stylesheets,images/icons} ${PKG}/usr/bin
-cp -p asciidoc.py ${PKG}/usr/bin/asciidoc
-cp -p a2x ${PKG}/usr/bin/a2x
-cp -p *.conf ${PKG}/etc/asciidoc/
-cp -p filters/{code-filter.conf,code-filter.py} ${PKG}/etc/asciidoc/filters/
-cp -p docbook-xsl/*.xsl ${PKG}/etc/asciidoc/docbook-xsl/
-cp -p stylesheets/*.css ${PKG}/etc/asciidoc/stylesheets/
-cp -pr images/icons/* ${PKG}/etc/asciidoc/images/icons/
+#mkdir -p ${PKG}/etc/asciidoc/{filters,docbook-xsl,stylesheets,images/icons} ${PKG}/usr/bin
+mkdir -p ${PKG}/usr/bin ${PKG}/usr/share/vim/vim70
+
+install.sh
+
+#cp -p asciidoc.py ${PKG}/usr/bin/asciidoc
+#cp -p a2x ${PKG}/usr/bin/a2x
+#cp -p *.conf ${PKG}/etc/asciidoc/
+#cp -p filters/{code-filter.conf,code-filter.py} ${PKG}/etc/asciidoc/filters/
+#cp -p docbook-xsl/*.xsl ${PKG}/etc/asciidoc/docbook-xsl/
+#cp -p stylesheets/*.css ${PKG}/etc/asciidoc/stylesheets/
+#cp -pr images/icons/* ${PKG}/etc/asciidoc/images/icons/
 
 #strip_binaries
 
@@ -63,7 +68,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO BUGS CHANGELOG* COPYRIGHT \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO BUGS CHANGELOG* COPYRIGHT doc images stylesheets examples \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

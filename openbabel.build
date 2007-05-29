@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=git
+TARNAME=openbabel
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.5.1.4
+VERSION=2.1.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,27 +45,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-make configure
-
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
 
-make all doc || exit
+make || exit
 
-make install install-doc DESTDIR=${PKG}
-
-# Switch a hard link with a soft link:
-( cd ${PKG}/usr/bin
-  find . -links +1 -not -name git | while read gitfile ; do
-    if [ git -ef ${gitfile} ]; then
-      rm -vf ${gitfile}
-      ln -vfs git ${gitfile}
-    fi
-  done
-)
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -77,8 +65,6 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  Documentation \
-  contrib \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -95,12 +81,17 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
+${PKGNAME}: Open Babel is a chemical toolbox designed to speak the many languages
+${PKGNAME}: of chemical data. It's an open, collaborative project allowing anyone
+${PKGNAME}: to search, convert, analyze, or store data from molecular modeling,
+${PKGNAME}: chemistry, solid-state materials, biochemistry, or related areas.
 ${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: * Ready-to-use programs, and complete programmer's toolkit
+${PKGNAME}: * Read, write and convert over 70 chemical file formats
+${PKGNAME}: * Filter and search molecular files using SMARTS and other methods
+${PKGNAME}: * Supports molecular modeling, cheminformatics, bioinformatics,
+${PKGNAME}:   organic chemistry, inorganic chemistry, solid-state materials,
+${PKGNAME}:   nuclear chemistry...
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
