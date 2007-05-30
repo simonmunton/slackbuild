@@ -54,14 +54,20 @@ fix_perms
 #            --sysconfdir=/etc \
 #            --localstatedir=/var/lib
 
-make || exit
-make html || exit
-make -C docs/ext-core ps || exit
-make -C docs/storage-mgt ps || exit
+#make -j4 || exit
+#make html || exit
+#make -C docs/ext-core ps || exit
+#make -C docs/storage-mgt ps || exit
 
 
 make install  prefix=${PKG}/usr
 make install-docs prefix=${PKG}/usr
+
+cp -pr docs/docbook-cheat-sheet/docbook-cheat-sheet ${PKG}/usr/share/${TARNAME}-${VERSION}/html
+cp -pr docs/users_guide/users_guide ${PKG}/usr/share/${TARNAME}-${VERSION}/html
+cp -pr libraries/Cabal/doc/Cabal ${PKG}/usr/share/${TARNAME}-${VERSION}/html
+
+ln -sf /usr/share/${TARNAME}-${VERSION}/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 #strip_binaries
 
