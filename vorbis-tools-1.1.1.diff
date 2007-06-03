@@ -1,0 +1,372 @@
+--- vorbis-tools-1.1.1/ogg123/easyflac.h.orig	2005-06-03 11:15:09.000000000 +0100
++++ vorbis-tools-1.1.1/ogg123/easyflac.h	2007-06-02 23:14:34.000000000 +0100
+@@ -74,8 +74,40 @@
+ #ifndef __EASYFLAC_H
+ #define __EASYFLAC_H
+ 
++#include <FLAC/export.h>
+ #include <FLAC/stream_decoder.h>
++#if !defined(FLAC_API_VERSION_CURRENT) || FLAC_API_VERSION_CURRENT <= 7
++#define FLAC_LEGACY
+ #include <OggFLAC/stream_decoder.h>
++#else
++#define FLAC__stream_decoder_init				FLAC__stream_decoder_init_stream
++#define FLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_state
++
++#define OggFLAC__StreamDecoder 					FLAC__StreamDecoder
++#define OggFLAC__stream_decoder_new 				FLAC__stream_decoder_new
++#define OggFLAC__stream_decoder_delete 				FLAC__stream_decoder_delete
++#define OggFLAC__stream_decoder_init 				FLAC__stream_decoder_init_stream
++#define OggFLAC__stream_decoder_set_metadata_respond 		FLAC__stream_decoder_set_metadata_respond
++#define OggFLAC__stream_decoder_set_metadata_respond_application FLAC__stream_decoder_set_metadata_respond_application
++#define OggFLAC__stream_decoder_set_metadata_respond_all 	FLAC__stream_decoder_set_metadata_respond_all
++#define OggFLAC__stream_decoder_set_metadata_ignore 		FLAC__stream_decoder_set_metadata_ignore
++#define OggFLAC__stream_decoder_set_metadata_ignore_application FLAC__stream_decoder_set_metadata_ignore_application
++#define OggFLAC__stream_decoder_set_metadata_ignore_all 	FLAC__stream_decoder_set_metadata_ignore_all
++#define OggFLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_FLAC_stream_decoder_state
++#define OggFLAC__stream_decoder_get_channels 			FLAC__stream_decoder_get_channels
++#define OggFLAC__stream_decoder_get_channel_assignment 		FLAC__stream_decoder_get_channel_assignment
++#define OggFLAC__stream_decoder_get_bits_per_sample 		FLAC__stream_decoder_get_bits_per_sample
++#define OggFLAC__stream_decoder_get_sample_rate 		FLAC__stream_decoder_get_sample_rate
++#define OggFLAC__stream_decoder_get_blocksize 			FLAC__stream_decoder_get_blocksize
++#define OggFLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_state
++#define OggFLAC__stream_decoder_finish 				FLAC__stream_decoder_finish
++#define OggFLAC__stream_decoder_flush 				FLAC__stream_decoder_flush
++#define OggFLAC__stream_decoder_reset 				FLAC__stream_decoder_reset
++#define OggFLAC__stream_decoder_process_single 			FLAC__stream_decoder_process_single
++#define OggFLAC__stream_decoder_process_until_end_of_metadata 	FLAC__stream_decoder_process_until_end_of_metadata
++#define OggFLAC__stream_decoder_process_until_end_of_stream 	FLAC__stream_decoder_process_until_end_of_stream
++
++#endif
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- vorbis-tools-1.1.1/ogg123/easyflac.c.orig	2005-06-03 11:15:09.000000000 +0100
++++ vorbis-tools-1.1.1/ogg123/easyflac.c	2007-06-02 23:12:31.000000000 +0100
+@@ -151,10 +151,12 @@
+ {
+ 	decoder->callbacks.read = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_read_callback(decoder->oggflac, &oggflac_read_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_read_callback(decoder->flac, &flac_read_callback);
++#endif
+ }
+ 
+ 
+@@ -162,10 +164,12 @@
+ {
+ 	decoder->callbacks.write = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_write_callback(decoder->oggflac, &oggflac_write_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_write_callback(decoder->flac, &flac_write_callback);
++#endif
+ }
+ 
+ 
+@@ -173,10 +177,12 @@
+ {
+ 	decoder->callbacks.metadata = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_metadata_callback(decoder->oggflac, &oggflac_metadata_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_metadata_callback(decoder->flac, &flac_metadata_callback);
++#endif
+ }
+ 
+ 
+@@ -184,10 +190,12 @@
+ {
+ 	decoder->callbacks.error = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_error_callback(decoder->oggflac, &oggflac_error_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_error_callback(decoder->flac, &flac_error_callback);
++#endif
+ }
+ 
+ 
+@@ -195,10 +203,12 @@
+ {
+ 	decoder->callbacks.client_data = value;
+ 	
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_client_data(decoder->oggflac, decoder);
+ 	else
+ 		return FLAC__stream_decoder_set_client_data(decoder->flac, decoder);
++#endif
+ }
+ 
+ 
+@@ -311,6 +321,7 @@
+ 
+ FLAC__StreamDecoderState EasyFLAC__init(EasyFLAC__StreamDecoder *decoder)
+ {
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 	{
+ 		OggFLAC__stream_decoder_init(decoder->oggflac);
+@@ -318,6 +329,36 @@
+ 	}
+ 	else
+ 		return FLAC__stream_decoder_init(decoder->flac);
++#else
++	if (decoder->is_oggflac)
++	{
++		FLAC__stream_decoder_init_ogg_stream(decoder->oggflac,
++			    oggflac_read_callback,
++			    NULL,
++			    NULL,
++			    NULL,
++			    NULL,
++			    oggflac_write_callback,
++			    oggflac_metadata_callback,
++			    oggflac_error_callback,
++			    decoder);
++		return FLAC__stream_decoder_get_state(decoder->oggflac);
++	}
++	else
++	{
++		FLAC__stream_decoder_init_stream(decoder->flac,
++			    flac_read_callback,
++			    NULL,
++			    NULL,
++			    NULL,
++			    NULL,
++			    flac_write_callback,
++			    flac_metadata_callback,
++			    flac_error_callback,
++			    decoder);
++		return FLAC__stream_decoder_get_state(decoder->oggflac);
++	}
++#endif
+ }
+ 
+ 
+--- vorbis-tools-1.1.1/oggenc/easyflac.c.orig	2005-06-03 11:15:10.000000000 +0100
++++ vorbis-tools-1.1.1/oggenc/easyflac.c	2007-06-02 23:12:31.000000000 +0100
+@@ -151,10 +151,12 @@
+ {
+ 	decoder->callbacks.read = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_read_callback(decoder->oggflac, &oggflac_read_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_read_callback(decoder->flac, &flac_read_callback);
++#endif
+ }
+ 
+ 
+@@ -162,10 +164,12 @@
+ {
+ 	decoder->callbacks.write = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_write_callback(decoder->oggflac, &oggflac_write_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_write_callback(decoder->flac, &flac_write_callback);
++#endif
+ }
+ 
+ 
+@@ -173,10 +177,12 @@
+ {
+ 	decoder->callbacks.metadata = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_metadata_callback(decoder->oggflac, &oggflac_metadata_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_metadata_callback(decoder->flac, &flac_metadata_callback);
++#endif
+ }
+ 
+ 
+@@ -184,10 +190,12 @@
+ {
+ 	decoder->callbacks.error = value;
+ 
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_error_callback(decoder->oggflac, &oggflac_error_callback);
+ 	else
+ 		return FLAC__stream_decoder_set_error_callback(decoder->flac, &flac_error_callback);
++#endif
+ }
+ 
+ 
+@@ -195,10 +203,12 @@
+ {
+ 	decoder->callbacks.client_data = value;
+ 	
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 		return OggFLAC__stream_decoder_set_client_data(decoder->oggflac, decoder);
+ 	else
+ 		return FLAC__stream_decoder_set_client_data(decoder->flac, decoder);
++#endif
+ }
+ 
+ 
+@@ -311,6 +321,7 @@
+ 
+ FLAC__StreamDecoderState EasyFLAC__init(EasyFLAC__StreamDecoder *decoder)
+ {
++#ifdef FLAC_LEGACY
+ 	if (decoder->is_oggflac)
+ 	{
+ 		OggFLAC__stream_decoder_init(decoder->oggflac);
+@@ -318,6 +329,36 @@
+ 	}
+ 	else
+ 		return FLAC__stream_decoder_init(decoder->flac);
++#else
++	if (decoder->is_oggflac)
++	{
++		FLAC__stream_decoder_init_ogg_stream(decoder->oggflac,
++			    oggflac_read_callback,
++			    NULL,
++			    NULL,
++			    NULL,
++			    NULL,
++			    oggflac_write_callback,
++			    oggflac_metadata_callback,
++			    oggflac_error_callback,
++			    decoder);
++		return FLAC__stream_decoder_get_state(decoder->oggflac);
++	}
++	else
++	{
++		FLAC__stream_decoder_init_stream(decoder->flac,
++			    flac_read_callback,
++			    NULL,
++			    NULL,
++			    NULL,
++			    NULL,
++			    flac_write_callback,
++			    flac_metadata_callback,
++			    flac_error_callback,
++			    decoder);
++		return FLAC__stream_decoder_get_state(decoder->oggflac);
++	}
++#endif
+ }
+ 
+ 
+--- vorbis-tools-1.1.1/oggenc/easyflac.h.orig	2005-06-03 11:15:10.000000000 +0100
++++ vorbis-tools-1.1.1/oggenc/easyflac.h	2007-06-02 23:14:34.000000000 +0100
+@@ -74,8 +74,40 @@
+ #ifndef __EASYFLAC_H
+ #define __EASYFLAC_H
+ 
++#include <FLAC/export.h>
+ #include <FLAC/stream_decoder.h>
++#if !defined(FLAC_API_VERSION_CURRENT) || FLAC_API_VERSION_CURRENT <= 7
++#define FLAC_LEGACY
+ #include <OggFLAC/stream_decoder.h>
++#else
++#define FLAC__stream_decoder_init				FLAC__stream_decoder_init_stream
++#define FLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_state
++
++#define OggFLAC__StreamDecoder 					FLAC__StreamDecoder
++#define OggFLAC__stream_decoder_new 				FLAC__stream_decoder_new
++#define OggFLAC__stream_decoder_delete 				FLAC__stream_decoder_delete
++#define OggFLAC__stream_decoder_init 				FLAC__stream_decoder_init_stream
++#define OggFLAC__stream_decoder_set_metadata_respond 		FLAC__stream_decoder_set_metadata_respond
++#define OggFLAC__stream_decoder_set_metadata_respond_application FLAC__stream_decoder_set_metadata_respond_application
++#define OggFLAC__stream_decoder_set_metadata_respond_all 	FLAC__stream_decoder_set_metadata_respond_all
++#define OggFLAC__stream_decoder_set_metadata_ignore 		FLAC__stream_decoder_set_metadata_ignore
++#define OggFLAC__stream_decoder_set_metadata_ignore_application FLAC__stream_decoder_set_metadata_ignore_application
++#define OggFLAC__stream_decoder_set_metadata_ignore_all 	FLAC__stream_decoder_set_metadata_ignore_all
++#define OggFLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_FLAC_stream_decoder_state
++#define OggFLAC__stream_decoder_get_channels 			FLAC__stream_decoder_get_channels
++#define OggFLAC__stream_decoder_get_channel_assignment 		FLAC__stream_decoder_get_channel_assignment
++#define OggFLAC__stream_decoder_get_bits_per_sample 		FLAC__stream_decoder_get_bits_per_sample
++#define OggFLAC__stream_decoder_get_sample_rate 		FLAC__stream_decoder_get_sample_rate
++#define OggFLAC__stream_decoder_get_blocksize 			FLAC__stream_decoder_get_blocksize
++#define OggFLAC__stream_decoder_get_FLAC_stream_decoder_state 	FLAC__stream_decoder_get_state
++#define OggFLAC__stream_decoder_finish 				FLAC__stream_decoder_finish
++#define OggFLAC__stream_decoder_flush 				FLAC__stream_decoder_flush
++#define OggFLAC__stream_decoder_reset 				FLAC__stream_decoder_reset
++#define OggFLAC__stream_decoder_process_single 			FLAC__stream_decoder_process_single
++#define OggFLAC__stream_decoder_process_until_end_of_metadata 	FLAC__stream_decoder_process_until_end_of_metadata
++#define OggFLAC__stream_decoder_process_until_end_of_stream 	FLAC__stream_decoder_process_until_end_of_stream
++
++#endif
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- vorbis-tools-1.1.1/configure.orig	2005-06-27 10:29:29.000000000 +0100
++++ vorbis-tools-1.1.1/configure	2007-06-02 22:42:06.000000000 +0100
+@@ -27521,13 +27521,13 @@
+     have_libFLAC=no
+ fi
+ 
+-  echo "$as_me:$LINENO: checking for OggFLAC__stream_decoder_new in -lOggFLAC" >&5
+-echo $ECHO_N "checking for OggFLAC__stream_decoder_new in -lOggFLAC... $ECHO_C" >&6
+-if test "${ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new+set}" = set; then
++  echo "$as_me:$LINENO: checking for FLAC__stream_decoder_init_ogg_stream in -lOggFLAC" >&5
++echo $ECHO_N "checking for FLAC__stream_decoder_init_ogg_stream in -lOggFLAC... $ECHO_C" >&6
++if test "${ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS="-lOggFLAC $FLAC_LIBS $OGG_LIBS
++LIBS="$FLAC_LIBS $OGG_LIBS
+    $LIBS"
+ cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+@@ -27542,11 +27542,11 @@
+ #endif
+ /* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+-char OggFLAC__stream_decoder_new ();
++char FLAC__stream_decoder_init_ogg_stream ();
+ int
+ main ()
+ {
+-OggFLAC__stream_decoder_new ();
++FLAC__stream_decoder_init_ogg_stream ();
+   ;
+   return 0;
+ }
+@@ -27572,21 +27572,21 @@
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }; }; then
+-  ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new=yes
++  ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream=yes
+ else
+   echo "$as_me: failed program was:" >&5
+ sed 's/^/| /' conftest.$ac_ext >&5
+ 
+-ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new=no
++ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream=no
+ fi
+ rm -f conftest.err conftest.$ac_objext \
+       conftest$ac_exeext conftest.$ac_ext
+ LIBS=$ac_check_lib_save_LIBS
+ fi
+-echo "$as_me:$LINENO: result: $ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new" >&5
+-echo "${ECHO_T}$ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new" >&6
+-if test $ac_cv_lib_OggFLAC_OggFLAC__stream_decoder_new = yes; then
+-  FLAC_LIBS="-lOggFLAC $FLAC_LIBS $OGG_LIBS"
++echo "$as_me:$LINENO: result: $ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream" >&5
++echo "${ECHO_T}$ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream" >&6
++if test $ac_cv_lib_OggFLAC_FLAC__stream_decoder_init_ogg_stream = yes; then
++  FLAC_LIBS="$FLAC_LIBS $OGG_LIBS"
+ else
+   { echo "$as_me:$LINENO: WARNING: libOggFLAC missing" >&5
+ echo "$as_me: WARNING: libOggFLAC missing" >&2;}

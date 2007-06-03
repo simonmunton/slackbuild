@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=gnutls
+TARNAME=vorbis-tools
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=1.6.3
+VERSION=1.1.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -35,7 +35,7 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/vorbis-tools.utf8.diff
 )
 fi
 
@@ -54,6 +54,14 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 make || exit
 
 make install DESTDIR=${PKG}
+
+# No idea why this isn't built automatically any more...
+if [ ! -r ${PKG}/usr/bin/vcut ]; then
+  ( cd vcut
+    make
+    make install DESTDIR=${PKG}
+  )
+fi
 
 #strip_binaries
 
@@ -79,14 +87,17 @@ cat <<EOF > ${PKG}/install/slack-desc
 # customary to leave one space after the ':'.
 
           |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}: ${PKGNAME} ${VERSION} (Ogg Vorbis Tools)
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: The vorbis-tools package contains several basic tools for working with
+${PKGNAME}: compressed audio files in the Ogg Vorbis (.ogg) format:
 ${PKGNAME}:
+${PKGNAME}:   oggenc (an .ogg encoder), ogg123 (a playback tool), vorbiscomment
+${PKGNAME}:   (add comments to vorbis files), ogginfo (show information about an
+${PKGNAME}:   ogg file), oggdec (a command line decoder), and vcut (a tool for
+${PKGNAME}:   splitting vorbis files).
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: These tools require the libao, libogg, and libvorbis libraries.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

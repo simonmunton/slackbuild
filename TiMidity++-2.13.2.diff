@@ -1,0 +1,174 @@
+--- TiMidity++-2.13.2/timidity/flac_a.c.orig	2004-05-23 05:35:44.000000000 +0100
++++ TiMidity++-2.13.2/timidity/flac_a.c	2007-06-03 08:04:11.000000000 +0100
+@@ -45,9 +45,71 @@
+ #endif
+ 
+ #include <FLAC/all.h>
++#if !defined(FLAC_API_VERSION_CURRENT) || FLAC_API_VERSION_CURRENT <= 7
++#define FLAC_LEGACY
+ #ifdef AU_OGGFLAC
+ #include <OggFLAC/stream_encoder.h>
+ #endif
++#else
++#define FLAC__SeekableStreamEncoderState 			FLAC__StreamEncoderState
++#define FLAC__SeekableStreamEncoder 				FLAC__StreamEncoder
++#define FLAC__seekable_stream_encoder_finish 			FLAC__stream_encoder_finish
++#define FLAC__seekable_stream_encoder_delete 			FLAC__stream_encoder_delete
++#define FLAC__seekable_stream_encoder_new			FLAC__stream_encoder_new
++#define FLAC__seekable_stream_encoder_set_channels		FLAC__stream_encoder_set_channels
++#define FLAC__seekable_stream_encoder_set_bits_per_sample	FLAC__stream_encoder_set_bits_per_sample
++#define FLAC__seekable_stream_encoder_set_verify		FLAC__stream_encoder_set_verify
++#define FLAC__seekable_stream_encoder_set_sample_rate		FLAC__stream_encoder_set_sample_rate
++#define FLAC__seekable_stream_encoder_set_qlp_coeff_precision	FLAC__stream_encoder_set_qlp_coeff_precision
++#define FLAC__seekable_stream_encoder_set_do_qlp_coeff_prec_search	FLAC__stream_encoder_set_do_qlp_coeff_prec_search
++#define FLAC__seekable_stream_encoder_set_do_mid_side_stereo	FLAC__stream_encoder_set_do_mid_side_stereo
++#define FLAC__seekable_stream_encoder_set_loose_mid_side_stereo	FLAC__stream_encoder_set_loose_mid_side_stereo
++#define FLAC__seekable_stream_encoder_set_max_lpc_order		FLAC__stream_encoder_set_max_lpc_order
++#define FLAC__seekable_stream_encoder_set_min_residual_partition_order	FLAC__stream_encoder_set_min_residual_partition_order
++#define FLAC__seekable_stream_encoder_set_max_residual_partition_order	FLAC__stream_encoder_set_max_residual_partition_order
++#define FLAC__seekable_stream_encoder_set_blocksize		FLAC__stream_encoder_set_blocksize
++#define FLAC__seekable_stream_encoder_set_metadata		FLAC__stream_encoder_set_metadata
++#define FLAC__seekable_stream_encoder_init			FLAC__stream_encoder_init_stream
++#define FLAC__seekable_stream_encoder_get_state			FLAC__stream_encoder_get_state
++#define FLAC__seekable_stream_encoder_get_verify_decoder_state	FLAC__stream_encoder_get_verify_decoder_state
++#define FLAC__seekable_stream_encoder_process_interleaved	FLAC__stream_encoder_process_interleaved
++#define FLAC__seekable_stream_encoder_get_state			FLAC__stream_encoder_get_state
++#define FLAC__SEEKABLE_STREAM_ENCODER_OK 			FLAC__STREAM_ENCODER_OK
++#define FLAC__SeekableStreamDecoderStateString 			FLAC__StreamDecoderStateString
++#define FLAC__SeekableStreamEncoderStateString 			FLAC__StreamEncoderStateString
++
++#define OggFLAC__StreamEncoderState 				FLAC__StreamEncoderState
++#define OggFLAC__StreamEncoder 					FLAC__StreamEncoder
++#define OggFLAC__stream_encoder_finish 				FLAC__stream_encoder_finish
++#define OggFLAC__stream_encoder_delete 				FLAC__stream_encoder_delete
++#define OggFLAC__stream_encoder_new 				FLAC__stream_encoder_new
++#define OggFLAC__stream_encoder_set_channels 			FLAC__stream_encoder_set_channels
++#define OggFLAC__stream_encoder_set_bits_per_sample 		FLAC__stream_encoder_set_bits_per_sample
++#define OggFLAC__stream_encoder_set_serial_number 		FLAC__stream_encoder_set_ogg_serial_number
++#define OggFLAC__stream_encoder_set_verify			FLAC__stream_encoder_set_verify
++#define OggFLAC__stream_encoder_set_sample_rate			FLAC__stream_encoder_set_sample_rate
++#define OggFLAC__stream_encoder_set_qlp_coeff_precision		FLAC__stream_encoder_set_qlp_coeff_precision
++#define OggFLAC__stream_encoder_set_do_qlp_coeff_prec_search	FLAC__stream_encoder_set_do_qlp_coeff_prec_search
++#define OggFLAC__stream_encoder_set_do_mid_side_stereo		FLAC__stream_encoder_set_do_mid_side_stereo
++#define OggFLAC__stream_encoder_set_loose_mid_side_stereo	FLAC__stream_encoder_set_loose_mid_side_stereo
++#define OggFLAC__stream_encoder_set_max_lpc_order		FLAC__stream_encoder_set_max_lpc_order
++#define OggFLAC__stream_encoder_set_min_residual_partition_order	FLAC__stream_encoder_set_min_residual_partition_order
++#define OggFLAC__stream_encoder_set_max_residual_partition_order	FLAC__stream_encoder_set_max_residual_partition_order
++#define OggFLAC__stream_encoder_set_blocksize			FLAC__stream_encoder_set_blocksize
++#define OggFLAC__stream_encoder_set_metadata			FLAC__stream_encoder_set_metadata
++#define OggFLAC__stream_encoder_init				FLAC__stream_encoder_init_stream
++#define OggFLAC__stream_encoder_get_state			FLAC__stream_encoder_get_state
++#define OggFLAC__stream_encoder_set_client_data			FLAC__stream_encoder_set_client_data
++#define OggFLAC__stream_encoder_set_write_callback		FLAC__stream_encoder_set_write_callback
++#define OggFLAC__stream_encoder_get_verify_decoder_state	FLAC__stream_encoder_get_verify_decoder_state
++#define OggFLAC__stream_encoder_process_interleaved		FLAC__stream_encoder_process_interleaved
++#define OggFLAC__STREAM_ENCODER_OK 				FLAC__STREAM_ENCODER_OK
++#define OggFLAC__STREAM_ENCODER_FLAC_STREAM_ENCODER_ERROR 	FLAC__STREAM_ENCODER_VERIFY_DECODER_ERROR
++#define OggFLAC__StreamEncoderStateString 			FLAC__StreamEncoderStateString
++
++
++
++#endif
+ 
+ #ifdef AU_FLAC_DLL
+ #include "w32_libFLAC_dll_g.h"
+@@ -416,15 +478,28 @@
+ 
+     OggFLAC__stream_encoder_set_blocksize(ctx->encoder.ogg.stream, flac_options.blocksize);
+ 
++#ifdef FLAC_LEGACY
+     OggFLAC__stream_encoder_set_client_data(ctx->encoder.ogg.stream, ctx);
++#endif
+ 
+     if (0 < num_metadata)
+       OggFLAC__stream_encoder_set_metadata(ctx->encoder.ogg.stream, metadata, num_metadata);
+ 
++#ifdef FLAC_LEGACY
+     /* set callback */
+     OggFLAC__stream_encoder_set_write_callback(ctx->encoder.ogg.stream, ogg_stream_encoder_write_callback);
+ 
+     ctx->state.ogg = OggFLAC__stream_encoder_init(ctx->encoder.ogg.stream);
++#else
++    FLAC__stream_encoder_init_ogg_stream(ctx->encoder.ogg.stream,
++					 NULL,
++					 ogg_stream_encoder_write_callback,
++					 NULL,
++					 NULL,
++					 NULL,
++					 ctx);
++    ctx->state.ogg = FLAC__stream_encoder_get_state(ctx->encoder.ogg.stream);
++#endif
+     if (ctx->state.ogg != OggFLAC__STREAM_ENCODER_OK) {
+       ctl->cmsg(CMSG_ERROR, VERB_NORMAL, "cannot create OggFLAC state (%s)",
+ 		OggFLAC__StreamEncoderStateString[ctx->state.ogg]);
+@@ -469,11 +544,14 @@
+     FLAC__seekable_stream_encoder_set_max_residual_partition_order(ctx->encoder.flac.s_stream, flac_options.max_residual_partition_order);
+ 
+     FLAC__seekable_stream_encoder_set_blocksize(ctx->encoder.flac.s_stream, flac_options.blocksize);
++#ifdef FLAC_LEGACY
+     FLAC__seekable_stream_encoder_set_client_data(ctx->encoder.flac.s_stream, ctx);
++#endif
+ 
+     if (0 < num_metadata)
+       FLAC__seekable_stream_encoder_set_metadata(ctx->encoder.flac.s_stream, metadata, num_metadata);
+ 
++#ifdef FLAC_LEGACY
+     /* set callback */
+ /*    FLAC__seekable_stream_encoder_set_metadata_callback(ctx->encoder.flac.s_stream, flac_seekable_stream_encoder_metadata_callback); /* */
+ #ifndef __BORLANDC__
+@@ -482,6 +560,15 @@
+     FLAC__seekable_stream_encoder_set_write_callback(ctx->encoder.flac.s_stream, flac_seekable_stream_encoder_write_callback);
+ 
+     ctx->state.s_flac = FLAC__seekable_stream_encoder_init(ctx->encoder.flac.s_stream);
++#else
++    FLAC__stream_encoder_init_stream(ctx->encoder.flac.s_stream,
++					 flac_seekable_stream_encoder_write_callback,
++					 NULL,
++					 NULL,
++					 flac_seekable_stream_encoder_metadata_callback,
++					 ctx);
++    ctx->state.s_flac = FLAC__stream_encoder_get_state(ctx->encoder.flac.s_stream);
++#endif
+     if (ctx->state.s_flac != FLAC__SEEKABLE_STREAM_ENCODER_OK) {
+       ctl->cmsg(CMSG_ERROR, VERB_NORMAL, "cannot create FLAC state (%s)",
+ 		FLAC__SeekableStreamEncoderStateString[ctx->state.s_flac]);
+@@ -525,16 +612,28 @@
+     FLAC__stream_encoder_set_max_residual_partition_order(ctx->encoder.flac.stream, flac_options.max_residual_partition_order);
+ 
+     FLAC__stream_encoder_set_blocksize(ctx->encoder.flac.stream, flac_options.blocksize);
++#ifdef FLAC_LEGACY
+     FLAC__stream_encoder_set_client_data(ctx->encoder.flac.stream, ctx);
++#endif
+ 
+     if (0 < num_metadata)
+       FLAC__stream_encoder_set_metadata(ctx->encoder.flac.stream, metadata, num_metadata);
+ 
++#ifdef FLAC_LEGACY
+     /* set callback */
+     FLAC__stream_encoder_set_metadata_callback(ctx->encoder.flac.stream, flac_stream_encoder_metadata_callback);
+     FLAC__stream_encoder_set_write_callback(ctx->encoder.flac.stream, flac_stream_encoder_write_callback);
+ 
+     ctx->state.flac = FLAC__stream_encoder_init(ctx->encoder.flac.stream);
++#else
++    FLAC__stream_encoder_init_stream(ctx->encoder.flac.stream,
++					 flac_stream_encoder_write_callback,
++					 NULL,
++					 NULL,
++					 flac_stream_encoder_metadata_callback,
++					 ctx);
++    ctx->state.flac = FLAC__stream_encoder_get_state(ctx->encoder.flac.stream);
++#endif
+     if (ctx->state.flac != FLAC__STREAM_ENCODER_OK) {
+       ctl->cmsg(CMSG_ERROR, VERB_NORMAL, "cannot create FLAC state (%s)",
+ 		FLAC__StreamEncoderStateString[ctx->state.flac]);
+--- TiMidity++-2.13.2/configure.orig	2004-10-03 13:39:51.000000000 +0100
++++ TiMidity++-2.13.2/configure	2007-06-02 22:25:04.000000000 +0100
+@@ -14601,7 +14601,7 @@
+     LIBOGGFLAC_LIBS="-L$prefix/lib"
+   fi
+ 
+-  LIBOGGFLAC_LIBS="$LIBOGGFLAC_LIBS -lOggFLAC -lFLAC -lm"
++  LIBOGGFLAC_LIBS="$LIBOGGFLAC_LIBS -lFLAC -lm"
+ 
+   if test "x$libOggFLAC_includes" != "x" ; then
+     LIBOGGFLAC_CFLAGS="-I$libOggFLAC_includes"

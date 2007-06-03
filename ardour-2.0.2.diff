@@ -1,0 +1,147 @@
+--- ardour-2.0.2/libs/libsndfile/src/flac.c.orig	2007-05-07 05:39:23.000000000 +0100
++++ ardour-2.0.2/libs/libsndfile/src/flac.c	2007-06-02 20:37:45.000000000 +0100
+@@ -46,6 +46,46 @@
+ #include	"sfendian.h"
+ #include	"float_cast.h"
+ 
++#if !defined(FLAC_API_VERSION_CURRENT) || FLAC_API_VERSION_CURRENT <= 7
++#define FLAC_LEGACY
++#else
++#define FLAC__SeekableStreamDecoder FLAC__StreamDecoder
++#define FLAC__SeekableStreamEncoder FLAC__StreamEncoder
++
++#define FLAC__SeekableStreamDecoderReadStatus 		FLAC__StreamDecoderReadStatus 
++#define FLAC__SeekableStreamDecoderSeekStatus 		FLAC__StreamDecoderSeekStatus 
++#define FLAC__SeekableStreamDecoderTellStatus 		FLAC__StreamDecoderTellStatus 
++#define FLAC__SeekableStreamDecoderLengthStatus 	FLAC__StreamDecoderLengthStatus 
++#define FLAC__SeekableStreamEncoderSeekStatus 		FLAC__StreamEncoderSeekStatus 
++#define FLAC__SeekableStreamEncoderTellStatus 		FLAC__StreamEncoderTellStatus 
++
++#define FLAC__seekable_stream_encoder_finish		FLAC__stream_encoder_finish
++#define FLAC__seekable_stream_encoder_delete		FLAC__stream_encoder_delete
++#define FLAC__seekable_stream_decoder_finish		FLAC__stream_decoder_finish
++#define FLAC__seekable_stream_decoder_delete		FLAC__stream_decoder_delete
++#define FLAC__seekable_stream_encoder_new		FLAC__stream_encoder_new
++#define	FLAC__seekable_stream_decoder_new		FLAC__stream_decoder_new
++
++#define FLAC__seekable_stream_decoder_process_single 	FLAC__stream_decoder_process_single
++#define FLAC__seekable_stream_decoder_get_state		FLAC__stream_decoder_get_state
++
++#define FLAC__seekable_stream_encoder_process_interleaved FLAC__stream_encoder_process_interleaved
++#define FLAC__seekable_stream_decoder_get_decode_position FLAC__stream_decoder_get_decode_position
++#define FLAC__seekable_stream_decoder_seek_absolute 	FLAC__stream_decoder_seek_absolute
++
++#define FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_OK 	FLAC__STREAM_DECODER_READ_STATUS_CONTINUE
++#define FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_ERROR FLAC__STREAM_DECODER_READ_STATUS_ABORT
++#define FLAC__SEEKABLE_STREAM_DECODER_SEEK_STATUS_OK 	FLAC__STREAM_DECODER_SEEK_STATUS_OK
++#define FLAC__SEEKABLE_STREAM_DECODER_SEEK_STATUS_ERROR FLAC__STREAM_DECODER_SEEK_STATUS_ERROR
++#define FLAC__SEEKABLE_STREAM_DECODER_TELL_STATUS_ERROR FLAC__STREAM_DECODER_TELL_STATUS_ERROR
++#define FLAC__SEEKABLE_STREAM_DECODER_TELL_STATUS_OK	FLAC__STREAM_DECODER_TELL_STATUS_OK
++#define FLAC__SEEKABLE_STREAM_DECODER_LENGTH_STATUS_ERROR	FLAC__STREAM_DECODER_LENGTH_STATUS_ERROR
++#define FLAC__SEEKABLE_STREAM_DECODER_LENGTH_STATUS_OK  FLAC__STREAM_DECODER_LENGTH_STATUS_OK
++#define FLAC__SEEKABLE_STREAM_ENCODER_SEEK_STATUS_ERROR FLAC__STREAM_ENCODER_SEEK_STATUS_ERROR
++#define FLAC__SEEKABLE_STREAM_ENCODER_SEEK_STATUS_OK    FLAC__STREAM_ENCODER_SEEK_STATUS_OK
++#define FLAC__SEEKABLE_STREAM_DECODER_OK		FLAC__STREAM_DECODER_SEARCH_FOR_METADATA
++
++#endif
+ /*------------------------------------------------------------------------------
+ ** Private static functions.
+ */
+@@ -60,7 +100,8 @@
+ } PFLAC_PCM ;
+ 
+ typedef struct
+-{	FLAC__SeekableStreamDecoder *fsd ;
++{
++	FLAC__SeekableStreamDecoder *fsd ;
+ 	FLAC__SeekableStreamEncoder *fse ;
+ 	PFLAC_PCM pcmtype ;
+ 	void* ptr ;
+@@ -546,6 +587,7 @@
+ 		return SFE_FLAC_BAD_SAMPLE_RATE ;
+ 
+ 	psf_fseek (psf, 0, SEEK_SET) ;
++#ifdef FLAC_LEGACY
+ 	if ((pflac->fse = FLAC__seekable_stream_encoder_new ()) == NULL)
+ 		return SFE_FLAC_NEW_DECODER ;
+ 	FLAC__seekable_stream_encoder_set_write_callback (pflac->fse, sf_flac_enc_write_callback) ;
+@@ -580,7 +622,41 @@
+ 	{	psf_log_printf (psf, "Error : FLAC encoder init returned error : %s\n", FLAC__seekable_stream_encoder_get_resolved_state_string (pflac->fse)) ;
+ 		return SFE_FLAC_INIT_DECODER ;
+ 		} ;
++#else
++	if ((pflac->fse = FLAC__stream_encoder_new ()) == NULL)
++		return SFE_FLAC_NEW_DECODER ;
++
++	FLAC__stream_encoder_set_channels (pflac->fse, psf->sf.channels) ;
++	FLAC__stream_encoder_set_sample_rate (pflac->fse, psf->sf.samplerate) ;
+ 
++	switch (psf->sf.format & SF_FORMAT_SUBMASK)
++	{	case SF_FORMAT_PCM_S8 :
++			bps = 8 ;
++			break ;
++		case SF_FORMAT_PCM_16 :
++			bps = 16 ;
++			break ;
++		case SF_FORMAT_PCM_24 :
++			bps = 24 ;
++			break ;
++
++		default :
++			bps = 0 ;
++			break ;
++		} ;
++
++	FLAC__stream_encoder_set_bits_per_sample (pflac->fse, bps) ;
++
++	if ((bps = FLAC__stream_encoder_init_stream (pflac->fse,
++			sf_flac_enc_write_callback,
++			sf_flac_enc_seek_callback,
++			NULL,
++			NULL,
++			psf)) != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
++	{	psf_log_printf (psf, "Error : FLAC encoder init returned error : %s\n", FLAC__stream_encoder_get_resolved_state_string (pflac->fse)) ;
++		return SFE_FLAC_INIT_DECODER ;
++		} ;
++#endif
+ 	if (psf->error == 0)
+ 		psf->dataoffset = psf_ftell (psf) ;
+ 	pflac->encbuffer = calloc (ENC_BUFFER_SIZE, sizeof (FLAC__int32)) ;
+@@ -593,6 +669,7 @@
+ {	FLAC_PRIVATE* pflac = (FLAC_PRIVATE*) psf->fdata ;
+ 
+ 	psf_fseek (psf, 0, SEEK_SET) ;
++#ifdef FLAC_LEGACY
+ 	if ((pflac->fsd = FLAC__seekable_stream_decoder_new ()) == NULL)
+ 		return SFE_FLAC_NEW_DECODER ;
+ 
+@@ -615,7 +692,29 @@
+ 		FLAC__seekable_stream_decoder_get_decode_position (pflac->fsd, &position) ;
+ 		psf->dataoffset = position ;
+ 		} ;
++#else
++	if ((pflac->fsd = FLAC__stream_decoder_new ()) == NULL)
++		return SFE_FLAC_NEW_DECODER ;
++
++	if (FLAC__stream_decoder_init_stream (pflac->fsd,
++		    sf_flac_read_callback,
++		    sf_flac_seek_callback,
++		    sf_flac_tell_callback,
++		    sf_flac_length_callback,
++		    sf_flac_eof_callback,
++		    sf_flac_write_callback,
++		    sf_flac_meta_callback,
++		    sf_flac_error_callback,
++		    psf) != FLAC__STREAM_DECODER_INIT_STATUS_OK)
++		return SFE_FLAC_INIT_DECODER ;
+ 
++	FLAC__stream_decoder_process_until_end_of_metadata (pflac->fsd) ;
++	if (psf->error == 0)
++	{	FLAC__uint64 position ;
++		FLAC__stream_decoder_get_decode_position (pflac->fsd, &position) ;
++		psf->dataoffset = position ;
++		} ;
++#endif
+ 	return psf->error ;
+ } /* flac_read_header */
+ 
