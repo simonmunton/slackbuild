@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=fox
+TARNAME=dmalloc
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=1.6.27
+VERSION=5.4.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -49,11 +49,13 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --enable-threads \
+	    --enable-shlib
 
-make || exit
+make all || exit
 
-make install DESTDIR=${PKG}
+make install installinfo installdocs DESTDIR=${PKG} prefix=${PKG}/usr docdir=${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 #strip_binaries
 
@@ -66,9 +68,6 @@ compress_info
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-mv ${PKG}/usr/share/doc/* ${PKG}/usr/doc
-rmdir -p ${PKG}/usr/share/doc
 
 fix_docs
 

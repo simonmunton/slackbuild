@@ -1,0 +1,124 @@
+--- qtiplot-0.8.9/qtiplot/src/PythonScripting.cpp.orig	2006-12-04 12:45:34.000000000 +0000
++++ qtiplot-0.8.9/qtiplot/src/PythonScripting.cpp	2007-06-06 12:22:52.000000000 +0100
+@@ -1,7 +1,18 @@
++#include "sipAPIqti.h"
++extern "C" void initqti();
++#include "application.h"
++
++#include <qobject.h>
++#include <qstringlist.h>
++#include <qvariant.h>
++#include <qdir.h>
++
++
+ // get rid of a compiler warning
+ #ifdef _POSIX_C_SOURCE
+ #undef _POSIX_C_SOURCE
+ #endif
++
+ #include <Python.h>
+ #include <compile.h>
+ #include <eval.h>
+@@ -19,15 +30,6 @@
+ #endif
+ 
+ #include "PythonScripting.h"
+-#include "sipAPIqti.h"
+-extern "C" void initqti();
+-#include "application.h"
+-
+-#include <qobject.h>
+-#include <qstringlist.h>
+-#include <qvariant.h>
+-#include <qdir.h>
+-
+ const char* PythonScripting::langName = "Python";
+ 
+ //! like str(object) in Python
+--- qtiplot-0.8.9/qtiplot/qtiplot.pro.orig	2007-01-18 10:38:13.000000000 +0000
++++ qtiplot-0.8.9/qtiplot/qtiplot.pro	2007-06-06 13:33:41.000000000 +0100
+@@ -18,7 +18,7 @@
+ #!!! Warning: You must modify these paths according to your computer settings
+ ############################################################################# 
+ 
+-unix:LIBS         +=  /usr/lib/qt3/lib$${libsuff}/libqassistantclient.a
++unix:LIBS         +=  /usr/lib/qt/lib$${libsuff}/libqassistantclient.a
+ 
+ ############################################################################# 
+ ##################### 3rd PARTY HEADER FILES SECTION ########################
+@@ -26,11 +26,8 @@
+ #############################################################################
+ 
+ INCLUDEPATH       += ../3rdparty/qwt/src
+-INCLUDEPATH       += ../3rdparty/qwtplot3d/include
+-INCLUDEPATH		  += ../3rdparty/liborigin
+-unix:INCLUDEPATH  += ../3rdparty/gsl/include
++INCLUDEPATH	  += /usr/include/liborigin
+ win32:INCLUDEPATH += ../3rdparty/WinGSL
+-INCLUDEPATH       += ../3rdparty/zlib123/include
+ 
+ ############################################################################# 
+ ##################### 3rd PARTY LIBRARIES SECTION ###########################
+@@ -39,16 +36,17 @@
+ 
+ ##################### Linux (Mac OS X) ###################################### 
+ 
+-unix:LIBS         += ../3rdparty/qwtplot3d/lib/libqwtplot3d.a
++unix:LIBS         += -lqwtplot3d
+ unix:LIBS         += ../3rdparty/qwt/lib/libqwt.a
+-unix:LIBS         += ../3rdparty/liborigin/liborigin.a
+-unix:LIBS         += ../3rdparty/gsl/lib/libgsl.a
+-unix:LIBS         += ../3rdparty/gsl/lib/libgslcblas.a
++unix:LIBS         += -lorigin
++unix:LIBS         += -lgsl
++unix:LIBS         += -lgslcblas
++unix:LIBS	  += -lmuparser
+ 
+ unix:target.path=/usr/bin
+ unix:INSTALLS += target
+ 
+-unix:documentation.path = /usr/share/doc/qtiplot
++unix:documentation.path = /usr/doc/qtiplot
+ unix:documentation.files = doc/*
+ unix:INSTALLS += documentation
+ 
+@@ -268,26 +266,8 @@
+ ##################### Default: muParser v1.26 #################
+ contains(SCRIPTING_LANGS, muParser) {
+   DEFINES +=	SCRIPTING_MUPARSER
+-  HEADERS +=	src/muParserScripting.h \
+-		../3rdparty/muParser/muParser.h \
+-		../3rdparty/muParser/muParserBase.h \
+-		../3rdparty/muParser/muParserInt.h \
+-		../3rdparty/muParser/muParserError.h \
+-		../3rdparty/muParser/muParserStack.h \
+-		../3rdparty/muParser/muParserToken.h \
+-		../3rdparty/muParser/muParserBytecode.h \
+-		../3rdparty/muParser/muParserCallback.h \
+-		../3rdparty/muParser/muParserTokenReader.h \ 
+-		../3rdparty/muParser/muParserFixes.h \
+-		../3rdparty/muParser/muParserDef.h  	   
+-  SOURCES +=	src/muParserScripting.cpp \
+-		../3rdparty/muParser/muParser.cpp \
+-		../3rdparty/muParser/muParserBase.cpp \
+-		../3rdparty/muParser/muParserInt.cpp \
+-		../3rdparty/muParser/muParserBytecode.cpp \
+-		../3rdparty/muParser/muParserCallback.cpp \
+-		../3rdparty/muParser/muParserTokenReader.cpp \
+-		../3rdparty/muParser/muParserError.cpp
++  HEADERS +=	src/muParserScripting.h 
++  SOURCES +=	src/muParserScripting.cpp 
+ }
+ 
+ ##################### PYTHON + SIP + PyQT #####################
+--- qtiplot-0.8.9/3rdparty/qwt/qwtconfig.pri.orig	2007-01-22 19:03:58.000000000 +0000
++++ qtiplot-0.8.9/3rdparty/qwt/qwtconfig.pri	2007-06-06 12:29:36.000000000 +0100
+@@ -36,7 +36,7 @@
+ # it will be a static library.
+ ######################################################################
+ 
+-CONFIG           += QwtDll
++#CONFIG           += QwtDll
+ 
+ ######################################################################
+ # QwtPlot enables all classes, that are needed to use the QwtPlot 

@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=1.8.75
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,6 +36,18 @@ then
 $TAR_PROG $TAR_OPTS $FULL_TARNAME
 (cd $TARNAME-$VERSION
 #patch -p1 < $CWD/.diff
+
+## - remove rpath
+for f in `find . -name Makefile.in` ; do
+    sed -i.rpath -e '/^LDENV/d' $f
+done
+
+## - fix pc file to hide header files
+sed -i.misc \
+     -e '/^Libs/s|@LIBS@||' \
+     -e '/Cflags/s|^\(.*\)|\1 -I\${includedir}/qdbm|' \
+     qdbm.pc.in
+
 )
 fi
 
@@ -49,11 +61,90 @@ CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --enable-pthread \
+	    --enable-zlib \
+	    --enable-lzo \
+	    --enable-bzip \
+	    --enable-iconv   
 
 make || exit
 
-make install DESTDIR=$PKG
+make install DESTDIR=$PKG || exit
+
+# c++ api
+(cd plus
+ ./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+ make || exit
+
+ make install DESTDIR=$PKG || exit
+)
+
+# cgi scripts
+(cd cgi
+ ./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+ make || exit
+
+ make install DESTDIR=$PKG || exit
+)
+
+#ruby api
+(cd ruby
+ ./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+ make || exit
+
+ make install DESTDIR=$PKG || exit
+)
+
+#perl api
+(cd perl
+ ./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+
+ make LDDLFLAGS="-shared" LD_RUN_PATH="/lib:/usr/lib" INSTALLDIRS=vendor || exit
+
+ make install DESTDIR=$PKG || exit
+
+ find ${PKG}/usr/lib/perl5 -name \*.bs -or -name .packlist | xargs rm -f
+ find ${PKG}/usr/lib/perl5 -name \*.so | xargs chmod 0755
+)
+
+#java api
+(cd java
+ ./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --with-gcj
+
+ make || exit
+
+ make install DESTDIR=$PKG || exit
+)
+
+## hide header files to name specific directory
+(cd ${PKG}/usr/include
+ for f in *.h ; do
+    for g in *.h ; do
+	eval sed -i -e \'s\|include \<$g\>\|include \"$g\"\|\' $f
+    done
+ done
+
+ mkdir qdbm
+ mv *.h qdbm/
+)
+
+mv ${PKG}/usr/share/qdbm/* $PKG/usr/doc/$TARNAME-$VERSION
+rmdir -p ${PKG}/usr/share/qdbm
 
 fix_links
 
@@ -79,12 +170,11 @@ cat <<EOF > $PKG/install/slack-desc
     |-----handy-ruler------------------------------------------------------|
 $PKGNAME: $PKGNAME $VERSION
 $PKGNAME:
-$PKGNAME: 
-$PKGNAME:
-$PKGNAME:
-$PKGNAME:
-$PKGNAME:
-$PKGNAME:
+$PKGNAME: QDBM is an embedded database library compatible with GDBM and
+$PKGNAME: NDBM. It features hash database and B+ tree database and is
+$PKGNAME: developed referring to GDBM for the purpose of the following three
+$PKGNAME: points: higher processing speed, smaller size of a database file,
+$PKGNAME: and simpler API.
 $PKGNAME:
 $PKGNAME:
 $PKGNAME:

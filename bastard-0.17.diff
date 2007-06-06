@@ -1,3 +1,14 @@
+--- bastard-0.17/src/asm/ATT/att.c.orig	2003-07-30 07:13:29.000000000 +0100
++++ bastard-0.17/src/asm/ATT/att.c	2007-06-05 17:31:34.000000000 +0100
+@@ -28,7 +28,7 @@
+ char comment_prefix[] = ";",
+     reg_prefix[] = "%", imm_prefix[] = "$", local_prefix[] = "@@";
+ 
+-
++#define _EXT_ASM_LINE_LENGTH	2048
+ 
+ struct EXT__ASM *settings;
+ /* ---------------------------------------------------- EXT_ASM init() */
 --- bastard-0.17/Makefile.orig	2003-07-29 21:41:00.000000000 +0100
 +++ bastard-0.17/Makefile	2007-02-01 15:39:12.000000000 +0000
 @@ -30,7 +30,7 @@
@@ -65,3 +76,28 @@
  	done
  
  
+--- bastard-0.17/src/cli/Makefile.orig	2003-07-29 06:35:34.000000000 +0100
++++ bastard-0.17/src/cli/Makefile	2007-06-05 15:13:25.000000000 +0100
+@@ -52,9 +52,7 @@
+            -DREADLINE_LIBRARY
+ CFLAGS   = -ggdb -rdynamic $(DEFINES) -DBASTARD_VERSION=$(BASTARD_VERSION)
+ LIBS     = -lm $(LIBDL) -lreadline -lbastard $(TERMIO)
+-LDFLAGS  = -L. -L$(LIBDIR) \
+-            -Wl,-rpath . -Wl,-rpath $(LIBDIR) -Wl,-rpath $(INSTALL_LIB) \
+-	    -Wl,-rpath ./lib
++LDFLAGS  = -L. -L$(LIBDIR)
+ 
+ 
+ SRCS    =       			\
+--- bastard-0.17/src/sob/src/Makefile.orig	2003-07-29 21:12:03.000000000 +0100
++++ bastard-0.17/src/sob/src/Makefile	2007-06-05 15:13:57.000000000 +0100
+@@ -17,8 +17,7 @@
+ 
+ # ================================================================== FLAGS
+ DEFS = -I../include -I. -I$(INC_DIR) $(GLADE_DEFS)
+-LD_FLAGS = -L$(LIB_DIR) -lbastard -Wl,-rpath . -Wl,-rpath ./lib \
+-           -Wl,-rpath $(INSTALL_LIB)
++LD_FLAGS = -L$(LIB_DIR) -lbastard
+ #CC_FLAGS = -O2 -Wall $(DEFS)
+ CC_FLAGS = -ggdb -O3 $(DEFS)
+ CC = gcc

@@ -1,0 +1,473 @@
+--- kipi-plugins-0.1.3/kipi-plugins/common/exiv2iface/exiv2iface.cpp.orig	2007-01-24 21:04:18.000000000 +0000
++++ kipi-plugins-0.1.3/kipi-plugins/common/exiv2iface/exiv2iface.cpp	2007-06-05 21:24:44.000000000 +0100
+@@ -87,6 +87,13 @@
+     delete d;
+ }
+ 
++void Exiv2Iface::printExiv2ExceptionError(const QString& msg, Exiv2::Error& e)
++{
++    std::string s(e.what());
++    kdDebug() << msg.ascii() << " (" << s.c_str() << ")" << endl;
++}
++
++
+ bool Exiv2Iface::clearExif()
+ {
+     try
+@@ -96,9 +103,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot clear Exif data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot clear Exif data using Exiv2", e); 
+     }    
+ 
+     return false;       
+@@ -113,9 +118,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot clear Iptc data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++        printExiv2ExceptionError ("Cannot clear Iptc data using Exiv2", e); 
+     }    
+ 
+     return false;       
+@@ -152,9 +155,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get Exif data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get Exif data using Exiv2",e ); 
+     }       
+     
+     return QByteArray();
+@@ -191,9 +192,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get Iptc data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get Iptc data using Exiv2", e); 
+     }       
+     
+     return QByteArray();
+@@ -213,9 +212,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif data using Exiv2", e);
+     }        
+ 
+     return false;
+@@ -235,9 +232,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Iptc data using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Iptc data using Exiv2", e);
+     }    
+ 
+     return false;    
+@@ -270,9 +265,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot load metadata using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot load metadata using Exiv2", e);
+         return false;
+     }
+ }
+@@ -328,9 +321,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot save metadata using Exiv2 ("
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot save metadata using Exiv2", e);
+         return false;
+     }
+ }
+@@ -361,9 +352,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Program identity into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Program identity into image using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -381,9 +370,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set image dimensions using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set image dimensions using Exiv2", e);
+     }        
+     
+     return false;
+@@ -403,9 +390,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif Thumbnail using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif Thumbnail using Exiv2", e);
+     }        
+     
+     return false;
+@@ -432,10 +417,9 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot find Exif key '"
+-                  << exifTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	kdDebug() << "Cannot find Exif key '"
++                  << exifTagName;
++	printExiv2ExceptionError ("' into image using Exiv2", e);
+     }
+ 
+     return QString();
+@@ -450,9 +434,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif tag string into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif tag string into image using Exiv2", e);
+     }
+ 
+     return false;
+@@ -480,9 +462,8 @@
+     catch( Exiv2::Error &e )
+     {
+         kdDebug() << "Cannot find Iptc key '"
+-                  << iptcTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++                  << iptcTagName;
++	printExiv2ExceptionError ("' into image using Exiv2", e); 
+     }
+ 
+     return QString();
+@@ -497,9 +478,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Iptc tag string into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Iptc tag string into image using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -521,9 +500,8 @@
+     catch( Exiv2::Error &e )
+     {
+         kdDebug() << "Cannot find Exif key '"
+-                  << exifTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++                  << exifTagName;
++	printExiv2ExceptionError ("' into image using Exiv2", e); 
+     }        
+     
+     return false;    
+@@ -546,9 +524,8 @@
+     catch( Exiv2::Error &e )
+     {
+         kdDebug() << "Cannot find Exif key '"
+-                  << exifTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++                  << exifTagName; 
++	printExiv2ExceptionError ("' into image using Exiv2", e); 
+     }
+ 
+     return QByteArray();
+@@ -571,9 +548,8 @@
+     catch( Exiv2::Error &e )
+     {
+         kdDebug() << "Cannot find Iptc key '"
+-                  << iptcTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++                  << iptcTagName; 
++	printExiv2ExceptionError ("' into image using Exiv2", e); 
+     }
+ 
+     return QByteArray();
+@@ -596,9 +572,8 @@
+     catch( Exiv2::Error &e )
+     {
+         kdDebug() << "Cannot find Exif Rational value from key '"
+-                  << exifTagName << "' into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++                  << exifTagName;
++	printExiv2ExceptionError ("' into image using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -613,9 +588,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif tag long value into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif tag long value into image using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -630,9 +603,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif tag rational value into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif tag rational value into image using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -652,9 +623,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot remove Exif tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot remove Exif tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -674,9 +643,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot remove Iptc tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot remove Iptc tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -716,9 +683,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get image preview using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get image preview using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -846,9 +811,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot parse Exif date & time tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot parse Exif date & time tag using Exiv2", e); 
+     }        
+     
+     return QDateTime();
+@@ -939,9 +902,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot parse Exif Orientation tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot parse Exif Orientation tag using Exiv2", e); 
+     }
+ 
+     return ORIENTATION_UNSPECIFIED;
+@@ -1006,9 +967,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif Orientation tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif Orientation tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1106,9 +1065,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get Exif GPS tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get Exif GPS tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1228,9 +1185,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif GPS tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif GPS tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1263,9 +1218,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot remove Exif GPS tag using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot remove Exif GPS tag using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1356,9 +1309,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get IPTC Keywords from image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get IPTC Keywords from image using Exiv2", e); 
+     }        
+     
+     return QStringList();
+@@ -1406,9 +1357,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set IPTC Keywords into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set IPTC Keywords into image using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1439,9 +1388,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get IPTC Subjects from image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get IPTC Subjects from image using Exiv2", e); 
+     }        
+     
+     return QStringList();
+@@ -1489,9 +1436,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set IPTC Subjects into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set IPTC Subjects into image using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1522,9 +1467,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot get IPTC Sub Categories from image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot get IPTC Sub Categories from image using Exiv2", e); 
+     }        
+     
+     return QStringList();
+@@ -1572,9 +1515,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set IPTC Sub Categories into image using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set IPTC Sub Categories into image using Exiv2", e); 
+     }        
+     
+     return false;
+@@ -1602,9 +1543,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot find Exif User Comment using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot find Exif User Comment using Exiv2", e); 
+     }
+ 
+     return QString();
+@@ -1644,9 +1583,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot set Exif Comment using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot set Exif Comment using Exiv2", e); 
+     }
+ 
+     return false;
+@@ -1717,9 +1654,7 @@
+     }
+     catch( Exiv2::Error &e )
+     {
+-        kdDebug() << "Cannot convert Comment using Exiv2 (" 
+-                  << QString::fromLocal8Bit(e.what().c_str())
+-                  << ")" << endl;
++	printExiv2ExceptionError ("Cannot convert Comment using Exiv2", e); 
+     }
+ 
+     return QString();
+--- kipi-plugins-0.1.3/kipi-plugins/common/exiv2iface/exiv2iface.h.orig	2007-01-24 21:04:18.000000000 +0000
++++ kipi-plugins-0.1.3/kipi-plugins/common/exiv2iface/exiv2iface.h	2007-06-05 21:32:36.000000000 +0100
+@@ -37,6 +37,8 @@
+ #include <qimage.h>
+ #include <qdatetime.h>
+ 
++#include <exiv2/exif.hpp>
++
+ namespace Exiv2
+ {
+     class Exifdatum;
+@@ -130,6 +132,8 @@
+     static void convertToRational(double number, long int* numerator, 
+                                   long int* denominator, int rounding);
+ 
++    static void Exiv2Iface::printExiv2ExceptionError(const QString& msg, Exiv2::Error& e);
++
+ private:
+ 
+     Exiv2IfacePriv *d;

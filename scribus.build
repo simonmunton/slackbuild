@@ -6,9 +6,9 @@ TARNAME=scribus
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.bz2
-VERSION=1.3.4
+VERSION=1.3.3.9
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,12 +53,17 @@ find . -perm 664 -exec chmod 644 {} \;
 
 #cmake -G "Unix Makefiles"
 
-cmake . -DCMAKE_INSTALL_PREFIX:PATH=/usr -DWANT_CAIRO=1
+cmake . -DCMAKE_INSTALL_PREFIX:PATH=/usr -DWANT_CAIRO=1 -DCMAKE_SKIP_RPATH:BOOL=YES
 
 make || exit
 
 make install DESTDIR=$PKG
 #prefix=$PKG/usr sysconfdir=$PKG/etc localstatedir=$PKG/var/lib
+
+mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/share/pixmaps
+cp ${CWD}/scribus.desktop ${PKG}/usr/share/applications
+cp scribus/icons/scribusicon.png ${PKG}/usr/share/pixmaps/scribusicon.png
+cp scribus/icons/scribusdoc.png ${PKG}/usr/share/pixmaps/x-scribus.png
 
 fix_links
 
