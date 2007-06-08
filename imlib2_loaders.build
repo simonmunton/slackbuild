@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=dates
+TARNAME=imlib2_loaders
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/p/pimlico
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=0.4.3
+VERSION=1.4.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
+if [ ${DO_MAKE} == "yes" ]
+then
 make || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -64,7 +82,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -81,11 +99,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This package contains additional image loaders for Imlib2 which for
+${PKGNAME}:some reason (such as license issues) are not distributed with Imlib2
+${PKGNAME}:directly.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=dates
+TARNAME=xine-lib
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/p/pimlico
+TARDIR=~/tmp/new/x/xine
 #TAR_EXT=.tar.gz
-VERSION=0.4.3
+VERSION=1.1.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ BUILD=1
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,15 +52,34 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+TARGET=${TARGET:-$ARCH-pc-linux-gnu}
 
+XINE_BUILD=${TARGET} \
+./configure --prefix=/usr \
+	    --mandir=/usr/man \
+	    --with-w32-path=/usr/lib/codecs \
+	    --with-libflac \
+	    --with-freetype \
+	    --with-fontconfig \
+	    --with-wavpack
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
 make || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/lib/codecs
 
 #strip_binaries
 
@@ -64,7 +90,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS AUTHORS COPYING* CREDITS INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -79,14 +105,13 @@ cat <<EOF > ${PKG}/install/slack-desc
 # customary to leave one space after the ':'.
 
           |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}: ${PKGNAME} ${VERSION} (xine multimedia playback engine libraries)
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: xine-lib is a free (GPL licensed) high-performance multimedia
+${PKGNAME}: playback engine.  The xine shared libraries are used by xine-ui (and
+${PKGNAME}: other media players and multimedia applications) for smooth video
+${PKGNAME}:: processing and playback of multimedia streams such as movies, radio
+${PKGNAME}:: and TV network streams, DVDs, and VCDs.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -2,6 +2,31 @@
 #
 CWD=`pwd`
 
+DO_CONFIGURE=yes
+DO_MAKE=yes
+DO_INSTALL=yes
+
+
+# Note that we use `"$@"' to let each command-line parameter expand to a
+# separate word. The quotes around `$@' are essential!
+# We need OPTS as the `eval set --' would nuke the return value of getopt.
+OPTS=`getopt -o cmi --long disable-configure,disable-make,disable-install \
+     -n "$0" -- "$@"`
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "${OPTS}"
+
+while true ; do
+  case "$1" in
+    -c|--disable-configure)  DO_CONFIGURE=no; shift ;;
+    -m|--disable-make)       DO_MAKE=no; shift ;;
+    -i|--disable-install)    DO_INSTALL=no; shift ;;
+    --) shift ; break ;;
+  esac
+done
+
+
+
 
 guess_tar_prog ()
 {
@@ -47,10 +72,6 @@ GROUP=`id -gn`
 : ${BUILD_SUFFIX:=sm}
 
 : ${ARCH:=i486}
-
-: ${DO_CONFIGURE:=yes}
-: ${DO_MAKE:=yes}
-: ${DO_INSTALL:=yes}
 
 # if TAR_EXT not set, try and guess it
 #

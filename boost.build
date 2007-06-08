@@ -5,65 +5,98 @@
 TARNAME=boost
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b
-TAR_EXT=.tar.bz2
-VERSION=1_33_1
+#TAR_EXT=.tar.gz
+VERSION=1_34_0
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
+#PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=
+#ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$TARNAME${TARNAMEEXTRA}_$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}_${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-mv ${TARNAME}_$VERSION $TARNAME-$VERSION
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
+cd ${TARNAME}-${VERSION}
 
-(cd tools/build/jam_src;build.sh)
+fix_perms
 
-PATH=`pwd`/tools/build/jam_src/bin.linuxx86:$PATH
+PATH=`pwd`/tools/jam/src/bin.linuxx86:$PATH
 
 PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
 export PYTHON_VERSION
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+
+(cd tools/jam/src
+ build.sh
+)
+
 #bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
 
-bjam --prefix=/usr --with-python-root=/usr
+#bjam --prefix=/usr --with-python-root=/usr
+
+bjam --prefix=/usr --toolset=gcc -sHAVE_ICU=1 || exit
+
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 #bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
 
-bjam --prefix=$PKG/usr --with-python-root=/usr install
+#bjam --prefix=$PKG/usr --with-python-root=/usr install
+
+bjam --prefix=$PKG/usr --toolset=gcc -sHAVE_ICU=1  install
 
 (cd $PKG/usr/include; ln -s boost*/boost boost)
 
+
+#strip_binaries
 
 fix_links
 
@@ -73,12 +106,12 @@ compress_info
 
 cp -a \
   LICENSE* AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -86,24 +119,25 @@ cat <<EOF > $PKG/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
-boost: boost
-boost:
-boost: 
-boost:
-boost:
-boost:
-boost:
-boost:
-boost:
-boost:
-boost:
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: Boost provides free peer-reviewed portable C++ source libraries.  The
+${PKGNAME}: emphasis is on libraries which work well with the C++ Standard
+${PKGNAME}: Library, in the hopes of establishing "existing practice" for
+${PKGNAME}: extensions and providing reference implementations so that the Boost
+${PKGNAME}: libraries are suitable for eventual standardization. (Some of the
+${PKGNAME}: libraries have already been proposed for inclusion in the C++
+${PKGNAME}: Standards Committee's upcoming C++ Standard Library Technical Report.)
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
 post_install
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
