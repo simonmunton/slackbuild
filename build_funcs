@@ -5,15 +5,17 @@ CWD=`pwd`
 DO_CONFIGURE=yes
 DO_MAKE=yes
 DO_INSTALL=yes
+NUM_JOBS="-j 1"
 
 
 # Note that we use `"$@"' to let each command-line parameter expand to a
 # separate word. The quotes around `$@' are essential!
 # We need OPTS as the `eval set --' would nuke the return value of getopt.
-OPTS=`getopt -o cmi --long disable-configure,disable-make,disable-install \
+
+OPTS=`getopt -o cmij: --long disable-configure,disable-make,disable-install,num-jobs: \
      -n "$0" -- "$@"`
 
-# Note the quotes around `$TEMP': they are essential!
+# Note the quotes around `$OPTS': they are essential!
 eval set -- "${OPTS}"
 
 while true ; do
@@ -21,6 +23,7 @@ while true ; do
     -c|--disable-configure)  DO_CONFIGURE=no; shift ;;
     -m|--disable-make)       DO_MAKE=no; shift ;;
     -i|--disable-install)    DO_INSTALL=no; shift ;;
+    -j|--num-jobs)	     NUM_JOBS="-j $2"; shift 2 ;;
     --) shift ; break ;;
   esac
 done

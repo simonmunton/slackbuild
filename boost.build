@@ -52,33 +52,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PATH=`pwd`/tools/jam/src/bin.linuxx86:$PATH
+#PATH=`pwd`/tools/jam/src/bin.linuxx86:${PATH}
 
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+#PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
-export PYTHON_VERSION
+#export PYTHON_VERSION
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib
+./configure --prefix=/usr
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 
-(cd tools/jam/src
- build.sh
-)
-
-#bjam --prefix=/usr --with-python-root=/usr -sBUILD=release
-
-#bjam --prefix=/usr --with-python-root=/usr
-
-bjam --prefix=/usr --toolset=gcc -sHAVE_ICU=1 || exit
+# use LIBS="--layout=system" to make without version numbers
+make LIBS="--layout=system" || exit
 
 fi
 
@@ -87,13 +76,31 @@ then
   exit
 fi
 
-#bjam --prefix=$PKG/usr --with-python-root=/usr -sBUILD=release install
+# use LIBS="--layout=system" to make without version numbers
+make install LIBS="--layout=system" \
+	    PREFIX=${PKG}/usr \
+	    EPREFIX=${PKG}/usr \
+	    LIBDIR=${PKG}/usr/lib \
+	    INCLUDEDIR=${PKG}/usr/include
 
-#bjam --prefix=$PKG/usr --with-python-root=/usr install
+(cd ${PKG}/usr/include; ln -s boost*/boost boost)
 
-bjam --prefix=$PKG/usr --toolset=gcc -sHAVE_ICU=1  install
+(cd ${PKG}/usr/lib
+ for f in `ls | grep -v ${VERSION%_*}`
+ do
+    inode=`ls -li "${f}" | awk '{print $1}'`
+    HLINKS=`find . \! -name "$f" -inum ${inode}`
 
-(cd $PKG/usr/include; ln -s boost*/boost boost)
+    if [ -n "${HLINKS}" ]; then
+      # We have hard-links! Remove them now.
+      for i in ${HLINKS}
+	do
+	  rm -f ${f}
+	  ln -s ${i} ${f}
+	done
+    fi
+ done
+)
 
 
 #strip_binaries
@@ -106,7 +113,23 @@ compress_info
 
 cp -a \
   LICENSE* AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  index.htm boost.png *.css doc more wiki status people libs \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+(cd ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs
+ rm -rf date_time/{build,src,test,xmldoc,test}
+ rm -rf filesystem/{build,src,test}
+ rm -rf graph/{build,src,test}
+ rm -rf iostreams/{build,src,test}
+ rm -rf program_options/{build,src,test}
+ rm -rf python/{build,src,test,pyste}
+ rm -rf regex/{build,src,test,performance,tools}
+ rm -rf serialization/{build,src,test,*ide}
+ rm -rf signals/{build,src,test}
+ rm -rf test/{build,src,test,tools}
+ rm -rf thread/{build,src,test}
+ rm -rf wave/{build,src,test}
+)
 
 fix_docs
 
