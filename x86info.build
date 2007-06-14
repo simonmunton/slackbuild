@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=stellarium
+TARNAME=x86info
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=0.9.0
+VERSION=1.20
 VERSIONEXTRA=
 BUILD=1
 
@@ -52,19 +52,13 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:${PATH}
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib
-
-cmake . -DCMAKE_INSTALL_PREFIX:STRING="/usr"
-
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,17 +71,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-(cd ${PKG}/usr/bin
- mv stellarium stellarium.bin
- cat > stellarium << EOF
-#!/bin/bash
-#
-LD_LIBRARY_PATH=/usr/lib/qt4/lib stellarium.bin "$@"
-EOF
- chmod +x stellarium
-)
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1}
+cp x86info ${PKG}/usr/bin
+cp x86info.1 ${PKG}/usr/man/man1
 
 #strip_binaries
 
@@ -115,9 +102,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: Stellarium is a free software available for Windows, Linux/Unix and
-${PKGNAME}: MacOSX. It renders 3D photo-realistic skies in real time.u can see
-${PKGNAME}: with your eyes, binoculars or a small telescope.
+${PKGNAME}: x86info is a program which displays a range of information about the
+${PKGNAME}: CPUs present in an x86 system.
+${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
