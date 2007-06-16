@@ -6,7 +6,7 @@ TARNAME=brikx
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.3.3
+VERSION=0.4.0b
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,6 +59,13 @@ mkdir -p ${PKG}/usr/{bin,share/brikx}
  cp -a brikx data ${PKG}/usr/share/brikx
 )
 
+(cd ${PKG}/usr/share/brikx/data
+ mv high.dat high.dat.new
+ mv config config.new
+)
+
+doinst_config usr/share/brikx/data/high.dat.new usr/share/brikx/data/config.new
+
 cat > ${PKG}/usr/bin/brikx << EOF
 #!/bin/bash
 #
@@ -94,10 +101,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: A small puzzle game in which your goal is to remove all tiles. You
+${PKGNAME}: are held up by other tiles, gravity, walls, and other things, and you
+${PKGNAME}: can even redesign the level while playing!
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
@@ -109,6 +115,9 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root *; \
+chown root.games usr/share/brikx/{brikx,data/{high.dat.new,config.new}}; \
+chmod g+s usr/share/brikx/brikx ; \
+chmod g+w usr/share/brikx/data/{high.dat.new,config.new} ; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
