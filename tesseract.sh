@@ -171,7 +171,7 @@ for i in $SCANS
             convert "$i" -density 150x150 -compress none  "$NEWTIF" 1>&2
         fi
         # scanning the newly created tif
-        /usr/share/tesseract/tesseract "$NEWTIF" "$T_FILE" 1>&2
+        /usr/bin/tesseract "$NEWTIF" "$T_FILE" 1>&2
         #  output scanned text
         cat "$T_FILE".txt
         #  delete graphic file after use, if not unset in option
