@@ -6,9 +6,9 @@ TARNAME=gst-plugins-bad
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.10.4
+VERSION=0.10.5
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,16 +34,26 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gst-plugins-bad-0.10.4.diff
+# patch -p1 < ${CWD}/gst-plugins-bad-0.10.4.diff
+ sed -i -e 's/-lfaad -lm/-lfaad -lmpeg4ip_faad -lm/' configure
 )
-(cd ${TARNAME}-${VERSION}/ext/amrwb/amrwb-code
- unzip ~/tmp/new/a/amr/wb-float/26204-530.zip
- unzip 26204-530_ANSI-C_source_code.zip
- rm 26204*
- mv c-code/* .
- rmdir c-code
-)
+#(cd ${TARNAME}-${VERSION}/ext/amrwb
+# mkdir amrwb-code
+# cd amrwb-code
+# unzip ~/tmp/new/a/amr/wb-float/26204-530.zip
+# unzip 26204-530_ANSI-C_source_code.zip
+# rm 26204*
+# mv c-code/* .
+# rmdir c-code
+#)
 fi
 
 pre_configure
@@ -52,13 +62,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -85,15 +106,18 @@ cat <<EOF > ${PKG}/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
+          |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: GStreamer is a streaming media framework, based on graphs of filters
+${PKGNAME}: which operate on media data. Applications using this library can do
+${PKGNAME}: anything from real-time sound processing to playing videos, and just
+${PKGNAME}: about anything else media-related.  Its plugin-based architecture
+${PKGNAME}: means that new data types or processing capabilities can be added
+${PKGNAME}: simply by installing new plug-ins.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This package contains GStreamer Plugins that are considered to be of
+${PKGNAME}: bad quality, even though they might work.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -174,11 +174,13 @@ perllocalpod ()
 (cd ${PKG}
  PERLLOCALPOD=`find . -name perllocal.pod`
  if [ -n "${PERLLOCALPOD}" ]; then
-   mv ${PERLLOCALPOD} install/slack-perllocal.pod
-   cat >> install/doinst.sh <<EOF
-#
-cat >> ${PERLLOCALPOD/.\//} < install/slack-perllocal.pod
-EOF
+  echo WARNING --- perllocal.pod exists - renaming ...
+  for f in ${PERLLOCALPOD}
+  do
+    (cd `dirname $f`
+     mv perllocal.pod ${PKGNAME}.pod
+    )
+  done
  fi
 )
 }
@@ -410,18 +412,12 @@ then
   echo WARNING --- tmp directory exists
 fi
 
-(cd ${PKG}
- PERLLOCALPOD=`find . -name perllocal.pod`
- if [ -n "${PERLLOCALPOD}" ]; then
-  echo WARNING --- perllocal.pod exists
-  for f in ${PERLLOCALPOD}
-  do
-    (cd `dirname $f`
-     mv perllocal.pod ${PKGNAME}.pod
-    )
-  done
- fi
-)
+if [ -d ${PKG}/home ]
+then
+  echo WARNING --- home directory exists
+fi
+
+perllocalpod
 
 }
 

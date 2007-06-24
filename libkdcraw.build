@@ -6,7 +6,7 @@ TARNAME=libkdcraw
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.1.0
+VERSION=0.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -81,12 +99,12 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: Libkdcraw is a C++ interface around dcraw binary program used to
+${PKGNAME}: decode RAW picture files.  The library documentation is available on
+${PKGNAME}: header files.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This library is used by kipi-plugins, digiKam and others kipi host
+${PKGNAME}: programs.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
