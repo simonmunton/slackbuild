@@ -6,7 +6,7 @@ TARNAME=anjuta
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.1.3
+VERSION=2.2.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/anjuta-2.1.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -87,12 +105,13 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: Anjuta DevStudio is a versatile Integrated Development Environment
+${PKGNAME}: (IDE) on GNOME Desktop Environment and features a number of advanced
+${PKGNAME}: programming facilities. These include project management, application
+${PKGNAME}: and class wizards, an on-board interactive debugger, powerful source
+${PKGNAME}: editor, syntax highlighting, intellisense autocompletions, symbol
+${PKGNAME}: navigation, version controls, integrated GUI designing and other
+${PKGNAME}: tools.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
