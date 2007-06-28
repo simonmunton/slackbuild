@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
 VERSION=113
 VERSIONEXTRA=
-BUILD=1
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -52,7 +52,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-EXTRAS="extras/ata_id extras/cdrom_id extras/edd_id extras/path_id extras/scsi_id extras/usb_id extras/volume_id extras/rule_generator"
+EXTRAS="extras/ata_id extras/cdrom_id extras/edd_id extras/firmware \
+	extras/floppy extras/path_id extras/rule_generator \
+	extras/scsi_id extras/usb_id extras/volume_id"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -69,24 +71,68 @@ then
   exit
 fi
 
-
-
 make install DESTDIR=${PKG} EXTRAS="${EXTRAS}"
 
+#scsi_id is needed by multipath
+mkdir -p ${PKG}/sbin
+( cd ${PKG}
+  ln -s /lib/udev/scsi_id sbin/scsi_id
+)
+
+#vol_id is needed by multipath, too
+( cd ${PKG}
+  ln -s /lib/udev/vol_id sbin/vol_id
+)
+
 mv ${PKG}/usr/share/man ${PKG}/usr
+rmdir ${PKG}/usr/share
+
+mkdir -p ${PKG}/lib/firmware \
+         ${PKG}/etc/modprobe.d \
+         ${PKG}/etc/rc.d
 
 cp etc/udev/rules.d/*rules ${PKG}/etc/udev/rules.d
+cp ${CWD}/udev.conf ${PKG}/etc/udev/udev.conf
 cp ${CWD}/udev.rules ${PKG}/etc/udev/rules.d/50-udev.rules
+
+#cat > ${PKG}/etc/udev/rules.d/50-firmware.rules << EOF
+## firmware loader
+#SUBSYSTEM=="firmware", ACTION=="add", RUN+="/lib/udev/firmware.sh"
+#EOF
+
 chmod -x ${PKG}/etc/udev/rules.d/*
 
-mkdir -p ${PKG}/sbin ${PKG}/lib/udev/devices ${PKG}/etc/rc.d
+mkdir -p ${PKG}/lib/udev/devices
 
-cat ${CWD}/udev-doinst.sh > ${PKG}/install/doinst.sh
+(cd ${PKG}/lib/udev/devices
+ ln -snf /proc/self/fd fd
+ ln -snf fd/0 stdin
+ ln -snf fd/1 stdout
+ ln -snf fd/2 stderr
+# ln -snf /proc/kcore core
+)
+
+#cat ${CWD}/udev-doinst.sh > ${PKG}/install/doinst.sh
 
 cp ${CWD}/udev-rc.udev.new ${PKG}/etc/rc.d/rc.udev.new
-cp ${CWD}/udev-rc.udev_retry.new ${PKG}/etc/rc.d/rc.udev_retry.new
+#cp ${CWD}/udev-rc.udev_retry.new ${PKG}/etc/rc.d/rc.udev_retry.new
+chmod 755 ${PKG}/etc/rc.d/rc.udev.new
 
-cp ${CWD}/udev-floppy-extra-devs.sh ${PKG}/lib/udev/floppy-extra-devs.sh
+cp ${CWD}/udev-blacklist.new ${PKG}/etc/modprobe.d/blacklist.new
+cp ${CWD}/udev-isapnp.new ${PKG}/etc/modprobe.d/isapnp.new
+
+for f in cdrom-symlinks.sh floppy-extra-devs.sh modalias_ieee1394 modprobe.sh nethelper.sh rc.optical-symlinks
+do
+  cp ${CWD}/udev-${f} ${PKG}/lib/udev/${f}
+done
+
+chmod 755 ${PKG}/lib/udev/*
+chmod -x ${PKG}/lib/udev/rc.optical-symlinks
+
+doinst_config etc/rc.d/rc.udev.new etc/modprobe.d/blacklist.new etc/modprobe.d/isapnp.new
+
+# etc/rc.d/rc.udev_retry.new
+
 
 #strip_binaries
 
@@ -137,6 +183,11 @@ cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
 mknod ${PKG}/lib/udev/devices/null c 1 3; \
-chmod 666 ${PKG}/lib/udev/devices/null; \
+mknod ${PKG}/lib/udev/devices/zero c 1 5; \
+mknod ${PKG}/lib/udev/devices/ppp c 108 0; \
+mkfifo -m 600 ${PKG}/lib/udev/devices/initctl; \
+chmod 666 ${PKG}/lib/udev/devices/{null,zero}; \
+chown root.uucp ${PKG}/lib/udev/devices/ppp; \
+chmod 660 ${PKG}/lib/udev/devices/ppp; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

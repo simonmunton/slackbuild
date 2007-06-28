@@ -1,128 +1,145 @@
 #!/bin/sh
+# This is a script to initialize udev, which populates the /dev
+# directory with device nodes, scans for devices, loads the
+# appropriate kernel modules, and configures the devices.
 
 PATH="/sbin:/bin"
+OPT=""
+
+. /etc/udev/udev.conf
+
+# remove trailing slash from udev_root
+UDEV_ROOT=`echo "${udev_root}" |sed 's/\/*$//'`
 
 udev_start() {
-	# disable hotplug helper, udevd listens to netlink
-	echo "" > /proc/sys/kernel/hotplug
+	# Sanity check #2, udev requires that the kernel support tmpfs:
+        if ! grep -wq tmpfs /proc/filesystems ; then
+          echo "Sorry, but you need tmpfs support in the kernel to use udev."
+          echo
+          echo "FATAL:  Refusing to run /etc/rc.d/rc.udev."
+          exit 1
+        fi
 
-	# mount tmpfs on /dev, the SUSE kernel initramfs does this normally
-	if ! grep -E -q "^[^[:space:]]+ /dev tmpfs" /proc/mounts; then
-	    # umount shm if needed
-	    if grep -E -q "^[^[:space:]]+ /dev/shm tmpfs" /proc/mounts; then
-		umount -l /dev/shm
-	    fi
+        # Sanity check #3, make sure that a 2.6.x kernel is new enough:
+        if [ "$(uname -r | cut -f 1,2 -d .)" = "2.6" ]; then
+          if [ "$(uname -r | cut -f 3 -d . | sed 's/[^[:digit:]].*//')" -lt "15" ]; then
+            echo "Sorry, but you need a 2.6.15+ kernel to use udev."
+            echo "Your kernel version is only $(uname -r)."
+            echo
+            echo "FATAL:  Refusing to run /etc/rc.d/rc.udev."
+            exit 1
+          fi
+        fi
 
-	    # umount pts if needed, will remount it
-	    if grep -E -q "^[^[:space:]]+ /dev/pts devpts" /proc/mounts; then
-		umount -n -l /dev/pts
-	    fi
+        # Sanity check #4, make sure the udev package was not removed.  If udevd
+        # is not there, this will also shut off this script to prevent further
+        # problems:
+        if [ ! -x /sbin/udevd ]; then
+          chmod 644 /etc/rc.d/rc.udev
+          echo "No udevd daemon found."
+          echo "Turning off udev:  chmod 644 /etc/rc.d/rc.udev"
+          echo "FATAL:  Refusing to run /etc/rc.d/rc.udev."
+          exit 1
+        fi
 
-	    # mount tmpfs on /dev
-	    mount -n -o mode=0755 -t tmpfs tmpfs /dev
+        # Disable hotplug helper since udevd listens to netlink:
+        if [ -e /proc/sys/kernel/hotplug ]; then
+          echo "" > /proc/sys/kernel/hotplug
+        fi
 
-	    # we are on tmpfs anyway
-	    mkdir /dev/shm
-
-	    # remount pts
-	    mkdir /dev/pts
-	    mount -n -o mode=0620,gid=5 -t devpts devpts /dev/pts
-	fi
-
-	# if distro hasn't already done part of this ... load core,
-	# and mount usbfs 
-	modprobe -q usbcore >/dev/null 2>&1
-	if [ -d /proc/bus/usb ]; then
-	  # if it's not mounted, try to mount it
-	  if [ -z "`grep " /proc/bus/usb " /proc/mounts`" ]; then
-	    if grep -q -E "^[^#][^[:space:]]+[[:space:]]+/proc/bus/usb/?[[:space:]]" /etc/fstab; then
-	      mount /proc/bus/usb
-	    else
-	      if grep -q usbfs /proc/filesystems; then
-		mount -t usbfs usbfs /proc/bus/usb
-	      else
-		mount -t usbdevfs usbdevfs /proc/bus/usb
-	      fi
-	    fi
+	# if udevd is already running, rc.udev start will try to re-run
+	# failed events. Else, it will start udevd.
+	if ps axc | grep -q udevd ; then
+	  OPT="--retry-failed $OPT"
+	  mv ${udev_root}/*.rules ${udev_rules}/ 2>/dev/null
+	else
+	  # Copy the needed disk nodes to the static devices directory:
+	  RDEV=`grep -v '^#' /etc/fstab | sed -ne '/\W\/\W/s#/dev/\(\w*\)[0-9].*#\1#p'`
+	  if ! [ -e /lib/udev/devices/$RDEV ]; then
+		cp -a /dev/`echo $RDEV | cut -f3 -d/` /lib/udev/devices/ 2>/dev/null
 	  fi
+	  for i in `grep "$RDEV" /etc/fstab | cut -f1 -d\  | cut -f3 -d/`; do
+		if ! [ -e /lib/udev/devices/$i ]; then
+			cp -a /dev/$i /lib/udev/devices/ 2>/dev/null
+		fi
+	  done
+
+	  # Mount tmpfs on $UDEV_ROOT:
+	  if ! grep -E -q "^[^[:space:]]+ $UDEV_ROOT tmpfs" /proc/mounts; then
+		# umount shm if needed
+		if grep -E -q "^[^[:space:]]+ $UDEV_ROOT/shm tmpfs" /proc/mounts; then
+			umount -l $UDEV_ROOT/shm
+		fi
+
+		# Umount pts if needed, we will remount it later:
+		if grep -E -q "^[^[:space:]]+ $UDEV_ROOT/pts devpts" /proc/mounts; then
+			umount -l $UDEV_ROOT/pts
+		fi
+
+		# Mount tmpfs on $UDEV_ROOT:
+		# the -n is because we don't want $UDEV_ROOT umounted when
+		# someone (rc.[06]) calls umount -a
+		mount -n -o mode=0755 -t tmpfs tmpfs $UDEV_ROOT 
+
+		# Remount pts:
+		mkdir $UDEV_ROOT/pts 2> /dev/null
+		mount -n -o mode=0620,gid=5 -t devpts devpts $UDEV_ROOT/pts
+
+		# we are on tmpfs anyway
+                mkdir /dev/shm
+
+	  fi
+
+	  # Add the static nodes to $UDEV_ROOT:
+	  cp --preserve=all --recursive --remove-destination /lib/udev/devices/* $UDEV_ROOT 
+
+	  # Start udevd:
+	  echo "Starting udevd:  /sbin/udevd --daemon"
+	  /sbin/udevd --daemon
+
+	  mkdir -p $UDEV_ROOT/.udev/queue
 	fi
 
-	# populate initial /dev with the static nodes
-	cp --preserve=all --recursive --remove-destination /lib/udev/devices/* /dev
+	echo "Triggering udev events:  /sbin/udevtrigger $OPT"	
+	# Call udevtrigger and udevsettle to do the device configuration:
+	/sbin/udevtrigger $OPT && /sbin/udevsettle --timeout=120
 
-	# Not provided by sysfs but needed
-	ln -snf /proc/self/fd /dev/fd
-	ln -snf fd/0 /dev/stdin
-	ln -snf fd/1 /dev/stdout
-	ln -snf fd/2 /dev/stderr
-	[[ -e /proc/kcore ]] && ln -snf /proc/kcore /dev/core
-
-	# start udevd
-	/sbin/udevd --daemon	
-
-	# trigger cold plug events
-	/sbin/udevtrigger
-
-	# Now wait for udevd to process the uevents we triggered
-	/sbin/udevsettle
-
-	while read fsname dir type opts; do
-	  case "$dir" in
-	    /)
-	      case "$fsname" in
-	        /dev/*)
-	          if [ ! -e "$fsname" ]; then
-	            rootcpio=$(echo / | cpio --quiet -o -H newc)
-	            major=0x${rootcpio:62:8}
-	            minor=0x${rootcpio:70:8}
-	            if [ $((major)) -ne 0 ] ; then
-	              mknod -m640 $fsname b $major $minor
-	            fi
-	          fi
-	          break;
-	          ;;
-	      esac
-	      ;;
-	  esac
-	done < /proc/mounts
-
-	# wait for the events to finish
-	#sleep 2
-	#loop=300
-	#while test -d $udev_root/.udev/queue; do
-	#  sleep 0.1;
-	#  test "$loop" -gt 0 || break
-	#  loop=$(($loop - 1))
-	#done
 }
 
 udev_stop() {
-    echo "/sbin/hotplug" > /proc/sys/kernel/hotplug
-    killall udevd 
+        if [ -e /proc/sys/kernel/hotplug ]; then
+          echo /dev/null > /proc/sys/kernel/hotplug
+        fi
+	killall udevd 
 }
 
 case "$1" in
     start)
-	echo "Starting udevd "
-	udev_start;
+	udev_start
 	;;
     stop)
-        echo "Stopping udevd"
-	udev_stop;
+	echo "Stopping udevd"
+	udev_stop
 	;;
     restart)
-	echo "Restarting udevd"
-	udev_stop;
+	echo "Stopping udevd"
+	udev_stop
 	sleep 5
-	udev_start;
+	udev_start
 	;;
     reload)
 	echo "Reloading udev rules"
 	udevcontrol reload_rules
-	cp --preserve=all --recursive --update /lib/udev/devices/* /dev
+	;;
+    force-reload)
+	echo "Force reloading udev rules"
+	udev_stop
+	sleep 5
+	cp --preserve=all --recursive --remove-destination /lib/udev/devices/* $UDEV_ROOT 
+	udevd --daemon
 	;;
     *)
-	echo "Usage: $0 {start|stop|restart|reload}"
+	echo "Usage: $0 {start|stop|restart|reload|force-reload}"
 	exit 1
 	;;
 esac
