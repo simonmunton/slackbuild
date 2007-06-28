@@ -1,0 +1,238 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=wpa_supplicant
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/w
+#TAR_EXT=.tar.gz
+VERSION=0.5.8
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+# Support for some of the wireless drivers needs the header files of those
+# drivers.
+# Change these *_INCLUDES variables to where _your_ driver include directory
+# is located. If any of these directories is found, support for the driver
+# will be added to wpa_supplicant.
+# My madwifi package for Slackware installs the headers here:
+MADWIFI_INCLUDES="/usr/include/madwifi"
+HERMES_INCLUDES=""
+BROADCOM_INCLUDES=""
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+
+cat > .config << EOF
+CONFIG_DRIVER_HOSTAP=y
+CONFIG_DRIVER_NDISWRAPPER=y
+CONFIG_DRIVER_ATMEL=y
+CONFIG_DRIVER_IPW=y
+CONFIG_DRIVER_WEXT=y
+CONFIG_DRIVER_WIRED=y
+CONFIG_IEEE8021X_EAPOL=y
+CONFIG_EAP_MD5=y
+CONFIG_EAP_MSCHAPV2=y
+CONFIG_EAP_TLS=y
+CONFIG_EAP_PEAP=y
+CONFIG_EAP_TTLS=y
+CONFIG_EAP_GTC=y
+CONFIG_EAP_OTP=y
+CONFIG_EAP_LEAP=y
+CONFIG_PKCS12=y
+CONFIG_SMARTCARD=y
+CONFIG_CTRL_IFACE=y
+CONFIG_READLINE=y
+CONFIG_BACKEND=file
+CONFIG_PEERKEY=y
+EOF
+
+if [ ! -z ${MADWIFI_INCLUDES} -a -d ${MADWIFI_INCLUDES} ]; then
+  echo "Adding madwifi driver (Atheros) support"
+  cat << EOF >> .config
+CONFIG_DRIVER_MADWIFI=y
+CFLAGS += -I${MADWIFI_INCLUDES}
+EOF
+fi
+if [ ! -z ${HERMES_INCLUDES} -a -d ${HERMES_INCLUDES} ]; then
+  echo "Adding hermes driver (Agere) support"
+  cat << EOF >> .config
+CONFIG_DRIVER_HERMES=y
+CFLAGS += -I${HERMES_INCLUDES}
+EOF
+fi
+if [ ! -z ${BROADCOM_INCLUDES} -a -d ${BROADCOM_INCLUDES} ]; then
+  echo "Adding broadcom driver support"
+  cat << EOF >> .config
+CONFIG_DRIVER_BROADCOM=y
+CFLAGS += -I${BROADCOM_INCLUDES}
+EOF
+fi
+
+fi
+
+export CFLAGS="-O2 -march=i486 ${CPUOPT}=i686"
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} all wpa_gui || exit
+
+# Make man pages if needed
+(cd doc/docbook
+ if ! ls *.? >/dev/null 2>&1
+ then
+  make man
+ fi
+)
+
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+# This goes in the doc directory later on:
+cp wpa_supplicant.conf wpa_supplicant.conf.sample
+
+# Install binaries
+mkdir -p ${PKG}/usr/sbin
+cp wpa_supplicant wpa_passphrase wpa_cli wpa_gui/wpa_gui ${PKG}/usr/sbin/
+
+# Install man pages
+for m in 5 8; do
+  mkdir -p $PKG/usr/man/man${m}
+  cp doc/docbook/*.${m} ${PKG}/usr/man/man${m}/
+done
+
+# Install configuration file
+mkdir -p ${PKG}/etc
+cat > ${PKG}/etc/wpa_supplicant.conf.new << EOF 
+# See /usr/doc/${PRGNAM}-${VERSION}/wpa_supplicant.conf.sample
+# for many more options that you can use in this file.
+
+# This line enables the use of wpa_cli which is used by rc.wireless
+# if possible (to check for successful association)
+ctrl_interface=/var/run/wpa_supplicant
+# By default, only root (group 0) may use wpa_cli
+ctrl_interface_group=0
+eapol_version=1
+ap_scan=1
+fast_reauth=1
+
+# WPA protected network, supply your own ESSID and WPAPSK here:
+network={
+  scan_ssid=0
+  ssid="your_essid_here"
+  proto=WPA
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  psk=your_psk_here
+}
+
+# Plaintext connection (no WPA, no IEEE 802.1X),
+# nice for hotel/airport types of WiFi network.
+# You'll need a recent version of wireless-tools for this!
+network={
+  ssid="any"
+  key_mgmt=NONE
+  priority=2
+}
+EOF
+
+# This should only be read/write by root:
+chmod 600 ${PKG}/etc/wpa_supplicant.conf.new
+
+doinst_config etc/wpa_supplicant.conf.new
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ChangeLog examples wpa_supplicant.conf.sample \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION} (WPA/WPA2/IEEE 802.1X Supplicant)
+${PKGNAME}:
+${PKGNAME}: wpa_supplicant is a WPA Supplicant for Linux with support for
+${PKGNAME}: WPA and WPA2 (IEEE 802.11i / RSN). Supplicant is the
+${PKGNAME}: IEEE 802.1X/WPA component that is used in the client stations.
+${PKGNAME}: It implements key negotiation with a WPA Authenticator and it
+${PKGNAME}: controls the roaming and IEEE 802.11 authentication/association
+${PKGNAME}: of the wlan driver.
+${PKGNAME}:
+${PKGNAME}: More info: http://hostap.epitest.fi/wpa_supplicant/
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
