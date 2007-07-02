@@ -252,13 +252,16 @@ SUBSYSTEM=="pnp", ENV{MODALIAS}!="?*", \
 # firewire
 SUBSYSTEM=="ieee1394", ENV{MODALIAS}!="?*", IMPORT{program}="modalias_ieee1394"
 
-#  libusb device access
+# libusb device access
 DEVPATH=="/module/usbcore", ACTION=="add", \
               RUN+="/bin/sh -c 'sleep 1; /bin/mount none -t usbfs /proc/bus/usb -o devmode=0666,devgid=10'"
 SUBSYSTEM=="usb_device", PROGRAM="/bin/sh -c 'X=%k X=$${X#usbdev}; B=$${X%%%%.*}; D=$${X#*.}; echo bus/usb/$$B/$$D'", SYMLINK+="%c"
 
 # firmware loader
 SUBSYSTEM=="firmware", ACTION=="add", RUN+="/lib/udev/firmware.sh"
+
+# Platform
+SUBSYSTEM=="platform", ACTION=="add", ENV{MODALIAS}=="?*", RUN+="/lib/udev/modprobe.sh $env{MODALIAS}", GOTO="load_modules_end"
 
 # load module
 ACTION=="add", ENV{MODALIAS}=="?*", RUN+="/sbin/modprobe $env{MODALIAS}"
