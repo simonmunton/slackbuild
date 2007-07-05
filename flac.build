@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
 VERSION=1.1.4
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -68,6 +68,18 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
+
+rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/FLAC.tag
+mv ${PKG}/usr/doc/${TARNAME}-${VERSION}/html/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
+# we're not putting 3MB of API docs in the binary package...
+( cd ${PKG}/usr/doc/${TARNAME}-${VERSION}/api && rm -r * )
+cat << EOF > ${PKG}/usr/doc/${TARNAME}-${VERSION}/api/README
+Full HTML based API documentation may be found in the FLAC
+source package.  It is not included in the binary package due
+to size.
+EOF
+
 
 mkdir -p ${PKG}/install
 cat <<EOF > ${PKG}/install/slack-desc

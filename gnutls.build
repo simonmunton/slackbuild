@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
 VERSION=1.6.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+	    --localstatedir=/var \
+	    --infodir=/usr/info \
+	    --mandir=/usr/man \
+	    --enable-static=no
 
-make || exit
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -64,7 +86,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* doc/TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -81,7 +103,13 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: This is a TLS (Transport Layer Security) 1.0 and SSL (Secure Sockets
+${PKGNAME}: Layer) 3.0 implementation.  In brief, GnuTLS can be described as a
+${PKGNAME}: library which offers an API to access secure communication protocols.
+${PKGNAME}: These protocols provide privacy over insecure lines, and were designed
+${PKGNAME}: to prevent eavesdropping, tampering, or message forgery.
+${PKGNAME}:
+${PKGNAME}: Homepage: http://www.gnu.org/software/gnutls/
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

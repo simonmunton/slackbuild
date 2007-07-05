@@ -6,7 +6,7 @@ TARNAME=espeak
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=1.26
+VERSION=1.27
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -34,6 +34,13 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/espeak.diff
 )
@@ -45,14 +52,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd src
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+  true
+fi
 
-make BINDIR=/usr/bin libespeak.so || exit
-make BINDIR=/usr/bin || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+(cd src
 
-make install BINDIR=/usr/bin DESTDIR=${PKG}
+make ${NUM_JOBS} BINDIR=/usr/bin libespeak.so || exit
+make ${NUM_JOBS} BINDIR=/usr/bin || exit
+)
+fi
 
-cd ..
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+(cd src
+ make install BINDIR=/usr/bin DESTDIR=${PKG}
+)
 
 #strip_binaries
 
@@ -63,7 +84,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ReadMe License* docs \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -77,14 +98,15 @@ cat <<EOF > ${PKG}/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
+          |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: eSpeak is a compact open source software speech synthesizer for
+${PKGNAME}: English and other languages.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: eSpeak produces good quality English speech. It uses a different
+${PKGNAME}: synthesis method from other open source TTS engines, and sounds quite
+${PKGNAME}: different.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
