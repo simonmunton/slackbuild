@@ -5,10 +5,39 @@ then
   exit
 fi
 
-if [ -f $1.build ]
+if [[ "$1" =~ "/" ]]
 then
-  echo $1.build exists
+  DIRPART=${1#*/cpan/}
+  DIRPART=${DIRPART%/*}
+  NAME=${1##*/}
+  VER=${NAME##*-}
+  VER=${VER%%.tar*}
+  NAME=${NAME%-*}
 else
-  sed -e s/TEMPLATE/$1/g template.build > $1.build
-  chmod +x $1.build
+  NAME=${1%.build}
+fi
+
+if [ ! -z "$2" ]
+then
+  DIR=$2
+else
+  DIR='~/tmp/cpan/'$DIRPART
+fi
+
+#echo $DIRPART $NAME $VER $DIR
+#exit
+
+if [ ! -z "$3" ]
+then
+  VER=$3
+else
+  VER=$VER
+fi
+
+if [ -f ${NAME}.build ]
+then
+  echo $NAME.build exists
+else
+  sed -e "s/TEMPLATE/$NAME/g; s@^TARDIR=~/tmp/cpan/@TARDIR=$DIR@; s/^VERSION=/VERSION=$VER/" template.build > $NAME.build
+  chmod +x $NAME.build
 fi
