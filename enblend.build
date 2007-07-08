@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
 VERSION=3.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -L/usr/X11R6/lib" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -L/usr/X11R6/lib" \
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -81,11 +99,12 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: Enblend is a tool for compositing images using a Burt & Adelson
+${PKGNAME}: multiresolution spline. This technique tries to make the seams
+${PKGNAME}: between the input images invisible. The basic idea is that image
+${PKGNAME}: features should be blended across a transition zone proportional in
+${PKGNAME}: size to the spatial frequency of the features. For example, objects
+${PKGNAME}: like trees and windowpanes have rapid changes in color.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
 VERSION=1.1.7
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,20 +52,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --with-frozenpaths=no \
-	    --enable-shared \
-	    --enable-static=no
+            --with-frozenpaths=no \
+            --enable-shared \
+            --enable-static=no
 
-make || exit
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
-
-perllocalpod
 
 #strip_binaries
 
@@ -86,12 +103,17 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: GraphicsMagick(TM) provides a powerful image manipulation and
+${PKGNAME}: translation utility. It is capable of displaying still images and
+${PKGNAME}: animations using the X Window system, provides a simple interface for
+${PKGNAME}: interactively editing images, and is capable of importing selected
+${PKGNAME}: windows or the entire desktop. GraphicsMagick can read and write over
+${PKGNAME}: 88 image formats, including JPEG, TIFF, WMF, SVG, PNG, PNM, GIF, and
+${PKGNAME}: Photo CD. It can resize, rotate, sharpen, color reduce, or add special
+${PKGNAME}: effects to the image and save the result to any supported format.
+${PKGNAME}: GraphicsMagick may be used to create animated or transparent .gifs,
+${PKGNAME}: create composite images, create thumbnail images, and much, much,
+${PKGNAME}: more.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
 VERSION=2.1.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < $CWD/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,11 +52,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-make PREFIX=/usr || exit
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+  true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} PREFIX=/usr || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install PREFIX=/usr DESTDIR=${PKG}
-
-perllocalpod
 
 #strip_binaries
 
@@ -74,16 +92,17 @@ cat <<EOF > ${PKG}/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
+          |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: The Frozen-Bubble game is a free software implementation of a popular
+${PKGNAME}: arcade/reflex game. The game mainly consists of firing randomly
+${PKGNAME}: chosen bubbles across the board. If the shot ends up having a clump
+${PKGNAME}: of at least 3 bubbles of the same color, they all pop. If some
+${PKGNAME}: bubbles were stuck only on the popping clump, they fall. In 1-player
+${PKGNAME}: mode, the goal is to pop all the bubbles on the board as quickly as
+${PKGNAME}: possible. In 2-players or network mode, you have to get your opponent
+${PKGNAME}: to "die" before you.
 ${PKGNAME}:
 ${PKGNAME}:
 EOF
