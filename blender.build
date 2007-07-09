@@ -58,6 +58,14 @@ if [ ${DO_MAKE} == "yes" ]
 then
 scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 || exit
  # BF_PYTHON_VERSION=2.5 || exit
+
+install -d release/plugins/include
+install -m 644 source/blender/blenpluginapi/*.h release/plugins/include
+
+chmod +x release/plugins/bmake
+
+make -C release/plugins/
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -67,6 +75,9 @@ fi
 
 mkdir -p ${PKG}/usr/share/blender/{.blender,plugins} ${PKG}/usr/bin
 
+cp ../install/linux2/blender ${PKG}/usr/bin/blender.bin
+cp ../install/linux2/blenderplayer ${PKG}/usr/bin
+
 cp -pr release/scripts ${PKG}/usr/share/blender/.blender
 cp -pr bin/.blender/*  ${PKG}/usr/share/blender/.blender
 cp -p bin/.blender/.*  ${PKG}/usr/share/blender/.blender
@@ -75,18 +86,27 @@ chmod +x ${PKG}/usr/share/blender/plugins/bmake
 mkdir -p ${PKG}/usr/share/blender/plugins/include
 cp source/blender/blenpluginapi/*.h ${PKG}/usr/share/blender/plugins/include
 cp release/text/* ${PKG}/usr/share/blender
-cp ../install/linux2/blender ../install/linux2/blenderplayer ${PKG}/usr/share/blender
 
-cat << EOF > ${PKG}/usr/bin/blender
-#!/bin/bash
-#
-/usr/share/blender/blender $*
-EOF
+cp ${CWD}/blender-import-3ds-0.7.py ${PKG}/usr/share/blender/.blender/import-3ds-0.7.py
+cp ${CWD}/blender-export-3ds-0.7.py ${PKG}/usr/share/blender/.blender/export-3ds-0.7.py
+
+mkdir -p ${PKG}/usr/share/{pixmaps,applications,mime/packages}
+
+cp ${CWD}/blender.png ${PKG}/usr/share/pixmaps/blender.png
+cp ${CWD}/blender.desktop ${PKG}/usr/share/applications/blender.desktop
+cp ${CWD}/blender.xml ${PKG}/usr/share/mime/packages/blender.xml
+
+cp ${CWD}/blender.wrapper ${PKG}/usr/bin/blender
+#cat << EOF > ${PKG}/usr/bin/blender
+##!/bin/bash
+##
+#/usr/share/blender/blender $*
+#EOF
 
 cat << EOF > ${PKG}/usr/bin/blenderplayer
 #!/bin/bash
 #
-/usr/share/blender/blenderplayer $*
+/usr/share/blender/blenderplayer $@
 EOF
 
 chmod +x ${PKG}/usr/bin/*
@@ -117,12 +137,13 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: Blender is the free open source 3D content creation suite, available
-${PKGNAME}: for all major operating systems under the GNU General Public License.
+${PKGNAME}: Blender is the essential software solution you need for 3D, from
+${PKGNAME}: modeling, animation, rendering and post-production to interactive
+${PKGNAME}: creation and playback.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: Professionals and novices can easily and inexpensively publish
+${PKGNAME}: stand-alone, secure, multi-platform content to the web, CD-ROMs,
+${PKGNAME}: and other media.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
