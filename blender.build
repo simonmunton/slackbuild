@@ -56,8 +56,9 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 || exit
- # BF_PYTHON_VERSION=2.5 || exit
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+
+scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1  BF_PYTHON_VERSION=${PYTHON_VERSION} || exit
 
 install -d release/plugins/include
 install -m 644 source/blender/blenpluginapi/*.h release/plugins/include
@@ -88,8 +89,8 @@ mkdir -p ${PKG}/usr/share/blender/plugins/include
 cp source/blender/blenpluginapi/*.h ${PKG}/usr/share/blender/plugins/include
 cp release/text/* ${PKG}/usr/share/blender
 
-cp ${CWD}/blender-import-3ds-0.7.py ${PKG}/usr/share/blender/.blender/import-3ds-0.7.py
-cp ${CWD}/blender-export-3ds-0.71.py ${PKG}/usr/share/blender/.blender/export-3ds-0.71.py
+#cp ${CWD}/blender-import-3ds-0.7.py ${PKG}/usr/share/blender/.blender/import-3ds-0.7.py
+#cp ${CWD}/blender-export-3ds-0.71.py ${PKG}/usr/share/blender/.blender/export-3ds-0.71.py
 
 mkdir -p ${PKG}/usr/share/{pixmaps,applications,mime/packages}
 
