@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=glade3
+TARNAME=metis
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=3.2.2
+VERSION=4.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-#PKGVERSION=
+PKGVERSION=4.0.1
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -54,16 +54,19 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
+
+METIS_version=${PKGVERSION}
+
+gcc -shared -Wl,-soname,libmetis.so.${METIS_version%.*.*} -o libmetis.so.${METIS_version}  `ls Lib/*.o` &&
+ln -sf libmetis.so.${METIS_version} libmetis.so.${METIS_version%.*} &&
+ln -sf libmetis.so.${METIS_version} libmetis.so
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -71,7 +74,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib,include/metis}
+cp -d lib* ${PKG}/usr/lib
+cp Lib/*.h ${PKG}/usr/include/metis
+cp graphchk kmetis mesh2dual mesh2nodal oemetis onmetis partdmesh partnmesh pmetis ${PKG}/usr/bin
+
+
 
 #strip_binaries
 
@@ -82,7 +90,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ${TARDIR}/metis-manual.pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -99,11 +107,11 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: Glade is a RAD tool to enable quick & easy development of user
-${PKGNAME}: interfaces for the Gtk+ toolkit and the GNOME desktop environment.
-${PKGNAME}: The user interfaces designed in Glade are stored in XML format,
-${PKGNAME}: enabling easy integration with external tools.
-${PKGNAME}:
+${PKGNAME}: METIS is a family of programs for partitioning unstructured graphs
+${PKGNAME}: and hypergraphs and computing fill-reducing orderings of sparse
+${PKGNAME}: matrices. The underlying algorithms used by METIS are based on the
+${PKGNAME}: state-of-the-art multilevel paradigm that has been shown to produce
+${PKGNAME}: high quality results and scale to very large problems.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

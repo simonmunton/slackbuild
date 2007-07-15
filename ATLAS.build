@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
 VERSION=3.6.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -120,7 +120,7 @@ echo "############### 2"
 #	sed -e s/g77/gfortran/ -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
 #	carch=${BUILD_DIR} fpic="-Wa,--noexecstack" debug= | bash -x -e
   cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
-	debian/ab topdir=`pwd` \
+	sed -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
 	carch=${BUILD_DIR} fpic="-Wa,--noexecstack" debug= | bash -x -e
   mv lib/${BUILD_DIR}/liblapack.a lib/${BUILD_DIR}/liblapack_atlas.a
 
@@ -176,7 +176,7 @@ echo "############### 5"
 #	sed -e s/g77/gfortran/ -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
 #	carch=${BUILD_DIR} fpic="-Wa,--noexecstack -fPIC" debug= | bash -x -e
   cat ${BUILD_DATA_DIR}/build.uu | uudecode | zcat - | \
-	debian/ab topdir=`pwd` \
+	sed -e s/-DAdd__/-DAdd_/ | debian/ab topdir=`pwd` \
 	carch=${BUILD_DIR} fpic="-Wa,--noexecstack -fPIC" debug= | bash -x -e
   mv lib/${BUILD_DIR}/liblapack.a lib/${BUILD_DIR}/liblapack_atlas.a
 
@@ -211,8 +211,8 @@ echo "############### 6"
   popd
   cc -shared -Wl,-soname=libf77blas.so.${VER_MAJOR} \
 	-o lib/${BUILD_DIR}/libf77blas.so.${VER} tmp/*.o \
-	-L lib/${BUILD_DIR} -latlas -lg2c
-#	-L lib/${BUILD_DIR} -latlas -lgfortran
+	-L lib/${BUILD_DIR} -latlas -lgfortran
+#	-L lib/${BUILD_DIR} -latlas -lg2c
   ln -s libf77blas.so.${VER} lib/${BUILD_DIR}/libf77blas.so.${VER_MAJOR}
   ln -s libf77blas.so.${VER} lib/${BUILD_DIR}/libf77blas.so
   rm -rf tmp
@@ -237,8 +237,8 @@ echo "############### 6"
     ar x ../lib/${BUILD_DIR}/libcblas.a
   popd
   cc -shared -Wl,-soname=libblas.so.${VER_MAJOR} \
-	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lg2c
-#	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lgfortran
+	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lgfortran
+#	-o lib/${BUILD_DIR}/libblas.so.${VER} tmp/*.o -lg2c
   ln -s libblas.so.${VER} lib/${BUILD_DIR}/libblas.so.${VER_MAJOR}
   ln -s libblas.so.${VER} lib/${BUILD_DIR}/libblas.so
   rm -rf tmp
@@ -251,8 +251,8 @@ echo "############### 6"
   popd
   cc -shared -Wl,-soname=liblapack.so.${VER_MAJOR} \
 	-o lib/${BUILD_DIR}/liblapack.so.${VER} tmp/*.o \
-	-L lib/${BUILD_DIR} -lblas -lg2c
-#	-L lib/${BUILD_DIR} -lblas -lgfortran
+	-L lib/${BUILD_DIR} -lblas -lgfortran
+#	-L lib/${BUILD_DIR} -lblas -lg2c 
   ln -s liblapack.so.${VER} lib/${BUILD_DIR}/liblapack.so.${VER_MAJOR}
   ln -s liblapack.so.${VER} lib/${BUILD_DIR}/liblapack.so
   rm -rf tmp

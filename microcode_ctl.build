@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=glade3
+TARNAME=microcode_ctl
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=3.2.2
+VERSION=1.17
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -54,16 +54,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PREFIX=/usr || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -71,7 +67,24 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=/usr RCFILEFINAL=rc.microcode_ctl RCHOMEDIR=rc.d
+
+cp ${CWD}/microcode_ctl.start ${PKG}/etc/rc.d/rc.microcode_ctl
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+run=\`grep "/etc/rc.d/rc.microcode_ctl" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# update processor microcode" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.microcode_ctl ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.microcode_ctl start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+fi
+EOF
 
 #strip_binaries
 
@@ -99,13 +112,18 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: Glade is a RAD tool to enable quick & easy development of user
-${PKGNAME}: interfaces for the Gtk+ toolkit and the GNOME desktop environment.
-${PKGNAME}: The user interfaces designed in Glade are stored in XML format,
-${PKGNAME}: enabling easy integration with external tools.
+${PKGNAME}: The microcode_ctl utility is a companion to the IA32 microcode driver
+${PKGNAME}: written by Tigran Aivazian <tigran@aivazian.fsnet.co.uk>. The utility
+${PKGNAME}: has two uses:
 ${PKGNAME}:
+${PKGNAME}: a) it decodes and sends new microcode to the kernel driver to be
+${PKGNAME}:    uploaded to Intel IA32 family processors. (Pentium Pro, PII,
+${PKGNAME}:    Celeron, PIII, Xeon, Pentium 4 etc, x86_64)
+${PKGNAME}: b) it signals the kernel driver to release any buffers it may hold
 ${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: The microcode update is volatile and needs to be uploaded on each
+${PKGNAME}: system boot i.e. it doesn't reflash your cpu permanently, reboot and
+${PKGNAME}: it reverts back to the old microcode.
 ${PKGNAME}:
 ${PKGNAME}:
 EOF

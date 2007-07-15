@@ -1,31 +1,5 @@
 #!/bin/sh
 
-###
-# Place the postgresql init script.
-###
-config() {
-  NEW="$1"
-  OLD="`dirname $NEW`/`basename $NEW .new`"
-  # If there's no config file by that name, mv it over:
-  if [ ! -r $OLD ]; then
-    mv $NEW $OLD
-  elif [ "`cat $OLD | md5sum`" = "`cat $NEW | md5sum`" ]; then # toss the redundant copy
-    rm $NEW
-  fi
-  # Otherwise, we leave the .new copy for the admin to consider...
-}
-
-config etc/rc.d/rc.postgresql.new
-
-###
-# Create postrgresql' user:group if they don't exist.
-###
-user_exists=`grep ^postgres etc/passwd`
-if [[ "${user_exists}" == "" ]]; then
-	useradd postgres
-fi
-
-
 if [ ! -d /var/lib/pgsql/data ]
 then
   mkdir -p /var/lib/pgsql/data
@@ -33,7 +7,6 @@ then
 
   (su - postgres -c "/usr/bin/initdb -D /var/lib/pgsql/data" )
 fi
-
 
 ###
 # Use rc.local to start postgresql at boot.
@@ -55,3 +28,14 @@ if [[ "${run}" == "" ]]; then
 	echo "fi" >> etc/rc.d/rc.local
 fi
 
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+	echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+	chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=`grep "/etc/rc.d/rc.postgresql" etc/rc.d/rc.local_shutdown`
+if [[ "${run}" == "" ]]; then	
+	echo "" >> etc/rc.d/rc.local_shutdown
+	echo "if [ -x /etc/rc.d/rc.postgresql ]; then" >> etc/rc.d/rc.local_shutdown
+	echo "	/etc/rc.d/rc.postgresql stop" >> etc/rc.d/rc.local_shutdown
+	echo "fi" >> etc/rc.d/rc.local_shutdown
+fi
