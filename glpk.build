@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=metis
+TARNAME=glpk
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/gnu/glpk
 #TAR_EXT=.tar.gz
-VERSION=4.0
+VERSION=4.19
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-PKGVERSION=4.0.1
+#PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -54,29 +54,16 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  true
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd Lib
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
-METIS_version=${PKGVERSION}
-
-gcc -shared -Wl,-soname,libmetis.so.${METIS_version%.*.*} -o libmetis.so.${METIS_version} -lm `ls Lib/*.o` &&
-ln -sf libmetis.so.${METIS_version} libmetis.so.${METIS_version%.*.*} &&
-ln -sf libmetis.so.${METIS_version} libmetis.so
-
-pushd Programs
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
-pushd Test
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,13 +71,7 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/{bin,lib,include/metis}
-cp -d lib* ${PKG}/usr/lib
-rm ${PKG}/usr/lib/*.a
-cp Lib/*.h ${PKG}/usr/include/metis
-cp graphchk kmetis mesh2dual mesh2nodal oemetis onmetis partdmesh partnmesh pmetis ${PKG}/usr/bin
-
-
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -101,7 +82,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ${TARDIR}/metis-manual.pdf \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -118,11 +99,11 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: METIS is a family of programs for partitioning unstructured graphs
-${PKGNAME}: and hypergraphs and computing fill-reducing orderings of sparse
-${PKGNAME}: matrices. The underlying algorithms used by METIS are based on the
-${PKGNAME}: state-of-the-art multilevel paradigm that has been shown to produce
-${PKGNAME}: high quality results and scale to very large problems.
+${PKGNAME}: The GLPK package is a set of routines written in ANSI C and organized
+${PKGNAME}: in the form of a callable library. This package is intended for
+${PKGNAME}: solving large-scale linear programming (LP), mixed integer linear
+${PKGNAME}: programming (MIP), and other related problems.
+${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
