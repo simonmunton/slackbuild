@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libgsf
+TARNAME=hdf5
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=1.14.5
+VERSION=1.6.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,6 +43,13 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/hdf5-1.6.4-gcc4.patch
+# patch -p1 < ${CWD}/hdf5-1.6.4-destdir.patch
+ patch -p1 < ${CWD}/hdf5-1.6.4-norpath.patch
+ patch -p1 < ${CWD}/hdf5-1.6.4-testh5repack.patch
+ patch -p1 < ${CWD}/hdf5-1.6.5-h5diff_attr.patch
+ patch -p1 < ${CWD}/hdf5-1.6.5-flags.patch
+ patch -p1 < ${CWD}/hdf5-1.6.5-sort.patch
 )
 fi
 
@@ -58,7 +65,13 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --with-ssl \
+	    --with-szlib \
+	    --enable-cxx \
+	    --enable-fortran \
+            --enable-threadsafe \
+	    --with-pthread
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -71,7 +84,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install install-doc DESTDIR=${PKG} prefix=${PKG}/usr
+
+rm ${PKG}/usr/lib/*.settings
+rm ${PKG}/usr/bin/h5perf
 
 #strip_binaries
 
@@ -99,13 +115,14 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: The GNOME Structured File Library (GSF) is an I/O abstraction for
-${PKGNAME}: reading/writing compound files. GSF is released under the GNU
-${PKGNAME}: Lesser General Public License (GNU LGPL), which allows for
-${PKGNAME}: flexible licensing of client applications.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: HDF5 is a general purpose library and file format for storing
+${PKGNAME}: scientific data. HDF5 can store two primary objects: datasets and
+${PKGNAME}: groups. A dataset is essentially a multidimensional array of data
+${PKGNAME}: elements, and a group is a structure for organizing objects in an HDF5
+${PKGNAME}: file. Using these two basic objects, one can create and store almost
+${PKGNAME}: any kind of scientific data structure, such as images, arrays of
+${PKGNAME}: vectors, and structured and unstructured grids. You can also mix and
+${PKGNAME}: match them in HDF5 files according to your needs.
 ${PKGNAME}:
 EOF
 
