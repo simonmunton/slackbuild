@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
 VERSION=1.8.7
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,6 +34,13 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/tkgate-1.8.7.diff
 )
@@ -45,13 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install install.man DESTDIR=${PKG}
 
@@ -81,12 +99,12 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: TkGate is a event driven digital circuit simulator with a tcl/tk
+${PKGNAME}: based graphical editor. TkGate supports a wide range of primitive
+${PKGNAME}: circuit elements as well as user-defined modules for hierarchical
+${PKGNAME}: design. The distribution comes with a number of tutorial and example
+${PKGNAME}: circuits which can be loaded through the "Help" menu. The example
+${PKGNAME}: circuits include a simple CPU, programmed to run the Animals game.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

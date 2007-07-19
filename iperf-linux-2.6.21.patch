@@ -1,0 +1,41 @@
+
+(Thanks to Stephen Hemminger for the patch and summary.)
+
+The latest version of Linux kernel aggravates a pre-existing iperf thread
+library bug. The iperf thread library assumes that calling usleep(0) will
+cause
+the thread to yield so that other threads will run. This has never been a
+documented
+behavior of Linux/Unix. The new high resolution timer option in the kernel
+causes
+usleep(0) to be a nop so the thread keeps running (until it's quanta is
+exhausted).
+
+Without this fix, iperf will get poor performance because the monitoring
+thread
+may hog the cpu, keeping the sender/receiver threads from running.
+
+The fix to iperf is easy, just use sched_yield() instead. The manual page
+for sched_yield
+says to test for POSIX_PRIORITY_SCHEDULING as a Posix option.
+
+
+--- compat/Thread.c.orig        2005-05-03 08:15:51.000000000 -0700
++++ compat/Thread.c     2007-06-04 10:41:11.000000000 -0700
+@@ -405,9 +405,13 @@
+ void thread_rest ( void ) {
+ #if defined( HAVE_THREAD )
+ #if defined( HAVE_POSIX_THREAD )
+-    // TODO add checks for sched_yield or pthread_yield and call that
+-    // if available
++
++#if defined( _POSIX_PRIORITY_SCHEDULING )
++    sched_yield();
++#else
+     usleep( 0 );
++#endif
++
+ #else // Win32
+     SwitchToThread( );
+ #endif
+
