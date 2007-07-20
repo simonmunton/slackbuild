@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=3.17.2
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,9 +52,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 echo yes | python configure.py CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686"
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -77,8 +95,8 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
+${PKGNAME}: These are the Python bindings for Qt.  You must also have the SIP
+${PKGNAME}: Python bindings generator installed.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

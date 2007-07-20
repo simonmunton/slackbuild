@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
 VERSION=2.8.4.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/wxPython-2.8.1.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -47,7 +54,24 @@ fix_perms
 
 cd wxPython
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
 python setup.py build_ext --inplace --debug  || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 python setup.py install --root=${PKG}
 
@@ -77,11 +101,11 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: wxPython is a GUI toolkit for the Python programming language. It
+${PKGNAME}: allows Python programmers to create programs with a robust, highly
+${PKGNAME}: functional graphical user interface, simply and easily. It is
+${PKGNAME}: implemented as a Python extension module (native code) that wraps the
+${PKGNAME}: popular wxWidgets cross platform GUI library, which is written in C++.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
