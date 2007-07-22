@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=3.16.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,6 +34,13 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/PyKDE-3.16.0-konsolepart.patch
  patch -p1 < ${CWD}/PyKDE-3.16.0-kmimetype.patch
@@ -46,11 +53,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-python ./configure.py 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+python ./configure.py
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-mkdir -p ${PKG}/opt/kde/lib
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/lib
 
 make install DESTDIR=${PKG}
 
@@ -80,9 +98,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: PyKDE is a set of Python bindings for the KDE toolkit. PyKDE makes
+${PKGNAME}: nearly 700 KDE classes and over 10,000 associated methods available
+${PKGNAME}: to Python programmers.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

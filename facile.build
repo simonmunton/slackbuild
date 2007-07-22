@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
 VERSION=1.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,15 +52,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure
+./configure 
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-mkdir -p $PKG`ocamlc -where`/facile                                             
-                                                                                
-make install FACILEDIR=$PKG`ocamlc -where`/facile    
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}`ocamlc -where`/facile
+
+make install FACILEDIR=${PKG}`ocamlc -where`/facile
 
 #strip_binaries
 
@@ -81,8 +99,8 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
+${PKGNAME}: FaCiLe is a Functional Constraint Library implemented in Objective
+${PKGNAME}: Caml.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
