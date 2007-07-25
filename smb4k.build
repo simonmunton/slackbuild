@@ -6,7 +6,7 @@ TARNAME=smb4k
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.8.2
+VERSION=0.8.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,12 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --sysconfdir=/etc \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -80,10 +99,10 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: Smb4K is an SMB/CIFS share browser for KDE. It uses the Samba
+${PKGNAME}: software suite to access the SMB/CIFS shares of the local network
+${PKGNAME}: neighborhood. Its purpose is to provide a program that's easy to use
+${PKGNAME}: and has as many features as possible.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
