@@ -6,7 +6,7 @@ TARNAME=tellico
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=1.2.11
+VERSION=1.2.12
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,14 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure
-# --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib
+./configure --prefix=/usr \
+            --sysconfdir=/etc/kde \
+            --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -82,12 +99,12 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: tellico keeps track of the items in a collection, and offers an easy
+${PKGNAME}: way to enter data for each entry. It provides several field types,
+${PKGNAME}: and allows for an unlimited number of user-defined fields. The
+${PKGNAME}: entries in a collection may be grouped by any field for easy
+${PKGNAME}: organization, and customizable views show as much or as little
+${PKGNAME}: information as you like.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

@@ -6,9 +6,9 @@ TARNAME=kipi-plugins
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.1.3
+VERSION=0.1.4
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/kipi-plugins-0.1.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,11 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -82,45 +102,16 @@ ${PKGNAME}:
 ${PKGNAME}: Libkipi allows image applications to use a plugin architecture for 
 ${PKGNAME}: additional functionality. Currently implemented plugins are:
 ${PKGNAME}: 
-${PKGNAME}:  1) RawConverter       : A Raw Image Converter for digital cameras
-${PKGNAME}:  2) SlideShow          : Slideshow with effects ripped out from kslideshow and 3D effect using OpenGL
-${PKGNAME}:  3) MpegEncoder        : An images to MPEG flux encoder for build a video file with many images
-${PKGNAME}:  4) PrintWizard        : Print multiple images/index pages in one page
-${PKGNAME}:  5) JpegLossLess       : Batch images processing (rotation/flipping) without
-${PKGNAME}:                                      losing meta information embedded in the image
-${PKGNAME}:                          and without recompression of the jpeg data.
-${PKGNAME}:  6) CdArchiving        : Albums CD archiving via K3b cd burning program
-${PKGNAME}:  7) AcquireImages      : Acquire images interface
-${PKGNAME}:                          This plugin include these parts:
-${PKGNAME}:                             ScanImages (scanner management using Kooka).
-${PKGNAME}:                             ScreenshotImages (Snap Screen based on KSnapshot and adapted to Digikam).
-${PKGNAME}:  8) Calendar           : A Calendar construction plugin using Album images
-${PKGNAME}:  9) SendImages         : A plugin to send images by e-mail, allowing resizing and recompressing
-${PKGNAME}:                          before sending.
-${PKGNAME}: 10) BatchProcessImages : A batch process images plugin.
-${PKGNAME}:                          This plugin includes these parts:
-${PKGNAME}:                             RenameImages (Image file names renaming).
-${PKGNAME}:                             ConvertImages (Image files format converting).
-${PKGNAME}:                             BorderImages (Add border to images).
-${PKGNAME}:                             FilterImages (Image enhancements using digital filters).
-${PKGNAME}:                             ColorImages (Image color enhancement).
-${PKGNAME}:                             EffectImages (Image transformation effects).
-${PKGNAME}:                             ResizeImages (Basic and Prepare to print images resizing).
-${PKGNAME}:                             RecompressImages (Recompress JPEG, TIFF, PNG, and TGA images).
-${PKGNAME}: 11) TimeAdjust         : Adjust image file Time and Date.
-${PKGNAME}: 12) WallPaper          : Image to KDE Desktop.
-${PKGNAME}: 13) FindImages         : Find duplicate images in albums
-${PKGNAME}: 14) GalleryExport      : Plugin to export images to a remote Gallery (and Gallery 2) server
-${PKGNAME}:                          (http://gallery.sf.net)
-${PKGNAME}: 15) FlickrExport       : Plugin to export images to a remote Flickr web service (http://www.flickr.com)
-${PKGNAME}: 16) HTMLExport         : New plugin to export images collections into HTML page (under developpment)
-${PKGNAME}: 17) SimpleViewerExport : Plugin to export images to SimpleViewer
-${PKGNAME}:                          (http://www.airtightinteractive.com/simpleviewer/)
-${PKGNAME}: 18) GPSSync            : Plugin to geolocalize pictures.
-${PKGNAME}: 19) IpodExport (beta)  : Plugin to export pictures with an Ipod device.
-${PKGNAME}: 20) MetadataEdit       : Plugin to edit EXIF and IPTC pictures metadata.
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}:  1) RawConverter       2) SlideShow          
+${PKGNAME}:  3) MpegEncoder        4) PrintWizard        
+${PKGNAME}:  5) JpegLossLess       6) CdArchiving        
+${PKGNAME}:  7) AcquireImages      8) Calendar           
+${PKGNAME}:  9) SendImages         10) BatchProcessImages 
+${PKGNAME}: 11) TimeAdjust         12) WallPaper          
+${PKGNAME}: 13) FindImages         14) GalleryExport      
+${PKGNAME}: 15) FlickrExport       16) HTMLExport         
+${PKGNAME}: 17) SimpleViewerExport 18) GPSSync            
+${PKGNAME}: 19) IpodExport (beta)  20) MetadataEdit       
 ${PKGNAME}:
 EOF
 

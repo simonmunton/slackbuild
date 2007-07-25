@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=0.2.5
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,11 +52,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure 
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -79,16 +99,15 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: Libkexif is a library for manipulating EXIF information embedded in images.
-${PKGNAME}: It currently supports viewing of all EXIF information via libexif. It also
-${PKGNAME}: supports the modification of a few attributes in a safe way that preserves
-${PKGNAME}: all other EXIF information in the file. It can currently modify the following
-${PKGNAME}: tags:
-${PKGNAME}: 
+${PKGNAME}: Libkexif is a library for manipulating EXIF information embedded in
+${PKGNAME}: images. It currently supports viewing of all EXIF information via
+${PKGNAME}: libexif. It also supports the modification of a few attributes in a
+${PKGNAME}: safe way that preserves all other EXIF information in the file. It
+${PKGNAME}: can currently modify the following tags:
+${PKGNAME}:
 ${PKGNAME}: IFD0/Orientation
 ${PKGNAME}: EXIF/UserCommend
 ${PKGNAME}: 
-${PKGNAME}:
 EOF
 
 post_install
