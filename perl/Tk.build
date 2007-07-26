@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=Tk
+TARNAMEEXTRA=
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/N/NI/NI-S
+#TAR_EXT=.tar.gz
+VERSION=804.027
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=perl_${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < $CWD/
+
+ find . -type f -exec perl -pi -e \
+'s,^(#!)(/usr/local)?/bin/perl\b,$1perl, if ($. == 1)' {} \;
+chmod -x pod/Popup.pod Tixish/lib/Tk/balArrow.xbm
+
+# fix for widget as docs
+ patch -p0 < $CWD/Tk-widget.patch
+
+#perl -pi -e \
+#'s,\@demopath\@,%{_datadir}/doc/%{name}-%{version}/demos,g' \
+#%{_builddir}/Tk-%{version}/demos/widget
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ -f Build.PL ]
+then
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG}
+else
+  perl Makefile.PL XFT=1
+
+  find . -name Makefile | xargs perl -pi -e 's/^\tLD_RUN_PATH=[^\s]+\s*/\t/'
+
+  make
+  make test
+  make install DESTDIR=${PKG}
+
+#  make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
+
+#find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} \;
+#find $RPM_BUILD_ROOT -type f -name '*.bs' -size 0 -exec rm -f {} \;
+#find $RPM_BUILD_ROOT -type d -depth -exec rmdir {} 2>/dev/null \;
+
+#  chmod -R u+rwX,go+rX,go-w ${PKG}/*
+#  mkdir __demos
+#  cp -pR ${PKG}%{perl_vendorarch}/Tk/demos __demos
+#  find __demos/ -type f -exec chmod -x {} \;
+fi
+
+perllocalpod
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
