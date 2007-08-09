@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libgphoto2
+TARNAME=bluez-hcidump
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=1.39
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,12 +54,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-udevscriptdir=/lib/udev \
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --disable-static
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,23 +74,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/share/hal/fdi/information/20thirdparty ${PKG}/etc/udev/rules.d
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2.fdi
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi-device > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2-device.fdi
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list udev-rules version 0.98 mode 660 group camera owner root > ${PKG}/etc/udev/rules.d/90-libghoto2.rules
-
-sed -i -e 's/SUBSYSTEM!="usb_device"/SUBSYSTEM!="usb"/' -e '/SUBSYSTEM/a ENV{DEVTYPE}!="usb_device", GOTO="libgphoto2_rules_end"' \
-  ${PKG}/etc/udev/rules.d/90-libghoto2.rules
 
 #strip_binaries
 
@@ -117,11 +101,11 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: libgphoto2 is a library that can be used by applications to access
-${PKGNAME}: various digital cameras.
+${PKGNAME}: The bluez-hcidump package contains a network analyzer for
+${PKGNAME}: Bluetooth(TM).  The hcidump utility reads raw HCI data coming from and
+${PKGNAME}: going to a Bluetooth device and prints commands, events and data.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: For more info, visit:  http://www.bluez.org
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

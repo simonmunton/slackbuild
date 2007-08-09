@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libgphoto2
+TARNAME=passivetex
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=1.25
 VERSIONEXTRA=
 BUILD=1
 
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -54,17 +54,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-udevscriptdir=/lib/udev \
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+  true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,24 +67,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/share/texmf/tex/latex/xmltex/passivetex
 
-mkdir -p ${PKG}/usr/share/hal/fdi/information/20thirdparty ${PKG}/etc/udev/rules.d
+cp *.sty *.xmt ${PKG}/usr/share/texmf/tex/latex/xmltex/passivetex
 
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2.fdi
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+texhash > /dev/null 2>&1
+fmtutil-sys --cnffile usr/share/texmf/tex/xmltex/xmltexfmtutil.cnf --all > /dev/null 2>&1
 
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi-device > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2-device.fdi
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list udev-rules version 0.98 mode 660 group camera owner root > ${PKG}/etc/udev/rules.d/90-libghoto2.rules
-
-sed -i -e 's/SUBSYSTEM!="usb_device"/SUBSYSTEM!="usb"/' -e '/SUBSYSTEM/a ENV{DEVTYPE}!="usb_device", GOTO="libgphoto2_rules_end"' \
-  ${PKG}/etc/udev/rules.d/90-libghoto2.rules
+EOF
 
 #strip_binaries
 
@@ -100,7 +87,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO index.html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -117,10 +104,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: libgphoto2 is a library that can be used by applications to access
-${PKGNAME}: various digital cameras.
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: PassiveTeX is a library of TeX macros which can be used to process
+${PKGNAME}: an XML document which results from an XSL transformation to
+${PKGNAME}: formatting objects.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

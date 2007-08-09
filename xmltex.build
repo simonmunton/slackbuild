@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libgphoto2
+TARNAME=xmltex
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=1.9
 VERSIONEXTRA=
 BUILD=1
 
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -54,17 +54,15 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-udevscriptdir=/lib/udev \
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+(cd base
+ pdfetex -ini "&pdflatex" pdfxmltex.ini
+ etex -ini "&hugelatex" xmltex.ini
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,24 +70,22 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/share/texmf/{web2c,tex/latex/xmltex} ${PKG}/usr/share/texmf/bin
 
-mkdir -p ${PKG}/usr/share/hal/fdi/information/20thirdparty ${PKG}/etc/udev/rules.d
+(cd base
+cp *.xmt xmltex.cfg *.ini *.tex ${PKG}/usr/share/texmf/tex/latex/xmltex
+cp pdfxmltex.fmt  xmltex.fmt ${PKG}/usr/share/texmf/web2c/
+ln -s pdftex ${PKG}/usr/share/texmf/bin/pdfxmltex
+ln -s latex ${PKG}/usr/share/texmf/bin/xmltex
+)
 
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2.fdi
 
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi-device > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2-device.fdi
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+texhash > /dev/null 2>&1
+fmtutil-sys --cnffile usr/share/texmf/tex/xmltex/xmltexfmtutil.cnf --all > /dev/null 2>&1
 
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list udev-rules version 0.98 mode 660 group camera owner root > ${PKG}/etc/udev/rules.d/90-libghoto2.rules
-
-sed -i -e 's/SUBSYSTEM!="usb_device"/SUBSYSTEM!="usb"/' -e '/SUBSYSTEM/a ENV{DEVTYPE}!="usb_device", GOTO="libgphoto2_rules_end"' \
-  ${PKG}/etc/udev/rules.d/90-libghoto2.rules
+EOF
 
 #strip_binaries
 
@@ -100,7 +96,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO base/readme.txt \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
@@ -117,9 +113,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: libgphoto2 is a library that can be used by applications to access
-${PKGNAME}: various digital cameras.
-${PKGNAME}:
+${PKGNAME}: xmltex is a system for typesetting XML files with TeX. It may be used
+${PKGNAME}: on its own or in conjunction with another TeX format. (LaTeX is
+${PKGNAME}: assumed for most examples).
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

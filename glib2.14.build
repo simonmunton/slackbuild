@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=libgphoto2
+TARNAME=glib
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=2.14.0
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=glib2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -54,12 +54,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-udevscriptdir=/lib/udev \
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+	    --mandir=/usr/man \
+            --localstatedir=/var/lib \
+            --enable-debug=minimal \
+            --enable-static
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,23 +75,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/share/hal/fdi/information/20thirdparty ${PKG}/etc/udev/rules.d
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2.fdi
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list hal-fdi-device > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-camera-libgphoto2-device.fdi
-
-LD_LIBRARY_PATH=${PKG}/usr/lib \
-CAMLIBS=${PKG}/usr/lib/libgphoto2/${VERSION} \
-${PKG}/usr/lib/libgphoto2/print-camera-list udev-rules version 0.98 mode 660 group camera owner root > ${PKG}/etc/udev/rules.d/90-libghoto2.rules
-
-sed -i -e 's/SUBSYSTEM!="usb_device"/SUBSYSTEM!="usb"/' -e '/SUBSYSTEM/a ENV{DEVTYPE}!="usb_device", GOTO="libgphoto2_rules_end"' \
-  ${PKG}/etc/udev/rules.d/90-libghoto2.rules
 
 #strip_binaries
 
@@ -117,8 +102,8 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: libgphoto2 is a library that can be used by applications to access
-${PKGNAME}: various digital cameras.
+${PKGNAME}: GLib is a library which includes support routines for C such as lists,
+${PKGNAME}: glib2: trees, hashes, memory allocation, and many other things.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

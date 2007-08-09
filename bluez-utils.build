@@ -6,53 +6,139 @@ TARNAME=bluez-utils
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.25
+VERSION=3.13
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
+#PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --enable-all
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-make install DESTDIR=$PKG
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/etc/rc.d ${PKG}/etc/bluetooth/passkeys ${PKG}/usr/lib/bluetooth
+
+make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/lib/udev
+mv ${PKG}/usr/libexec/udev/bluetooth_serial ${PKG}/lib/udev/bluetooth_serial
+rmdir -p ${PKG}/usr/libexec/udev
+
+mkdir -p ${PKG}/etc/udev/rules.d
+mv ${PKG}/etc/udev/bluetooth.rules ${PKG}/etc/udev/rules.d/60-bluetooth.rules
+
+if [ ! -e ${PKG}/etc/bluetooth/transfer.service ]; then
+  cat transfer/transfer.service > ${PKG}/etc/bluetooth/transfer.service
+fi
+if [ ! -e ${PKG}/usr/lib/bluetooth/bluetoothd-service-transfer ]; then
+  cat transfer/bluetoothd-service-transfer > ${PKG}/usr/lib/bluetooth/bluetoothd-service-transfer
+  chmod 755 ${PKG}/usr/lib/bluetooth/bluetoothd-service-transfer
+fi
+
+# Install Debian's add-passkey program:
+DEBDEST=/usr/lib/bluetooth
+gcc $(pkg-config --libs --cflags dbus-1) -DDBUS_API_SUBJECT_TO_CHANGE \
+        ${CWD}/bluez-utils-add-passkey.c -o ${PKG}/${DEBDEST}/add-passkey || exit 1
+cp ${CWD}/bluez-utils-register-passkeys ${PKG}/${DEBDEST}
+chmod a+x ${PKG}/${DEBDEST}/*
+
+# Default PIN (wow, does this seem insecure!)
+#echo "1234" > ${PKG}/etc/bluetooth/passkeys/default
+touch ${PKG}/etc/bluetooth/passkeys/default
+
+# Arrange init scripts
+CONF=/etc/rc.d/rc.bluetooth.conf
+#mv ${PKG}/etc/init.d/bluetooth ${PKG}/etc/rc.d/rc.bluetooth
+cp ${CWD}/bluez-utils-rc.bluetooth ${PKG}/etc/rc.d/rc.bluetooth
+mv ${PKG}/etc/default/bluetooth ${PKG}/etc/rc.d/rc.bluetooth.conf
+sed -i "s:\(HIDD_ENABLE=\).*:\1false:" ${PKG}/${CONF} || exit 1
+sed -i "s:\(HID2HCI_ENABLE=\).*:\1false:" ${PKG}/${CONF} || exit 1
+rm -rf ${PKG}/etc/{init.d,default}
+
+# Do not overwrite configuration
+( cd ${PKG}
+  for file in etc/bluetooth/rfcomm.conf \
+    etc/bluetooth/hcid.conf \
+    etc/bluetooth/passkeys/default \
+    etc/rc.d/rc.bluetooth \
+    etc/rc.d/rc.bluetooth.conf ; do
+      mv ${file} ${file}.new
+  done
+)
+
+cat >> ${PKG}/install/doinsth.sh << EOF
+#
+if [ ! -e etc/rc.d/rc.bluetooth -o ! -x etc/rc.d/rc.bluetooth ]; then
+  chmod 644 etc/rc.d/rc.bluetooth.new
+else
+  chmod 755 etc/rc.d/rc.bluetooth.new
+fi
+
+EOF
+
+doinst_config etc/bluetooth/rfcomm.conf.new etc/bluetooth/hcid.conf.new \
+	      etc/bluetooth/passkeys/default.new etc/rc.d/rc.bluetooth.new \
+	      etc/rc.d/rc.bluetooth.conf.new
+
+
+#strip_binaries
 
 fix_links
 
@@ -61,13 +147,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  AUTHORS ChangeLog COPYING* INSTALL NEWS README* ${CWD}/bluez-utils-README.SLACKWARE \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd ${PKG}/etc/bluetooth
+  ln -sf /usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE .
+)
 
 fix_docs
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -75,24 +165,25 @@ cat <<EOF > $PKG/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
-bluez-utils: bluez-utils
-bluez-utils:
-bluez-utils: 
-bluez-utils:
-bluez-utils:
-bluez-utils:
-bluez-utils:
-bluez-utils:
-bluez-utils:
-bluez-utils:
-bluez-utils:
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: The bluez-utils package contains utilities for supporting
+${PKGNAME}: Bluetooth(TM) on Linux.
+${PKGNAME}:
+${PKGNAME}: For more info, visit:  http://www.bluez.org
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
 post_install
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+chmod 700 etc/bluetooth/passkeys ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
