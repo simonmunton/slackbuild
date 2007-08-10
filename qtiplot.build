@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=0.8.9
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,6 +34,13 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/qtiplot-0.8.9.diff
 )
@@ -45,20 +52,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 qmake
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
-
-#mkdir -p ${PKG}/usr/bin
-#mkdir -p ${PKG}/usr/lib
-#mkdir -p ${PKG}/usr/include/qwt
-
-#cp qtiplot ${PKG}/usr/bin
-#cp -P 3rdparty/qwt/lib/* ${PKG}/usr/lib
-#cp -P 3rdparty/qwt/include/* ${PKG}/usr/include/qwt
-
 
 rm -rf ${PKG}/usr/local/qwt
 rmdir -p ${PKG}/usr/local
@@ -89,9 +98,9 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: QtiPlot is a platform independent alternative to Origin, used for
+${PKGNAME}: data analysis and plotting. QtiPlot can be successfully used for
+${PKGNAME}: teaching as well as for complex data analysis and visualisation.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

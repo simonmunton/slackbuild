@@ -60,7 +60,14 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
-	    --enable-all
+	    --enable-all \
+	    --enable-echo \
+	    --enable-input \
+	    --enable-sync \
+	    --enable-audio \
+	    --enable-glib \
+	    --enable-serial \
+	    --enable-network
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -96,7 +103,7 @@ fi
 DEBDEST=/usr/lib/bluetooth
 gcc $(pkg-config --libs --cflags dbus-1) -DDBUS_API_SUBJECT_TO_CHANGE \
         ${CWD}/bluez-utils-add-passkey.c -o ${PKG}/${DEBDEST}/add-passkey || exit 1
-cp ${CWD}/bluez-utils-register-passkeys ${PKG}/${DEBDEST}
+cp ${CWD}/bluez-utils-register-passkeys ${PKG}/${DEBDEST}/register-passkeys
 chmod a+x ${PKG}/${DEBDEST}/*
 
 # Default PIN (wow, does this seem insecure!)
@@ -123,7 +130,7 @@ rm -rf ${PKG}/etc/{init.d,default}
   done
 )
 
-cat >> ${PKG}/install/doinsth.sh << EOF
+cat >> ${PKG}/install/doinst.sh << EOF
 #
 if [ ! -e etc/rc.d/rc.bluetooth -o ! -x etc/rc.d/rc.bluetooth ]; then
   chmod 644 etc/rc.d/rc.bluetooth.new
@@ -147,8 +154,11 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS ChangeLog COPYING* INSTALL NEWS README* ${CWD}/bluez-utils-README.SLACKWARE \
+  AUTHORS ChangeLog COPYING* INSTALL NEWS README*  \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp -a \
+  ${CWD}/bluez-utils-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
 
 ( cd ${PKG}/etc/bluetooth
   ln -sf /usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE .

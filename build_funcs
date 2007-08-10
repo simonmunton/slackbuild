@@ -191,7 +191,16 @@ if [ -d ${PKG}/usr/share/man ]
 then
   echo moving usr/share/man
   mkdir -p ${PKG}/usr/man
-  mv ${PKG}/usr/share/man/* ${PKG}/usr/man
+  for d in ${PKG}/usr/share/man/*
+  do
+    if [ -d ${PKG}/usr/man/${d##*/} ]
+    then
+      mv ${d}/* ${PKG}/usr/man/${d##*/}
+      rmdir ${d}
+    else
+      mv ${d} ${PKG}/usr/man
+    fi
+  done
   rmdir ${PKG}/usr/share/man
 fi
 
