@@ -1,0 +1,66 @@
+--- celestia-1.4.1/src/celengine/star.h.orig	2005-12-06 17:30:23.000000000 +0000
++++ celestia-1.4.1/src/celengine/star.h	2007-08-11 20:32:08.000000000 +0100
+@@ -30,7 +30,7 @@
+     // orbits and StarDetails objects.  Currently, it's assumed that they
+     // have lifetimes that continue until program termination.
+  public:
+-    StarDetails::StarDetails();
++    StarDetails();
+ 
+     inline float getRadius() const;
+     inline float getTemperature() const;
+--- celestia-1.4.1/src/celengine/command.h.orig	2004-12-22 22:07:15.000000000 +0000
++++ celestia-1.4.1/src/celengine/command.h	2007-08-11 20:33:09.000000000 +0100
+@@ -94,7 +94,7 @@
+ class CommandGotoLongLat : public InstantaneousCommand
+ {
+  public:
+-    CommandGotoLongLat::CommandGotoLongLat(double t,
++    CommandGotoLongLat(double t,
+                                            double dist,
+                                            float _longitude, float _latitude,
+                                            Vec3f _up);
+--- celestia-1.4.1/src/celestia/celx.cpp.orig	2006-01-07 00:01:51.000000000 +0000
++++ celestia-1.4.1/src/celestia/celx.cpp	2007-08-11 21:00:41.000000000 +0100
+@@ -33,7 +33,13 @@
+ #include "celx.h"
+ #include "celestiacore.h"
+ extern "C" {
++#include "lauxlib.h"
+ #include "lualib.h"
++#define lua_iolibopen  		luaopen_io
++#define lua_baselibopen        	luaopen_base
++#define lua_mathlibopen		luaopen_math
++#define lua_tablibopen		luaopen_table
++#define lua_strlibopen		luaopen_string
+ }
+ 
+ using namespace std;
+--- celestia-1.4.1/Makefile.in.orig	2006-02-15 21:53:42.000000000 +0000
++++ celestia-1.4.1/Makefile.in	2007-08-11 20:43:34.000000000 +0100
+@@ -848,11 +848,11 @@
+ 
+ install-data-hook:
+ 	if [ "$(kde_datadir)" -a -d $(kde_datadir)/@PACKAGE@ -a ! -h $(kde_datadir)/@PACKAGE@ ] ; then \
+-		mv -f -b $(kde_datadir)/@PACKAGE@/* $(datadir)/@PACKAGE@/ ; \
+-		rmdir $(kde_datadir)/@PACKAGE@ ; \
++		mv -f -b $(DESTDIR)$(kde_datadir)/@PACKAGE@/* $(DESTDIR)$(datadir)/@PACKAGE@/ ; \
++		rmdir $(DESTDIR)$(kde_datadir)/@PACKAGE@ ; \
+ 	fi
+ 	if [ "$(kde_datadir)" -a ! -h $(kde_datadir)/@PACKAGE@ ] ; then \
+-		ln -s $(datadir)/@PACKAGE@ $(kde_datadir)/@PACKAGE@ ; \
++		ln -s $(datadir)/@PACKAGE@ $(DESTDIR)$(kde_datadir)/@PACKAGE@ ; \
+ 	fi
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- celestia-1.4.1/configure.orig	2006-02-15 21:53:09.000000000 +0000
++++ celestia-1.4.1/configure	2007-08-11 21:26:47.000000000 +0100
+@@ -39509,7 +39509,7 @@
+ echo $ECHO_N "checking whether to enable Celestia Extension Language... $ECHO_C" >&6
+ if (test "$enable_lua" != "no"); then
+ 	CXXFLAGS="$CXXFLAGS -DCELX"
+-	LDFLAGS="$LDFLAGS -llualib -llua"
++	LDFLAGS="$LDFLAGS -llua"
+ 
+ 	if (test "$lua_includes" != "no"); then
+ 		CXXFLAGS="$CXXFLAGS -I$lua_includes"

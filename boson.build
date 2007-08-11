@@ -5,10 +5,10 @@
 TARNAME=boson-all
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b
-TAR_EXT=.tar.bz2
+#TAR_EXT=.tar.gz
 VERSION=0.13
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,51 +18,66 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
- (cd cmake/modules/boson; mv KDE3Macros.cmake KDE3Macros.cmake.orig)
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/boson-all-0.13.diff
+ (cd cmake/modules/boson
+  mv KDE3Macros.cmake KDE3Macros.cmake.orig
+ )
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
+cd ${TARNAME}-${VERSION}
+
+fix_perms
 
 mkdir build
 cd build
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+fi
 
-#CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-#CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-cmake -DCMAKE_INSTALL_PREFIX=/opt/kde ..
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
-make || exit
+make install DESTDIR=${PKG}
 
-make install DESTDIR=$PKG
+cd ../code
+
+#strip_binaries
 
 fix_links
 
@@ -70,16 +85,14 @@ compress_manpages
 
 compress_info
 
-cd ../code
-
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|'
@@ -87,24 +100,24 @@ cat <<EOF > $PKG/install/slack-desc
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-    |-----handy-ruler------------------------------------------------------|
-boson: boson
-boson:
-boson: 
-boson:
-boson:
-boson:
-boson:
-boson:
-boson:
-boson:
-boson:
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: Boson is an OpenGL real-time strategy game. It is designed to run on
+${PKGNAME}: Unix (Linux) computers, and is built on top of the KDE, Qt and
+${PKGNAME}: kdegames libraries.
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
 EOF
 
 post_install
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
