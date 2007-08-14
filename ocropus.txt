@@ -1,0 +1,90 @@
+command line usage of OCRopus
+
+The "ocropus" Command Line Tool
+
+Simple Invocation
+
+The most useful way of invoking OCRopus looks like
+
+    ocropus ocr page1.png page2.png page3.png > result.html 
+
+The output is in hOCR format. You can find tools for manipulating the format 
+here.
+
+
+Separate Segmentation / Line Recognition
+
+These two command line interfaces are probably the most useful ones for testing 
+and development of new layout analysis and character recognition engines.
+
+ocropus layout prefix page1.png...
+
+  Extract (binary) lines from pages.
+
+ocropus linerecs line1.png...
+
+  Recognize binary lines with adaptation.
+
+
+Individual Processing Steps
+
+You don't need these for normal OCR operations, but they are useful for 
+testing, development, and prototyping.
+
+  ocropus linerec input
+
+Recognize a single line.
+
+  ocropus binarize page.png page.bin.png
+
+Binarize a page using Sauvola algoritm.
+
+  ocropus pageseg page.png page.plo.png
+
+Compute a page segmentation; see 
+http://misc.iupr.org/docs/doku.php?id=pub:ocropus:file-formats.
+
+  ocropus lineseg line.png line.cut.png
+
+Segment a single line into sub-character components; see 
+http://misc.iupr.org/docs/doku.php?id=pub:ocropus:file-formats.
+
+
+Parameters
+
+OCRopus takes parameters via the environment; here is a summary of the most 
+useful ones.
+
+   hocr=0 ./ocropus ocr input.png
+
+If you're not using a Bourne shell, you may have to say:
+
+   env hocr=0 ./ocropus ocr input.png
+
+
+General options
+
+adapt (0/1, default 1) Use adaptation. This option improves OCR quality, but 
+lowers the speed. The bigger the page is, the larger the improvement will be. 
+This option is better with spell=0 (the result of spellchecking might be 
+strange).
+
+hocr (0/1, default 1) Produce output in hOCR format (HTML with additional 
+OCR-related markup). When this option is disabled, only the text is printed.
+
+charseg_file (n/a by default) Output a character segmentation file.
+
+charcut_file (n/a by default) Output a character cut file.
+
+remove_hyphens (0/1, default 1) Join lines if a hyphenated word is detected.
+
+spell (0/1, default 1) Apply spellchecking at the first pass.
+
+verbose (0/1, default 0) Print all accepted options with brief descriptions. 
+The printed list will be complete, unlike this one.
+
+
+Binarization Options
+
+k (default 0.5; range [0,1]) Controls the binarization threshold. In general, 
+lower the value of k higher the number of black pixels in the image.

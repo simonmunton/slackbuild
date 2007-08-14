@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=octave
+TARNAME=semantik
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/o
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.9.13
+VERSION=0.5.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,8 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
- ./autogen.sh
+ patch -p1 < ${CWD}/semantik-0.5.1.diff
 )
 fi
 
@@ -53,18 +52,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PATH=/usr/lib/qt4/bin:${PATH}
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+./waf configure --prefix=/usr/ --destdir=${PKG}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+./waf --prefix=/usr/ --destdir=${PKG} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +69,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+./waf install --prefix=/usr/ --destdir=${PKG}
 
 #strip_binaries
 
@@ -100,12 +97,12 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: GNU Octave is a high-level language, primarily intended for numerical
-${PKGNAME}: computations. It provides a convenient command line interface for
-${PKGNAME}: solving linear and nonlinear problems numerically, and for performing
-${PKGNAME}: other numerical experiments using a language that is mostly
-${PKGNAME}: compatible with Matlab. It may also be used as a batch-oriented
-${PKGNAME}: language.
+${PKGNAME}: Semantik (previously Kdissert) is a mindmapping-like tool to help
+${PKGNAME}: students to produce complicated documents very quickly and
+${PKGNAME}: efficiently: presentations, dissertations, thesis, reports. While
+${PKGNAME}: targetted mostly at students, Kdissert can also help teachers,
+${PKGNAME}: decision maker, engineers and businessmen.
+${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:
