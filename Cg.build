@@ -6,8 +6,8 @@ TARNAME=Cg
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.5_x86
-VERSIONEXTRA=
+VERSION=1.5_Feb2007
+VERSIONEXTRA=_x86
 BUILD=1
 
 #TAR_PROG=
@@ -34,11 +34,18 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 mkdir ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
- ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 )
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -47,6 +54,21 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+  true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+  true
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 cp -a * ${PKG}
 mv ${PKG}/usr/share/man ${PKG}/usr
@@ -67,27 +89,15 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width------------------------------|
+make_slack_desc <<EOF
+The Cg Toolkit provides a compiler for the Cg language, runtime 
+libraries for use with both leading graphics APIs, runtime libraries 
+for CgFX, example applications, and extensive documentation. 
+Supporting over 24 different OpenGL and DirectX profile targets, Cg 
+allows you to incorporate stunning interactive effects into your 3D 
+applications.
 
-    |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install

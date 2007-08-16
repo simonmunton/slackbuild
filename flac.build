@@ -6,9 +6,9 @@ TARNAME=flac
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=1.1.4
+VERSION=1.2.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/flac-1.1.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,13 +52,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -80,30 +99,18 @@ source package.  It is not included in the binary package due
 to size.
 EOF
 
+#-----handy-ruler-for-slack-desc-width------------------------------|
+make_slack_desc <<EOF
+FLAC stands for Free Lossless Audio Codec. Grossly oversimplified,
+FLAC is similar to MP3, but lossless.  "Free" means that the
+specification of the stream format is in the public domain, and that
+neither the FLAC format nor any of the implemented encoding/decoding
+methods are covered by any patent. It also means that the sources for
+libFLAC and libFLAC++ are available under the LGPL and the sources for
+flac, metaflac, and the plugins are available under the GPL.
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+FLAC was developed by Josh Coalson.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION} (Free Lossless Audio Codec)
-${PKGNAME}:
-${PKGNAME}: FLAC stands for Free Lossless Audio Codec. Grossly oversimplified,
-${PKGNAME}: FLAC is similar to MP3, but lossless.  "Free" means that the
-${PKGNAME}: specification of the stream format is in the public domain, and that
-${PKGNAME}: neither the FLAC format nor any of the implemented encoding/decoding
-${PKGNAME}: methods are covered by any patent. It also means that the sources for
-${PKGNAME}: libFLAC and libFLAC++ are available under the LGPL and the sources for
-${PKGNAME}: flac, metaflac, and the plugins are available under the GPL.
-${PKGNAME}:
-${PKGNAME}: FLAC was developed by Josh Coalson.
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install

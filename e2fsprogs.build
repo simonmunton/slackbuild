@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=e2fsprogs
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/e
+#TAR_EXT=.tar.gz
+VERSION=1.40.2
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+	    --sbindir=/sbin \
+	    --libdir=/lib \
+            --sysconfdir=/etc \
+	    --infodir=/usr/info \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --datadir=/usr/share \
+	    --enable-elf-shlibs \
+	    --enable-dynamic-e2fsck
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install install-libs DESTDIR=${PKG}
+
+( cd ${PKG}
+  rm -f usr/man/man3/uuid_generate_random.3 usr/man/man3/uuid_generate_time.3 \
+        usr/man/man8/fsck.ext2.8 usr/man/man8/fsck.ext3.8 \
+	usr/man/man8/mkfs.ext2.8 usr/man/man8/mkfs.ext3.8
+  ( cd usr/man/man3
+    ln -sf uuid_generate.3 uuid_generate_random.3
+    ln -sf uuid_generate.3 uuid_generate_time.3
+  )
+  ( cd usr/man/man8
+    ln -sf e2fsck.8 fsck.ext2.8
+    ln -sf e2fsck.8 fsck.ext3.8
+    ln -sf mke2fs.8 mkfs.ext2.8
+    ln -sf mke2fs.8 mkfs.ext3.8
+  )
+  mkdir usr/lib
+  mv lib/*.so lib/*.a lib/pkgconfig usr/lib
+)
+
+## Anyone care for these?  I don't. [NOTE:  XFS utils link with libuuid.a]
+##rm -f ${PKG}/usr/lib/*.a
+( cd ${PKG}/sbin
+  rm -f mkfs.ext2 mkfs.ext3 fsck.ext2 fsck.ext3 e2label findfs
+  ln -sf mke2fs mkfs.ext2
+  ln -sf mke2fs mkfs.ext3
+  ln -sf tune2fs e2label
+  ln -sf tune2fs findfs
+  cat << EOF > fsck.ext2
+#!/bin/sh
+exec /sbin/e2fsck -C 0 \$*
+EOF
+  cat << EOF > fsck.ext3
+#!/bin/sh
+exec /sbin/e2fsck -C 0 \$*
+EOF
+  chmod 755 fsck.ext2 fsck.ext3
+)
+
+# I guess Ted would rather not have this included, so we won't.
+# ( cd misc
+#   make findsuper
+#   cat findsuper > ${PKG}/sbin/findsuper
+#   chmod 755 ${PKG}/sbin/findsuper )
+
+mv ${PKG}/etc/mke2fs.conf ${PKG}/etc/mke2fs.conf.new
+
+doinst_config etc/mke2fs.conf.new
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL INSTALL.elfbin NEWS PLANS README* RELEASE-NOTES SHLIBS TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+chmod 644 ${PKG}/usr/doc/${TARNAME}-$VERSION/*
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width------------------------------|
+make_slack_desc <<EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
