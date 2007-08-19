@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=gimp
+TARNAME=elfutils
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/gimp
+TARDIR=~/tmp/new/e/elfutils
 #TAR_EXT=.tar.gz
-VERSION=2.4.0-rc1
+VERSION=0.128
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,7 +42,18 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/elfutils-0.128.diff
+
+# see spec file re following
+ patch -p1 < ${TARDIR}/elfutils-strip-copy-symtab.patch
+ patch -p1 < ${TARDIR}/elfutils-portability.patch
+ sleep 1
+ find . \( -name Makefile.in -o -name aclocal.m4 \) -print | xargs touch
+ sleep 1
+ find . \( -name configure -o -name config.h.in \) -print | xargs touch
+
+ patch -p1 < ${TARDIR}/elfutils-robustify.patch
+ sed -i /ifndef/s/PACKAGE/PACKAGE_NAME/ libdwfl/libdwflP.h
 )
 fi
 
@@ -54,13 +65,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -fexceptions" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-            --disable-static
+	    --program-prefix=eu-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,11 +84,9 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/share/application-registry
-
 make install DESTDIR=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -86,20 +95,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING HACKING INSTALL LICENSE MAINTAINERS NEWS PLUGIN_MAINTAINERS README* TODO.xml \
-  docs/Wilber* docs/keybindings.txt docs/quick_reference* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-The GIMP is a powerful tool for the preparation and manipulation of
-digital images.  The GIMP provides the user with a wide variety of
-image manipulation, painting, processing, and rendering tools.  The
-GIMP's open design and extensible architecture make for a very
-powerful end product for photo and image retouching, web graphics
-design, or digital illustration.
+Elfutils is a collection of utilities, including ld (a linker), nm 
+(for listing symbols from object files), size (for listing the 
+section sizes of an object or archive file), strip (for discarding
+symbols), readelf (to see the raw ELF file structures), and elflint
+(to check for well-formed ELF files).
 
 EOF
 

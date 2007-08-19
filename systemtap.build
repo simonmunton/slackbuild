@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=gimp
+TARNAME=systemtap
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/gimp
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.4.0-rc1
+VERSION=20070623
 VERSIONEXTRA=
 BUILD=1
 
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv src ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,8 +59,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --disable-static
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,11 +72,9 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/share/application-registry
-
 make install DESTDIR=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -86,20 +83,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING HACKING INSTALL LICENSE MAINTAINERS NEWS PLUGIN_MAINTAINERS README* TODO.xml \
-  docs/Wilber* docs/keybindings.txt docs/quick_reference* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-The GIMP is a powerful tool for the preparation and manipulation of
-digital images.  The GIMP provides the user with a wide variety of
-image manipulation, painting, processing, and rendering tools.  The
-GIMP's open design and extensible architecture make for a very
-powerful end product for photo and image retouching, web graphics
-design, or digital illustration.
+SystemTap provides free software (GPL) infrastructure to simplify the 
+gathering of information about the running Linux system. This assists 
+diagnosis of a performance or functional problem. SystemTap eliminates 
+the need for the developer to go through the tedious and disruptive 
+instrument, recompile, install, and reboot sequence that may be 
+otherwise required to collect data.
 
 EOF
 
