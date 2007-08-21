@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=tla
-TARNAMEEXTRA=
-TARDIR=~/tmp/gnu/gnu-arch
+TARNAME=divx4linux
+TARNAMEEXTRA=-std
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=1.3.5
+VERSION=20030428
 VERSIONEXTRA=
 BUILD=1
 
@@ -52,20 +52,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir build
-cd build
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-../src/configure --prefix=/usr \
-	    --destdir=${PKG}
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+  true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,9 +67,15 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-cd ..
+mkdir -p ${PKG}/usr/{include,lib}
+cp *.h ${PKG}/usr/include
+cp *.so ${PKG}/usr/lib
+(cd ${PKG}/usr/lib
+ for f in *.so
+ do
+   ln -s $f $f.0
+ done
+)
 
 #strip_binaries
 
@@ -86,14 +86,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO src/COPYING \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO *htm \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-GNU Arch is a Revision Control system.
+Binary DivX encode/decode libraries.
+
+DivX is a digital media format like MP3 for video. DivX technology 
+compresses video to a fraction of its original size for efficient 
+storage on your hard drive and easy sharing online.
 
 EOF
 
