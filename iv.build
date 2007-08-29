@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=librsvg
+TARNAME=iv
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=2.18.2
+VERSION=2.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -56,9 +56,10 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
+./configure Linux --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -71,7 +72,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr
+
+bunzip2 ${PKG}/usr/man/man1/iv.1.bz2
 
 #strip_binaries
 
@@ -87,27 +90,17 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+An image viewer using the GIMP Toolkit (GTK) and Image Library 
+(Imlib).
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: An SVG library based on cairo.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+Image Viewer (also known as IV) allows you to; view any image 
+supported by Imlib, view text files, view binary files, save images 
+(convert formats), grab (screenshot), print, rotate, crop, resize, 
+display on desktop,  add text (annotate), add/edit/remove comments 
+(and other embedded content), and open/edit/save animated images.
+
 EOF
 
 post_install
