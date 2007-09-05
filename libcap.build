@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=squid
+TARNAME=libcap
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.6.STABLE15
+VERSION=1.97
 VERSIONEXTRA=
 BUILD=1
 
@@ -56,20 +56,15 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
+./configure --prefix=/ \
             --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --datarootdir=/usr/share/squid \
-	    --enable-ssl \
-	    --enable-delay-pools
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
-
-MAKE_FLAGS="DEFAULT_LOG_PREFIX=/var/log/squid DEFAULT_SWAP_DIR=/var/cache/squid DEFAULT_PID_FILE=/var/run/squid.pid"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} ${MAKE_FLAGS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,20 +72,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} ${MAKE_FLAGS}
-
-mkdir -p ${PKG}/var/cache/squid
-
-mkdir -p ${PKG}/etc/rc.d
-cp ${CWD}/squid-rc.squid.new ${PKG}/etc/rc.d/rc.squid.new
-
-mv ${PKG}/etc/squid.conf ${PKG}/etc/squid.conf.new
-mv ${PKG}/etc/mime.conf ${PKG}/etc/mime.conf.new
-mv ${PKG}/etc/cachemgr.conf ${PKG}/etc/cachemgr.conf.new
-
-cat ${CWD}/squid-doinst.sh >> ${PKG}/install/doinst.sh
-
-doinst_config etc/squid.conf.new etc/mime.conf.new etc/cachemgr.conf.new etc/rc.d/rc.squid.new
+make install FAKEROOT=${PKG}
 
 #strip_binaries
 
@@ -108,6 +90,9 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
+This is a library for getting and setting POSIX.1e (formerly POSIX 6)
+draft 15 capabilities.
+
 EOF
 
 post_install
@@ -115,6 +100,5 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root *; \
 find . -type d -exec chmod 755 {} \; ; \
-chown nobody.nobody var/cache/squid var/log/squid; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

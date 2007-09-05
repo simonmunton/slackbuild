@@ -1,0 +1,37 @@
+#!/bin/sh
+# This is a script to initialize squid
+
+squid_start()
+{
+  if [ ! -d /var/cache/squid/00 ]
+  then
+    echo "Creating squid cache directories"
+    /usr/sbin/squid -z
+  fi
+  echo "Starting squid"
+  /usr/sbin/squid
+}
+
+case "$1" in
+    start)
+        squid_start
+	;;
+    stop)
+	echo "Stopping squid"
+	/usr/sbin/squid -k shutdown
+	;;
+    restart)
+	echo "Stopping squid"
+	/usr/sbin/squid -k shutdown
+	sleep 1
+	squid_start
+	;;
+    reload)
+	echo "Reloading squid configuration"
+	/usr/sbin/squid -k reconfigure
+	;;
+    *)
+	echo "Usage: $0 {start|stop|restart|reload}"
+	exit 1
+	;;
+esac
