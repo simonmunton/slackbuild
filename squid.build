@@ -6,7 +6,7 @@ TARNAME=squid
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.6.STABLE15
+VERSION=2.6.STABLE16
 VERSIONEXTRA=
 BUILD=1
 
@@ -90,7 +90,17 @@ mv ${PKG}/etc/cachemgr.conf ${PKG}/etc/cachemgr.conf.new
 
 cat ${CWD}/squid-doinst.sh >> ${PKG}/install/doinst.sh
 
-doinst_config etc/squid.conf.new etc/mime.conf.new etc/cachemgr.conf.new etc/rc.d/rc.squid.new
+mkdir -p ${PKG}/etc/cron.daily
+cat > ${PKG}/etc/cron.daily/squid.rotate.new << EOF
+#!/bin/sh
+#
+/usr/sbin/squid -k rotate
+EOF
+
+doinst_same_perm etc/rc.d/rc.squid
+doinst_same_perm etc/cron.daily/squid.rotate
+
+doinst_config etc/squid.conf.new etc/mime.conf.new etc/cachemgr.conf.new etc/rc.d/rc.squid.new etc/cron.daily/squid.rotate.new 
 
 #strip_binaries
 
@@ -108,6 +118,11 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
+squid is a high-performance proxy caching server for web clients, 
+supporting FTP, gopher, and HTTP data objects. Unlike traditional 
+caching software, squid handles all requests in a single, non-
+blocking, I/O driven process.
+
 EOF
 
 post_install

@@ -534,3 +534,19 @@ fi
 EOF
 }
 
+doinst_same_perm()
+{
+orig=$1
+if [ "x$2" == "x" ]
+then
+  new=$1.new
+fi
+
+cat << EOF >> ${PKG}/install/doinst.sh
+# Keep same perms on ${new}:
+if [ -e etc/cron.daily/${orig} ]; then
+  chmod --reference=etc/cron.daily/${orig} etc/cron.daily/${new}
+fi
+
+EOF
+}

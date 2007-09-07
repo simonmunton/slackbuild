@@ -1,11 +1,4 @@
 
-# Keep same perms on rc.squid.new:
-if [ -e etc/rc.d/rc.squid ]; then
-  cp -a etc/rc.d/rc.squid etc/rc.d/rc.squid.new.incoming
-  cat etc/rc.d/rc.squid.new > etc/rc.d/rc.squid.new.incoming
-  mv etc/rc.d/rc.squid.new.incoming etc/rc.d/rc.squid.new
-fi
-
 ###
 # Use rc.local to start squid at boot.
 ###
@@ -37,3 +30,4 @@ if [[ "${run}" == "" ]]; then
 	echo "	sh /etc/rc.d/rc.squid stop" >> etc/rc.d/rc.local_shutdown
 	echo "fi" >> etc/rc.d/rc.local_shutdown
 fi
+

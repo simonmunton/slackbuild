@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=gnucash
+TARNAME=ctags
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=2.2.1
+VERSION=5.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/ctags-5.7.diff
 )
 fi
 
@@ -59,7 +59,9 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-etags \
+	    --with-readlib
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,8 +75,7 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-sed -i -e 's/gnucash-icon/gnucash-icon-48x48.png/' ${PKG}/usr/share/applications/gnucash.desktop
+# prefix=${PKG}/usr mandir=${PKG}/usr/man
 
 #strip_binaries
 
@@ -86,18 +87,17 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  EXTENDING.html FAQ INSTALL.oth \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-GnuCash is a personal finance manager. A check-book like register GUI
-allows you to enter and track bank accounts, stocks, income and even
-currency trades. A full set of reports allow you to see the state of
-your finances. The interface is designed to be simple and easy to use,
-but is backed with double-entry accounting principles to ensure
-balanced books.
+Exuberant Ctags is a multilanguage reimplementation of the much
+underused ctags(1) program and is intended to be the mother of all 
+ctags programs. It generates indexes of source code definitions which 
+are used by a number of editors and tools.
 
 EOF
 
