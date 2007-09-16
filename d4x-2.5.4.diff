@@ -1,0 +1,37 @@
+--- d4x-2.5.4/main/httpd.cc.orig	2005-08-11 14:54:36.000000000 +0100
++++ d4x-2.5.4/main/httpd.cc	2007-09-14 11:27:04.000000000 +0100
+@@ -122,10 +122,24 @@
+ 	if (tmp==NULL) return(NULL);
+ 	tmp=skip_spaces(tmp+1);
+ 	char *sqs=index(s,';');
+-	if (sqs==NULL) sqs=tmp+strlen(tmp)-1;
+-	else sqs-=1;
++	if (sqs==NULL) sqs=tmp+strlen(tmp);
+ 	int len=sqs-tmp;
++	while (len && isspace(tmp[len-1]))
++	  len--;
+ 	if (len<=0) return(NULL);
++	
++	if (*tmp == '"')
++	  {
++	    tmp++;
++	    len--;
++	    if (len<=0) return(NULL);
++	    if (tmp[len - 1] == '"')
++	      {
++	        len--;
++		if (len<=0) return(NULL);
++	      }
++	  }
++	
+ 	char *rval=copy_string2(tmp,len);
+ 	for (int i=len-1;i>=0;i++){
+ 		if (isspace(rval[i])) rval[i]=0;
+@@ -196,6 +210,7 @@
+ 	ETag=NULL;
+ 	Auth=NULL;
+ 	D_FILE.type=T_FILE; //we don't know any other when download via http
++	D_FILE.date=time(NULL);
+ 	config.copy_ints(cfg);
+ 	if (cfg->split){
+ 		config.retry=0;

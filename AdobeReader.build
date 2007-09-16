@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=AdobeReader
+TARNAMEEXTRA=_enu
+TARDIR=~/tmp/new/a
+#TAR_EXT=.tar.gz
+VERSION=8.1.1
+VERSIONEXTRA=-1.i486
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+  true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+  true
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+./INSTALL --install_path=${PKG}/opt
+
+rm ~/Desktop/AdobeReader.desktop
+rm ~/.mozilla/plugins/nppdf.so
+
+
+sed -i -e "s@${PKG}@@g" ${PKG}/opt/Adobe/Reader8/Reader/GlobalPrefs/.config
+sed -i -e "s@${PKG}@@g" ${PKG}/opt/Adobe/Reader8/Resource/Support/AdobeReader.desktop
+
+mkdir -p ${PKG}/usr/bin
+ln -s /opt/Adobe/Reader8/bin/acroread ${PKG}/usr/bin/acroread
+
+for icon_size in 16 20 22 24 32 36 48 64 96 128 192; do
+  mkdir -p ${PKG}/usr/share/icons/hicolor/${icon_size}x${icon_size}/{apps,mimetypes}
+
+  (cd ${PKG}/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/{AdobeReader8.png,adobe.pdf.png,vnd.fdf.png,vnd.adobe.pdx.png,vnd.adobe.xdp+xml.png,vnd.adobe.xfdf.png} .
+  )
+
+  (cd ${PKG}/usr/share/icons/hicolor/${icon_size}x${icon_size}/mimetypes
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/adobe.pdf.png application-pdf
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/vnd.fdf.png application-vnd.fdf
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/vnd.adobe.pdx.png application-vnd.adobe.pdx
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/vnd.adobe.xdp+xml.png application-vnd.adobe.xdp+xml
+    ln -sf /opt/Adobe/Reader8/Resource/Icons/${icon_size}x${icon_size}/vnd.adobe.xfdf.png application-vnd.adobe.xfdf
+  )
+done
+
+mkdir -p ${PKG}/usr/share/mime/packages
+ln -sf /opt/Adobe/Reader8/Resource/Support/AdobeReader.xml ${PKG}/usr/share/mime/packages
+
+mkdir -p ${PKG}/usr/share/{applications,applnk,gnome/apps}
+ln -sf /opt/Adobe/Reader8/Resource/Support/AdobeReader.desktop ${PKG}/usr/share/applications
+ln -sf /opt/Adobe/Reader8/Resource/Support/AdobeReader.desktop ${PKG}/usr/share/applnk
+ln -sf /opt/Adobe/Reader8/Resource/Support/AdobeReader.desktop ${PKG}/usr/share/gnome/apps
+
+mkdir -p ${PKG}/usr/lib/{firefox,seamonkey}/plugins
+ln -sf /opt/Adobe/Reader8/Browser/intellinux/nppdf.so ${PKG}/usr/lib/firefox/plugins
+ln -sf /opt/Adobe/Reader8/Browser/intellinux/nppdf.so ${PKG}/usr/lib/seamonkey/plugins
+
+sed -i -e "/DefaultPSRESPATH/s@/usr/psres@/usr/psres:/usr/share/fonts@" ${PKG}/opt/Adobe/Reader8/bin/acroread
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* NEWS PLANS README* TODO ReadMe.htm \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+Adobe Reader is the free viewing companion for Adobe applications 
+that produce Adobe Portable Document Format (Adobe PDF) files.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root *; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -p -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
