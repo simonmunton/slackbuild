@@ -6,13 +6,13 @@ TARNAME=fftw
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=3.1.2
+VERSION=2.1.5
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=fftw2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -54,56 +54,22 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+            --enable-shared \
+            --enable-sse2
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-true
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
 then
   exit
 fi
-
-
-make clean
-
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-shared \
-            --enable-sse2
-
-make ${NUM_JOBS} || exit
-
-make install DESTDIR=${PKG}
-
-# now make a single precision version
-make clean
-
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-shared \
-            --enable-sse \
-	    --enable-float
-
-make ${NUM_JOBS} || exit
-
-make install DESTDIR=${PKG}
-
-# now make a long double precision version
-make clean
-
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-shared \
-	    --enable-long-double
-
-make ${NUM_JOBS} || exit
 
 make install DESTDIR=${PKG}
 
@@ -116,11 +82,8 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS CONVENTIONS COPYING* COPYRIGHT INSTALL NEWS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-cp -a doc/html ${PKG}/usr/doc/${PKGNAME}-${VERSION}
-cp -a doc/FAQ/fftw-faq.html ${PKG}/usr/doc/${PKGNAME}-${VERSION}
 
 fix_docs
 
