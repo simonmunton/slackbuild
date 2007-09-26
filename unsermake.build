@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libtheora
+TARNAME=unsermake
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=1.0beta1
+VERSION=20070925
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,17 +54,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +67,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,share/unsermake}
+
+cp -p *.py *.um unsermake ${PKG}/usr/share/unsermake
+ln -s /usr/share/unsermake/unsermake ${PKG}/usr/bin/unsermake
 
 #strip_binaries
 
@@ -83,19 +81,24 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc/.svn
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-Theora is Xiph.Org's first publicly released video codec, intended
-for use within the Foundation's Ogg multimedia streaming system.
-Theora is derived directly from On2's VP3 codec; Currently the
-encoders are nearly identical, but Theora will make use of new
-features supported by the decoder to improve over what is is possible 
-with VP3.
+Unsermake is a replacement for automake by KDE developer Stephan 
+Kulow.
+Unsermake replaces automake and make but keeps everything else, 
+including the strange Makefile.am syntax the same.
+Unsermake creates one large Makefile rather than one per directory. 
+Makefiles are also made per directory so you can build just a part of 
+a module if you want to (they call the master Makefile). This makes 
+it faster to compile especially on SMP or distributed compiling 
+machines.
 
 EOF
 

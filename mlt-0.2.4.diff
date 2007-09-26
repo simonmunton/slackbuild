@@ -1,0 +1,178 @@
+--- mlt-0.2.4/src/modules/sox/filter_sox.c.orig	2007-03-31 01:29:56.000000000 +0100
++++ mlt-0.2.4/src/modules/sox/filter_sox.c	2007-09-25 16:04:16.000000000 +0100
+@@ -28,7 +28,7 @@
+ #include <string.h>
+ #include <math.h>
+ 
+-#include <st.h>
++#include <sox.h>
+ 
+ #define BUFFER_LEN 8192
+ #define AMPLITUDE_NORM 0.2511886431509580 /* -12dBFS */
+@@ -61,7 +61,7 @@
+ static int create_effect( mlt_filter this, char *value, int count, int channel, int frequency )
+ {
+ 	mlt_tokeniser tokeniser = mlt_tokeniser_init();
+-	eff_t eff = mlt_pool_alloc( sizeof( struct st_effect ) );
++	sox_effect_t *eff = mlt_pool_alloc( sizeof( struct sox_effect ) );
+ 	char id[ 256 ];
+ 	int error = 1;
+ 
+@@ -69,13 +69,15 @@
+ 	mlt_tokeniser_parse_new( tokeniser, value, " " );
+ 
+ 	// Locate the effect
+-	int opt_count = st_geteffect_opt( eff, tokeniser->count, tokeniser->tokens );
++	sox_effect_handler_t *handler = sox_find_effect (tokeniser->tokens[0]);
+ 	
+ 	// If valid effect
+-	if ( opt_count != ST_EOF )
++	if ( handler != NULL )
+ 	{
++		sox_create_effect (eff, handler);
++
+ 		// Supply the effect parameters
+-		if ( ( * eff->h->getopts )( eff, opt_count, &tokeniser->tokens[ tokeniser->count - opt_count ] ) == ST_SUCCESS )
++		if ( ( * eff->handler.getopts )( eff, tokeniser->count - 1, &tokeniser->tokens[ 1 ] ) == SOX_SUCCESS )
+ 		{
+ 			// Set the sox signal parameters
+ 			eff->ininfo.rate = frequency;
+@@ -84,7 +86,7 @@
+ 			eff->outinfo.channels = 1;
+ 			
+ 			// Start the effect
+-			if ( ( * eff->h->start )( eff ) == ST_SUCCESS )
++			if ( ( * eff->handler.start )( eff ) == SOX_SUCCESS )
+ 			{
+ 				// Construct id
+ 				sprintf( id, "_effect_%d_%d", count, channel );
+@@ -119,8 +121,8 @@
+ 	mlt_properties filter_properties = MLT_FILTER_PROPERTIES( filter );
+ 
+ 	// Get the properties
+-	st_sample_t *input_buffer = mlt_properties_get_data( filter_properties, "input_buffer", NULL );
+-	st_sample_t *output_buffer = mlt_properties_get_data( filter_properties, "output_buffer", NULL );
++	sox_sample_t *input_buffer = mlt_properties_get_data( filter_properties, "input_buffer", NULL );
++	sox_sample_t *output_buffer = mlt_properties_get_data( filter_properties, "output_buffer", NULL );
+ 	int channels_avail = *channels;
+ 	int i; // channel
+ 	int count = mlt_properties_get_int( filter_properties, "effect_count" );
+@@ -177,7 +179,7 @@
+ 		sprintf( id, "_effect_0_%d", i );
+ 		
+ 		// Get an existing effect state
+-		eff_t e = mlt_properties_get_data( filter_properties, id, NULL );
++		sox_effect_t *e = mlt_properties_get_data( filter_properties, id, NULL );
+ 		
+ 		// Validate the existing effect state
+ 		if ( e != NULL && ( e->ininfo.rate != *frequency || 
+@@ -216,26 +218,26 @@
+ 		}
+ 		if ( *samples > 0 && count > 0 )
+ 		{
+-			st_sample_t *p = input_buffer;
+-			st_sample_t *end = p + *samples;
++			sox_sample_t *p = input_buffer;
++			sox_sample_t *end = p + *samples;
+ 			int16_t *q = *buffer + i;
+-			st_size_t isamp = *samples;
+-			st_size_t osamp = *samples;
++			sox_size_t isamp = *samples;
++			sox_size_t osamp = *samples;
+ 			double rms = 0;
+ 			int j;
+ 			char *normalise = mlt_properties_get( filter_properties, "normalise" );
+ 			double normalised_gain = 1.0;
+-#if (ST_LIB_VERSION_CODE >= ST_LIB_VERSION(13,0,0))
+-			st_sample_t dummy_clipped_count = 0;
++#if (SOX_LIB_VERSION_CODE >= SOX_LIB_VERSION(13,0,0))
++			sox_sample_t dummy_clipped_count = 0;
+ #endif
+ 			
+ 			// Convert to sox encoding
+ 			while( p != end )
+ 			{
+-#if (ST_LIB_VERSION_CODE >= ST_LIB_VERSION(13,0,0))
+-				*p = ST_SIGNED_WORD_TO_SAMPLE( *q, dummy_clipped_count );
++#if (SOX_LIB_VERSION_CODE >= SOX_LIB_VERSION(13,0,0))
++				*p = SOX_SIGNED_WORD_TO_SAMPLE( *q, dummy_clipped_count );
+ #else
+-				*p = ST_SIGNED_WORD_TO_SAMPLE( *q );
++				*p = SOX_SIGNED_WORD_TO_SAMPLE( *q );
+ #endif
+ 				// Compute rms amplitude while we are accessing each sample
+ 				rms += ( double )*p * ( double )*p;
+@@ -245,7 +247,7 @@
+ 			}
+ 			
+ 			// Compute final rms amplitude
+-			rms = sqrt( rms / *samples / ST_SSIZE_MIN / ST_SSIZE_MIN );
++			rms = sqrt( rms / *samples / SOX_SSIZE_MIN / SOX_SSIZE_MIN );
+ 			
+ 			if ( normalise )
+ 			{
+@@ -295,7 +297,7 @@
+ 					float saved_gain = 1.0;
+ 					
+ 					// XXX: hack to apply the normalised gain level to the vol effect
+-					if ( normalise && strcmp( e->name, "vol" ) == 0 )
++					if ( normalise && strcmp( e->handler.name, "vol" ) == 0 )
+ 					{
+ 						float *f = ( float * )( e->priv );
+ 						saved_gain = *f;
+@@ -303,7 +305,7 @@
+ 					}
+ 					
+ 					// Apply the effect
+-					if ( ( * e->h->flow )( e, input_buffer, output_buffer, &isamp, &osamp ) == ST_SUCCESS )
++					if ( ( * e->handler.flow )( e, input_buffer, output_buffer, &isamp, &osamp ) == SOX_SUCCESS )
+ 					{
+ 						// Swap input and output buffer pointers for subsequent effects
+ 						p = input_buffer;
+@@ -312,7 +314,7 @@
+ 					}
+ 					
+ 					// XXX: hack to restore the original vol gain to prevent accumulation
+-					if ( normalise && strcmp( e->name, "vol" ) == 0 )
++					if ( normalise && strcmp( e->handler.name, "vol" ) == 0 )
+ 					{
+ 						float *f = ( float * )( e->priv );
+ 						*f = saved_gain;
+@@ -326,10 +328,10 @@
+ 			end = p + *samples;
+ 			while ( p != end )
+ 			{
+-#if (ST_LIB_VERSION_CODE >= ST_LIB_VERSION(13,0,0))
+-				*q = ST_SAMPLE_TO_SIGNED_WORD( *p ++, dummy_clipped_count );
++#if (SOX_LIB_VERSION_CODE >= SOX_LIB_VERSION(13,0,0))
++				*q = SOX_SAMPLE_TO_SIGNED_WORD( *p ++, dummy_clipped_count );
+ #else
+-				*q = ST_SAMPLE_TO_SIGNED_WORD( *p ++ );
++				*q = SOX_SAMPLE_TO_SIGNED_WORD( *p ++ );
+ #endif
+ 				q += *channels;
+ 			}
+--- mlt-0.2.4/src/modules/sox/configure.orig	2005-05-04 20:37:08.000000000 +0100
++++ mlt-0.2.4/src/modules/sox/configure	2007-09-25 10:26:47.000000000 +0100
+@@ -6,7 +6,7 @@
+ 	which libst-config > /dev/null 2>&1
+ 	disable_sox=$?
+ 
+-	if [ "$disable_sox" = "0" ]
++	if [ "$disable_sox" = "0" -o -e /usr/lib/libsfx.so ]
+ 	then
+ 		echo "sox		libmltsox$LIBSUF" >> ../filters.dat
+ 	else
+--- mlt-0.2.4/src/modules/sox/Makefile.orig	2005-12-05 11:35:55.000000000 +0000
++++ mlt-0.2.4/src/modules/sox/Makefile	2007-09-25 10:26:41.000000000 +0100
+@@ -5,8 +5,8 @@
+ OBJS = factory.o \
+ 	   filter_sox.o 
+ 
+-CFLAGS += `libst-config --cflags` -I../../ 
+-LDFLAGS += -lst `libst-config --libs`
++CFLAGS += -I../../ 
++LDFLAGS += -lsfx
+ LDFLAGS += -L../../framework -lmlt
+ 
+ SRCS := $(OBJS:.o=.c)
