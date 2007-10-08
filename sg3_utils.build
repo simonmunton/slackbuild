@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=gtk-engines
+TARNAME=sg3_utils
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.12.1
+VERSION=1.24
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,17 +54,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} PREFIX=/usr || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +69,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install PREFIX=/usr DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -90,7 +87,15 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-These are the graphical engines for the various GTK+ toolkit themes.
+Collection of Linux utilities for devices that use the SCSI command 
+set. Includes utilities to 
+    copy data based on "dd" syntax and semantics (called sg_dd, 
+      sgp_dd and sgm_dd); 
+    check INQUIRY data and VPD pages (sg_inq); 
+    check mode and log pages (sginfo, sg_modes and sg_logs); 
+    spin up and down disks (sg_start); 
+    do self tests (sg_senddiag); 
+    and various other functions.
 
 EOF
 
