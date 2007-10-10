@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=libgnome
+TARNAME=smplayer
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.20.0
+VERSION=0.5.60
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,17 +54,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
+
+PATH=/usr/lib/qt4/bin:${PATH}
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PREFIX=/usr CONF_PREFIX=/ || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +69,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=/usr CONF_PREFIX=/
+
+mv ${PKG}/usr/share/doc/packages/smplayer/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir -p ${PKG}/usr/share/doc/packages/smplayer
 
 #strip_binaries
 
@@ -90,7 +90,12 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-This is the non-gui part of the library formerly known as gnome-libs.
+SMPlayer intends to be a complete front-end for MPlayer, from basic 
+features like playing videos, DVDs, and VCDs to more advanced features 
+like support for Mplayer filters and more. One of the main features is 
+the ability to remember the state of a played file, so when you play 
+it later it will resume at the same point and with the same settings. 
+smplayer is developed with the Qt toolkit, so it's multi-platform.
 
 EOF
 
