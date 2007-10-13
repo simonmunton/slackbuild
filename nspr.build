@@ -6,7 +6,7 @@ TARNAME=nspr
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=4.6.5
+VERSION=4.6.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,27 +52,53 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd mozilla/nsprpub
-
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
+./mozilla/nsprpub/configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --with-dist-prefix=${PKG}/usr
+	    --mandir=/usr/man \
+	    --includedir=/usr/include/nspr \
 
-make || exit
+#            --with-dist-prefix=${PKG}/usr
+fi
 
-make install DESTDIR=${PKG} NSDISTMODE=copy
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-rm -f ${PKG}/usr/bin/*so
-(cd ${PKG}/usr
- mv lib ${TARNAME}-${VERSION}
- mkdir lib
- mv ${TARNAME}-${VERSION} lib
- cd lib
- ln -s ${TARNAME}-${VERSION}/* .
-)
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG} NSDISTMODE=copy
+make real_install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/lib/pkgconfig
+
+NSPR_LIBS=`./config/nspr-config --libs`
+NSPR_CFLAGS=`./config/nspr-config --cflags`
+NSPR_VERSION=`./config/nspr-config --version`
+
+cat > ${PKG}/usr/lib/pkgconfig/nspr.pc << EOF
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include/nspr
+
+Name: NSPR
+Description: The Netscape Portable Runtime
+Version: ${NSPR_VERSION}
+Libs: ${NSPR_LIBS}
+Cflags: ${NSPR_CFLAGS}
+EOF
+
+rm ${PKG}/usr/bin/{compile-et.pl,prerr.properties} ${PKG}/usr/lib/*.a
+chmod -R -x,+X ${PKG}/usr/include
 
 #strip_binaries
 
@@ -79,29 +112,24 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
+cat > ${PKG}/usr/doc/${TARNAME}-${VERSION}/Readme << EOF
+Netscape Portable Runtime (NSPR) provides a platform-neutral API for system 
+level and libc like functions. The API is used in the Mozilla client, many 
+of Netscape/AOL/iPlanet's and other software offerings.
+
+See http://www.mozilla.org/projects/nspr/ for more information
+EOF
+
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+NSPR (Netscape portable runtime) provides platform independence for 
+non-GUI operating system facilities. These facilities include threads, 
+thread synchronization, normal file and network I/O, interval timing 
+and calendar time, basic memory management (malloc and free) and 
+shared library linking.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
