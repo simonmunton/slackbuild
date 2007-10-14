@@ -1,0 +1,190 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=nss
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/n
+#TAR_EXT=.tar.gz
+VERSION=3.11.7
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
+
+NSPR_INCLUDE_DIR=`/usr/bin/pkg-config --cflags-only-I nspr | sed 's/-I//'`
+#NSPR_LIB_DIR=`/usr/bin/pkg-config --libs-only-L nspr | sed 's/-L//'`
+
+export NSPR_INCLUDE_DIR
+#export NSPR_LIB_DIR
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} -C ./mozilla/security/coreconf || exit
+make ${NUM_JOBS} -C ./mozilla/security/dbm || exit
+make ${NUM_JOBS} -C ./mozilla/security/nss || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+# There is no make install target so we'll do it ourselves.
+
+mkdir -p ${PKG}/usr/include/nss ${PKG}/usr/bin ${PKG}/usr/lib/{nss/unsupported-tools,pkgconfig}
+#mkdir -p ${PKG}/%{unsupported_tools_directory}
+
+# Copy the binary libraries we want
+for file in libnss3.so libssl3.so libsmime3.so libsoftokn3.so libnssckbi.so libfreebl3.so
+do
+  install -m 755 mozilla/dist/*.OBJ/lib/$file ${PKG}/usr/lib
+done
+
+# These ghost files will be generated in the post step
+touch ${PKG}/usr/lib/libsoftokn3.chk
+touch ${PKG}/usr/lib/libfreebl3.chk
+
+# Install the empty NSS db files
+mkdir -p ${PKG}/etc/pki/nssdb
+install -m 644 ${CWD}/nss-blank-cert8.db ${PKG}/etc/pki/nssdb/cert8.db.new
+install -m 644 ${CWD}/nss-blank-key3.db ${PKG}/etc/pki/nssdb/key3.db.new
+install -m 644 ${CWD}/nss-blank-secmod.db ${PKG}/etc/pki/nssdb/secmod.db.new
+
+doinst_config etc/pki/nssdb/cert8.db.new etc/pki/nssdb/key3.db.new etc/pki/nssdb/secmod.db.new
+
+# Copy the development libraries we want
+for file in libcrmf.a libnssb.a libnssckfw.a
+do
+  install -m 644 mozilla/dist/*.OBJ/lib/$file ${PKG}/usr/lib
+done
+
+# Copy the binaries we want
+for file in certutil cmsutil crlutil modutil pk12util signtool signver ssltap
+do
+  install -m 755 mozilla/dist/*.OBJ/bin/$file ${PKG}/usr/bin
+done
+
+# Copy the binaries we ship as unsupported
+for file in atob btoa derdump ocspclnt pp selfserv shlibsign strsclnt symkeyutil tstclnt vfyserv vfychain
+do
+  install -m 755 mozilla/dist/*.OBJ/bin/$file ${PKG}/usr/lib/nss/unsupported-tools
+done
+
+# Copy the include files
+for file in mozilla/dist/public/nss/*.h
+do
+  install -m 644 $file ${PKG}/usr/include/nss
+done
+
+cat > ${PKG}/usr/lib/pkgconfig/nss.pc << EOF
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include/nss
+
+Name: NSS
+Description: Network Security Services
+Version: ${VERSION}
+Requires: nspr >= 4.6.2
+Libs: -L\${libdir} -lssl3 -lsmime3 -lnss3
+Cflags: -I\${includedir}
+EOF
+
+cat >> ${PKG}/install/doinst.sh << EOF
+usr/lib/nss/unsupported-tools/shlibsign -i usr/lib/libsoftokn3.so >/dev/null 2>/dev/null
+usr/lib/nss/unsupported-tools/shlibsign -i usr/lib/libfreebl3.so >/dev/null 2>/dev/null
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cat > ${PKG}/usr/doc/${TARNAME}-${VERSION}/Readme << EOF
+Network Security Services (NSS) is a set of libraries designed to
+support cross-platform development of security-enabled client and
+server applications. Applications built with NSS can support SSL v2
+and v3, TLS, PKCS #5, PKCS #7, PKCS #11, PKCS #12, S/MIME, X.509
+v3 certificates, and other security standards.
+
+See http://www.mozilla.org/projects/security/pki/nss/ for more information
+EOF
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+Network Security Services (NSS) is a set of libraries designed to
+support cross-platform development of security-enabled client and
+server applications. Applications built with NSS can support SSL v2
+and v3, TLS, PKCS #5, PKCS #7, PKCS #11, PKCS #12, S/MIME, X.509
+v3 certificates, and other security standards.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
