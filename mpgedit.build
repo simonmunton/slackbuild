@@ -6,7 +6,7 @@ TARNAME=mpgedit
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.72beta3
+VERSION=0.73dev2
 VERSIONEXTRA=_src
 BUILD=1
 
@@ -34,24 +34,43 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}_${VERSION/./-}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/mpgedit-0.72beta3.diff
+ patch -p1 < ${CWD}/mpgedit-0.73dev2.diff
 )
 fi
 
 pre_configure
 
-cd ${TARNAME}-${VERSION}
-
-cd ${TARNAME}
+cd ${TARNAME}-${VERSION}/${TARNAME}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-make -f makefile.linux || exit
+make ${NUM_JOBS} -f makefile.linux DESTDIR=${PKG} || exit
+fi
 
-install_root=${PKG}/usr ./install.sh
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#install_root=${PKG}/usr ./install.sh
+DESTDIR=${PKG} ./install.sh /usr
 
 chmod -x ${PKG}/usr/share/xmpgedit/*
 mkdir ${PKG}/usr/share/pixmaps
@@ -71,27 +90,16 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+mpgedit is an MPEG 1 layer 1/2/3, MPEG 2, and MPEG 2.5 audio (mp3) 
+file editor that is capable of processing both Constant Bit Rate (CBR) 
+and Variable Bit Rate (VBR) encoded files. mpgedit can cut an input 
+MPEG file into one or more output files, as well as join one or more 
+input MPEG files into a single output file. When editing VBR files 
+that have a XING header, mpgedit updates the output file's XING header 
+information to reflect the new file size and average bit rate.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
