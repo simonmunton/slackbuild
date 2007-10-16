@@ -151,6 +151,19 @@ mkdir -p ${PKG}/usr/lib/pkgconfig
   ln -sf /usr/lib/${PKGNAME}-${VERSION}/lib/pkgconfig/qt-mt.pc .
 )
 
+(cd ${PKG}/usr/lib/qt/lib/pkgconfig
+ for n in *
+ do
+  sed -i -e "s@-L${CWD}/${TARNAME}-${VERSION}/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" ${n}
+ done
+
+cd ${PKG}/usr/lib/qt/lib
+ for n in *.la *.prl
+ do
+  sed -i -e "s@-L${CWD}/${TARNAME}-${VERSION}/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" ${n}
+ done
+)
+
 
 #strip_binaries
 
@@ -186,12 +199,14 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: Qt is a complete and well-developed object-oriented framework for
+${PKGNAME}: developing graphical user interface (GUI) applications using C++.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This release is free only for development of free software for the X
+${PKGNAME}: Window System.  If you use Qt for developing commercial or other
+${PKGNAME}: non-free software, you must have a professional license.  Please see
+${PKGNAME}: http://www.trolltech.com/purchase.html for information on how to
+${PKGNAME}: obtain a professional license.
 ${PKGNAME}:
 ${PKGNAME}:
 ${PKGNAME}:

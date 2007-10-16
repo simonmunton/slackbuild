@@ -6,7 +6,7 @@ TARNAME=qt-x11-opensource-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=4.2.3
+VERSION=4.3.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -71,17 +71,17 @@ make || exit
 make install INSTALL_ROOT=$PKG
 
 mkdir -p $PKG/usr/lib/pkgconfig
-mv $PKG/usr/lib/qt4/lib/*.pc $PKG/usr/lib/pkgconfig
-(cd $PKG/usr/lib/pkgconfig
+(cd $PKG/usr/lib/qt4/lib/pkgconfig
  for n in *
  do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
+  sed -i -e "s@-L$CWD/$TARNAME-$VERSION/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" $n
+  ln -sf /usr/lib/qt4/lib/pkgconfig/$n $PKG/usr/lib/pkgconfig/$n
  done
 
 cd $PKG/usr/lib/qt4/lib
  for n in *.la *.prl
  do
-  sed -i -e "s@-L$CWD/$PKGNAME-$VERSION/lib@@g" $n
+  sed -i -e "s@-L$CWD/$TARNAME-$VERSION/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" $n
  done
 )
 
@@ -114,13 +114,14 @@ cat <<EOF > ${PKG}/install/slack-desc
           |-----handy-ruler------------------------------------------------------|
 ${PKGNAME}: ${PKGNAME} ${VERSION}
 ${PKGNAME}:
-${PKGNAME}: 
+${PKGNAME}: Qt is a complete and well-developed object-oriented framework for
+${PKGNAME}: developing graphical user interface (GUI) applications using C++.
 ${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+${PKGNAME}: This release is free only for development of free software for the X
+${PKGNAME}: Window System.  If you use Qt for developing commercial or other
+${PKGNAME}: non-free software, you must have a professional license.  Please see
+${PKGNAME}: http://www.trolltech.com/purchase.html for information on how to
+${PKGNAME}: obtain a professional license.
 ${PKGNAME}:
 ${PKGNAME}:
 EOF
