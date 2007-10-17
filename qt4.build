@@ -36,6 +36,13 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+
+ # set correct X11 prefix
+ perl -pi -e "s,QMAKE_LIBDIR_X11.*,QMAKE_LIBDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_X11.*,QMAKE_INCDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
+
 )
 fi
 
@@ -74,14 +81,14 @@ mkdir -p $PKG/usr/lib/pkgconfig
 (cd $PKG/usr/lib/qt4/lib/pkgconfig
  for n in *
  do
-  sed -i -e "s@-L$CWD/$TARNAME-$VERSION/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" $n
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt4/@g" $n
   ln -sf /usr/lib/qt4/lib/pkgconfig/$n $PKG/usr/lib/pkgconfig/$n
  done
 
 cd $PKG/usr/lib/qt4/lib
  for n in *.la *.prl
  do
-  sed -i -e "s@-L$CWD/$TARNAME-$VERSION/lib@-L/usr/lib/qt4/lib@g" -e "s@-L/usr/X11R6/lib@@g" $n
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt4/@g" $n
  done
 )
 
