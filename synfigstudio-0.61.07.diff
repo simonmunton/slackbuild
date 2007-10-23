@@ -1,0 +1,144 @@
+--- synfigstudio-0.61.07/src/gtkmm/app.h.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/app.h	2007-10-23 12:24:28.000000000 +0100
+@@ -28,7 +28,6 @@
+ 
+ /* === H E A D E R S ======================================================= */
+ 
+-#include <sigc++/compatibility.h>
+ #include <sigc++/bind.h>
+ 
+ #include <gtkmm/main.h>
+--- synfigstudio-0.61.07/src/gtkmm/autorecover.h.orig	2007-03-16 00:39:42.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/autorecover.h	2007-10-23 12:36:13.000000000 +0100
+@@ -42,7 +42,7 @@
+ class AutoRecover
+ {
+ 	int timeout;
+-	SigC::Connection auto_backup_connect;
++	sigc::connection auto_backup_connect;
+ public:
+ 	AutoRecover();
+ 	~AutoRecover();
+--- synfigstudio-0.61.07/src/gtkmm/canvasview.cpp.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/canvasview.cpp	2007-10-23 12:29:36.000000000 +0100
+@@ -107,7 +107,7 @@
+ using namespace etl;
+ using namespace synfig;
+ using namespace studio;
+-using namespace SigC;
++using namespace sigc;
+ 
+ /* === M A C R O S ========================================================= */
+ 
+--- synfigstudio-0.61.07/src/gtkmm/canvasview.h.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/canvasview.h	2007-10-23 12:33:07.000000000 +0100
+@@ -201,8 +201,8 @@
+ 	etl::handle<AudioContainer>		audio;
+ 	studio::Widget_Sound			*disp_audio; //should this be put into thing too?
+ 
+-	SigC::Connection				playcon;
+-	SigC::Connection				stopcon;
++	sigc::connection				playcon;
++	sigc::connection				stopcon;
+ 
+ 	std::auto_ptr<UniversalScrubber> universal_scrubber;
+ 
+--- synfigstudio-0.61.07/src/gtkmm/dock_canvasspecific.h.orig	2007-03-16 00:39:42.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/dock_canvasspecific.h	2007-10-23 12:35:55.000000000 +0100
+@@ -44,7 +44,7 @@
+ 
+ class Dock_CanvasSpecific : public Dockable
+ {
+-	SigC::Connection canvas_delete_connection;
++	sigc::connection canvas_delete_connection;
+ protected:
+ 	virtual void init_instance_vfunc(etl::loose_handle<Instance> instance);
+ 
+--- synfigstudio-0.61.07/src/gtkmm/dock_info.h.orig	2007-03-16 00:39:42.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/dock_info.h	2007-10-23 12:36:25.000000000 +0100
+@@ -47,7 +47,7 @@
+ 	Gtk::Label  r,g,b,a;
+ 	Gtk::Label	x,y;
+ 
+-	SigC::Connection mousecon;
++	sigc::connection mousecon;
+ 
+ 	void on_mouse_move();
+ 
+--- synfigstudio-0.61.07/src/gtkmm/dock_navigator.cpp.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/dock_navigator.cpp	2007-10-23 14:03:05.000000000 +0100
+@@ -220,7 +220,7 @@
+ 			dw,	// width
+ 			dh,	// height
+ 			dw*synfig::channels(pf), // stride (pitch)
+-			SigC::slot(freegu8)
++			sigc::ptr_fun(freegu8)
+ 		);
+ 	}
+ 	else
+--- synfigstudio-0.61.07/src/gtkmm/dockable.h.orig	2007-03-16 00:39:42.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/dockable.h	2007-10-23 12:33:28.000000000 +0100
+@@ -59,7 +59,7 @@
+ 
+ 
+ 	sigc::signal<void> signal_stock_id_changed_;
+-	SigC::Connection prev_widget_delete_connection;
++	sigc::connection prev_widget_delete_connection;
+ protected:
+ 
+ //	DialogSettings dialog_settings;
+--- synfigstudio-0.61.07/src/gtkmm/dockdialog.h.orig	2007-03-16 00:39:42.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/dockdialog.h	2007-10-23 12:36:35.000000000 +0100
+@@ -59,7 +59,7 @@
+ 	friend class DockManager;
+ 	friend class DockBook;
+ 	friend class Dockable;
+-	SigC::Connection empty_sig;
++	sigc::connection empty_sig;
+ 
+ 	bool composition_selector_;
+ 
+--- synfigstudio-0.61.07/src/gtkmm/instance.cpp.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/instance.cpp	2007-10-23 12:31:23.000000000 +0100
+@@ -60,7 +60,7 @@
+ using namespace etl;
+ using namespace synfig;
+ using namespace studio;
+-using namespace SigC;
++using namespace sigc;
+ 
+ /* === M A C R O S ========================================================= */
+ 
+--- synfigstudio-0.61.07/src/gtkmm/preview.h.orig	2007-03-21 08:42:05.000000000 +0000
++++ synfigstudio-0.61.07/src/gtkmm/preview.h	2007-10-23 12:36:49.000000000 +0100
+@@ -201,7 +201,7 @@
+ 	etl::clock	timer;
+ 
+ 	//int		curindex; //for later
+-	SigC::Connection	timecon;
++	sigc::connection	timecon;
+ 
+ 	void slider_move(); //later to be a time_slider that's cooler
+ 	bool play_update();
+--- synfigstudio-0.61.07/src/gtkmm/state_draw.cpp.orig	2007-09-14 23:34:53.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/state_draw.cpp	2007-10-23 12:36:58.000000000 +0100
+@@ -97,7 +97,7 @@
+ 	bool prev_workarea_layer_status_;
+ 
+ 	int nested;
+-	SigC::Connection process_queue_connection;
++	sigc::connection process_queue_connection;
+ 
+ 	ValueNode_BLine::Handle last_stroke;
+ 
+--- synfigstudio-0.61.07/src/gtkmm/toolbox.cpp.orig	2007-10-06 03:25:36.000000000 +0100
++++ synfigstudio-0.61.07/src/gtkmm/toolbox.cpp	2007-10-23 12:29:07.000000000 +0100
+@@ -85,7 +85,7 @@
+ using namespace etl;
+ using namespace synfig;
+ using namespace studio;
+-using namespace SigC;
++using namespace sigc;
+ 
+ /* === M A C R O S ========================================================= */
+ 
