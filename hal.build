@@ -6,76 +6,109 @@ TARNAME=hal
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=0.5.9
+VERSION=0.5.10
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
+#PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=
+#ARCH=noarch
 
 
-FULL_TARNAME=$TARDIR/$TARNAME$TARNAMEEXTRA-$VERSION$VERSIONEXTRA$TAR_EXT
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
-PKG=/tmp/package-$PKGNAME
+PKG=/tmp/package-${PKGNAME}
 
-if [ ! -f $FULL_TARNAME ]
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $FULL_TARNAME
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -d $TARNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-$TAR_PROG $TAR_OPTS $FULL_TARNAME
-(cd $TARNAME-$VERSION
-#patch -p1 < $CWD/.diff
-# patch -p1 < $CWD/hal-0.5.7-conf.in.patch
-# patch -p1 < $CWD/hal-0.5.7-dbus-deprecated.patch
-# patch -p1 < $CWD/hal-0.5.7-fix-fedora-power-save.patch
-# patch -p1 < $CWD/hal-0.5.7-fix-for-nfs-and-autofs.patch
-# patch -p1 < $CWD/hal-0.5.7-lid-open-fix.patch
-# patch -p1 < $CWD/hal-0.5.7-pcmcia-readers.patch
- patch -p1 < $CWD/hal-conf.in.patch
- NOCONFIGURE=1 ./autogen.sh
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
 )
 fi
 
 pre_configure
 
-cd $TARNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --enable-doxygen-docs \
+            --localstatedir=/var \
+	    --mandir=/usr/man
+	    --disable-static \
+	    --disable-policy-kit \
 	    --enable-docbook-docs \
+	    --docdir=/usr/doc/$PRGNAM-$VERSION \
+	    --with-pid-file=/var/run/hald.pid \
+            --enable-doxygen-docs \
             --enable-fstab-sync \
             --enable-pcmcia-support \
-            --enable-hotplug-map \
-            --with-init-scripts=slackware \
-            --with-pid-file=/var/run/hald.pid \
-            --with-dbus-sys=/etc/dbus-1/system.d \
-            --with-hotplug=/etc/hotplug.d \
-	    --enable-policy-kit=no
+	    --enable-acpi-ibm \
+	    --enable-acpi-toshiba \
+	    --enable-sonypic \
 
-make || exit
+#            --enable-hotplug-map \
+#            --with-init-scripts=slackware \
+#            --with-dbus-sys=/etc/dbus-1/system.d \
+#            --with-hotplug=/etc/hotplug.d
 
-make install DESTDIR=$PKG
+fi
 
-mkdir -p $PKG/etc/rc.d
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-cp $CWD/hal-rc.hald.new $PKG/etc/rc.d/rc.hald.new
-chmod 755 $PKG/etc/rc.d/*
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# Make the defaults for manipulating/mounting system devices a bit more sane
+( cd ${PKG}/etc/dbus-1/system.d
+  cat ${CWD}/hal.conf.diff | patch -p0 || exit 1
+) || exit 1
+# Don't clobber existing config file in case custom changes have been made
+mv ${PKG}/etc/dbus-1/system.d/hal.conf ${PKG}/etc/dbus-1/system.d/hal.conf.new
+
+# Install init script for hal
+mkdir -p ${PKG}/etc/rc.d
+cat ${CWD}/rc.hald > ${PKG}/etc/rc.d/rc.hald.new
+# Make HAL run by default:
+chmod 755 ${PKG}/etc/rc.d/rc.hald.new
+
+doinst_same_perm etc/rc.d/rc.hald
+doinst_config etc/rc.d/rc.hald.new
+doinst_config etc/dbus-1/system.d/hal.conf.new
+
+#strip_binaries
 
 fix_links
 
@@ -84,41 +117,34 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$TARNAME-$VERSION
+  AUTHORS COPYING* HACKING INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  ln -s ../../share/gtk-doc/html/libhal libhal
+  ln -s ../../share/gtk-doc/html/libhal-storage libhal-storage
+)
 
 fix_docs
 
-mkdir -p $PKG/install
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+HAL is a piece of software that provides a view of the various
+hardware attached to a system.  HAL keeps detailed metadata for each
+piece of hardware and provides hooks so that system and desktop
+software can react to changes in the hardware configuration (such as
+the insertion of a DVD, or a USB flash memory stick).  Users in the
+"plugdev" or "cdrom" group will be able to use such devices on the
+desktop without the need to mount/umount them manually.
 
-cp $CWD/hal-doinst.sh $PKG/install/doinst.sh
+For more info, see:  http://www.freedesktop.org/Software/hal
 
-cat <<EOF > $PKG/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
-
-    |-----handy-ruler------------------------------------------------------|
-hal: hal
-hal:
-hal: 
-hal:
-hal:
-hal:
-hal:
-hal:
-hal:
-hal:
-hal:
 EOF
 
 post_install
 
-cd $PKG
+cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKGNAME-$PKGVERSION-$ARCH-$BUILD$BUILD_SUFFIX.tgz; \
-chown -R $USERNAME.$GROUP $PKG"
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
