@@ -1,0 +1,133 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gamgi
+TARNAMEEXTRA=-all
+TARDIR=~/tmp/new/g
+#TAR_EXT=.tar.gz
+VERSION=0.12.11
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+cd src
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+cd ..
+
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/opt/gamgi
+
+cp -pr doc dat ${PKG}/opt/gamgi
+cp -pr src/io/fonts ${PKG}/opt/gamgi
+cp -p src/gamgi ${PKG}/opt/gamgi
+
+mkdir -p ${PKG}/usr/bin
+cat > ${PKG}/usr/bin/gamgi << EOF
+#!/bin/bash
+
+export GAMGI_HELP=/opt/gamgi/doc
+export GAMGI_TEXT=/opt/gamgi/fonts
+export BROWSER=firefox
+
+/opt/gamgi/gamgi "$@"
+EOF
+
+chmod +x ${PKG}/usr/bin/gamgi
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO src/{BUGS,LICENSE} \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+GAMGI - General Atomistic Modelling Graphic Interface
+GAMGI aims to be useful for: 
+1) the scientific community working in Atomistic Modelling, that needs 
+a graphic interface to build input data and to view and analyse output 
+data, calculated with Ab-Initio and Molecular Mechanics programs; 
+2) the scientific community at large, studying Chemistry, Physics, 
+Materials Science, Geology, etc., that needs a graphic interface to 
+view and analyse atomic structural information and to prepare images 
+for presentations in classes and seminars; 
+3) teaching chemistry and physics in secondary schools and 
+universities, even inviting students to install and run GAMGI at home; 
+4) science promotion, in schools, exhibitions and science museums. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
