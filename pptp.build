@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=eog
+TARNAME=pptp
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.20.2
+VERSION=1.7.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,6 +43,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i -e "s/install -o root -m 555/install -m 755/" Makefile
 )
 fi
 
@@ -54,16 +55,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 make ${NUM_JOBS} || exit
 fi
 
@@ -73,6 +71,10 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/etc/ppp/options.pptp ${PKG}/etc/ppp/options.pptp.new
+
+doinst_config /etc/ppp/options.pptp.new
 
 #strip_binaries
 
@@ -90,8 +92,8 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-This is the Eye of Gnome, an image viewer program. It is meant to be
-a fast and functional image viewer.
+pptp is an implementation of the PPTP protocol for Linux and other 
+Unix systems.
 
 EOF
 

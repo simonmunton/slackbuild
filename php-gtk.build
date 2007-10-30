@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=orca
+TARNAME=php-gtk
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.20.1
+VERSION=1.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv php_gtk-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -54,11 +54,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+./buildconf
+
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -71,7 +74,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
 #strip_binaries
 
@@ -87,27 +90,19 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+PHP-GTK is a PHP extension that enables you to write client-side 
+cross-platform GUI applications. This is the first such extension of 
+this kind and one of the goals behind it was to prove that PHP is a 
+capable general-purpose scripting language that is suited for more 
+than just Web applications.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Orca is a free, open source, flexible, and extensible screen reader
-${PKGNAME}: that provides access to the graphical desktop via user-customizable
-${PKGNAME}: combinations of speech, braille, and/or magnification.  Under
-${PKGNAME}: development by the Sun Microsystems, Inc., Accessibility Program
-${PKGNAME}: Office since 2004, Orca has been created with early input from and
-${PKGNAME}: continued engagement with its end users.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+This extension will _not_ allow you to display GTK+ programs in a Web 
+browser, and can be used in the Web environment only if you are 
+running the webserver locally. It is intended for creating standalone 
+GUI applications.
+
 EOF
 
 post_install
