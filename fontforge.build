@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=fontforge
+TARNAMEEXTRA=_full
+TARDIR=~/tmp/new/f
+#TAR_EXT=.tar.gz
+VERSION=20071002
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+FTTARDIR=~/tmp/new/f/freetype
+FTTARNAME=freetype-2.3.5
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+ mkdir -p cidmap
+ (cd cidmap
+  tar xvf ${TARDIR}/fontforge-cidmaps.tgz
+ )
+
+ mkdir htdocs
+ (cd htdocs
+  tar xvf ${TARDIR}/${TARNAME}_htdocs-${VERSION}.*
+ )
+
+ tar xvf ${FTTARDIR}/${FTTARNAME}.*
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -DDOCDIR=\\\"/usr/share/fontforge/htdocs\\\"" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -DDOCDIR=\\\"/usr/share/fontforge/htdocs\\\"" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-multilayer \
+	    --enable-devicetables \
+	    --with-freetype-src=./${FTTARNAME}
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} docdir=/usr/share/fontforge/htdocs || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG} docdir=/usr/share/fontforge/htdocs
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+FontForge -- An outline font editor that lets you create your own 
+postscript, truetype, opentype, cid-keyed, multi-master, cff, svg and 
+bitmap (bdf, FON, NFNT) fonts, or edit existing ones. Also lets you 
+convert one format to another. FontForge has support for many 
+macintosh font formats.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
