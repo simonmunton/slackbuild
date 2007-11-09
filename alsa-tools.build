@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=rhythmbox
+TARNAME=alsa-tools
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/a/alsa
 #TAR_EXT=.tar.gz
-VERSION=0.11.3
+VERSION=1.0.15
 VERSIONEXTRA=
 BUILD=1
 
@@ -52,18 +52,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+build_dirs="ac3dec echomixer hdspconf hdspmixer mixartloader qlo10k1 sb16_csp sscape_ctl usx2yloader \
+as10k1 envy24control hdsploader ld10k1 pcxhrloader rmedigicontrol seq/sbiload us428control vxloader"
+
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+for i in ${build_dirs}
+do
+(cd $i
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+)
+done
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+for i in ${build_dirs}
+do
+(cd $i
 make ${NUM_JOBS} || exit
+)
+done
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -71,7 +86,12 @@ then
   exit
 fi
 
+for i in ${build_dirs}
+do
+(cd $i
 make install DESTDIR=${PKG}
+)
+done
 
 #strip_binaries
 
@@ -87,27 +107,21 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+This package contains several specialist tools for use with ALSA, 
+including a number of programs that provide access to special hardware 
+facilities on certain sound cards.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Rhythmbox is your one-stop multimedia application, supporting a
-${PKGNAME}: music library, multiple playlists, internet radio, and more.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+  as10k1 - AS10k1 Assembler
+  cspctl - Sound Blaster 16 ASP/CSP control program
+  envy24control - Control tool for Envy24 (ice1712) based soundcards
+  hdspmixer - Mixer for the RME Hammerfall DSP cards
+  rmedigicontrol - Control panel for RME Hammerfall cards
+  sbiload - An OPL2/3 FM instrument loader for ALSA sequencer
+  sscape_ctl - ALSA SoundScape control utility
+  us428control - Control tool for Tascam 428
+
 EOF
 
 post_install
