@@ -34,8 +34,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < $CWD/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,14 +52,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
+	    --mandir=/usr/man \
 	    --enable-audiofile
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -70,27 +89,18 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+AlsaPlayer is a new PCM player developed on the Linux Operating
+System. AlsaPlayer was written in the first place to excercise the new
+ALSA (Advanced Linux Sound Architecture) driver and library system.
 
-    |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+It has now developed into a versitile audio player with rich plugin 
+system. The  Input Plugins plugins include: OGG, MPEG, MAD, CDDA, 
+MikMod, FLAC and Audiofile. The Output Plugins include: ALSA, OSS 
+and OSS/Lite, Esound, Sparc (tested on UltraSparc), SGI, and JACK. 
+There are also a few scope plugins included.
+
 EOF
 
 post_install
