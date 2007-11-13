@@ -61,7 +61,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --enable-openexr
+	    --enable-openexr \
+	    --disable-freeimage
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,9 +75,18 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+ln -s `pwd`/Samples/Common/bin ${PKG}/Samples
 
-rm -rf ${PKG}/home
+make install DESTDIR=${PKG} ogreexecdir=/Samples
+
+rm ${PKG}/Samples
+
+(cd Samples/Common/bin
+ sed -e 's,@OGRE_PLUGINDIR\@,/usr/lib/OGRE,g' -e 's,@OGRE_MEDIADIR\@,../../../Samples/Media,g' plugins.cfg.in > plugins.cfg
+ sed -e 's,@OGRE_PLUGINDIR\@,/usr/lib/OGRE,g' -e 's,@OGRE_MEDIADIR\@,../../../Samples/Media,g' resources.cfg.in > resources.cfg
+)
+
+#rm -rf ${PKG}/home
 
 #strip_binaries
 
