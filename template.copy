@@ -1,8 +1,26 @@
 
+BACKUP="no"
+
+if [ "x$1" == "x-b" ]
+then
+  BACKUP="yes"
+  shift  
+fi
+
 if [ -z "$1" ]
 then
   echo Please specify source package
   exit
+fi
+
+NAME=${1%.build}
+
+if [ "$BACKUP" == "yes" ]
+then
+  if [ -f $NAME.build ]
+  then
+    mv $NAME.build $NAME.build.old
+  fi
 fi
 
 if [ ! -z "$2" ]
@@ -18,8 +36,6 @@ then
 else
   VER=
 fi
-
-NAME=${1%.build}
 
 if [ -f $NAME.build ]
 then
