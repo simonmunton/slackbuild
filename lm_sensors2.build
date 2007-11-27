@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=gtksourceview
+TARNAME=lm_sensors
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.0.2
+VERSION=2.10.5
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gtksourceview-2
+PKGNAME=lm_sensors2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -54,6 +54,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+true
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
@@ -64,7 +65,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} user || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +73,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make user_install DESTDIR=${PKG} PREFIX=/usr
+
+rm -f ${PKG}/usr/lib/*.a
+rm -rf ${PKG}/usr/include/linux
+
+mv ${PKG}/etc/sensors.conf ${PKG}/etc/sensors.conf.new
+doinst_config etc/sensors.conf.new
+
+#mkdir -p ${PKG}/usr/local/include
+#mv ${PKG}/usr/include/linux ${PKG}/usr/local/include
 
 #strip_binaries
 
@@ -83,18 +93,28 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  BACKGROUND BUGS CHANGES CONTRIBUTORS COPYING INSTALL QUICKSTART README* TODO lm_sensors.lsm \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc
+cd doc
+cp -a \
+  FAQ cvs donations fan-divisors fancontrol.txt mkpatch modules progs temperature-sensors version-2 vid \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-GtkSourceView is a text widget that extends the standard gtk+ 2.x
-text widget GtkTextView.
+lm_sensors provides tools for monitoring the temperatures, voltages,
+and fans of Linux systems with hardware monitoring devices.  Included
+are text-based tools for sensor reporting, and a library for sensors
+access called libsensors.  It also contains tools for sensor hardware
+identification and I2C bus probing.
 
-It improves GtkTextView by implementing syntax highlighting and other
-features typical of a source code editor.
+IMPORTANT NOTE:  If you have a Thinkpad, please read the warnings in
+the README.thinkpad file.  lm_sensors has been known to cause damage
+to some Thinkpads.
 
 EOF
 
