@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=gimp-help
+TARNAME=liboggz
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/gimp
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=0.9.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ BUILD=1
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=noarch
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -52,8 +52,6 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export ALL_LINGUAS="en"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
@@ -61,7 +59,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --enable-build
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,27 +88,12 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+Oggz provides a simple programming interface for reading and writing 
+Xiph.Org files and streams. The tarball contains the liboggz library 
+and some command-line tools.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: This package contains documentation for the GIMP image editor's
-${PKGNAME}: built-in help system.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
