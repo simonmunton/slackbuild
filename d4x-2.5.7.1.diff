@@ -1,0 +1,59 @@
+--- d4x-2.5.7.1/main/face/list.cc.orig	2006-03-20 00:29:41.000000000 +0000
++++ d4x-2.5.7.1/main/face/list.cc	2007-12-06 22:28:35.000000000 +0000
+@@ -8,7 +8,7 @@
+  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  */
+-#define GTK_DISABLE_DEPRECATED
++//#define GTK_DISABLE_DEPRECATED
+ 
+ #include <stdio.h>
+ #include <gtk/gtk.h>
+--- d4x-2.5.7.1/main/httpd.cc.orig	2006-04-05 20:01:41.000000000 +0100
++++ d4x-2.5.7.1/main/httpd.cc	2007-12-06 22:25:06.000000000 +0000
+@@ -124,10 +124,24 @@
+ 	if (tmp==NULL) return(NULL);
+ 	tmp=skip_spaces(tmp+1);
+ 	char *sqs=index(s,';');
+-	if (sqs==NULL) sqs=tmp+strlen(tmp)-1;
+-	else sqs-=1;
++	if (sqs==NULL) sqs=tmp+strlen(tmp);
+ 	int len=sqs-tmp;
++	while (len && isspace(tmp[len-1]))
++	  len--;
+ 	if (len<=0) return(NULL);
++	
++	if (*tmp == '"')
++	  {
++	    tmp++;
++	    len--;
++	    if (len<=0) return(NULL);
++	    if (tmp[len - 1] == '"')
++	      {
++	        len--;
++		if (len<=0) return(NULL);
++	      }
++	  }
++	
+ 	char *rval=copy_string2(tmp,len);
+ 	for (int i=len-1;i>=0;i++){
+ 		if (isspace(rval[i])) rval[i]=0;
+@@ -198,6 +212,7 @@
+ 	ETag=NULL;
+ 	Auth=NULL;
+ 	D_FILE.type=T_FILE; //we don't know any other when download via http
++	D_FILE.date=time(NULL);
+ 	config.copy_ints(cfg);
+ 	if (cfg->split){
+ 		config.retry=0;
+--- d4x-2.5.7.1/main/locstr.cc.orig	2005-11-11 21:38:45.000000000 +0000
++++ d4x-2.5.7.1/main/locstr.cc	2007-12-06 22:36:06.000000000 +0000
+@@ -1362,6 +1362,8 @@
+ };
+ 
+ int file_copy(char *from,char *to,char *buf,int size){
++	if (equal(from, to))
++		return 0;
+ 	FILE *src=fopen(from,"r");
+ 	if (src==NULL){
+ 		return(-1);
