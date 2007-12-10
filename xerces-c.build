@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=glade
-TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARNAME=xerces-c
+TARNAMEEXTRA=-src
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=2.12.2
+VERSION=2_8_0
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}_${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -52,19 +52,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+export XERCESCROOT=`pwd`
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+(cd src/xercesc
+ ./runConfigure -p linux -P /usr
+)
+(cd samples
+ ./runConfigure -p linux
+)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+(cd src/xercesc
+ make ${NUM_JOBS} || exit
+)
+(cd samples
+ make ${NUM_JOBS} || exit
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +79,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+(cd src/xercesc
+ make install DESTDIR=${PKG}
+)
 
 #strip_binaries
 
@@ -83,14 +92,22 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO LICENSE NOTICE STATUS credits.txt Readme.html doc/ \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-Glade is a GUI builder for GTK+ and GNOME.
+Xerces-C++ is a validating XML parser written in a portable subset of 
+C++. Xerces-C++ makes it easy to give your application the ability to 
+read and write XML data. A shared library is provided for parsing, 
+generating, manipulating, and validating XML documents.
+
+The parser provides high performance, modularity, and scalability. 
+Source code, samples and API documentation are provided with the 
+parser. For portability, care has been taken to make minimal use of 
+templates, no RTTI, and minimal use of #ifdefs.
 
 EOF
 

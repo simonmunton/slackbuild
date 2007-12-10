@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=glade
+TARNAME=libsmbios
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.12.2
+VERSION=0.11.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,16 +54,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 make ${NUM_JOBS} || exit
 fi
 
@@ -72,7 +69,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib,include}
+
+install -D -m 555 supported-bins/output/* ${PKG}/usr/bin
+install -D -m 555 bins/output/* ${PKG}/usr/bin
+
+cp -d lib/libsmbios* ${PKG}/usr/lib/
+cp -a include/smbios ${PKG}/usr/include/
 
 #strip_binaries
 
@@ -90,7 +94,9 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-Glade is a GUI builder for GTK+ and GNOME.
+Libsmbios is a library and utilites that can be used by client 
+programs to get information from standard BIOS tables, such as the 
+SMBIOS table.
 
 EOF
 
