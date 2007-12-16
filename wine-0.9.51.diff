@@ -1,0 +1,13 @@
+--- wine-0.9.51/dlls/ntdll/signal_i386.c.orig	2007-12-14 16:35:21.000000000 +0000
++++ wine-0.9.51/dlls/ntdll/signal_i386.c	2007-12-16 22:34:02.000000000 +0000
+@@ -937,8 +937,10 @@
+ 
+     stack--;  /* push the stack_layout structure */
+ #ifdef HAVE_VALGRIND_MEMCHECK_H
++#ifdef VALGRIND_MAKE_WRITABLE
+     VALGRIND_MAKE_WRITABLE(stack, sizeof(*stack));
+ #endif
++#endif
+     stack->ret_addr     = (void *)0xdeadbabe;  /* raise_func must not return */
+     stack->rec_ptr      = &stack->rec;
+     stack->context_ptr  = &stack->context;
