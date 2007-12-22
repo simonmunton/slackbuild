@@ -6,7 +6,7 @@ TARNAME=ndiswrapper
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=1.50
+VERSION=1.51
 VERSIONEXTRA=
 BUILD=1
 
@@ -23,6 +23,7 @@ FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_
 pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
+PKG_MODULE=/tmp/package-${PKGNAME}-module
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -69,6 +70,22 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/etc/ndiswrapper
+
+KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
+
+mkdir -p ${PKG_MODULE}/install
+
+rm -rf ${PKG_MODULE}/lib
+mv ${PKG}/lib ${PKG_MODULE}
+rm ${PKG_MODULE}/lib/modules/${KERNELRELEASE}/modules.*
+
+cat > ${PKG_MODULE}/install/doinst.sh << EOF
+#
+/sbin/depmod ${KERNELRELEASE}
+
+EOF
+
 #strip_binaries
 
 fix_links
@@ -85,6 +102,14 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
+ndiswrapper kernel module
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG_MODULE}/install
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
 Some wireless LAN vendors refuse to release hardware specifications or
 drivers for their products for operating systems other than Microsoft
 Windows. The ndiswrapper project makes it possible to use such
@@ -98,7 +123,10 @@ EOF
 post_install
 
 cd ${PKG}
-su -c "chown -R root.root ${PKG}; \
+su -c "chown -R root.root ${PKG} ${PKG_MODULE}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-chown -R ${USERNAME}.${GROUP} ${PKG}"
+cd ${PKG_MODULE}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG_MODULE}; "
