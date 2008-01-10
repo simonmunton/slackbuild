@@ -2,14 +2,14 @@
 #
 . build_funcs
 
-TARNAME=mpeg2dec
+TARNAME=dpkg
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/m
+TARSEP="_"
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=0.4.1
+VERSION=1.14.12
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -65,7 +65,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PERL_LIBDIR="/usr/lib/perl5/site_perl" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +73,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PERL_LIBDIR="/usr/lib/perl5/site_perl"
+
+mv ${PKG}/usr/sbin/install-info ${PKG}/usr/sbin/install-info.debian
 
 #strip_binaries
 
@@ -91,8 +93,11 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-libmpeg2 is a free library for decoding mpeg-2 and mpeg-1 video 
-streams. It is released under the terms of the GPL license.
+This is dpkg, Debian's package maintenance system.
+
+The primary interface for the dpkg suite is the 'dselect' program;
+a more low-level and less user-friendly interface is available in
+the form of the 'dpkg' command.
 
 EOF
 

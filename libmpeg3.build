@@ -2,14 +2,14 @@
 #
 . build_funcs
 
-TARNAME=mpeg2dec
+TARNAME=libmpeg3
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.4.1
-VERSIONEXTRA=
-BUILD=2
+VERSION=1.7
+VERSIONEXTRA=-src
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +34,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +43,19 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/libmpeg3-1.7-cinelerra_autotools.patch
+# patch -p1 < ${CWD}/libmpeg3-1.7-cinelerra_hacking.patch
+ patch -p1 < ${CWD}/libmpeg3-1.7-pkgconfig.in.patch
+ patch -p1 < ${CWD}/libmpeg3-1.7-spec_in.patch
+ patch -p1 < ${CWD}/libmpeg3-1.7.diff
+
+ touch NEWS README AUTHORS ChangeLog bootstrap
+
+ aclocal
+ libtoolize --force --copy
+ autoheader
+ automake --add-missing --copy
+ autoconf
 )
 fi
 
@@ -55,12 +67,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O3 -march=i686 -fmessage-length=0 -funroll-all-loops -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --mandir=/usr/man \
+	    --enable-shared \
+	    --disable-static
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,7 +87,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib,include}
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr
 
 #strip_binaries
 
@@ -84,15 +99,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-libmpeg2 is a free library for decoding mpeg-2 and mpeg-1 video 
-streams. It is released under the terms of the GPL license.
+LibMPEG3 decodes several MPEG standards into uncompressed data 
+suitable for editing and playback.
+
+libmpeg3 currently decodes:
+MPEG-2 video, MPEG-1 video, mp3 audio, mp2 audio, ac3 audio, MPEG-2 
+transport streams, MPEG-2 program streams, MPEG-1 program streams, 
+IFO files
 
 EOF
 
