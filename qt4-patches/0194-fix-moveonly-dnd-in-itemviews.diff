@@ -1,0 +1,42 @@
+qt-bugs@ issue : 181399
+Trolltech task ID : 181413 (status: pending for Qt 4.4.0)
+applied: no
+author: Matthias Kretz <kretz@kde.org>
+
+Allows drag and drop to work without pressing the shift key for itemviews that use InternalMove.
+
+Index: src/gui/itemviews/qlistview.cpp
+===================================================================
+--- src/gui/itemviews/qlistview.cpp	(revision 714771)
++++ src/gui/itemviews/qlistview.cpp	(working copy)
+@@ -992,7 +992,7 @@
+                 d->dynamicListView->draggedItems.push_back(*it);
+         QDrag *drag = new QDrag(this);
+         drag->setMimeData(d->model->mimeData(indexes));
+-        Qt::DropAction action = drag->start(supportedActions);
++        Qt::DropAction action = drag->exec(supportedActions);
+         d->dynamicListView->draggedItems.clear();
+         if (action == Qt::MoveAction)
+             d->clearOrRemove();
+Index: src/gui/itemviews/qabstractitemview.cpp
+===================================================================
+--- src/gui/itemviews/qabstractitemview.cpp	(revision 714771)
++++ src/gui/itemviews/qabstractitemview.cpp	(working copy)
+@@ -2968,7 +2968,7 @@
+ 
+ #ifndef QT_NO_DRAGANDDROP
+ /*!
+-    Starts a drag by calling drag->start() using the given \a supportedActions.
++    Starts a drag by calling drag->exec() using the given \a supportedActions.
+ */
+ void QAbstractItemView::startDrag(Qt::DropActions supportedActions)
+ {
+@@ -2985,7 +2985,7 @@
+         drag->setPixmap(pixmap);
+         drag->setMimeData(data);
+         drag->setHotSpot(d->pressedPosition - rect.topLeft());
+-        if (drag->start(supportedActions) == Qt::MoveAction)
++        if (drag->exec(supportedActions) == Qt::MoveAction)
+             d->clearOrRemove();
+     }
+ }

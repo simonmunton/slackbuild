@@ -1,0 +1,47 @@
+qt-bugs@ issue :  none
+Trolltech task ID : none
+bugs.kde.org number :
+applied: no
+author: Dirk Mueller <mueller@kde.org>
+
+only trust libxinerama if its not the emulated information
+coming from xrandr 1.2. xrandr 1.2 is merged fb and libxinerama
+presents then virtual screens in clone mode, which qt (and KDE)
+can't deal with.
+
+proper fix would be to detect crtcs as virtual screens, but
+given that qt can't deal with dynamically changing number of screens,
+this is for "when I have time".
+
+--- src/gui/kernel/qdesktopwidget_x11.cpp
++++ src/gui/kernel/qdesktopwidget_x11.cpp
+@@ -142,7 +142,8 @@ void QDesktopWidgetPrivate::init()
+ 
+     // get the geometry of each screen
+     int i, x, y, w, h;
+-    for (i = 0; i < screenCount; i++) {
++    int itScreenCount = screenCount;
++    for (i = 0; i < itScreenCount; i++) {
+ 
+ #ifndef QT_NO_XINERAMA
+         if (use_xinerama) {
+@@ -160,10 +161,19 @@ void QDesktopWidgetPrivate::init()
+             }
+ 
+         rects[i].setRect(x, y, w, h);
++        if (i > 0 && rects[i-1].intersects(rects[i]) &&
++                (rects[i].width()*rects[i].height()) >
++                (rects[i-1].width()*rects[i-1].height())) {
++            rects[i-1] = rects[i];
++           screenCount--;
++        }
+         workareas[i] = QRect();
+     }
+ 
+ #ifndef QT_NO_XINERAMA
++    if (use_xinerama && screenCount == 1)
++        use_xinerama = false;
++
+     if (xinerama_screeninfo)
+         XFree(xinerama_screeninfo);
+ #endif // QT_NO_XINERAMA

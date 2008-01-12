@@ -1,0 +1,34 @@
+qt-bugs@ issue : N169965
+Trolltech task ID : 170013 (status: fixed for Qt 4.4.0)
+bugs.kde.org number :
+applied: yes
+author: Benjamin Reed <rangerrick@befunk.com>
+os: mac
+
+OSX defaults to RLTD_GLOBAL -- this messes up some library loading;
+at *least* KOffice plugins that use the "Plugin" API.  (symbol clashes)
+
+Simple example from Mek that exhibits the behavior:
+
+http://eljakim.nl/~mkruisselbrink/qlibrarytest.tgz
+
+Index: src/corelib/plugin/qlibrary_unix.cpp
+===================================================================
+--- src/corelib/plugin/qlibrary_unix.cpp	(revision 683981)
++++ src/corelib/plugin/qlibrary_unix.cpp	(working copy)
+@@ -152,7 +152,15 @@
+     }
+     if (loadHints & QLibrary::ExportExternalSymbolsHint) {
+         dlFlags |= RTLD_GLOBAL;
++#ifdef Q_OS_MAC
++    } else {
++        /* Mac OS X uses RTLD_GLOBAL by default, which causes some issues...
++           is this OK for other platforms?  I fear touching something that
++           is used so much... making mac-specific for now :)  */
++        dlFlags |= RTLD_LOCAL;
++#endif
+     }
++
+ #if defined(Q_OS_AIX)	// Not sure if any other platform actually support this thing.
+     if (loadHints & QLibrary::LoadArchiveMemberHint) {
+         dlFlags |= RTLD_MEMBER;
