@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=twolame
+TARNAME=qca
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.3.12
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=qca2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -53,14 +53,19 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+export QTDIR=/usr/lib/qt4
+PATH=/usr/lib/qt4/bin:$PATH
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+#cmake . -DCMAKE_INSTALL_PREFIX=/usr
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+./configure --prefix=/usr
+
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#            --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,7 +78,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
 #strip_binaries
 
@@ -91,16 +96,14 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-TwoLAME is an optimized MPEG Audio Layer 2 (MP2) encoder. It is based 
-heavily on:
-  - tooLAME by Michael Cheng
-  - the ISO dist10 code
-  - improvement to algorithms as part of the LAME project
+QCA is a library that provides an easy API for a range of crypographic
+features, including SSL/TLS, X.509 certificates, SASL, OpenPGP, 
+smartcards, and much more.
 
-TwoLAME should be able to be used as a drop-in replacement for
-LAME (a MPEG Layer 3 encoder). The frontend takes very similar
-command line options to LAME, and the backend library has a very
-similar API to LAME.
+Functionality is supplied via plugins.  This is useful for avoiding
+dependence on a particular crypto library and makes upgrading easier,
+as there is no need to recompile your application when adding or
+upgrading a crypto plugin.
 
 EOF
 

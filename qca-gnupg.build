@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=twolame
+TARNAME=qca-gnupg
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.3.12
+VERSION=2.0.0-beta2
 VERSIONEXTRA=
 BUILD=1
 
@@ -53,14 +53,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+export QTDIR=/usr/lib/qt4
+PATH=/usr/lib/qt4/bin:$PATH
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+./configure
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,7 +73,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
 #strip_binaries
 
@@ -91,16 +91,7 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-TwoLAME is an optimized MPEG Audio Layer 2 (MP2) encoder. It is based 
-heavily on:
-  - tooLAME by Michael Cheng
-  - the ISO dist10 code
-  - improvement to algorithms as part of the LAME project
-
-TwoLAME should be able to be used as a drop-in replacement for
-LAME (a MPEG Layer 3 encoder). The frontend takes very similar
-command line options to LAME, and the backend library has a very
-similar API to LAME.
+QCA GnuPG plugin version 2.0.0
 
 EOF
 
