@@ -4,9 +4,10 @@
 
 TARNAME=bacula
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.0.2
+VERSION=2.2.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +19,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -34,8 +35,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,36 +53,50 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc/bacula \
             --localstatedir=/var/lib \
-	    --with-pid-dir=/var/run \
-	    --with-scriptdir=/etc/bacula \
-	    --with-working-dir=/var/lib/bacula/working \
-	    --with-subsys-dir=/var/lock/subsys \
-	    --enable-gnome \
-	    --enable-wx-console \
-	    --enable-tray-monitor \
-	    --with-sqlite3 \
-	    --with-x \
-	    --with-openssl \
-	    --enable-readline \
-	    --with-dir-password=DIR_PASSWORD \
-	    --with-fd-password=FD_PASSWORD \
-	    --with-sd-password=SD_PASSWORD \
-	    --with-mon-dir-password=MON_DIR_PASSWORD \
-	    --with-mon-fd-password=MON_FD_PASSWORD \
-	    --with-mon-sd-password=MON_SD_PASSWORD \
-	    --with-dir-user=bacula \
-	    --with-dir-group=bacula \
-	    --with-sd-user=bacula \
-	    --with-sd-group=disk \
-	    --with-fd-user=root \
-	    --with-fd-group=bacula
+	    --mandir=/usr/man \
+            --with-pid-dir=/var/run \
+            --with-scriptdir=/etc/bacula \
+            --with-working-dir=/var/lib/bacula/working \
+            --with-subsys-dir=/var/lock/subsys \
+	    --with-python \
+            --enable-gnome \
+            --enable-bwx-console \
+            --enable-tray-monitor \
+            --with-sqlite3 \
+            --with-x \
+            --with-openssl \
+	    --enable-smartalloc \
+            --enable-readline \
+            --with-dir-password=DIR_PASSWORD \
+            --with-fd-password=FD_PASSWORD \
+            --with-sd-password=SD_PASSWORD \
+            --with-mon-dir-password=MON_DIR_PASSWORD \
+            --with-mon-fd-password=MON_FD_PASSWORD \
+            --with-mon-sd-password=MON_SD_PASSWORD \
+            --with-dir-user=bacula \
+            --with-dir-group=bacula \
+            --with-sd-user=bacula \
+            --with-sd-group=disk \
+            --with-fd-user=root \
+            --with-fd-group=bacula
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 mkdir -p ${PKG}/var/lock/subsys ${PKG}/var/run ${PKG}/etc/rc.d
 touch ${PKG}/etc/rc.d/rc.local
@@ -120,8 +142,7 @@ HOSTNAME=\`hostname\`
        -e "s!DIR_PASSWORD!\${dir_password}!" \\
        -e "s!FD_PASSWORD!\${fd_password}!" \\
        -e "s!SD_PASSWORD!\${sd_password}!" \\
-       \${f} > \${f}.\$\$
-   mv \${f}.\$\$ \${f}
+       -i \${f} 
  done
 )
 
@@ -173,32 +194,24 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+Bacula is a set of computer programs that permits you (or the system
+administrator) to manage backup, recovery, and verification of 
+computer data across a network of computers of different kinds. In 
+technical terms, it is a network Client/Server based backup program. 
+Bacula is relatively easy to use and efficient, while offering many 
+advanced storage management features that make it easy to find and 
+recover lost or damaged files. Due to its modular design, Bacula is 
+scalable from small single computer systems to systems consisting of 
+hundreds of computers located over a large network.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
