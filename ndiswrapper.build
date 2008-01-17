@@ -53,6 +53,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 true
@@ -60,7 +62,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} KVERS=${KERNELRELEASE} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,11 +70,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} KVERS=${KERNELRELEASE}
 
 mkdir -p ${PKG}/etc/ndiswrapper
-
-KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
 
 mkdir -p ${PKG_MODULE}/install
 
