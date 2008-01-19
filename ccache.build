@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=libgpg-error
+TARNAME=ccache
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.6
+VERSION=2.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,7 +43,11 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p0 < ${CWD}/ccache-2.4-coverage-231462.patch
+ patch -p0 < ${CWD}/ccache-2.4-hardlink-doc.patch
+ patch -p0 < ${CWD}/ccache-2.4-noHOME-315441.patch
+ patch -p0 < ${CWD}/ccache-html-links.patch
+
 )
 fi
 
@@ -84,16 +88,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO web/index.html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc <<EOF
-This is a library that defines common error values for all GnuPG
-components.  Among these are GPG, GPGSM, GPGME, GPG-Agent, libgcrypt,
-Libksba, DirMngr, Pinentry, SmartCard Daemon and more.
+ccache is a compiler cache. It speeds up re-compilation of C/C++ code
+by caching previous compiles and detecting when the same compile is
+being done again.
+
+ccache was written by Andrew Tridgell.
 
 EOF
 
