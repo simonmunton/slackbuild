@@ -1,0 +1,161 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=nfs-utils
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/n
+#TAR_EXT=.tar.gz
+VERSION=1.1.1
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/nfs-utils.lwrap.needs.lnsl.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-statedir=/var/lib/nfs \
+	    --enable-nfsv3 \
+	    --enable-nfsv4=no \
+	    --enable-gss=no \
+	    --enable-secure-statd
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/etc/rc.d ${PKG}/var/{lib/nfs,log/nfsd}
+
+make install DESTDIR=${PKG}
+
+# Remove things that seem like bad ideas, and hope it all still works:
+#rm -f $PKG/sbin/*mount* $PKG/usr/man/man8/*mount.nfs*
+rm -f $PKG/var/lib/nfs/*tab
+
+mv ${PKG}/usr/sbin/rpc.statd ${PKG}/sbin
+( cd ${PKG}/usr/sbin ; ln -sf ../../sbin/rpc.statd . )
+
+cat ${CWD}/nfs-utils-rc.nfsd > ${PKG}/etc/rc.d/rc.nfsd.new
+doinst_config etc/rc.d/rc.nfsd.new
+
+cat > ${PKG}/etc/exports.new << EOF
+# See exports(5) for a description.
+# This file contains a list of all directories exported to other computers.
+# It is used by rpc.nfsd and rpc.mountd.
+EOF
+
+doinst_config etc/exports.new
+
+cat >> ${PKG}/install/doinst.sh << EOF
+
+# If you already had your own /etc/exports, this one is probably useless...
+rm -f etc/exports.new
+
+if [ ! -r var/lib/nfs/rmtab ]; then
+  touch var/lib/nfs/rmtab
+  chmod 644 var/lib/nfs/rmtab
+fi
+if [ ! -r var/lib/nfs/xtab ]; then
+  touch var/lib/nfs/xtab
+  chmod 644 var/lib/nfs/xtab
+fi
+if [ ! -r var/lib/nfs/etab ]; then
+  touch var/lib/nfs/etab
+  chmod 644 var/lib/nfs/etab
+fi
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/statd
+cp -a \
+  utils/statd/COPYING utils/statd/COPYRIGHT utils/statd/TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/statd
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+The nfs-utils package contains the necessary daemons and utilities to
+run an NFS server on Linux.
+
+You'll also need the portmap package to use NFS.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 4511 sbin/mount.nfs ; \
+chmod go-rwx var/lib/nfs/sm var/lib/nfs/sm.bak var/lib/nfs/state ; \
+chown nobody var/lib/nfs/sm var/lib/nfs/sm.bak var/lib/nfs/state ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
