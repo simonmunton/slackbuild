@@ -74,6 +74,14 @@ fi
 
 make install DESTDIR=${PKG}
 
+cat > ${PKG}/install/doinst.dh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/qjackctl
+fi
+
+EOF
+
 #strip_binaries
 
 fix_links

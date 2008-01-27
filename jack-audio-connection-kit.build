@@ -78,6 +78,14 @@ make install DESTDIR=${PKG}
 
 #strip_binaries
 
+cat > ${PKG}/install/doinst.dh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/jackd
+fi
+
+EOF
+
 fix_links
 
 compress_manpages
