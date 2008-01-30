@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=gstreamer
+TARNAME=CImg
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.10.17
+VERSION=1.2.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,17 +55,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+true
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +69,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/include
+cp CImg.h ${PKG}/usr/include/
 
 #strip_binaries
 
@@ -84,19 +83,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO documentation Licence* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "GStreamer streaming media framework runtime"
-GStreamer is a streaming media framework, based on graphs of filters
-which operate on media data. Applications using this library can do
-anything from real-time sound processing to playing videos, and just
-about anything else media-related. Its plugin-based architecture
-means that new data types or processing capabilities can be added
-simply by installing new plugins.
+make_slack_desc <<EOF "C++ image processing toolkit"
+The CImg Library is an open source C++ toolkit for image processing.
+
+It mainly consists in a (big) single header file CImg.h providing a 
+set of C++ classes and functions that can be used in your own sources, 
+to load/save, manage/process and display generic images. 
 
 EOF
 
