@@ -4,11 +4,12 @@
 
 TARNAME=wxGTK
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/w/wxWidgets
 #TAR_EXT=.tar.gz
-VERSION=2.8.6
+VERSION=2.8.7
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +19,7 @@ PKGNAME=wxGTK-2.8-unicode
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/wxGTK-2.8.6.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,6 +60,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
+	    --mandir=/usr/man \
             --with-gtk \
             --with-gnomeprint \
             --with-opengl \
@@ -69,8 +71,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --enable-compat24 \
             --enable-unicode
 
-#	    --enable-debug
-
+#           --enable-debug
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,7 +79,6 @@ then
 make ${NUM_JOBS} || exit
 make -C contrib/src ${NUM_JOBS} || exit
 #make -C contrib/src/stc ${NUM_JOBS} || exit
-
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +89,6 @@ fi
 make install DESTDIR=${PKG}
 make -C contrib/src install DESTDIR=${PKG}
 #make -C contrib/src/stc install DESTDIR=${PKG}
-
 
 #strip_binaries
 
@@ -105,27 +104,13 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "cross-platform GUI library"
+wxWidgets is a free C++ library for cross-platform GUI
+development. With wxWidgets, you can create applications for
+different GUIs (GTK+, Motif, MS Windows, MacOS X, Windows CE,
+GPE) from the same source code.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: wxWidgets is a free C++ library for cross-platform GUI
-${PKGNAME}: development. With wxWidgets, you can create applications for
-${PKGNAME}: different GUIs (GTK+, Motif, MS Windows, MacOS X, Windows CE,
-${PKGNAME}: GPE) from the same source code.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
