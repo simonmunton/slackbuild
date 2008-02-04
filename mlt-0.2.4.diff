@@ -1,5 +1,27 @@
+--- mlt-0.2.4/src/modules/avformat/producer_avformat.c.orig	2007-07-14 23:34:45.000000000 +0100
++++ mlt-0.2.4/src/modules/avformat/producer_avformat.c	2008-02-04 14:49:26.000000000 +0000
+@@ -203,7 +203,7 @@
+ 			params->width = 640;
+ 			params->height = 480;
+ 			params->time_base= (AVRational){1,25};
+-			params->device = file;
++			//params->device = file;
+ 			params->channels = 2;
+ 			params->sample_rate = 48000;
+ 		}
+--- mlt-0.2.4/src/modules/sox/configure.orig	2005-05-04 20:37:08.000000000 +0100
++++ mlt-0.2.4/src/modules/sox/configure	2008-02-04 14:46:58.000000000 +0000
+@@ -6,7 +6,7 @@
+ 	which libst-config > /dev/null 2>&1
+ 	disable_sox=$?
+ 
+-	if [ "$disable_sox" = "0" ]
++	if [ "$disable_sox" = "0" -o -e /usr/lib/libsfx.so ]
+ 	then
+ 		echo "sox		libmltsox$LIBSUF" >> ../filters.dat
+ 	else
 --- mlt-0.2.4/src/modules/sox/filter_sox.c.orig	2007-03-31 01:29:56.000000000 +0100
-+++ mlt-0.2.4/src/modules/sox/filter_sox.c	2007-09-25 16:04:16.000000000 +0100
++++ mlt-0.2.4/src/modules/sox/filter_sox.c	2008-02-04 14:46:58.000000000 +0000
 @@ -28,7 +28,7 @@
  #include <string.h>
  #include <math.h>
@@ -152,19 +174,8 @@
  #endif
  				q += *channels;
  			}
---- mlt-0.2.4/src/modules/sox/configure.orig	2005-05-04 20:37:08.000000000 +0100
-+++ mlt-0.2.4/src/modules/sox/configure	2007-09-25 10:26:47.000000000 +0100
-@@ -6,7 +6,7 @@
- 	which libst-config > /dev/null 2>&1
- 	disable_sox=$?
- 
--	if [ "$disable_sox" = "0" ]
-+	if [ "$disable_sox" = "0" -o -e /usr/lib/libsfx.so ]
- 	then
- 		echo "sox		libmltsox$LIBSUF" >> ../filters.dat
- 	else
 --- mlt-0.2.4/src/modules/sox/Makefile.orig	2005-12-05 11:35:55.000000000 +0000
-+++ mlt-0.2.4/src/modules/sox/Makefile	2007-09-25 10:26:41.000000000 +0100
++++ mlt-0.2.4/src/modules/sox/Makefile	2008-02-04 14:46:58.000000000 +0000
 @@ -5,8 +5,8 @@
  OBJS = factory.o \
  	   filter_sox.o 

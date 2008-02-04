@@ -6,7 +6,7 @@ TARNAME=ndiswrapper
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=1.51
+VERSION=1.52
 VERSIONEXTRA=
 BUILD=1
 
@@ -24,6 +24,7 @@ pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
 PKG_MODULE=/tmp/package-${PKGNAME}-module
+rm -rf ${PKG_MODULE}
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -101,6 +102,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=${PKGNAME}-module \
 make_slack_desc <<EOF
 ndiswrapper kernel module
 
@@ -128,5 +130,5 @@ find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 cd ${PKG_MODULE}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+makepkg -l y -c n ${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE//-/_}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG_MODULE}; "
