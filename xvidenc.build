@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=libmatroska
+TARNAME=xvidenc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=0.8.1
+VERSION=7.6.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -60,11 +60,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd make/linux
- CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
- CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
- make prefix=/usr ${NUM_JOBS} || exit
-)
+true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,10 +68,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-(cd make/linux
- make install DESTDIR=${PKG} prefix=${PKG}/usr
-)
+mkdir -p ${PKG}/usr/{bin,man/man1}
+# Copy xvidenc script & doc/man files
+cp -f xvidenc ${PKG}/usr/bin
+cp -f man/xvidenc.1 ${PKG}/usr/man/man1
+
+# Make matrix dir in doc & copy matrix file
+cp -a matrices ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 #strip_binaries
 
@@ -86,19 +85,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "Matroska Video Container headers/development files"
-Matroska aims to become THE Standard of Multimedia Container Formats.
-It was derived from a project called MCF, but differentiates from it
-significantly because it is based on  EBML (Extensible Binary Meta
-Language), a binary derivative of XML. EBML enables the Matroska
-Development Team to gain significant advantages in terms of future
-format extensibility, without breaking file support in old parsers.
+make_slack_desc <<EOF "shell script to encode videos to Xvid format"
+xvidenc is a shell script which can be used to encode DVDs or video 
+files to the Xvid format using the encoding utility 'MEncoder' from 
+'MPlayer'. There is also a Web site available for xvidenc at 
+http://xvidenc.sourceforge.net
 
 EOF
 

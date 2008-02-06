@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=libmatroska
+TARNAME=gtk2-ssh-askpass
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=0.8.1
+VERSION=0.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,16 +55,17 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd make/linux
- CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
- CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
- make prefix=/usr ${NUM_JOBS} || exit
-)
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,10 +73,18 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-(cd make/linux
- make install DESTDIR=${PKG} prefix=${PKG}/usr
-)
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1}
+cp gtk2-ssh-askpass ${PKG}/usr/bin
+cp debian/gtk2-ssh-askpass.1 ${PKG}/usr/man/man1
+
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+if [ ! -f usr/libexec/ssh-askpass ]
+then
+  ln -s /usr/bin/gtk2-ssh-askpass usr/libexec/ssh-askpass
+fi
+EOF
 
 #strip_binaries
 
@@ -92,13 +101,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "Matroska Video Container headers/development files"
-Matroska aims to become THE Standard of Multimedia Container Formats.
-It was derived from a project called MCF, but differentiates from it
-significantly because it is based on  EBML (Extensible Binary Meta
-Language), a binary derivative of XML. EBML enables the Matroska
-Development Team to gain significant advantages in terms of future
-format extensibility, without breaking file support in old parsers.
+make_slack_desc <<EOF "Gnome 2 passphrase requester"
+Under Gnome2, asks user for a passphrase for ssh-add
+It does the same work that ssh-askpass and ssh-askpass-gnome do. It 
+adds shadowing and looks more beautiful under Gnome2.
 
 EOF
 
