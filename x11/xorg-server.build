@@ -1,0 +1,257 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=xorg-server
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/x/xorg
+#TAR_EXT=.tar.gz
+VERSION=1.3.0.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+BUILD_SERVERS="--enable-xorg --enable-xvfb --enable-xnest --enable-dmx --enable-kdrive --enable-xephyr"
+SKIP_SERVERS="--disable-xprint"
+MESA_VERSION=${MESA_VERSION:-6.5.2}
+MESA_TARDIR=~/tmp/new/m
+
+PKG_XDMX=/tmp/package-xorg-server-xdmx
+PKG_XNEST=/tmp/package-xorg-server-xnest
+PKG_XVFB=/tmp/package-xorg-server-xvfb
+PKG_XEPHYR=/tmp/package-xorg-server-xephyr
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/xorg-server-x11.startwithblackscreen.diff
+ patch -p1 < ${CWD}/xorg-server-xorgconfig.diff
+ patch -p1 < ${CWD}/xorg-server.dpi.diff
+ #patch -p1 < ${CWD}/
+)
+fi
+
+if [ ! -d Mesa-${MESA_VERSION} ]
+then
+tar xjvf ${MESA_TARDIR}/MesaLib-${MESA_VERSION}.tar.bz2
+tar xjvf ${MESA_TARDIR}/MesaGLUT-${MESA_VERSION}.tar.bz2
+tar xjvf ${MESA_TARDIR}/MesaDemos-${MESA_VERSION}.tar.bz2
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure \
+  --prefix=/usr \
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --infodir=/usr/info \
+  --mandir=/usr/man \
+  --disable-static \
+  --enable-xcsecurity \
+  --with-pic \
+  --with-int10=x86emu \
+  --with-default-font-path="/usr/share/fonts/TTF,/usr/share/fonts/OTF,/usr/share/fonts/Type1,/usr/share/fonts/misc,/usr/share/fonts/75dpi/:unscaled" \
+  --with-module-dir=/usr/lib/xorg/modules \
+  --with-dri-driver-path=/usr/lib/xorg/modules/dri \
+  --with-os-name="Slackware 12.0" \
+  --with-os-vendor="Slackware Linux Project" \
+  --with-mesa-source=${CWD}/Mesa-${MESA_VERSION} \
+  --with-xkb-path=/etc/X11/xkb \
+  --with-xkb-output=/var/lib/xkb \
+  ${BUILD_SERVERS} \
+  ${SKIP_SERVERS} \
+  --build=${ARCH}-slackware-linux
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# Don't mess with my /var/log/ permissions:
+rmdir ${PKG}/var/log
+#rmdir ${PKG}/var
+
+# Fix xserver location:
+mv ${PKG}/usr/lib/xserver ${PKG}/etc/X11
+( cd ${PKG}/usr/lib ; ln -sf ../../etc/X11/xserver . )
+
+# While I hate to have X11 take over another generic-sounding
+# piece of prime filesystem real estate, this symlink will
+# direct (for now) proprietary X drivers into the corrent
+# location:
+( cd ${PKG}/usr/lib
+  rm -rf modules
+  ln -sf xorg/modules .
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+
+# Make the alternate server packages:
+rm -rf ${PKG_XDMX}
+mkdir -p ${PKG_XDMX}/{install,usr/{bin,man/man1}}
+mv ${PKG}/usr/bin/*dmx* ${PKG_XDMX}/usr/bin
+mv ${PKG}/usr/man/man1/*dmx* ${PKG_XDMX}/usr/man/man1
+
+rm -rf ${PKG_XNEST}
+mkdir -p ${PKG_XNEST}/{install,usr/{bin,man/man1}}
+mv ${PKG}/usr/bin/Xnest ${PKG_XNEST}/usr/bin
+mv ${PKG}/usr/man/man1/Xnest* ${PKG_XNEST}/usr/man/man1
+
+rm -rf ${PKG_XVFB}
+mkdir -p ${PKG_XVFB}/{install,usr/{bin,man/man1}}
+mv ${PKG}/usr/bin/Xvfb ${PKG_XVFB}/usr/bin
+mv ${PKG}/usr/man/man1/Xvfb* ${PKG_XVFB}/usr/man/man1
+
+rm -rf ${PKG_XEPHYR}
+mkdir -p ${PKG_XEPHYR}/{install,usr/bin}
+mv ${PKG}/usr/bin/Xephyr ${PKG_XEPHYR}/usr/bin
+#mv ${PKG}/usr/man/man1/Xephyr* ${PKG_XEPHYR}/usr/man/man1
+
+# remove other kdrive servers
+rm ${PKG}/usr/bin/{Xati,Xchips,Xepson,Xfake,Xfbdev,Xi810,Xmach64,Xmga,Xneomagic,Xnvidia,Xpm2,Xr128,Xsdl,Xsmi,Xvesa,Xvia}
+
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=${PKGNAME}-xdmx PKG=${PKG_XDMX} \
+make_slack_desc <<EOF "Distributed Multi-head X server"
+Xdmx is a proxy X server that uses one or more other X servers as its
+display devices.  It provides multi-head X functionality for displays
+that might be located on different machines.
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=${PKGNAME}-xnest PKG=${PKG_XNEST} \
+make_slack_desc <<EOF "a nested X server"
+Xnest is an experimental nested server for X that acts as both a
+client and a server.  Xnest is a client of the real server which
+manages windows and graphics requests on its behalf.  Xnest is a
+server to its own clients.  Xnest manages windows and graphics
+requests on their behalf.  To these clients Xnest appears to be a
+conventional server.
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=${PKGNAME}-xdmx PKG=${PKG_XVFB} \
+make_slack_desc <<EOF "virtual framebuffer X server"
+Xvfb is an X server that can run on machines with no display hardware
+and no physical input devices.  It emulates a dumb framebuffer using
+virtual memory.  The primary use of this server is intended to be
+server testing.  The mfb or cfb code for any depth can be exercised
+with this server without the need for real hardware that supports the
+desired depths.  A secondary use is testing clients against unusual
+depths and screen configurations.
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=${PKGNAME}-xdmx PKG=${PKG_XEPHYR} \
+make_slack_desc <<EOF "Xnest like kdrive X server"
+Xephyr is a a kdrive server that outputs to a window on a pre-existing
+'host' X display. Think Xnest but with support for modern extensions
+like composite, damage and randr.
+
+Unlike Xnest which is an X proxy, i.e.  limited to the capabilities 
+of the host X server, Xephyr is a real X server which uses the host X 
+server window as "framebuffer" via fast SHM XImages.
+
+It also has support for 'visually' debugging what the server is
+painting.
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "The Xorg server, the core of the X Window System"
+Xorg is a full featured X server that was originally designed for UNIX
+and UNIX-like operating systems running on Intel x86 hardware.  It now
+runs on a wider range of hardware and OS platforms.  This work was
+derived by the X.Org Foundation from the XFree86 Project's XFree86
+4.4rc2  release.  The XFree86 release was originally derived from X386
+1.2 by Thomas Roell which was contributed to X11R5 by Snitily Graphics
+Consulting Service.
+
+The home page for the X project is:  http://www.x.org
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG_XDMX} ${PKG_XNEST} ${PKG_XVFB} ${PKG_XEPHYR}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+cd ${PKG_XDMX} ; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-xdmx-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG_XNEST} ; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-xnest-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG_XVFB} ; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-xvfb-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG_XEPHYR} ; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-xephyr-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG_XDMX} ${PKG_XNEST} ${PKG_XVFB} ${PKG_XEPHYR} "
+
+
+
