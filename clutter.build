@@ -2,11 +2,12 @@
 #
 . build_funcs
 
-TARNAME=libpng
+TARNAME=clutter
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/l
+TARSEP="-"
+TARDIR=~/tmp/new/c/clutter
 #TAR_EXT=.tar.gz
-VERSION=1.2.25
+VERSION=0.6.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +19,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/libpng.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -60,13 +61,11 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-ln -sf scripts/makefile.linux Makefile
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} prefix=/usr || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,19 +73,9 @@ then
   exit
 fi
 
-make install prefix=/usr DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-# This symlink is needed to keep old applications running:
-# I guess the real lib used the major number 3, then 0 for
-# a short while, and now .3 again.  Hopefully it will stay
-# this way as it was .3 in Slackware 10.2.  One can hope.
-( cd ${PKG}/usr/lib
-  if [ ! -e libpng.so.0 -a -e libpng.so.3 ]; then
-    ln -sf libpng.so.3 libpng.so.0
-  fi
-)
-
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -95,19 +84,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  ANNOUNCE CHANGES INSTALL KNOWNBUG LICENSE README TODO Y2KINFO libpng.txt example.c \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "Portable Network Graphics library"
-PNG (Portable Network Graphics) is an extensible file format for the
-lossless, portable, well-compressed storage of raster images.  PNG
-provides a patent-free replacement for GIF and can also replace many
-common uses of TIFF.  Indexed-color, grayscale, and truecolor images
-are supported, plus an optional alpha channel.  Sample depths range
-from 1 to 16 bits.
+make_slack_desc <<EOF "library for visually rich and animated GUIs"
+Clutter it an open source software library for creating fast, visually
+rich and animated graphical user interfaces.
 
 EOF
 
