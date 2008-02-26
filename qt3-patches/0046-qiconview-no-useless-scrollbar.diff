@@ -22,10 +22,10 @@ Index: qiconview.cpp
 RCS file: /home/kde/qt-copy/src/iconview/qiconview.cpp,v
 retrieving revision 1.54
 diff -u -3 -p -r1.54 qiconview.cpp
---- work/qt-x11-free-3.3.6/src/iconview/qiconview.cpp	2 Mar 2004 12:50:31 -0000	1.54
-+++ work/qt-x11-free-3.3.6/src/iconview/qiconview.cpp	12 Apr 2004 10:07:28 -0000
+--- src/iconview/qiconview.cpp	2 Mar 2004 12:50:31 -0000	1.54
++++ src/iconview/qiconview.cpp	12 Apr 2004 10:07:28 -0000
 @@ -1060,7 +1060,7 @@ void QIconViewItem::setText( const QStri
-
+ 
      if ( view ) {
  	if ( QRect( view->contentsX(), view->contentsY(),
 -		    view->visibleWidth(), view->visibleHeight() ).
@@ -34,7 +34,7 @@ diff -u -3 -p -r1.54 qiconview.cpp
  	    view->repaintContents( oR.x() - 1, oR.y() - 1,
  				   oR.width() + 2, oR.height() + 2, FALSE );
 @@ -1104,7 +1104,7 @@ void QIconViewItem::setPixmap( const QPi
-
+ 
      if ( view ) {
  	if ( QRect( view->contentsX(), view->contentsY(),
 -		    view->visibleWidth(), view->visibleHeight() ).
@@ -43,7 +43,7 @@ diff -u -3 -p -r1.54 qiconview.cpp
  	    view->repaintContents( oR.x() - 1, oR.y() - 1,
  				   oR.width() + 2, oR.height() + 2, FALSE );
 @@ -1140,7 +1140,7 @@ void QIconViewItem::setPicture( const QP
-
+ 
      if ( view ) {
  	if ( QRect( view->contentsX(), view->contentsY(),
 -		    view->visibleWidth(), view->visibleHeight() ).
@@ -52,7 +52,7 @@ diff -u -3 -p -r1.54 qiconview.cpp
  	    view->repaintContents( oR.x() - 1, oR.y() - 1,
  				   oR.width() + 2, oR.height() + 2, FALSE );
 @@ -1200,7 +1200,7 @@ void QIconViewItem::setPixmap( const QPi
-
+ 
  	    if ( view ) {
  		if ( QRect( view->contentsX(), view->contentsY(),
 -			    view->visibleWidth(), view->visibleHeight() ).
@@ -68,7 +68,7 @@ diff -u -3 -p -r1.54 qiconview.cpp
 -			  QMAX( contentsHeight(), visibleHeight() ) ) );
 +	QRegion r( QRect( 0, 0, QMAX( contentsWidth(), visibleWidthSB() ),
 +			  QMAX( contentsHeight(), visibleHeightSB() ) ) );
-
+ 
  	QIconViewItem *i = d->firstItem;
  	int y = -1;
 @@ -5707,7 +5707,7 @@ QIconViewItem *QIconView::makeRowLayout(
@@ -110,12 +110,12 @@ diff -u -3 -p -r1.54 qiconview.cpp
 @@ -6378,4 +6378,24 @@ bool QIconView::isRenaming() const
  #endif
  }
-
+ 
 +int QIconView::visibleWidthSB() const
 +{
 +    if ( vScrollBarMode() != Auto )
 +        return visibleWidth();
-+
++    
 +    int offset = verticalScrollBar()->isVisible() ? 0
 +        : style().pixelMetric( QStyle::PM_ScrollBarExtent, verticalScrollBar() );
 +    return QMAX( 0, visibleWidth() - offset );
@@ -125,26 +125,26 @@ diff -u -3 -p -r1.54 qiconview.cpp
 +{
 +    if ( hScrollBarMode() != Auto )
 +        return visibleHeight();
-+
++    
 +    int offset = horizontalScrollBar()->isVisible() ? 0
 +        : style().pixelMetric( QStyle::PM_ScrollBarExtent, horizontalScrollBar() );
 +    return QMAX( 0, visibleHeight() - offset );
 +}
-+
++        
  #endif // QT_NO_ICONVIEW
 Index: qiconview.h
 ===================================================================
 RCS file: /home/kde/qt-copy/src/iconview/qiconview.h,v
 retrieving revision 1.35
 diff -u -3 -p -r1.35 qiconview.h
---- work/qt-x11-free-3.3.6/src/iconview/qiconview.h	16 May 2003 13:02:38 -0000	1.35
-+++ work/qt-x11-free-3.3.6/src/iconview/qiconview.h	12 Apr 2004 10:07:58 -0000
+--- src/iconview/qiconview.h	16 May 2003 13:02:38 -0000	1.35
++++ src/iconview/qiconview.h	12 Apr 2004 10:07:58 -0000
 @@ -496,6 +496,8 @@ private:
  			const QPoint &relativeTo,
  			const QIconViewItem *item ) const;
      QBitmap mask( QPixmap *pix ) const;
 +    int visibleWidthSB() const;
 +    int visibleHeightSB() const;
-
+ 
      QIconViewPrivate *d;
-
+ 

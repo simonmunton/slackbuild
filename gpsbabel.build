@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=intltool
+TARNAME=gpsbabel
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=0.37.1
+VERSION=1.3.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -60,12 +60,16 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --with-zlib=system \
+	    --with-doc=`pwd`/
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+make doc || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,6 +78,9 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
+cp -pr htmldoc-${VERSION}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
 
 #strip_binaries
 
@@ -84,18 +91,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO gpsbabel.html gpsbabel.pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "GNOME internationalisation tool"
-Automatically extracts translatable strings from oaf, glade, bonobo
-ui, nautilus theme and other files into the po files.
-
-Automatically merges translations from po files back into .oaf files
-(encoding to be 7-bit clean). Also merges into other kinds of files.
+make_slack_desc <<EOF "GPS data manipulation tools"
+GPSBabel converts waypoints, tracks, and routes between popular GPS 
+receivers and mapping programs. It also has powerful manipulation 
+tools for such data.
 
 EOF
 

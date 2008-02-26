@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=intltool
+TARNAME=fop
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=0.37.1
-VERSIONEXTRA=
+VERSION=0.94
+VERSIONEXTRA=-src
 BUILD=1
 
 #TAR_PROG=
@@ -55,17 +55,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+ant || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +68,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib/fop/{build,conf,lib}}
+cp -p fop ${PKG}/usr/lib/fop
+ln -s /usr/lib/fop/fop ${PKG}/usr/bin/fop
+cp -p build/fop.jar ${PKG}/usr/lib/fop/build
+cp -p conf/* ${PKG}/usr/lib/fop/conf
+cp -pr lib/* ${PKG}/usr/lib/fop/lib
 
 #strip_binaries
 
@@ -90,12 +91,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "GNOME internationalisation tool"
-Automatically extracts translatable strings from oaf, glade, bonobo
-ui, nautilus theme and other files into the po files.
-
-Automatically merges translations from po files back into .oaf files
-(encoding to be 7-bit clean). Also merges into other kinds of files.
+make_slack_desc <<EOF "Apache print formatter"
+Apache FOP is the world's first print formatter driven by XSL 
+formatting objects. It is a Java application that reads a formatting 
+object tree conforming to the XSL 1.1 Recommendation (05 December 
+2006) and then turns it into a PDF document, certain other output 
+formats or allows you to preview it directly on screen. Some parts of 
+the XSL 1.1 specification (work in progress!) have also been 
+implemented.
 
 EOF
 
