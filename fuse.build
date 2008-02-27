@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=TEMPLATE
+TARNAME=fuse
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=
+VERSION=2.7.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://sourceforge.net/projects/fuse"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -77,6 +77,14 @@ fi
 
 make install DESTDIR=${PKG}
 
+mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
+(cd ${PKG}/etc/rc.d
+ mv fuse rc.fuse.new
+ doinst_config etc/rc.d/rc.fuse.new
+)
+
+rm -rf ${PKG}/dev
+
 #strip_binaries
 
 fix_links
@@ -86,13 +94,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO FAQ Filesystems doc/{how-fuse-works,kernel.txt} \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc <<EOF "Filesystem in Userspace"
+FUSE (Filesystem in Userspace) is a simple interface for userspace
+programs to export a virtual filesystem to the Linux kernel.  FUSE
+also aims to provide a secure method for non privileged users to
+create and mount their own filesystem implementations.
+
 EOF
 
 post_install
@@ -100,5 +113,6 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/fusermount ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
