@@ -105,6 +105,8 @@ export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
 export PATH="$QTDIR/bin:$PATH"
 export QTDEST=/usr/lib/qt-${VERSION}
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 ./configure -prefix /usr/lib/qt-${VERSION} \
 	    -release \
 	    -system-zlib \
@@ -132,8 +134,17 @@ export QTDEST=/usr/lib/qt-${VERSION}
 	    -plugin-style-sgi \
 	    -plugin-style-windows \
 	    -enable-opengl
+fi
 
+if [ ${DO_MAKE} == "yes" ]
+then
 make -i symlinks sub-src sub-tools || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install INSTALL_ROOT=${PKG}
 
