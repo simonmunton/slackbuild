@@ -6,7 +6,7 @@ TARNAME=ghostscript
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=8.60
+VERSION=8.62
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,12 +54,26 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+(cd ijs
+ if [ ! -r configure ]; then
+   sh autogen.sh
+ fi
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+)
+
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
+	    --with-fontpath=/usr/share/fonts/TTF \
+	    --disable-compile-inits \
 	    --enable-cups \
 	    --enable-dynamic \
 	    --with-drivers=ALL \
@@ -69,15 +83,6 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --with-gimp-print \
 	    --with-omni \
 	    --with-x
-
-(cd ijs
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -101,11 +106,21 @@ make soinstall install-shared install-cups DESTDIR=${PKG}
 ln -s gsc ${PKG}/usr/bin/gs
 ln -s gsc ${PKG}/usr/bin/gs-no-x11
 
-mv ${PKG}/usr/share/ghostscript/8.60/doc/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-mv ${PKG}/usr/share/ghostscript/8.60/examples ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir ${PKG}/usr/share/ghostscript/8.60/doc
-ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/share/ghostscript/8.60/doc
-ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples ${PKG}/usr/share/ghostscript/8.60/examples
+mv ${PKG}/usr/share/ghostscript/${VERSION}/doc/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+mv ${PKG}/usr/share/ghostscript/${VERSION}/examples ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir ${PKG}/usr/share/ghostscript/${VERSION}/doc
+ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/share/ghostscript/${VERSION}/doc
+ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples ${PKG}/usr/share/ghostscript/${VERSION}/examples
+
+# Replace the default cidfmap with one containing additional
+# support for CJK printing:
+
+if [ -r ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ]; then
+  mv ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.default.ghostscript-${VERSION}
+  cp ${CWD}/ghostscript-cidfmap > ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.new
+
+  doinst_config usr/share/ghostscript/${VERSION}/lib/cidfmap.new
+fi
 
 #strip_binaries
 
