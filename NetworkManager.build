@@ -6,7 +6,7 @@ TARNAME=NetworkManager
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.6.5
+VERSION=0.6.5.99
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,7 +59,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --with-dhcdbd=/usr/bin/true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,6 +74,44 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}
+ for f in etc/rc.d/rc.networkmanager etc/rc.d/rc.networkmanager-dispatcher
+ do
+   mv ${f} ${f}.new
+   doinst_same_perm ${f}
+   doinst_config ${f}.new
+ done
+
+ for f in etc/dbus-1/system.d/NetworkManager.conf
+ do
+   mv ${f} ${f}.new
+   doinst_config ${f}.new
+ done
+)
+
+cat >> ${PKG}/install/doinst.sh << EOF
+###
+# Use rc.local to start NetworkManager at boot.
+###
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+run=\$(grep "sh /etc/rc.d/rc.networkmanager" etc/rc.d/rc.local)
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start NetworkManager daemon" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local
+        echo "  sh /etc/rc.d/rc.networkmanager start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+	echo "" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.networkmanager-dispatcher ]; then" >> etc/rc.d/rc.local
+        echo "  sh /etc/rc.d/rc.networkmanager-dispatcher start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+fi
+
+EOF
 
 #strip_binaries
 
@@ -89,7 +128,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "network connection manager"
 NetworkManager attempts to keep an active network connection available 
 at all times. The point of NetworkManager is to make networking 
 configuration and setup as painless and automatic as possible. If 
@@ -105,5 +144,6 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod 700 var/lib/run/NetworkManager; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
