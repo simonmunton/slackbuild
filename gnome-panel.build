@@ -4,11 +4,14 @@
 
 TARNAME=gnome-panel
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.20.3
+VERSION=2.22.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -58,7 +61,8 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -87,32 +91,20 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "The GNOME panel"
+This package contains the GNOME panel which is the area on your
+desktop from which you can run applications and applets, and perform
+other tasks.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: This package contains the GNOME panel which is the area on your
-${PKGNAME}: desktop from which you can run applications and applets, and perform
-${PKGNAME}: other tasks.
-${PKGNAME}:
-${PKGNAME}: The libpanel-applet library is also in this package. This library
-${PKGNAME}: allows one to develop small applications which may be embedded in the
-${PKGNAME}: panel. These are called applets.
-${PKGNAME}:
-${PKGNAME}: Several applets are also supplied - the Workspace Switcher, the Window
-${PKGNAME}: List, the Window Selector, the Notification Area, the Clock and the
-${PKGNAME}: infamous 'Wanda the Fish'.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+The libpanel-applet library is also in this package. This library
+allows one to develop small applications which may be embedded in the
+panel. These are called applets.
+
+Several applets are also supplied - the Workspace Switcher, the Window
+List, the Window Selector, the Notification Area, the Clock and the
+infamous 'Wanda the Fish'.
+
 EOF
 
 post_install
