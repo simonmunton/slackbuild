@@ -4,11 +4,14 @@
 
 TARNAME=orca
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.20.3
+VERSION=2.22.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -58,7 +61,8 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -87,27 +91,15 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "extensible screen reader"
+Orca is a free, open source, flexible, and extensible screen reader
+that provides access to the graphical desktop via user-customizable
+combinations of speech, braille, and/or magnification.  Under
+development by the Sun Microsystems, Inc., Accessibility Program
+Office since 2004, Orca has been created with early input from and
+continued engagement with its end users.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Orca is a free, open source, flexible, and extensible screen reader
-${PKGNAME}: that provides access to the graphical desktop via user-customizable
-${PKGNAME}: combinations of speech, braille, and/or magnification.  Under
-${PKGNAME}: development by the Sun Microsystems, Inc., Accessibility Program
-${PKGNAME}: Office since 2004, Orca has been created with early input from and
-${PKGNAME}: continued engagement with its end users.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
