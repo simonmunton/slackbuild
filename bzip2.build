@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=bzip2
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/b
+#TAR_EXT=.tar.gz
+VERSION=1.0.5
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+ sed -i -e 's/ libbz2.so.1.0$/ libbz2.so.1/' -e 's/-Wl,libbz2.so.1.0/-Wl,libbz2.so.1/'  Makefile-libbz2_so
+ sed -i -e "s/libbz2.so.1.0.4/libbz2.so.${VERSION}/"  Makefile-libbz2_so
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} -f Makefile-libbz2_so || exit
+
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG} PREFIX=${PKG}/usr
+
+mkdir -p ${PKG}/lib
+cp -a libbz2.so.${VERSION} ${PKG}/lib/libbz2.so.${VERSION}
+
+mkdir -p ${PKG}/bin
+cp -p bzip2-shared ${PKG}/bin/bzip2
+cp -p bzip2recover ${PKG}/bin/bzip2recover
+
+rm ${PKG}/usr/bin/{bzip2,bzip2recover,bunzip2,bzcat}
+echo '.so man1/bzip2.1' > ${PKG}/usr/man/man1/bzip2recover.1
+
+# Link up them links
+( cd ${PKG}
+  ( cd lib
+    rm -f libbz2.so.1.0 libbz2.so.1
+    ln -sf libbz2.so.${VERSION} libbz2.so.1.0
+    ln -sf libbz2.so.1.0 libbz2.so.1
+  )
+  ( cd usr/lib ; ln -sf ../../lib/libbz2.so.1 libbz2.so )
+  ( cd bin ; ln -sf bzip2 bunzip2 )
+  ( cd bin ; ln -sf bzip2 bzcat )
+  mkdir -p usr/bin
+  ( cd usr/bin
+    ln -sf ../../bin/bzip2 .
+    ln -sf ../../bin/bzip2 bunzip2
+    ln -sf ../../bin/bzip2 bzcat
+    ln -sf bzmore bzless
+  )
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  CHANGES LICENSE README README.COMPILATION.PROBLEMS Y2K_INFO bzip2.txt *.html \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a block-sorting file compressor"
+Bzip2 compresses files using the Burrows-Wheeler block sorting text
+compression algorithm, and Huffman coding.  Compression is generally
+considerably better than that achieved by more conventional LZ77/LZ78-
+based compressors, and approaches the performance of the PPM family of
+statistical compressors.
+
+Julian Seward <jseward@acm.org> is the author of bzip2.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
