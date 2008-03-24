@@ -4,11 +4,14 @@
 
 TARNAME=wesnoth
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=1.2.8
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -34,8 +37,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,21 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
+	    --mandir=/usr/man \
             --enable-server \
             --enable-campaign-server \
             --enable-editor \
             --enable-tools \
-	    --with-kde \
-	    --with-gnome \
+            --with-kde \
+            --with-gnome \
             --with-server-uid=simon \
             --with-server-gid=users
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
@@ -77,29 +99,17 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "turn-based fantasy strategy game"
+Battle for Wesnoth is a turn-based fantasy strategy game.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Battle for Wesnoth is a turn-based fantasy strategy game.
-${PKGNAME}: 
-${PKGNAME}: Defeat all enemy leaders using a well-chosen cadre of troops, taking
-${PKGNAME}: care to manage your resources of gold and villages. All units have
-${PKGNAME}: their own strengths and weaknesses; to win, deploy your forces to
-${PKGNAME}: their best advantage while denying your foes the chance to do the
-${PKGNAME}: same. As units gain experience, they acquire new abilities and become
-${PKGNAME}: more powerful.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+Defeat all enemy leaders using a well-chosen cadre of troops, taking
+care to manage your resources of gold and villages. All units have
+their own strengths and weaknesses; to win, deploy your forces to
+their best advantage while denying your foes the chance to do the
+same. As units gain experience, they acquire new abilities and become
+more powerful.
+
 EOF
 
 post_install
