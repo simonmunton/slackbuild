@@ -36,6 +36,11 @@ guess_tar_prog ()
 # guess tar program and tar opts
 
 case $1 in
+  *.tar)
+    : ${TAR_PROG:=tar}
+    : ${TAR_OPTS:=xvf}
+    ;;
+
   *.tar.gz|*.tgz)
     : ${TAR_PROG:=tar}
     : ${TAR_OPTS:=xzvf}
@@ -80,7 +85,11 @@ GROUP=`id -gn`
 #
 if [ "x${TAR_EXT}" == "x" ]
 then
-  if [ -f ${FULL_TARNAME}.tar.gz ]
+  if [ -f ${FULL_TARNAME}.tar ]
+  then
+    TAR_EXT=.tar
+    FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
+  elif [ -f ${FULL_TARNAME}.tar.gz ]
   then
     TAR_EXT=.tar.gz
     FULL_TARNAME=${FULL_TARNAME}${TAR_EXT}
