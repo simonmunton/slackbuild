@@ -1,0 +1,31 @@
+--- cdrdao-1.2.2/xdao/xcdrdao.cc.orig	2005-05-03 10:50:17.000000000 +0100
++++ cdrdao-1.2.2/xdao/xcdrdao.cc	2008-03-28 22:22:45.000000000 +0000
+@@ -136,7 +136,7 @@
+   installSignalHandler(SIGCHLD, signalHandler);
+ 
+   // setup periodic GUI updates
+-  Glib::signal_timeout().connect(SigC::slot(&guiUpdatePeriodic), 2000);
++  Glib::signal_timeout().connect(sigc::ptr_fun(&guiUpdatePeriodic), 2000);
+ 
+   installSignalHandler(SIGPIPE, SIG_IGN);
+ 
+--- cdrdao-1.2.2/dao/main.cc.orig	2006-09-19 10:07:11.000000000 +0100
++++ cdrdao-1.2.2/dao/main.cc	2008-03-28 20:07:41.000000000 +0000
+@@ -1358,7 +1358,7 @@
+       if (READING_SPEED >= 0) {
+         message(0, "Setting reading speed %d.",
+                 READING_SPEED); 
+-        if (cdr->rspeed(READING_SPEED) != 0) {
++        if (!cdr->rspeed(READING_SPEED)) {
+           message(-2, "Reading speed %d is not supported by device.",
+                   READING_SPEED);
+           exit(1);
+@@ -1481,7 +1481,7 @@
+ #endif
+ 
+   if (READING_SPEED >= 0) {
+-    if (cdr->rspeed(READING_SPEED) != 0) {
++    if (!cdr->rspeed(READING_SPEED)) {
+       message(-2, "Reading speed %d is not supported by device.",
+               READING_SPEED);
+       exit(1);
