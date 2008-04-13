@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.6.4
+VERSION=0.8.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -67,7 +67,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --enable-opi \
             --enable-zlib \
             --enable-gtk-doc \
-	    --enable-xpdf-headers
+	    --enable-xpdf-headers \
+	    --disable-poppler-qt4
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,6 +82,40 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+
+export QTDIR=/usr/lib/qt4
+PATH=/usr/lib/qt4/bin:$PATH
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --disable-static \
+            --enable-opi \
+            --enable-zlib \
+            --enable-gtk-doc \
+	    --enable-xpdf-headers \
+	    --disable-poppler-qt
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+
 
 #strip_binaries
 
