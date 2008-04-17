@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=xine-lib
+TARNAME=tar
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xine
+TARDIR=~/tmp/gnu/tar
 #TAR_EXT=.tar.gz
-VERSION=1.1.12
+VERSION=1.20
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=tar_gnu
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/xine-lib-1.1.11.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -58,13 +60,10 @@ then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
-            --mandir=/usr/man \
-            --with-w32-path=/usr/lib/codecs \
-            --with-libflac \
-            --with-freetype \
-            --with-fontconfig \
-            --with-wavpack
-
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-backup-scripts
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,7 +78,25 @@ fi
 
 make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/lib/codecs
+mkdir -p ${PKG}/bin
+mv ${PKG}/usr/bin/tar ${PKG}/bin
+( cd ${PKG}/usr/bin ; ln -sf /bin/tar . )
+( cd ${PKG}/bin ; ln -sf tar tar-${VERSION} )
+
+# Support "historic" rmt locations:
+( mkdir ${PKG}/etc
+  cd ${PKG}/etc
+  ln -sf /usr/libexec/rmt .
+)
+( mkdir -p ${PKG}/sbin
+  cd ${PKG}/sbin
+  ln -sf /usr/libexec/rmt .
+)
+
+#mkdir -p ${PKG}/usr/man/man{1,8}
+#cat ${CWD}/tar.1.gz > ${PKG}/usr/man/man1/tar.1.gz
+#cat ${CWD}/rmt.8.gz > ${PKG}/usr/man/man8/rmt.8.gz
+
 
 #strip_binaries
 
@@ -90,18 +107,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS AUTHORS COPYING* INSTALL NEWS PLANS PORTS README* THANKS TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "xine multimedia playback engine libraries)"
-xine-lib is a free (GPL licensed) high-performance multimedia
-playback engine.  The xine shared libraries are used by xine-ui (and
-other media players and multimedia applications) for smooth video
-processing and playback of multimedia streams such as movies, radio
-and TV network streams, DVDs, and VCDs.
+make_slack_desc << EOF "archiving utility"
+This is the GNU version of tar, an archiving program designed to store
+and extract files from an archive file known as a tarfile.  A tarfile
+may be made on a tape drive, however, it is also common to write a
+tarfile to a normal file.
+
+Slackware's package system uses tarfiles compressed with GNU gzip.
 
 EOF
 

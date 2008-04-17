@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xine-lib
+TARNAME=lzop
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xine
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.1.12
+VERSION=1.02rc1
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/xine-lib-1.1.11.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -58,13 +60,9 @@ then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
-            --mandir=/usr/man \
-            --with-w32-path=/usr/lib/codecs \
-            --with-libflac \
-            --with-freetype \
-            --with-fontconfig \
-            --with-wavpack
-
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,8 +76,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/lib/codecs
 
 #strip_binaries
 
@@ -96,12 +92,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "xine multimedia playback engine libraries)"
-xine-lib is a free (GPL licensed) high-performance multimedia
-playback engine.  The xine shared libraries are used by xine-ui (and
-other media players and multimedia applications) for smooth video
-processing and playback of multimedia streams such as movies, radio
-and TV network streams, DVDs, and VCDs.
+make_slack_desc << EOF "file compression program"
+lzop is a file compressor similar to gzip. Its main advantages over 
+gzip are much higher compression and decompression speed at the cost 
+of some compression ratio.
+
+lzop was designed with the following goals in mind:
+  - speed (both compression and decompression)
+  - reasonable drop-in compatibility to gzip
+  - portability
 
 EOF
 
