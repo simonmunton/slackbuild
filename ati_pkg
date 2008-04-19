@@ -1,0 +1,39 @@
+#
+
+CWD=`pwd`
+
+#VER=`basename $CWD`
+#VER=${VER#*-}
+VER=`./ati-packager-helper.sh --version`
+
+mkdir a pkg
+
+cp -pr arch/x86/lib common/lib a
+
+cp -pr arch/x86/usr common/{etc,usr,opt} x710/usr packages/Slackware/x_pkg/install pkg
+
+(cd pkg/usr
+ cp -pr X11R6/* .
+ rm -rf X11R6
+)
+
+(cd pkg
+ cp -pr opt/kde3/share usr
+ rm -rf opt
+
+ rm -rf usr/src
+
+ rm install/doinst.sh
+
+ rm usr/share/applnk/amdcccle.kdelnk
+
+ chmod -R +x usr/bin/* usr/sbin/* usr/lib/*.so* usr/lib/modules/{,drivers/,linux/,dri/}*.so
+  
+ chmod -R -x,+X usr/{share,include} install \
+                etc/ati/* \
+                usr/lib/{modules/,}*.a
+                
+ chmod +x etc/ati/authatieventsd.sh
+
+ makepkg -l y -c n fglrx-${VER}-i486-1sm.tgz
+)
