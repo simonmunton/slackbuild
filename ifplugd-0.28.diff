@@ -1,0 +1,73 @@
+--- ifplugd-0.28/src/interface.c.orig	2005-01-05 00:25:31.000000000 +0000
++++ ifplugd-0.28/src/interface.c	2008-04-22 10:19:40.000000000 +0100
+@@ -23,7 +23,6 @@
+ #endif
+ 
+ #include <linux/sockios.h>
+-#include <linux/if_ether.h>
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <sys/ioctl.h>
+--- ifplugd-0.28/src/interface.h.orig	2004-05-10 00:20:56.000000000 +0100
++++ ifplugd-0.28/src/interface.h	2008-04-22 10:20:16.000000000 +0100
+@@ -21,6 +21,9 @@
+  * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+  */
+ 
++/* From <linux/if_ether.h> */
++#define ETH_ALEN 6
++
+ int interface_auto_up;
+ int interface_do_message;
+ 
+--- ifplugd-0.28/man/ifplugd.conf.5.orig	2008-04-22 09:28:22.000000000 +0100
++++ ifplugd-0.28/man/ifplugd.conf.5	2008-04-22 10:01:35.000000000 +0100
+@@ -11,6 +11,9 @@
+ \fBINTERFACES\f1
+ Specifies the ethernet interfaces to monitor. It has to contain a space seperated list of network interfaces names. Most users will probably use "eth0" here, however you may add additional interfaces for monitoring more than one device. A special value is supported as well: "auto" will enable a more or less working auto detection of available network devices. This won't make you happy when using network module auto loading, since it cannot detect currently unloaded network devices.
+ .TP
++\fBHOTPLUG_INTERFACES\f1
++Specifies the interfaces that can be hotplugged (like interfaces on PCMCIA, USB or WLAN adapters). "all" can be used to make the udev script start an ifplugd process for any hotplugged interfaces. 
++.TP
+ \fBARGS\f1
+ Additional command line arguments for ifplugd invocation. See \fBifplugd(8)\f1 for further information.
+ .TP
+--- ifplugd-0.28/man/ifplugd.conf.5.xml.in.orig	2003-12-11 17:58:45.000000000 +0000
++++ ifplugd-0.28/man/ifplugd.conf.5.xml.in	2008-04-22 10:01:13.000000000 +0100
+@@ -51,12 +51,19 @@
+ 	  </option>
+ 
+ 	  <option>
++		<p><opt>HOTPLUG_INTERFACES</opt></p> <optdesc><p>Specifies the
++		interfaces that can be hotplugged (like interfaces on PCMCIA,
++		USB or WLAN adapters).  "all" can be used to make the udev
++		script start an ifplugd process for any hotplugged interfaces.
++		</p></optdesc>
++	  </option>
++
++	  <option>
+ 		<p><opt>ARGS</opt></p> <optdesc><p>Additional command line
+ 		arguments for ifplugd invocation. See <manref name="ifplugd"
+ 		section="8"/> for further information.</p></optdesc>
+ 	  </option>
+ 
+-
+ 	  <option>
+ 	       <p><opt>ARGS_</opt><arg>iface</arg></p>
+                   
+--- ifplugd-0.28/conf/ifplugd.conf.orig	2003-12-11 17:58:43.000000000 +0000
++++ ifplugd-0.28/conf/ifplugd.conf	2008-04-22 10:07:18.000000000 +0100
+@@ -30,7 +30,12 @@
+ # according to /proc/net/dev. Note that the list of interfaces
+ # appearing in /proc/net/dev may depend on which kernel modules you
+ # have loaded.
+-INTERFACES="eth0"
++INTERFACES="eth0 wlan0"
++
++# Specify the interfaces that can be hotplugged (like interfaces on
++# PCMCIA, USB or WLAN adapters).  "all" can be used to make the udev
++# script start an ifplugd process for any hotplugged interfaces.
++HOTPLUG_INTERFACES="all"
+ 
+ # Additional parameters for ifplugd.
+ # (Run "ifplugd -h" for further information.)

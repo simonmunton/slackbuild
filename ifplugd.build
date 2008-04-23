@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=speex
+TARNAME=ifplugd
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=1.2beta3
+VERSION=0.28
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.speex.org/"
+WEBPAGE="http://0pointer.de/lennart/projects/ifplugd/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/ifplugd-0.28.diff
 )
 fi
 
@@ -77,6 +77,18 @@ fi
 
 make install DESTDIR=${PKG}
 
+mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
+mv ${PKG}/etc/rc.d/ifplugd ${PKG}/etc/rc.d/rc.ifplugd
+
+sed -i -e 's@/sbin/ifup \$1@/etc/rc.d/rc.inet1 ${1}_start@' \
+       -e 's@/sbin/ifdown \$1@/etc/rc.d/rc.inet1 ${1}_stop@' \
+	${PKG}/etc/ifplugd/ifplugd.action
+
+mkdir -p ${PKG}/etc/udev ${PKG}/lib/udev
+cp ${CWD}/ifplugd.udev ${PKG}/etc/udev
+cp ${CWD}/ifplugd.agent ${PKG}/lib/udev
+chmod +x ${PKG}/lib/udev/*
+
 #strip_binaries
 
 fix_links
@@ -92,11 +104,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "An open-source, patent-free speech codec"
-Speex is a patent-free audio codec designed especially for voice 
-(unlike Vorbis which targets general audio) signals and providing good 
-narrowband and wideband quality. This project aims to be complementary 
-to the Vorbis codec.
+make_slack_desc << EOF "Detect and perform actions when an ethernet cable is (un)plugged"
+ifplugd is a Linux daemon which will automatically configure your
+ethernet device when a cable is plugged in and automatically
+unconfigure it if the cable is pulled. This is useful on laptops with
+network adapters onboard , since it will only configure the interface
+when a cable is really connected.
+
+ifplugd is a rather simplistic approach to this target since it relies
+on your distribution's native interface configuration system.
 
 EOF
 

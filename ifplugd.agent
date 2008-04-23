@@ -1,0 +1,49 @@
+#!/bin/sh
+# udev agent script
+
+DAEMON_NAME=ifplugd
+
+DAEMON=/usr/sbin/$DAEMON_NAME
+CFG=/etc/$DAEMON_NAME/$DAEMON_NAME.conf
+
+[ -x $DAEMON ] || exit 0
+
+mesg() {
+    echo "$@" >&2
+  }
+
+[ "$INTERFACE" ] || { mesg Bad invocation: \$INTERFACE is not set ; exit 1 ; }
+
+[ -f $CFG ] || { mesg No $DAEMON_NAME configuration file ; exit 1 ; }
+. $CFG
+
+# return true (0) if interface from list $1 is in list $2
+# return false (1) otherwise
+search_interfaces () {
+    for IF in $2 ; do
+        for SEARCH_IF in $1 ; do
+            if [ "$SEARCH_IF" = "$IF" ] ; then
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
+search_interfaces "$INTERFACE" "$INTERFACES"
+if [ $? -gt 0 ] ; then
+    # Interface isn't statically managed by ifplugd
+    search_interfaces "all $INTERFACE" "$HOTPLUG_INTERFACES"
+    if [ $? -eq 0 ] ; then
+        # Interface is in hotplug allowed list
+        case $ACTION in
+        add|register)
+            exec /etc/init.d/$DAEMON_NAME start $INTERFACE&
+            ;;
+        remove|unregister)
+            exec /etc/init.d/$DAEMON_NAME stop $INTERFACE&
+            ;;
+        esac
+        break
+    fi
+fi
