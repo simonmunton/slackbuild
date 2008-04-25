@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.7
+VERSION=0.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -99,6 +99,34 @@ components and for desktop pieces to configure it. It is used by HAL.
 EOF
 
 post_install
+
+doinst_addusergrp polkituser polkituser
+
+cat << EOF >> ${PKG}/install/doinst.sh
+#
+chgrp polkituser var/lib/lib/misc/PolicyKit.reload \\
+    var/lib/lib/PolicyKit-public \\
+    var/lib/lib/PolicyKit \\
+    var/lib/run/PolicyKit \\
+    usr/libexec/polkit-read-auth-helper \\
+    usr/libexec/polkit-set-default-helper \\
+    usr/libexec/polkit-grant-helper \\
+    usr/libexec/polkit-grant-helper-pam \\
+    usr/libexec/polkit-explicit-grant-helper \\
+    usr/libexec/polkit-revoke-helper 
+
+chmod 775 var/lib/lib/misc/PolicyKit.reload \\
+	  var/lib/lib/PolicyKit-public
+chmod 770 var/lib/lib/PolicyKit \\
+          var/lib/run/PolicyKit
+chmod 2755 usr/libexec/polkit-read-auth-helper \\
+	   usr/libexec/polkit-set-default-helper \\
+	   usr/libexec/polkit-grant-helper \\
+	   usr/libexec/polkit-explicit-grant-helper \\
+	   usr/libexec/polkit-revoke-helper
+chmod 4750 usr/libexec/polkit-grant-helper-pam
+
+EOF
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
