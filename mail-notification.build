@@ -6,9 +6,9 @@ TARNAME=mail-notification
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=5.0
+VERSION=5.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p0 < ${CWD}/mail-notification-5.0-eelfix.diff
+ #patch -p0 < ${CWD}/mail-notification-5.0-eelfix.diff
 )
 fi
 
@@ -56,15 +56,17 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+./jb \
+configure prefix=/usr \
+            sysconfdir=/etc \
+            localstatedir=/var/lib \
+	    destdir=${PKG}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+./jb build
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +74,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+./jb install
 
 #strip_binaries
 
