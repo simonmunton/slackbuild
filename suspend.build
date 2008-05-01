@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=rosegarden
+TARNAME=suspend
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.7.0
+VERSION=0.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,7 +57,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX=`kde-config --prefix`
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-compress \
+	    --enable-encrypt
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -72,13 +79,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cat > ${PKG}/install/doinst.sh << EOF
-if which setcap >& /dev/null
-then
-  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/ardour2
-fi
-
-EOF
+rm -rf ${PKG}/dev
 
 #strip_binaries
 
@@ -89,19 +90,23 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* HOWTO* INSTALL NEWS PLANS README* ReleaseNotes TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "music composition and editing environment"
-Rosegarden is a professional audio and MIDI sequencer, score editor,
-and general-purpose music composition and editing environment.
+make_slack_desc << EOF "Userland support for suspend"
+This package contains some userland tools allowing you to suspend a 
+Linux system either to disk or to RAM.  These tools provide some 
+capabilities that are not available in the vanilla Linux kernel.
 
-Rosegarden is an easy-to-learn, attractive application that runs on
-Linux, ideal for composers, musicians, music students, and small
-studio or home recording environments.
+The suspend to disk can be carried out with the help of s2disk and 
+resume utilities which use the software suspend userland interface 
+available in the Linux kernel 2.6.17 or above.
+
+Please refer to the HOWTO document in this package for more 
+information about these utilities and installation instructions.
 
 EOF
 

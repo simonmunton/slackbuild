@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=rosegarden
+TARNAME=lrmi
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.7.0
+VERSION=0.10
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/lrmi-0.10.diff
 )
 fi
 
@@ -57,7 +57,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX=`kde-config --prefix`
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -70,15 +70,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/include
 
-cat > ${PKG}/install/doinst.sh << EOF
-if which setcap >& /dev/null
-then
-  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/ardour2
-fi
-
-EOF
+make install DESTDIR=${PKG} LIBDIR=${PKG}/usr/lib INCDIR=${PKG}/usr/include
 
 #strip_binaries
 
@@ -95,13 +89,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "music composition and editing environment"
-Rosegarden is a professional audio and MIDI sequencer, score editor,
-and general-purpose music composition and editing environment.
-
-Rosegarden is an easy-to-learn, attractive application that runs on
-Linux, ideal for composers, musicians, music students, and small
-studio or home recording environments.
+make_slack_desc << EOF "Linux Real Mode Interface"
+This library provides a DPMI like interface under Linux and *BSD 
+systems using vm86. There is also some VBE (VESA Bios Extension) 
+interface utility called vbetest.
 
 EOF
 

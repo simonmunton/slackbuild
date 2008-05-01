@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=rosegarden
+TARNAME=libx86
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.7.0
+VERSION=0.99
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,7 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX=`kde-config --prefix`
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -72,13 +77,13 @@ fi
 
 make install DESTDIR=${PKG}
 
-cat > ${PKG}/install/doinst.sh << EOF
-if which setcap >& /dev/null
-then
-  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/ardour2
-fi
+chmod -x ${PKG}/usr/include/* 
 
-EOF
+(cd ${PKG}/usr/lib
+ rm libx86.so
+ ln -s libx86.so.1 libx86.so
+ chmod -x *.a
+)
 
 #strip_binaries
 
@@ -95,13 +100,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "music composition and editing environment"
-Rosegarden is a professional audio and MIDI sequencer, score editor,
-and general-purpose music composition and editing environment.
-
-Rosegarden is an easy-to-learn, attractive application that runs on
-Linux, ideal for composers, musicians, music students, and small
-studio or home recording environments.
+make_slack_desc << EOF "x86 real-mode library"
+A library to provide support for making real-mode calls x86 calls. On 
+x86 hardware, vm86 mode is used. On other platforms, x86 emulation is 
+provided.
 
 EOF
 
