@@ -61,7 +61,7 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man
 fi
 
@@ -75,7 +75,31 @@ then
   exit
 fi
 
+mkdir -p ${PKG}/etc/pam.d
+
 make install DESTDIR=${PKG}
+
+cat >> ${PKG}/etc/pam.d/system-auth.new << EOF
+#
+# default; standard UN*X access
+#
+auth     required       pam_unix.so
+account  required       pam_unix.so
+password required       pam_unix.so
+session  required       pam_unix.so
+EOF
+
+cat >> ${PKG}/etc/pam.d/other.new << EOF
+#
+# default
+#
+auth     include      system-auth
+account  include      system-auth
+password include      system-auth
+session  include      system-auth
+EOF
+
+doinst_config etc/pam.d/other.new etc/pam.d/system-auth.new
 
 #strip_binaries
 
