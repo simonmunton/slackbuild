@@ -9,7 +9,7 @@ TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
 VERSION=2.20.5
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 WEBPAGE=""
 
@@ -64,8 +64,9 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --localstatedir=/var \
 	    --mandir=/usr/man \
             --with-prefetch \
-            --enable-authentication-scheme=shadow \
             --disable-scrollkeeper
+
+#            --enable-authentication-scheme=shadow
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -96,6 +97,11 @@ mv ${PKG}/etc/gdm/gdmprefetchlist ${PKG}/etc/gdm/gdmprefetchlist.new
 
 doinst_config etc/gdm/custom.conf.new etc/gdm/gdmprefetchlist.new
 
+(cd ${PKG}/etc/pam.d
+ sed -i -e 's/required.*pam_stack.so.*service=system-auth/include      system-auth/' gdm
+ sed -i -e 's/required.*pam_stack.so.*service=system-auth/include      system-auth/' gdm-autologin
+)
+
 #strip_binaries
 
 fix_links
@@ -125,7 +131,6 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-chmod -R 755 *; \
 chmod 755 var/log/gdm; \
 chmod 1770 var/lib/gdm; \
 chown root:gdm var/lib/gdm; \

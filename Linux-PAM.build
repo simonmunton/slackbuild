@@ -80,18 +80,24 @@ mkdir -p ${PKG}/etc/pam.d
 make install DESTDIR=${PKG}
 
 cat >> ${PKG}/etc/pam.d/system-auth.new << EOF
+#%PAM-1.0
 #
 # default; standard UN*X access
 #
-auth     required       pam_unix.so
+auth     required       pam_env.so
+auth     sufficient     pam_unix.so try_first_pass nullok
+auth     required       pam_deny.so
+
 account  required       pam_unix.so
-password required       pam_unix.so
+
+password sufficient     pam_unix.so try_first_pass use_authtok nullok shadow
+password required       pam_deny.so
+
 session  required       pam_unix.so
 EOF
 
 cat >> ${PKG}/etc/pam.d/other.new << EOF
-#
-# default
+#%PAM-1.0
 #
 auth     include      system-auth
 account  include      system-auth
