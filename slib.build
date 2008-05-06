@@ -5,8 +5,9 @@
 TARNAME=slib
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
+TARSEP="-"
 #TAR_EXT=.tar.gz
-VERSION=3a5
+VERSION=3b1
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +19,7 @@ BUILD=1
 ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -71,21 +72,27 @@ fi
 mkdir -p ${PKG}/usr/share/guile/site/slib 
 make install installinfo DESTDIR=${PKG} prefix=/usr/ libslibdir=/usr/share/guile/site/slib/
 
+cp -p *.xyz *.dat *.txt ${PKG}/usr/share/guile/site/slib/
+
 sed -i -e "s@${PKG}@@" ${PKG}/usr/bin/slib
-sed -i -e "s/1[.]7/1.9/" ${PKG}/usr/share/guile/site/slib/guile.init
+#sed -i -e "s/1[.]7/1.9/" ${PKG}/usr/share/guile/site/slib/guile.init
 
 touch ${PKG}/usr/share/guile/site/slibcat
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
 rm /usr/share/guile/site/slibcat
-slib << EGUILE
-(require 'new-catalog)
-(quit)
+
+(cd /usr/share/guile/site/slib
+ guile -l guile.init -c "(use-modules (ice-9 slib)) (require 'new-catalog)"
+)
+EOF
+#slib << EGUILE
+#(require 'new-catalog)
+#(quit)
 #guile -l /usr/share/guile/site/slib/guile.init << EGUILE
 #(load "/usr/share/guile/site/slib/mklibcat.scm")
-EGUILE
-EOF
+#EGUILE
 
 #strip_binaries
 
@@ -96,17 +103,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ANNOUNCE AUTHORS COPYING* FAQ INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "platform independent library for scheme"
 "SLIB" is a portable library for the programming language Scheme.
 It provides a platform independent framework for using "packages" of
-Scheme procedures and syntax.  As distributed, SLIB contains useful
-packages for all Scheme implementations.  Its catalog can be
+Scheme procedures and syntax. As distributed, SLIB contains useful
+packages for all Scheme implementations. Its catalog can be
 transparently extended to accomodate packages specific to a site,
 implementation, user, or directory.
 

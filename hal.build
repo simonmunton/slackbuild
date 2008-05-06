@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
 VERSION=0.5.10
 VERSIONEXTRA=
-BUILD=3
+BUILD=4
 
 WEBPAGE="http://www.freedesktop.org/wiki/Software/hal"
 
@@ -67,16 +67,19 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --enable-docbook-docs \
 	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
 	    --with-pid-file=/var/run/hald.pid \
+	    --enable-acpi-ibm \
+	    --enable-acpi-toshiba \
+	    --enable-umount-helper \
+	    --enable-sonypic \
             --enable-doxygen-docs \
             --enable-fstab-sync \
             --enable-pcmcia-support \
-	    --enable-acpi-ibm \
-	    --enable-acpi-toshiba \
-	    --enable-sonypic \
-	    --enable-parted \
-	    --enable-umount-helper
+	    --enable-parted
 
 # 	    --enable-acl-management \
+#	    --enable-console-kit \
+#	    --enable-policy-kit \
+
 #            --enable-hotplug-map \
 #            --with-init-scripts=slackware \
 #            --with-dbus-sys=/etc/dbus-1/system.d \
@@ -100,16 +103,19 @@ make install DESTDIR=${PKG}
 ( cd ${PKG}/etc/dbus-1/system.d
   cat ${CWD}/hal.conf.diff | patch -p0 || exit 1
 ) || exit 1
+
 # Don't clobber existing config file in case custom changes have been made
 mv ${PKG}/etc/dbus-1/system.d/hal.conf ${PKG}/etc/dbus-1/system.d/hal.conf.new
 
 # Install init script for hal
 mkdir -p ${PKG}/etc/rc.d
 cat ${CWD}/hal-rc.hald.new > ${PKG}/etc/rc.d/rc.hald.new
+
 # Make HAL run by default:
 chmod 755 ${PKG}/etc/rc.d/rc.hald.new
 
 doinst_same_perm etc/rc.d/rc.hald
+
 doinst_config etc/rc.d/rc.hald.new
 doinst_config etc/dbus-1/system.d/hal.conf.new
 
@@ -133,7 +139,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "The HAL Hardware Abstraction Layer"
 HAL is a piece of software that provides a view of the various
 hardware attached to a system.  HAL keeps detailed metadata for each
 piece of hardware and provides hooks so that system and desktop

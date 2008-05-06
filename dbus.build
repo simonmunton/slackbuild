@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
 VERSION=1.2.1
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -60,6 +60,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
 	    --enable-shared=yes \
 	    --enable-static=no \
             --enable-glib \
@@ -67,7 +69,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --enable-qt3 \
             --disable-gcj \
             --with-xml=expat \
-            --without-init-scripts \
+	    --with-init-scripts=slackware \
             --with-system-pid-file=/var/run/dbus/dbus.pid \
 	    --with-system-socket=/var/run/dbus/system_bus_socket \
             --enable-python \
@@ -91,14 +93,18 @@ make install DESTDIR=${PKG}
 mkdir -p ${PKG}/etc/X11/xinit/xinitrc.d
 cp ${CWD}/dbus-start ${PKG}/etc/X11/xinit/xinitrc.d
 
-mkdir -p ${PKG}/etc/rc.d
-rm ${PKG}/etc/rc.d/rc.messagebus
+#mkdir -p ${PKG}/etc/rc.d
+#rm ${PKG}/etc/rc.d/rc.messagebus
+rm ${PKG}/etc/rc.d/*
 cp ${CWD}/dbus-rc.messagebus.new ${PKG}/etc/rc.d/rc.messagebus.new
 chmod 755 ${PKG}/etc/rc.d/*
 
 # Let's not clobber existing config files
 mv ${PKG}/etc/dbus-1/session.conf ${PKG}/etc/dbus-1/session.conf.new
 mv ${PKG}/etc/dbus-1/system.conf ${PKG}/etc/dbus-1/system.conf.new
+
+
+doinst_same_perm etc/rc.d/rc.messagebus
 
 doinst_config etc/dbus-1/session.conf.new etc/dbus-1/system.conf.new etc/rc.d/rc.messagebus.new
 
