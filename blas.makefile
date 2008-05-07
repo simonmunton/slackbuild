@@ -29,3 +29,5 @@ static: $(OBJS)
  
 shared: $(OBJS)
 	cc $(CFLAGS) -shared -Wl,-soname,libblas.so.3 -o libblas.so.3.1.1 $(OBJS) -lm -lgfortran -lc
+
+.f.o: ; gfortran $(FFLAGS) -c $< -o $@
