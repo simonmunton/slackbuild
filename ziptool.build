@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution
+TARNAME=ziptool
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/z
 #TAR_EXT=.tar.gz
-VERSION=2.22.1.1
+VERSION=1.4.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -62,12 +62,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-openldap=yes \
-            --enable-pilot-conduits=yes \
-            --enable-exchange=yes \
-            --with-krb5=/usr \
-            --enable-nss
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,15 +75,17 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/sbin ${PKG}/usr/man/man1
+cat ziptool > ${PKG}/sbin/ziptool
+chmod 0755 ${PKG}/sbin/ziptool
+cat ziptool.1.gz > ${PKG}/usr/man/man1/ziptool.1.gz
 
-if [ ! -d ${PKG}/usr/include/evolution-2.10/composer ]
-then
-  mkdir -p ${PKG}/usr/include/evolution-2.10/composer
-  cp composer/*.h ${PKG}/usr/include/evolution-2.10/composer
-else
-  echo "${PKG}/usr/include/evolution-2.10/composer exists"
-fi
+# Now let's add some important symlinks :)
+( cd ${PKG}/sbin
+  ln -s ziptool jaztool
+  cd ${PKG}/usr/man/man1
+  ln -s ziptool.1 jaztool.1
+)
 
 #strip_binaries
 
@@ -105,9 +102,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME mail application"
-Evolution provides integrated mail, addressbook and calendaring
-functionality to users of the GNOME desktop
+make_slack_desc << EOF "Tool for IOMega JAZ and ZIP drives"
+Tool for IOMega JAZ and ZIP drives
 
 EOF
 

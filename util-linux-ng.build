@@ -6,7 +6,7 @@ TARNAME=util-linux-ng
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=2.13.1
+VERSION=2.13.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -58,19 +58,26 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --infodir=/usr/info \
-	    --disable-makeinstall-chown \
+	    --docdir=/usr/doc/util-linux-ng-$VERSION \
 	    --enable-arch \
+	    --enable-agetty \
+	    --disable-init \
 	    --enable-kill \
+	    --enable-rdev \
+	    --disable-last \
 	    --enable-mesg \
 	    --enable-raw \
-	    --enable-rdev \
+	    --enable-rename \
 	    --enable-reset \
+	    --disable-login-utils \
+	    --enable-schedutils \
+	    --enable-wall \
 	    --enable-write \
-	    --enable-elvtune \
-	    --disable-schedutils
+	    --enable-use-tty-group \
+	    --disable-makeinstall-chown
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -85,16 +92,37 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/bin
- mv getopt setterm ${PKG}/bin
+# Install (probably obsolete) rdev manually:
+cat ./sys-utils/rdev > ${PKG}/sbin/rdev
+#chown root:root ${PKG}/sbin/rdev
+chmod 755 ${PKG}/sbin/rdev
+#cat ./sys-utils/rdev.8 | gzip -9c > ${PKG}/usr/man/man8/rdev.8.gz
+
+# These have always traditionally been available before /usr
+# might be mounted:
+( cd ${PKG}/usr/bin
+  mv getopt setterm ${PKG}/bin
+  cd ${PKG}/usr/bin
+  ln -s ../../bin/getopt .
+  ln -s ../../bin/setterm .
 )
-(cd ${PKG}/usr/sbin
- mv rdev ramsize rootflags vidmode ${PKG}/sbin
- mv tunelp readprofile ${PKG}/usr/bin
-)
-(cd ${PKG}/sbin
- mv raw ${PKG}/usr/bin
- mv cfdisk ctrlaltdel sfdisk ${PKG}/usr/sbin
+
+# Now let's add some important symlinks :)
+( cd ${PKG}/sbin
+  ln -s ../bin/mount .
+  ln -s ../bin/umount .
+  ln -s hwclock clock
+  cd ${PKG}/usr/sbin
+  ln -s ../../sbin/cfdisk .
+  ln -s ../../sbin/ctrlaltdel .
+  ln -s ../../sbin/sfdisk .
+  cd ${PKG}/usr/bin
+  ln -s ../sbin/readprofile .
+  ln -s ../sbin/tunelp .
+  ln -s ../../bin/more .
+  ln -s ../../sbin/raw .
+  cd ${PKG}/usr/man/man8
+  ln -s hwclock.8 clock.8
 )
 
 #strip_binaries

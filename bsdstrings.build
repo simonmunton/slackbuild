@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution
+TARNAME=bsdstrings
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/gnome
+TARSEP=""
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.22.1.1
+VERSION=
 VERSIONEXTRA=
 BUILD=1
 
@@ -16,7 +16,7 @@ WEBPAGE=""
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-#PKGVERSION=
+PKGVERSION=slack12.1
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -57,21 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-openldap=yes \
-            --enable-pilot-conduits=yes \
-            --enable-exchange=yes \
-            --with-krb5=/usr \
-            --enable-nss
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 make ${NUM_JOBS} || exit
 fi
 
@@ -80,15 +71,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-if [ ! -d ${PKG}/usr/include/evolution-2.10/composer ]
-then
-  mkdir -p ${PKG}/usr/include/evolution-2.10/composer
-  cp composer/*.h ${PKG}/usr/include/evolution-2.10/composer
-else
-  echo "${PKG}/usr/include/evolution-2.10/composer exists"
-fi
+mkdir -p ${PKG}/usr/bin ${PKG}/usr/man/man1
+cat strings > ${PKG}/usr/bin/strings
+chmod 0755 ${PKG}/usr/bin/strings
+cat strings.1 > ${PKG}/usr/man/man1/strings.1
 
 #strip_binaries
 
@@ -105,9 +91,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME mail application"
-Evolution provides integrated mail, addressbook and calendaring
-functionality to users of the GNOME desktop
+make_slack_desc << EOF "find printable strings in a file"
+Strings displays the sequences of printable characters in each of the
+specified files, or in the standard input, by default. By default, a
+sequence must be at least four characters in length before being 
+displayed.
 
 EOF
 

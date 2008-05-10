@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution
+TARNAME=adjtimex
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.22.1.1
+VERSION=1.24
 VERSIONEXTRA=
 BUILD=1
 
@@ -62,12 +62,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-openldap=yes \
-            --enable-pilot-conduits=yes \
-            --enable-exchange=yes \
-            --with-krb5=/usr \
-            --enable-nss
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,15 +75,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/sbin
+cat adjtimex > ${PKG}/sbin/adjtimex
+chmod 0755 ${PKG}/sbin/adjtimex
 
-if [ ! -d ${PKG}/usr/include/evolution-2.10/composer ]
-then
-  mkdir -p ${PKG}/usr/include/evolution-2.10/composer
-  cp composer/*.h ${PKG}/usr/include/evolution-2.10/composer
-else
-  echo "${PKG}/usr/include/evolution-2.10/composer exists"
-fi
+mkdir -p ${PKG}/usr/man/man8
+cat adjtimex.8 > ${PKG}/usr/man/man8/adjtimex.8
 
 #strip_binaries
 
@@ -99,15 +91,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* COPYRIGHT INSTALL NEWS PLANS README* TODO adjtimex.lsm \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME mail application"
-Evolution provides integrated mail, addressbook and calendaring
-functionality to users of the GNOME desktop
+make_slack_desc << EOF "Adjusts the system clock"
+adjtimex - display or set the kernel time variables
 
 EOF
 
