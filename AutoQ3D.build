@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=GraphicsMagick
+TARNAME=AutoQ3DCommunity
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/g
+TARSEP=""
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=1.2.1
+VERSION=1-38qt3source
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -57,15 +57,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-frozenpaths=no \
-            --enable-shared \
-            --enable-static=no
+qmake
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,6 +72,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/usr/bin
+cp AutoQ3D ${PKG}/usr/bin
+
 #strip_binaries
 
 fix_links
@@ -89,24 +84,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs qref* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+chmod -R -x,+X ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "image manipulatoin tools"
-GraphicsMagick(TM) provides a powerful image manipulation and
-translation utility. It is capable of displaying still images and
-animations using the X Window system, provides a simple interface for
-interactively editing images, and is capable of importing selected
-windows or the entire desktop. GraphicsMagick can read and write over
-88 image formats, including JPEG, TIFF, WMF, SVG, PNG, PNM, GIF, and
-Photo CD. It can resize, rotate, sharpen, color reduce, or add special
-effects to the image and save the result to any supported format.
-GraphicsMagick may be used to create animated or transparent .gifs,
-create composite images, create thumbnail images, and much, much,
-more.
+make_slack_desc << EOF "3d model editor program"
+AutoQ3D - a complete QT quick 3d model editor program 
 
 EOF
 
