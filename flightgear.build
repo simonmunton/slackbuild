@@ -1,99 +1,123 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=FlightGear
-VERSION=0.9.10
+. build_funcs
+
+TARNAME=FlightGear
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/f/Flightgear
+#TAR_EXT=.tar.gz
+VERSION=1.0.0
 VERSIONEXTRA=
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-PKG_EXT=.tar.gz
-ARCH=i486
 BUILD=1
-USERNAME=`id -un`
-GROUP=`id -gn`
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+WEBPAGE=""
 
-PKGDIR=~/tmp/new/f/Flightgear
-PKG=/tmp/package-$PKGNAME
-DATA=fgfs-base-$VERSION.tar.bz2
+DATA=fgfs-base-${VERSION}.tar.bz2
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-if [ ! -f $PKGDIR/$DATA ]
-then
-  echo Can\'t find $PKGDIR/$DATA
-  exit
-fi
-
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
 fi
 
-cd $PKGNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --with-x
-make
+	    --mandir=/usr/man \
+            --with-x
+fi
 
-make install DESTDIR=$PKG
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
 
-mkdir -p $PKG/usr/share/FlightGear
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
-(cd $PKG/usr/share/FlightGear; tar xf $PKGDIR/$DATA)
+make install DESTDIR=${PKG}
 
-# strip execs
-strip $PKG/usr/bin/*
+mkdir -p ${PKG}/usr/share/FlightGear
 
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
+(cd ${PKG}/usr/share/FlightGear; tar xf ${TARDIR}/${DATA})
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
 cp -a \
   AUTHORS COPYING INSTALL NEWS README* Thanks docs-mini \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+fix_docs
 
-          |-----handy-ruler------------------------------------------------------|
-FlightGear: FlightGear
-FlightGear:
-FlightGear: 
-FlightGear:
-FlightGear:
-FlightGear:
-FlightGear:
-FlightGear:
-FlightGear:
-FlightGear:
-FlightGear:
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "open source flight simulator"
+The FlightGear flight simulator project is an open-source, multi-
+platform, cooperative flight simulator development project. Source 
+code for the entire project is available and licensed under the GNU 
+General Public License.
+
+The goal of the FlightGear project is to create a sophisticated flight 
+simulator framework for use in research or academic environments, for 
+the development and pursuit of other interesting flight simulation 
+ideas, and as an end-user application. We are developing a 
+sophisticated, open simulation framework that can be expanded and 
+improved upon by anyone interested in contributing. 
+
 EOF
 
-cd $PKG
-su -c "chown -R root.root ${PKG}; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R $USERNAME.$GROUP $PKG"
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
