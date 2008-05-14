@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=cacert.pem
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/RootCerts
+#TAR_EXT=.tar.gz
+VERSION=20080514
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://curl.haxx.se/docs/caextract.html"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=ssl_certs
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+mkdir ${TARNAME}-${VERSION}
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+true
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+true
+
+grep -E -v "^(##|CVS)" ${FULL_TARNAME} |
+gawk '
+BEGIN { file=""; line=1 }
+
+line == 1	{ if (NF > 0)
+                    { file = $0
+		      sub(/^  */, "", file)
+		      sub(/  *$/, "", file)
+		      gsub(/ /, "_", file)
+		      sub("/", "_", file)
+		      file = file ".pem"
+		      line = 2
+#print "$0 <" $0 " >file is " file
+		    }
+              	}
+
+line == 2	{ print > file }
+
+/^--*END.*CERTIFICATE--*$/	{ line = 1 }
+
+'
+
+cp ${TARDIR}/cacert.org/root.crt cacert.org_root.pem
+
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/etc/ssl/certs
+cp *pem ${PKG}/etc/ssl/certs
+
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ -x usr/bin/c_rehash ]
+then
+  usr/bin/c_rehash etc/ssl/certs
+fi
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+rmdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "SSL root certificates"
+Root certificates extracted from Mozilla sources and from cacert.org
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
