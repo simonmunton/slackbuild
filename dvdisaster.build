@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=sqlite
+TARNAME=dvdisaster
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=3.5.9
+VERSION=0.70.6
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -60,7 +62,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --buildroot=${PKG}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,6 +77,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+rm ${PKG}/usr/bin/dvdisaster-uninstall.sh
 
 #strip_binaries
 
@@ -90,13 +95,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "embeddable SQL database engine"
-SQLite is a C library that implements an embeddable SQL database
-engine. Programs that link with the SQLite library can have SQL
-database access without running a separate RDBMS process. The
-distribution comes with a standalone command-line access program
-(sqlite) that can be used to administer an SQLite database and which
-serves as an example of how to use the SQLite library.
+make_slack_desc << EOF "data loss/scratch/aging protection for CD/DVD media"
+dvdisaster provides a margin of safety against data loss on CD and DVD
+media caused by scratches or aging media. It creates error correction
+data which is used to recover unreadable sectors if the disc becomes
+damaged at a later time.
 
 EOF
 

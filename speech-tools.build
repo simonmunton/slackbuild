@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=sqlite
+TARNAME=speech_tools
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/f/festival/1.96beta
 #TAR_EXT=.tar.gz
-VERSION=3.5.9
+VERSION=1.2.96-beta
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -44,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i -e 's/-fno-shared-data//' config/compilers/gcc_defaults.mak
 )
 fi
 
@@ -65,7 +68,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} SHARED=2 || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +76,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install SHARED=2 DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -90,13 +93,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "embeddable SQL database engine"
-SQLite is a C library that implements an embeddable SQL database
-engine. Programs that link with the SQLite library can have SQL
-database access without running a separate RDBMS process. The
-distribution comes with a standalone command-line access program
-(sqlite) that can be used to administer an SQLite database and which
-serves as an example of how to use the SQLite library.
+make_slack_desc << EOF "The Edinburgh speech tools"
+The Edinburgh speech tools system is a library of C++ classes, 
+functions and utility programs that are frequently used in speech 
+software. The system compiles to a single unix library .a file which 
+can be linked with software. At present, C++ classes for several useful 
+speech and language classes have been written, along with audio 
+software and some basic signal processing software.
 
 EOF
 

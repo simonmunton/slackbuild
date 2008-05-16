@@ -2,21 +2,23 @@
 #
 . build_funcs
 
-TARNAME=sqlite
+TARNAME=mctoolamed
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=3.5.9
+VERSION=01a
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=pentium4
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -55,17 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ARCH="-march=${ARCH}" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +70,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/bin
+cp mctoolamed ${PKG}/usr/bin
 
 #strip_binaries
 
@@ -84,19 +84,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "embeddable SQL database engine"
-SQLite is a C library that implements an embeddable SQL database
-engine. Programs that link with the SQLite library can have SQL
-database access without running a separate RDBMS process. The
-distribution comes with a standalone command-line access program
-(sqlite) that can be used to administer an SQLite database and which
-serves as an example of how to use the SQLite library.
+make_slack_desc << EOF "Mpeg 2 Layer 2 Multi-Channel audio decoder"
+mctoolamed is an Mpeg 2 Layer 2 Multi-Channel audio decoder
 
 EOF
 

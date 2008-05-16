@@ -6,9 +6,9 @@ TARNAME=qdvdauthor
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=1.0.0
-VERSIONEXTRA=-4
-BUILD=2
+VERSION=1.2.0
+VERSIONEXTRA=
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -62,7 +62,12 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 true
+# No call to make is necessary because it is done by the configure script
 #make ${NUM_JOBS} || exit
+(cd qdvdauthor/plugins
+ ./make.sh
+)
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,14 +77,26 @@ fi
 
 make install INSTALL_ROOT=${PKG}
 
-mkdir -p ${PKG}/usr/bin
-cp bin/qslideshow bin/qdvdauthor bin/qplayer bin/qrender ${PKG}/usr/bin/
+mv ${PKG}/usr/share/qdvdauthor/plugins/menuslide/backround ${PKG}/usr/share/qdvdauthor/plugins/menuslide/background
 
-mkdir -p ${PKG}/usr/share/pixmaps ${PKG}/usr/share/applications
+#mkdir -p ${PKG}/usr/bin
+#cp bin/qslideshow bin/qdvdauthor bin/qplayer bin/qrender ${PKG}/usr/bin/
+
+mkdir -p ${PKG}/usr/share/pixmaps
 cp qdvdauthor.png ${PKG}/usr/share/pixmaps
+
+mkdir -p ${PKG}/usr/share/applications
 cp qdvdauthor.desktop ${PKG}/usr/share/applications
 
-mkdir -p ${PKG}/usr/share/qdvdauthor/{animated,static,transition}
+mkdir -p ${PKG}/usr/share/qdvdauthor/plugins/complexdvd
+cp -a qdvdauthor/plugins/plugins/libcomplexdvd.so* ${PKG}/usr/share/qdvdauthor/plugins
+cp qdvdauthor/plugins/complexdvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugins/complexdvd
+
+mkdir -p ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
+cp -a qdvdauthor/plugins/plugins/libsimpledvd.so* ${PKG}/usr/share/qdvdauthor/plugins
+cp qdvdauthor/plugins/simpledvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
+
+mkdir -p ${PKG}/usr/share/qdvdauthor/{animated,static,transition,buttons}
 
 #strip_binaries
 
@@ -97,16 +114,17 @@ chmod -R -x,+X ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
 
-find ${PKG}/usr/doc/${TARNAME}-${VERSION} -name CVS -exec rm -rf {} \;
+#find ${PKG}/usr/doc/${TARNAME}-${VERSION} -name CVS -exec rm -rf {} \;
+rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/CVS
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "gui frontend for using dvdauthor"
 QDVDAuthor is a gui frontend for using dvdauthor and dvd-slideshow
-scripts to easily build DVD menus and assemble the DVD VOB files.
-This package includes a patched copy of dvd_slideshow in the
-installation and requires xine or mplayer.
+scripts to easily build DVD menus and assemble the DVD VOB files. This 
+package includes a patched copy of dvd_slideshow in the installation 
+and requires xine or mplayer.
 
 EOF
 

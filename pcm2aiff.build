@@ -2,19 +2,21 @@
 #
 . build_funcs
 
-TARNAME=sqlite
+TARNAME=dist10-patched
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/s
+TARSEP=""
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=3.5.9
+VERSION=
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
-#PKGVERSION=
+PKGNAME=pcm2aiff
+PKGVERSION=20080516
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv dist10 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,17 +57,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+(cd tool/pcm2aiff
+ gcc -o pcm2aiff pcm2aiff.c
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +72,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/bin
+cp tool/pcm2aiff/pcm2aiff ${PKG}/usr/bin
 
 #strip_binaries
 
@@ -83,20 +83,18 @@ compress_manpages
 
 compress_info
 
+rm -rf ${PKG}/usr/doc
+mkdir -p ${PKG}/usr/doc/${PKGNAME}-${PKGVERSION}
+
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO Readme.1st \
+  ${PKG}/usr/doc/${PKGNAME}-${PKGVERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "embeddable SQL database engine"
-SQLite is a C library that implements an embeddable SQL database
-engine. Programs that link with the SQLite library can have SQL
-database access without running a separate RDBMS process. The
-distribution comes with a standalone command-line access program
-(sqlite) that can be used to administer an SQLite database and which
-serves as an example of how to use the SQLite library.
+make_slack_desc << EOF "PCM to AIFF converter"
+tool to convert multiple PCM files to a multichannel AIFF file
 
 EOF
 
