@@ -90,9 +90,9 @@ case "$1" in
 	  mkdir -p $UDEV_ROOT/.udev/queue
 	fi
 
-	echo "Triggering udev events:  /sbin/udevtrigger $OPT"	
+	echo "Triggering udev events:  /sbin/udevadm trigger $OPT"	
 	# Call udevtrigger and udevsettle to do the device configuration:
-	/sbin/udevtrigger $OPT && /sbin/udevsettle --timeout=120
+	/sbin/udevadm trigger $OPT && /sbin/udevadm settle --timeout=120
 
 	;;
     stop)
@@ -110,12 +110,12 @@ case "$1" in
 	;;
     reload)
 	echo "Reloading udev rules"
-	udevcontrol reload_rules
+	udevadm control reload_rules
 	cp --preserve=all --recursive --update /lib/udev/devices/* $UDEV_ROOT
 	;;
     force-reload)
 	echo "Updating all available device nodes in $UDEV_ROOT"
-	udevcontrol reload_rules
+	udevadm control reload_rules
 	rm -rf $UDEV_ROOT/.udev $UDEV_ROOT/disk
 	cp --preserve=all --recursive --update /lib/udev/devices/* $UDEV_ROOT
 	;;
