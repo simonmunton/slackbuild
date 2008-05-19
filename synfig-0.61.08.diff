@@ -1,0 +1,46 @@
+--- synfig-0.61.08/src/modules/mod_libavcodec/trgt_av.cpp.orig	2008-05-19 21:22:22.000000000 +0100
++++ synfig-0.61.08/src/modules/mod_libavcodec/trgt_av.cpp	2008-05-19 21:34:48.000000000 +0100
+@@ -35,7 +35,8 @@
+ 
+ extern "C"
+ {
+-#include <avformat.h>
++#include <libavformat/avformat.h>
++#include <libswscale/swscale.h>
+ }
+ 
+ #include <synfig/general.h>
+@@ -389,9 +390,21 @@
+ 		if ( pict && context->pix_fmt != PIX_FMT_RGB24 )
+ 		{
+ 			//We're using RGBA at the moment, write custom conversion code later (get less accuracy errors)
+-			img_convert((AVPicture *)encodable, context->pix_fmt,
+-						(AVPicture *)pict, PIX_FMT_RGB24,
+-						context->width, context->height);
++			//img_convert((AVPicture *)encodable, context->pix_fmt,
++			//			(AVPicture *)pict, PIX_FMT_RGB24,
++			//			context->width, context->height);
++			static struct SwsContext *img_convert_ctx;
++
++			if (img_convert_ctx == NULL)
++                       	    img_convert_ctx = sws_getContext(context->width, context->height,
++                                                    	    PIX_FMT_RGB24,
++                                                    	    context->width, context->height,
++                                                    	    context->pix_fmt,
++                                                    	    SWS_BICUBIC,
++                                                    	    NULL, NULL, NULL);
++	                sws_scale(img_convert_ctx, pict->data,
++                    		    pict->linesize, 0, context->height,
++                        	    encodable->data, encodable->linesize);
+ 
+ 			pict = encodable;
+ 		}
+@@ -674,7 +687,7 @@
+ 			if(!(format->flags & AVFMT_NOFILE))
+ 			{
+ 				/* close the output file */
+-				url_fclose(&formatc->pb);
++				url_fclose(formatc->pb);
+ 			}
+ 
+ 			/* free the stream */
