@@ -1,5 +1,108 @@
+--- mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:01.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
+@@ -26,7 +26,7 @@
+ #include "codec_plugin.h"
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ #else
+ #include <avcodec.h>
+ #endif
+--- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp.orig	2007-07-02 21:26:03.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp	2008-05-20 11:19:52.000000000 +0100
+@@ -324,6 +324,10 @@
+     ffmpeg_interface_unlock();
+     free(ffmpeg->m_c);
+   }
++  if (ffmpeg->img_convert_ctx)
++  {
++    sws_freeContext( ffmpeg->img_convert_ctx );
++  }
+   CHECK_AND_FREE(ffmpeg->m_picture);
+   free(ffmpeg);
+ }
+@@ -586,9 +590,22 @@
+ 	from.linesize[ix] = ffmpeg->m_picture->linesize[ix];
+       }
+       
+-      img_convert(&to, PIX_FMT_YUV420P,
+-		  &from, ffmpeg->m_c->pix_fmt,
+-		  ffmpeg->m_c->width, ffmpeg->m_c->height);
++//      img_convert(&to, PIX_FMT_YUV420P,
++//		  &from, ffmpeg->m_c->pix_fmt,
++//		  ffmpeg->m_c->width, ffmpeg->m_c->height);
++
++      if (ffmpeg->img_convert_ctx == NULL)
++          ffmpeg->img_convert_ctx =
++	       sws_getContext(ffmpeg->m_c->width, ffmpeg->m_c->height,
++    		              ffmpeg->m_c->pix_fmt,
++            	              ffmpeg->m_c->width, ffmpeg->m_c->height,
++                	      PIX_FMT_YUV420P,
++                    	      SWS_BICUBIC, NULL, NULL, NULL);
++
++      sws_scale(ffmpeg->img_convert_ctx, from.data, from.linesize,
++                 0, ffmpeg->m_c->height,
++                 to.data, to.linesize);
++      
+       ffmpeg->m_vft->video_filled_buffer(ffmpeg->m_ifptr,
+ 					 ffmpeg->have_cached_ts ?
+ 					 ffmpeg->cached_ts : ts);
+--- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:03.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h	2008-05-20 11:17:12.000000000 +0100
+@@ -27,7 +27,8 @@
+ #include "codec_plugin.h"
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
++#include <libswscale/swscale.h>
+ #else
+ #include <avcodec.h>
+ #endif
+@@ -45,6 +46,7 @@
+   AVCodec *m_codec;
+   AVCodecContext *m_c;
+   AVFrame *m_picture;
++  struct SwsContext *img_convert_ctx;
+   bool m_codec_opened;
+   bool m_video_initialized;
+   int m_did_pause;
+--- mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h.orig	2007-07-02 21:26:04.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
+@@ -25,7 +25,7 @@
+ #include "audio_encoder.h"
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ #else
+ #include <avcodec.h>
+ #endif
+--- mpeg4ip-20080116/server/mp4live/video_ffmpeg.h.orig	2007-07-02 21:26:05.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
+@@ -25,7 +25,7 @@
+ #include "video_encoder.h"
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ #else
+ #include <avcodec.h>
+ #endif
+--- mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp.orig	2007-07-02 21:26:05.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp	2008-05-20 10:55:26.000000000 +0100
+@@ -27,7 +27,7 @@
+ #ifdef HAVE_FFMPEG
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ #else
+ #include <avcodec.h>
+ #endif
 --- mpeg4ip-20080116/lib/SDLAudio/configure.in.orig	2005-01-17 20:46:07.000000000 +0000
-+++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2008-02-02 21:12:49.000000000 +0000
++++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2008-05-20 10:55:35.000000000 +0100
 @@ -47,6 +47,7 @@
  
  AC_LIBTOOL_WIN32_DLL
@@ -8,3 +111,41 @@
  AC_PROG_MAKE_SET
  AC_PROG_CC
  AC_C_INLINE
+--- mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am.orig	2006-02-09 17:57:29.000000000 +0000
++++ mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am	2008-05-20 11:28:01.000000000 +0100
+@@ -1,5 +1,5 @@
+ 
+-AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
++AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -D_OBSS_ @BILLS_CPPWARNINGS@
+ 
+ INCLUDES = -I$(srcdir)/../include
+ 
+--- mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp.orig	2005-05-09 22:29:45.000000000 +0100
++++ mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp	2008-05-20 10:55:22.000000000 +0100
+@@ -153,7 +153,8 @@
+ typedef long Long; 
+ typedef unsigned long ULong; 
+ typedef int Int; 
+-typedef void Void; 
++//typedef void Void; 
++#define Void void
+ typedef int Bool; 
+ typedef long CoordI; 
+ typedef double CoordD; 
+--- mpeg4ip-20080116/configure.in.orig	2007-09-28 21:45:08.000000000 +0100
++++ mpeg4ip-20080116/configure.in	2008-05-20 10:55:35.000000000 +0100
+@@ -512,10 +512,10 @@
+      if test x$have_ffmpeg = xtrue; then
+         AC_DEFINE(HAVE_FFMPEG_INSTALLED, 1, [defined if ffmpeg is installed])
+         FFMPEG_INC=
+-        FFMPEG_LIB="-lavcodec -lz $ffmpeg_add_libs"
+-        AC_CHECK_TYPES([AVRational], , , [#include <ffmpeg/avcodec.h>])
+-	AC_CHECK_MEMBERS(AVCodecContext.time_base, , , [#include <ffmpeg/avcodec.h>])
+-	AC_CHECK_DECLS([avcodec_decode_audio2], , ,[#include <ffmpeg/avcodec.h>])
++        FFMPEG_LIB="-lavcodec -lswscale -lz $ffmpeg_add_libs"
++        AC_CHECK_TYPES([AVRational], , , [#include <libavcodec/avcodec.h>])
++	AC_CHECK_MEMBERS(AVCodecContext.time_base, , , [#include <libavcodec/avcodec.h>])
++	AC_CHECK_DECLS([avcodec_decode_audio2], , ,[#include <libavcodec/avcodec.h>])
+         AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
+ 	AC_CHECK_LIB(amrnb, VADxEncoder_Interface_init, 
+ 		     [have_amr_nb=true], [have_amr_nb=false])

@@ -1,6 +1,17 @@
---- opencv-1.0.0/otherlibs/highgui/cvcap_ffmpeg.cpp.orig	2006-07-24 23:27:39.000000000 +0100
-+++ opencv-1.0.0/otherlibs/highgui/cvcap_ffmpeg.cpp	2008-02-21 13:32:52.000000000 +0000
-@@ -39,6 +39,9 @@
+--- opencv-1.0.0/Makefile.am.orig	2006-07-20 13:34:09.000000000 +0100
++++ opencv-1.0.0/Makefile.am	2008-05-20 14:51:46.000000000 +0100
+@@ -48,7 +48,7 @@
+ 	cd src && $(MAKE) install-libLTLIBRARIES
+ 
+ # Run ldconfig after installing the library:
+-install-hook:
++install-exec-hook:
+ 	-ldconfig
+ 
+ 
+--- opencv-1.0.0/otherlibs/highgui/cvcap_ffmpeg.cpp.orig	2008-05-20 13:52:53.000000000 +0100
++++ opencv-1.0.0/otherlibs/highgui/cvcap_ffmpeg.cpp	2008-05-20 14:40:58.000000000 +0100
+@@ -39,11 +39,15 @@
  //
  //M*/
  
@@ -10,7 +21,85 @@
  #include "_highgui.h"
  
  
-@@ -781,7 +784,7 @@
+ extern "C" {
+-#include <ffmpeg/avformat.h>
++#include <libavformat/avformat.h>
++#include <libswscale/swscale.h>
+ }
+ 
+ #ifdef NDEBUG
+@@ -214,19 +218,25 @@
+ {
+     if( !capture || !capture->video_st || !capture->picture->data[0] )
+     return 0;
+-#if LIBAVFORMAT_BUILD > 4628
+-    img_convert( (AVPicture*)&capture->rgb_picture, PIX_FMT_BGR24,
+-                 (AVPicture*)capture->picture,
+-                 capture->video_st->codec->pix_fmt,
+-                 capture->video_st->codec->width,
+-                 capture->video_st->codec->height );
+-#else
+-    img_convert( (AVPicture*)&capture->rgb_picture, PIX_FMT_BGR24,
+-                 (AVPicture*)capture->picture,
+-                 capture->video_st->codec.pix_fmt,
+-                 capture->video_st->codec.width,
+-                 capture->video_st->codec.height );
+-#endif
++
++    struct SwsContext *img_convert_ctx;
++
++    img_convert_ctx = sws_getContext(capture->video_st->codec->width,
++				     capture->video_st->codec->height,
++				     capture->video_st->codec->pix_fmt,
++				     capture->video_st->codec->width,
++				     capture->video_st->codec->height,
++				     PIX_FMT_BGR24,
++				     SWS_BICUBIC,
++				     NULL, NULL, NULL);
++
++    sws_scale(img_convert_ctx, capture->picture->data, 
++	      capture->picture->linesize, 0,
++	      capture->video_st->codec->height, 
++	      capture->rgb_picture.data, capture->rgb_picture.linesize);
++
++    sws_freeContext(img_convert_ctx);
++
+     return &capture->frame;
+ }
+ 
+@@ -713,11 +723,28 @@
+ 				PIX_FMT_BGR24, image->width, image->height);
+ 
+ 		// convert to the color format needed by the codec
+-		if( img_convert((AVPicture *)mywriter->picture, c->pix_fmt,
+-					(AVPicture *)mywriter->rgb_picture, PIX_FMT_BGR24, 
+-					image->width, image->height) < 0){
++
++		struct SwsContext *img_convert_ctx;
++
++		img_convert_ctx = sws_getContext(image->width,
++						 image->height,
++						 PIX_FMT_BGR24,
++						 c->width,
++						 c->height,
++						 c->pix_fmt,
++						 SWS_BICUBIC,
++						 NULL, NULL, NULL);
++
++		if ( sws_scale(img_convert_ctx, mywriter->rgb_picture->data, 
++			       mywriter->rgb_picture->linesize, 0,
++			       image->height, 
++			       mywriter->picture->data, mywriter->picture->linesize) < 0 )
++		{
+ 			CV_ERROR(CV_StsUnsupportedFormat, "FFMPEG::img_convert pixel format conversion from BGR24 not handled");
+ 		}
++
++	        sws_freeContext(img_convert_ctx);
++
+ 	}
+ 	else{
+ 		avpicture_fill((AVPicture *)mywriter->picture, (uint8_t *) image->imageData,
+@@ -781,7 +808,7 @@
  
  	if (!(mywriter->fmt->flags & AVFMT_NOFILE)) {
  		/* close the output file */
@@ -19,3 +108,22 @@
  	}
  
  	/* free the stream */
+--- opencv-1.0.0/configure.in.orig	2006-11-03 15:54:33.000000000 +0000
++++ opencv-1.0.0/configure.in	2008-05-20 14:48:21.000000000 +0100
+@@ -435,14 +435,14 @@
+        with_ffmpeg=yes
+     fi
+     if test x"$with_ffmpeg" = "xyes"; then
+-        AC_CHECK_HEADER(ffmpeg/avcodec.h,
++        AC_CHECK_HEADER(libavcodec/avcodec.h,
+                         AC_CHECK_LIB(avcodec, avcodec_decode_video,
+                                      [
+                                        AC_CHECK_LIB(avformat, av_open_input_file,
+                                                     [
+                                                       have_ffmpeg=yes
+                                                       AC_DEFINE(HAVE_FFMPEG,,[FFMpeg video library])
+-                                                      FFMPEGLIBS="-lavcodec -lavformat"
++                                                      FFMPEGLIBS="-lavcodec -lavformat -lswscale"
+                                                     ],
+                                                     [ have_ffmpeg=no ],
+                                                     [-lavcodec])
