@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=avogadro
+TARNAME=kdevelop
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/k/kde-3.5.9
 #TAR_EXT=.tar.gz
-VERSION=0.8.0
+VERSION=3.5.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/avogadro-0.8.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,22 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
+# Avoid a version number in .la files:
+if [ -d /usr/lib/qt ]; then
+  QTDIR=/usr/lib/qt
+fi
+
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-mkdir build
-(cd build
-cmake .. -DCMAKE_INSTALL_PREFIX:STRING="/usr" -DCMAKE_INSTALL_RPATH:STRING="/usr/lib/qt4/lib"
-)
+CFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc/kde \
+	    --with-xinerama \
+	    --disable-debug \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd build
 make ${NUM_JOBS} || exit
-)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,11 +83,9 @@ then
   exit
 fi
 
-(cd build
 make install DESTDIR=${PKG}
-)
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,16 +94,15 @@ compress_manpages
 compress_info
 
 cp -a \
+  BUGS ChangeLog INSTALL kdevelop.lsm  \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "advanced molecular editor and viewer"
-Avogadro is intended to be an advanced molecular editor and viewer for
-computational chemistry, molecular modeling, materials science, 
-bioinformatics and related areas.
+make_slack_desc << EOF "KDE development environment"
+The KDevelop integrated C/C++ application development environment.
 
 EOF
 
