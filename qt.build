@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=3.3.8b
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -105,11 +105,14 @@ fix_perms
 export QTDIR=`/bin/pwd`
 export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
 export PATH="$QTDIR/bin:$PATH"
-export QTDEST=/usr/lib/qt-${VERSION}
+#export QTDEST=/usr/lib/qt-${VERSION}
+export QTDEST=/usr/lib/qt
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-./configure -prefix /usr/lib/qt-${VERSION} \
+#./configure -prefix /usr/lib/qt-${VERSION} \
+./configure -prefix /usr/lib/qt \
+	    -fast \
 	    -release \
 	    -system-zlib \
 	    -system-libpng \
@@ -148,18 +151,26 @@ then
   exit
 fi
 
+mkdir -p ${PKG}/usr/lib/qt
+(cd ${PKG}/usr/lib
+# ln -sf qt-${VERSION} qt
+ ln -sf qt qt-${VERSION}
+)
+
 make install INSTALL_ROOT=${PKG}
 
 # Add man pages:
 mkdir -p ${PKG}/usr/man
 cp -a doc/man/* ${PKG}/usr/man
 
-chmod -R -x,+X ${PKG}/usr/lib/qt-${VERSION}/include
+#chmod -R -x,+X ${PKG}/usr/lib/qt-${VERSION}/include
+chmod -R -x,+X ${PKG}/usr/lib/qt/include
 
 # The infamous qt -> qt-${VERSION} link that lets us cheat on the QTDIR ;-)
-(cd ${PKG}/usr/lib
- ln -sf qt-${VERSION} qt
-)
+#(cd ${PKG}/usr/lib
+# ln -sf qt-${VERSION} qt
+# ln -sf qt qt-${VERSION}
+#)
 
 mkdir -p ${PKG}/etc/profile.d
 cat ${CWD}/qt.sh > ${PKG}/etc/profile.d/qt.sh
@@ -175,7 +186,8 @@ mkdir -p ${PKG}/usr/bin
 
 mkdir -p ${PKG}/usr/lib/pkgconfig
 ( cd ${PKG}/usr/lib/pkgconfig
-  ln -sf /usr/lib/${PKGNAME}-${VERSION}/lib/pkgconfig/qt-mt.pc .
+#  ln -sf /usr/lib/${PKGNAME}-${VERSION}/lib/pkgconfig/qt-mt.pc .
+  ln -sf /usr/lib/${PKGNAME}/lib/pkgconfig/qt-mt.pc .
 )
 
 (cd ${PKG}/usr/lib/qt/lib/pkgconfig
@@ -191,6 +203,10 @@ cd ${PKG}/usr/lib/qt/lib
  done
 )
 
+(cd ${PKG}/usr/lib/qt/mkspecs/linux-g++
+ rm linux-g++
+ ln -sf /usr/lib/qt/mkspecs/linux-g++ .
+)
 
 #strip_binaries
 
@@ -205,7 +221,8 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 (cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
- ln -sf /usr/lib/${PKGNAME}-${VERSION}/doc/html . 
+# ln -sf /usr/lib/${PKGNAME}-${VERSION}/doc/html . 
+ ln -sf /usr/lib/${PKGNAME}/doc/html . 
 )
 
 mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/${PKGNAME}-${VERSION}

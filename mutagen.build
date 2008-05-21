@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=qca-tls
+TARNAME=mutagen
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=1.0
+VERSION=1.13
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://delta.affinix.com/qca/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/qca-tls-1.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,26 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-QTDIR=${QTDIR:-/usr/lib/qt}
-if [ -h ${QTDIR} ]
-then
-  USEQTDIR=`readlink -e ${QTDIR}`
-else
-  USEQTDIR=${QTDIR}
-fi
-
-echo $USEQTDIR ${QTDIR}
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --qtdir=$USEQTDIR
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -82,7 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+python setup.py install --root=${PKG}
 
 #strip_binaries
 
@@ -99,11 +87,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SSL/TLS plugin for QCA"
-This is a plugin to provide SSL/TLS capability to programs that
-utilize the Qt Cryptographic Architecture (QCA).
-
-The qca-tls plugin was written by Justin Karneges.
+make_slack_desc << EOF "Python module to handle audio metadata"
+Mutagen is a Python module to handle audio metadata. It supports ASF,
+FLAC, M4A, Monkey's Audio, MP3, Musepack, Ogg FLAC, Ogg Speex, Ogg
+Theora, Ogg Vorbis, True Audio, WavPack and OptimFROG audio files. All
+versions of ID3v2 are supported, and all standard ID3v2.4 frames are
+parsed. It can read Xing headers to accurately calculate the bitrate
+and length of MP3s. ID3 and APEv2 tags can be edited regardless of
+audio format. It can also manipulate Ogg streams on an individual
+packet/page level.
 
 EOF
 
