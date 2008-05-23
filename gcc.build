@@ -1,0 +1,568 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gcc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/gcc
+#TAR_EXT=.tar.gz
+VERSION=4.2.4
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+PKG1=${PKG}
+# These are the directories to build other packages in:
+PKG2=/tmp/package-gcc-g++
+PKG3=/tmp/package-gcc-gfortran
+PKG4=/tmp/package-gcc-gnat
+PKG5=/tmp/package-gcc-java
+PKG6=/tmp/package-gcc-objc
+PKG7=/tmp/package-gcc-g++-gch
+
+rm -rf ${PKG2} ${PKG3} ${PKG4} ${PKG5} ${PKG6} ${PKG7}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/gcc-no_fixincludes.diff
+)
+fi
+
+pre_configure
+
+TARGET=${ARCH}-slackware-linux
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir ${CWD}/gcc.build.lnx
+
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+(cd ${CWD}/gcc.build.lnx
+
+  # If enough people need "treelang" support for it may be considered.
+  #  --enable-languages=ada,c,c++,fortran,java,objc,treelang
+  # I think it's incorrect to include this option (as it'll end up set
+  # to i486 on x86 platforms), and we want to tune the binary structure
+  # for i686, as that's where almost all of the optimization speedups
+  # are to be found.
+  # Correct me if my take on this is wrong.
+  #  --with-cpu=${ARCH}
+
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+  ../gcc-${VERSION}/configure --prefix=/usr \
+     --enable-shared \
+     --enable-languages=ada,c,c++,fortran,java,objc \
+     --enable-threads=posix \
+     --enable-__cxa_atexit \
+     --disable-checking \
+     --with-gnu-ld \
+     --verbose \
+     --with-arch=${ARCH} \
+     --target=${TARGET} \
+     --host=${TARGET}
+)
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+(cd ${CWD}/gcc.build.lnx
+  # Include all debugging info (for now):
+  make ${NUM_JOBS} bootstrap;
+
+  ( cd gcc
+    make ${NUM_JOBS} gnatlib GNATLIBCFLAGS="-O2 -march=i486 ${CPUOPT}=i686"
+    # This wants a shared -ladd2line?
+    #make gnatlib-shared
+
+    CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+    CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+    make ${NUM_JOBS} gnattools
+  )
+  make info
+
+  # Set GCCCHECK=something to run the tests
+  if [ ! -z ${GCCCHECK} ]; then
+    make ${NUM_JOBS} check
+  fi
+) 2>&1 | tee ${CWD}/gcc.build.log
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+(cd ${CWD}/gcc.build.lnx
+make install DESTDIR=${PKG}
+
+strip_binaries
+
+mkdir -p {${PKG},${PKG2},${PKG3},${PKG4},${PKG5},${PKG6},${PKG7}}/usr/doc/gcc-${VERSION}
+mkdir -p {${PKG},${PKG2},${PKG3},${PKG4},${PKG5},${PKG6},${PKG7}}/install
+
+# Be sure the "specs" file is installed.
+if [ ! -r ${PKG1}/usr/lib/gcc/${ARCH}-slackware-linux/${VERSION}/specs ]; then
+  cat stage1-gcc/specs > ${PKG1}/usr/lib/gcc/${ARCH}-slackware-linux/${VERSION}/specs
+fi
+
+#  make ada.install-common DESTDIR=${PKG1}
+#  make install-gnatlib DESTDIR=${PKG1}
+  make -i install-info DESTDIR=${PKG1}
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+  chmod 755 ${PKG1}/usr/lib/libgcc_s.so.1
+
+  # This is provided by binutils, so delete it here:
+  rm -f ${PKG1}/usr/lib/libiberty.a
+
+  # Fix stuff up:
+#  ( cd ${PKG1}/usr/info ; rm dir ; gzip -9 * )
+  ( cd ${PKG1}
+    mkdir -p lib
+    cd lib
+    ln -sf /usr/bin/cpp .
+  )
+  ( cd ${PKG1}/usr/bin
+    mv g++ g++-gcc-${VERSION}
+    mv gcc gcc-${VERSION}
+    mv ${TARGET}-gfortran gfortran-gcc-${VERSION}
+    ln -sf g++-gcc-${VERSION} g++
+    ln -sf gcc-${VERSION} gcc
+    ln -sf g++ c++
+    ln -sf gcc cc
+    ln -sf gcc-${VERSION} ${TARGET}-gcc
+    ln -sf gcc-${VERSION} ${TARGET}-gcc-${VERSION}
+    ln -sf gcj ${TARGET}-gcj
+    ln -sf gcjh ${TARGET}-gcjh
+    ln -sf g++-gcc-${VERSION} ${TARGET}-c++
+    ln -sf g++-gcc-${VERSION} ${TARGET}-g++
+    ln -sf gfortran-gcc-${VERSION} gfortran
+    ln -sf gfortran-gcc-${VERSION} ${TARGET}-gfortran
+    ln -sf gfortran-gcc-${VERSION} ${TARGET}-gfortran-${VERSION}
+    ln -sf gfortran-gcc-${VERSION} ${TARGET}-g95
+    ln -sf gfortran g95
+    ln -sf gfortran f95
+    ln -sf gfortran-gcc-${VERSION} ${TARGET}-g77
+    ln -sf gfortran g77
+    ln -sf gfortran f77
+  )
+#  ( cd ${PKG1}/usr/man
+#    gzip -9 */*
+#    cd man1
+#    ln -sf g++.1.gz c++.1.gz
+#    ln -sf gcc.1.gz cc.1.gz
+#  )
+
+)
+
+# Filter all .la files
+( cd ${PKG}
+  for file in $(find . -type f -name "*.la") ; do
+    sed -i -e "s%-L${CWD}[[:graph:]]* % %g" ${file}
+  done
+)
+
+
+# OK, time to split the big package where needed:
+
+# gcc-g++:
+( cd ${PKG2}
+  mkdir -p usr/bin
+  mv ${PKG1}/usr/bin/*++* usr/bin
+  mkdir -p usr/include
+  mv ${PKG1}/usr/include/c++ usr/include
+  mkdir -p usr/lib
+  mv ${PKG1}/usr/lib/*++* usr/lib
+  mkdir -p usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/cc1plus usr/libexec/gcc/${TARGET}/${VERSION}/cc1plus
+  mkdir -p usr/man/man1
+  mv ${PKG1}/usr/man/man1/*++* usr/man/man1
+)
+
+# gcc-gfortran:
+( cd ${PKG3}
+  mkdir -p usr/bin
+  mv ${PKG1}/usr/bin/*gfortran* usr/bin
+  mv ${PKG1}/usr/bin/*95* usr/bin
+  mv ${PKG1}/usr/bin/*77* usr/bin
+  # Doesn't this seem like a logical idea?
+  ( cd usr/bin ; ln -sf gfortran-gcc-${VERSION} fortran )
+  mkdir -p usr/info
+  mv ${PKG1}/usr/info/gfortran* usr/info
+  mkdir -p usr/lib
+  mv ${PKG1}/usr/lib/libgfortran* usr/lib
+  mkdir -p usr/lib/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/finclude usr/lib/gcc/${TARGET}/${VERSION}
+  mkdir -p usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/f951 usr/libexec/gcc/${TARGET}/${VERSION}/f951
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/libgfortran* usr/libexec/gcc/${TARGET}/${VERSION}
+  mkdir -p usr/man/man1
+  mv ${PKG1}/usr/man/man1/gfortran* usr/man/man1
+)
+
+# gcc-gnat:
+( cd ${PKG4}
+  mkdir -p usr/bin
+  mv ${PKG1}/usr/bin/gnat* usr/bin
+  mv ${PKG1}/usr/bin/gpr* usr/bin
+  mkdir -p usr/info
+  mv ${PKG1}/usr/info/gnat* usr/info
+  mkdir -p usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/gnat1 usr/libexec/gcc/${TARGET}/${VERSION}
+  mkdir -p usr/lib/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/adainclude usr/lib/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/adalib usr/lib/gcc/${TARGET}/${VERSION}
+)
+
+# gcc-java:
+( cd ${PKG5}
+  mkdir -p usr/bin
+  mv ${PKG1}/usr/bin/addr2name.awk usr/bin
+  # mv ${PKG1}/usr/bin/fastjar usr/bin
+  mv ${PKG1}/usr/bin/gappletviewer usr/bin
+  mv ${PKG1}/usr/bin/*gcj* usr/bin
+  mv ${PKG1}/usr/bin/gij usr/bin
+  mv ${PKG1}/usr/bin/gjarsigner usr/bin
+  mv ${PKG1}/usr/bin/gjnih usr/bin
+  mv ${PKG1}/usr/bin/gkeytool usr/bin
+  mv ${PKG1}/usr/bin/grepjar usr/bin
+  mv ${PKG1}/usr/bin/grmic usr/bin
+  mv ${PKG1}/usr/bin/grmiregistry usr/bin
+  mv ${PKG1}/usr/bin/jar usr/bin
+  mv ${PKG1}/usr/bin/jcf-dump usr/bin
+  mv ${PKG1}/usr/bin/jv-* usr/bin
+  mv ${PKG1}/usr/bin/rmi* usr/bin
+  mkdir -p usr/include
+  mv ${PKG1}/usr/include/ffi.h usr/include
+  mkdir -p usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/jawt.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/ffi.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/ffitarget.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/jawt_md.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/jni.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/jni_md.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/jvmpi.h usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/libffi usr/lib/gcc/${TARGET}/${VERSION}/include
+  mkdir -p usr/info
+  mv ${PKG1}/usr/info/gcj.* usr/info
+  # mv ${PKG1}/usr/info/fastjar.* usr/info
+  mkdir -p usr/lib
+  mv ${PKG1}/usr/lib/libffi* usr/lib
+  mv ${PKG1}/usr/lib/gcj* usr/lib
+  mv ${PKG1}/usr/lib/libgcj* usr/lib
+  mv ${PKG1}/usr/lib/libgij* usr/lib
+  mv ${PKG1}/usr/lib/lib-org* usr/lib
+  mv ${PKG1}/usr/lib/security usr/lib
+  mkdir -p usr/lib/pkgconfig
+  mv ${PKG1}/usr/lib/pkgconfig/libgcj*.pc usr/lib/pkgconfig
+  rmdir ${PKG1}/usr/lib/pkgconfig 2> /dev/null
+  mkdir -p usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/jc1 usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/jvgenmain usr/libexec/gcc/${TARGET}/${VERSION}
+  mkdir -p usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/gcj usr/lib/gcc/${TARGET}/${VERSION}/include
+  mkdir -p usr/man/man1
+  mv ${PKG1}/usr/man/man1/gcj.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/gcjh.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/gcj-dbtool.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/gij.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/gjnih.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/grmic.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/grmiregistry.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/jcf-dump.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/jv-convert.1.gz usr/man/man1
+  mv ${PKG1}/usr/man/man1/jv-scan.1.gz usr/man/man1
+  mkdir -p usr/share
+  mv ${PKG1}/usr/share/java usr/share
+)
+
+# gcc-objc:
+( cd ${PKG6}
+  mkdir -p usr/lib
+  mv ${PKG1}/usr/lib/libobjc* usr/lib
+  mkdir -p usr/libexec/gcc/${TARGET}/${VERSION}
+  mv ${PKG1}/usr/libexec/gcc/${TARGET}/${VERSION}/cc1obj usr/libexec/gcc/${TARGET}/${VERSION}
+  mkdir -p usr/lib/gcc/${TARGET}/${VERSION}/include
+  mv ${PKG1}/usr/lib/gcc/${TARGET}/${VERSION}/include/objc usr/lib/gcc/${TARGET}/${VERSION}/include
+)
+
+## NOTE: Thought about this, because the precompiled headers are so large.
+## Probably easier to keep everything together, though.
+## gcc-g++-gch (precompiled c++ headers)
+#( cd ${PKG7}
+#  mkdir -p usr/include/c++/${VERSION}/${TARGET}/bits
+#  mv ${PKG2}/usr/include/c++/${VERSION}/${TARGET}/bits/stdc++.h.gch usr/include/c++/${VERSION}/${TARGET}/bits
+#)
+
+
+
+
+#cp -a \
+#  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+#  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+# install docs
+( cd ${CWD}/gcc-${VERSION}
+  mkdir -p ${PKG1}/usr/doc/gcc-${VERSION}
+  # Only the most recent ChangeLog... shouldn't be too big. :)
+  cp -a \
+    BUGS COPYING* ChangeLog \
+    ChangeLog.tree-ssa FAQ INSTALL \
+    LAST_UPDATED MAINTAINERS NEWS \
+    README* *.html \
+  ${PKG1}/usr/doc/gcc-${VERSION}
+
+  mkdir -p ${PKG1}/usr/doc/gcc-${VERSION}/gcc
+  ( cd gcc
+    cp -a \
+      ABOUT* COPYING* LANG* ONEWS README* SERVICE \
+    ${PKG1}/usr/doc/gcc-${VERSION}/gcc
+
+    mkdir -p ${PKG3}/usr/doc/gcc-${VERSION}/gcc/fortran
+    ( cd fortran
+      cp -a \
+        ChangeLog \
+      ${PKG3}/usr/doc/gcc-${VERSION}/gcc/fortran/ChangeLog
+    )
+
+    mkdir -p ${PKG4}/usr/doc/gcc-${VERSION}/gcc/ada
+    ( cd ada
+      cp -a \
+        ChangeLog ChangeLog.tree-ssa \
+      ${PKG4}/usr/doc/gcc-${VERSION}/gcc/ada
+    )
+
+    mkdir -p ${PKG5}/usr/doc/gcc-${VERSION}/gcc/java
+    ( cd java
+      cp -a \
+        ChangeLog ChangeLog.tree-ssa \
+      ${PKG5}/usr/doc/gcc-${VERSION}/gcc/java
+    )
+
+    mkdir -p ${PKG6}/usr/doc/gcc-${VERSION}/gcc/objc
+    ( cd objc
+      cp -a \
+        ChangeLog README \
+      ${PKG6}/usr/doc/gcc-${VERSION}/gcc/objc
+    )
+  )
+
+  mkdir -p ${PKG3}/usr/doc/gcc-${VERSION}/libgfortran
+  ( cd libgfortran
+    cp -a \
+      ChangeLog \
+    ${PKG3}/usr/doc/gcc-${VERSION}/libgfortran/ChangeLog
+  )
+
+  mkdir -p ${PKG4}/usr/doc/gcc-${VERSION}/libada
+  ( cd libada
+    cp -a \
+      ChangeLog \
+    ${PKG4}/usr/doc/gcc-${VERSION}/libada
+  )
+
+  mkdir -p ${PKG5}/usr/doc/gcc-${VERSION}/libffi
+  ( cd libffi
+    cp -a \
+      ChangeLog ChangeLog.libgcj ChangeLog.v1 \
+      LICENSE README \
+    ${PKG5}/usr/doc/gcc-${VERSION}/libffi
+  )
+
+  mkdir -p ${PKG5}/usr/doc/gcc-${VERSION}/libjava
+  ( cd libjava
+    cp -a \
+      COPYING* ChangeLog HACKING LIBGCJ_LICENSE \
+      NEWS README THANKS \
+    ${PKG5}/usr/doc/gcc-${VERSION}/libjava
+  )
+
+  mkdir -p ${PKG1}/usr/doc/gcc-${VERSION}/libmudflap
+  ( cd libmudflap
+    cp -a \
+      ChangeLog \
+    ${PKG1}/usr/doc/gcc-${VERSION}/libmudflap
+  )
+
+  mkdir -p ${PKG1}/usr/doc/gcc-${VERSION}/libgomp
+  ( cd libgomp
+    cp -a \
+      ChangeLog \
+    ${PKG1}/usr/doc/gcc-${VERSION}/libgomp
+  )
+
+  mkdir -p ${PKG6}/usr/doc/gcc-${VERSION}/libobjc
+  ( cd libobjc
+    cp -a \
+      ChangeLog README README.threads THREADS THREADS.MACH \
+    ${PKG6}/usr/doc/gcc-${VERSION}/libobjc
+  )
+
+  mkdir -p ${PKG2}/usr/doc/gcc-${VERSION}/libstdc++-v3
+  ( cd libstdc++-v3
+    cp -a \
+      ChangeLog README \
+    ${PKG2}/usr/doc/gcc-${VERSION}/libstdc++-v3
+
+    cp -a \
+      docs/html/faq \
+    ${PKG2}/usr/doc/gcc-${VERSION}/libstdc++-v3
+  )
+)
+
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=gcc-g++ \
+make_slack_desc << EOF "C++ for GCC"
+C++ support for the GNU Compiler Collection.
+
+This package contains those parts of the compiler collection needed to
+compile C++ code.  The base gcc package is also required.
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG2}/install
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=gcc-gfortran \
+make_slack_desc << EOF "Fortran support for GCC"
+This package contains those parts of the compiler collection
+needed to compile Fortran code.  The base gcc package is also
+required.
+
+Its primary base is the ANSI FORTRAN 95 standard, with some
+some extensions popularized by the 'f77' and 'f2c' compilers,
+other compilers (such as Digital products), and the Fortran 90
+standard.
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG3}/install
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=gcc-gnat \
+make_slack_desc << EOF "Ada support for GCC"
+
+Ada 95 support for the GNU Compiler Collection.
+
+This package contains those parts of the compiler collection needed to
+compile Ada 95 code.  Ada95 is the object oriented successor to the
+Ada83 language.  The base gcc package is also required.
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG4}/install
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=gcc-java \
+make_slack_desc << EOF "Java support for GCC"
+Java support for the GNU Compiler Collection.
+
+This package contains those parts of the compiler collection needed to
+compile programs written in the Java programming language.  The base
+gcc package is also required.
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG5}/install
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKGNAME=gcc-objc \
+make_slack_desc << EOF "Objective-C support for GCC"
+Objective-C support for the GNU Compiler Collection.
+
+This package contains those parts of the compiler collection needed to
+compile code written in Objective-C.  Objective-C was originally
+developed to add object-oriented extensions to the C language, and is
+best known as the native language of the NeXT computer.
+
+The base gcc package is also required.
+
+EOF
+
+mv ${PKG}/install/slack-desc ${PKG6}/install
+
+
+
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Base GCC package with C support"
+GCC is the GNU Compiler Collection.
+
+This package contains those parts of the compiler collection needed to
+compile C code.  Other packages add C++, Fortran, Objective-C, and
+Java support to the compiler core.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG2} ${PKG3} ${PKG4} ${PKG5} ${PKG6} ${PKG7}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+cd ${PKG2}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n gcc-g++-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG3}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n gcc-gfortran-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG4}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n gcc-gnat-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG5}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n gcc-java-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+cd ${PKG6}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n gcc-objc-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+#cd ${PKG7}; \
+#find . -type d -exec chmod 755 {} \; ; \
+#makepkg -l y -c n gcc-g++-gch-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz ; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG2} ${PKG3} ${PKG4} ${PKG5} ${PKG6} ${PKG7}"
