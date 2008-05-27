@@ -1,0 +1,275 @@
+--- sim-688/glut/glutform.c.orig	2008-05-27 20:49:13.000000000 +0100
++++ sim-688/glut/glutform.c	2008-05-27 20:49:14.000000000 +0100
+@@ -49,7 +49,7 @@
+ 
+ /* 	*** check this syntax is right for your platform! 	***
+         Could be <glut.h> or <gl/glut.h> or <GLUT.h> 			*/
+-#include <GLUT/glut.h>
++#include <GL/glut.h>
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
+@@ -153,8 +153,8 @@
+ 			int		local_x = X * MULTIPLIER;
+ 			int		local_y = Y * MULTIPLIER;
+ 			
+-			int		y1 = control_height(local_x,local_y);
+-			int		y2 = control_height(local_x,local_y+MULTIPLIER);
++			int		y1 = 100; //control_height(local_x,local_y);
++			int		y2 = 200; //control_height(local_x,local_y+MULTIPLIER);
+ 			
+ 			float	x = (X*STEP_SCALE)-MAP_SCALE_2;
+ 			float	z = (Y*STEP_SCALE)-MAP_SCALE_2;
+--- sim-688/gtk/platform.c.orig	2008-05-27 20:49:13.000000000 +0100
++++ sim-688/gtk/platform.c	2008-05-27 21:12:17.000000000 +0100
+@@ -75,13 +75,16 @@
+ #include "platform.h"
+ #include "../noble/noble.h"
+ #include "../gui/gui.h"
+-#include "../script/script.h"
+ 
+ /* GTK/GDK includes */
+ #include <gtk/gtk.h>
+ #include <gdk/gdk.h>
+ #include <gdk/gdkkeysyms.h>
+ 
++#ifndef NUMBER_WINDOWS
++#define NUMBER_WINDOWS                          4
++#endif
++
+ #define WND_SMALL 0
+ #define WND_BIG 1
+ #define WND_WIDTH 256
+@@ -100,9 +103,9 @@
+ 
+ extern n_int control_filein(n_byte* buff, n_byte4 len);
+ extern n_int control_interpret(n_byte * buff, n_byte4 len);
+-extern void control_fileout(n_byte * buf, n_byte4 * len);
++extern n_byte * control_fileout(n_byte4 * len);
+ 
+-extern void control_about();
++extern void draw_about();
+ 
+ extern n_byte control_mouse(n_byte wwind, n_int px, n_int py, n_byte option);
+ extern n_byte control_key(n_byte wwind, n_byte2 num);
+@@ -111,7 +114,6 @@
+ extern void control_close();
+ 
+ extern void control_state(n_byte final, n_byte render);
+-extern void control_draw(n_byte kind, n_byte render);
+ extern void control_setup(n_byte render);
+ 
+ 
+@@ -123,7 +125,7 @@
+ 
+ static void plat_update(unsigned char update);
+ 
+-extern n_byte	show_weather;
++n_byte	show_weather;
+ 
+ /* Prototypes */
+ 
+@@ -196,6 +198,45 @@
+ 
+ /* Functions */
+ 
++#define SUBSTA(c)       ((c<<8)|c)
++
++void    display_rgb(n_byte2 * blend, n_byte * points) {
++        n_int   lp = 0, lp2 = 0;
++        n_int   dr = 0, dg = 0, db = 0;
++        n_int   ar = 0, ag = 0, ab = 0, cntr = 0;
++        n_int   fp = 0, fl = 0, del_c = 0;
++        while (lp < 256) {
++                if (lp == points[cntr]) {
++                        ar = SUBSTA(points[(cntr) | 1]);
++                        ag = SUBSTA(points[(cntr) | 2]);
++                        ab = SUBSTA(points[(cntr) | 3]);
++                        fp = lp;
++                        cntr += 4;
++
++                        if (lp != 255) {
++                                fl = points[cntr];
++                                del_c = (fl - fp);
++                                dr = SUBSTA(points[(cntr) | 1]);
++                                dg = SUBSTA(points[(cntr) | 2]);
++                                db = SUBSTA(points[(cntr) | 3]);
++                        }
++                }
++                if (lp != 255) {
++                        n_int   del_a = (fl - lp), del_b = (lp - fp);
++
++                        blend[lp2++] = (n_byte2)(((ar * del_a) + (dr * del_b)) / del_c);
++                        blend[lp2++] = (n_byte2)(((ag * del_a) + (dg * del_b)) / del_c);
++                        blend[lp2++] = (n_byte2)(((ab * del_a) + (db * del_b)) / del_c);
++                } else {
++                        blend[lp2++] = (n_byte2)(ar);
++                        blend[lp2++] = (n_byte2)(ag);
++                        blend[lp2++] = (n_byte2)(ab);
++                }
++                lp ++;
++        }
++
++}
++
+ void plat_cycle(){
+   usleep(10000);
+ }
+@@ -476,10 +517,6 @@
+   unsigned char* buff;
+   FILE* file;
+ 
+-  control_fileout(0L, &buff_len);
+-  buff = plat_new(buff_len*sizeof(unsigned char), 1);
+-  control_fileout(buff, &buff_len);
+-
+   file = fopen(current_file_name,"w");
+   
+   if (file == NULL)
+@@ -488,9 +525,12 @@
+       return 0;
+     }
+ 
++  buff = control_fileout(&buff_len);
++
+   if (fwrite(buff,sizeof(unsigned char), buff_len, file) != buff_len)
+     {
+       plat_message_box("Unable to write!");
++      plat_free(buff);
+       return 0;
+     }
+   
+@@ -588,20 +628,12 @@
+   if (clock() - wait_lapse == 0)
+     usleep(30000);
+ 
+-  if ((clock() - ticker) > 9870000 /* Magic number... machine-dependent? */)
+-    {
+-      ticker = clock();
+-      dcounter = counter;
+-      counter = 0;
+-    }
+-
+   window_updated |= UPDATE_FOR_BRAIN;
+   window_updated &= window_visible;
+ 
+-  control_draw(1, window_updated);
+-  plat_update(window_updated);
+-
+-  control_draw(0, window_updated);
++  plat_update(control_simulate(window_updated, window_visible, show_weather,
++                                (n_byte)(pause != 0) ,
++                                600*clock() / CLOCKS_PER_SEC ));
+ 
+   window_updated = 0;
+ 
+@@ -661,7 +693,7 @@
+   control_init(1,clock());
+ 
+   window_updated = 255;
+-  control_setup(window_visible);
++//  control_setup(window_visible);
+ 
+   gtk_widget_set_sensitive(gtk_ui_manager_get_widget(ui_manager,"ui/MenuBar/File/Save"),FALSE);
+ }
+@@ -671,7 +703,7 @@
+   if (plat_file_open(&control_filein)) {
+     control_init(0, 0);
+     window_updated = 255;
+-    control_draw(255, window_visible);
++//    control_draw(255, window_visible);
+     gtk_widget_set_sensitive(gtk_ui_manager_get_widget(ui_manager,"ui/MenuBar/File/Save"),TRUE);
+   }
+ }
+@@ -685,7 +717,7 @@
+ void menu_save_callback()
+ {
+   plat_file_save();
+-  control_draw(255, window_visible);
++//  control_draw(255, window_visible);
+ }
+ 
+ void menu_save_as_callback()
+@@ -693,12 +725,12 @@
+   if (plat_file_save_as()) {
+     gtk_widget_set_sensitive(gtk_ui_manager_get_widget(ui_manager,"ui/MenuBar/File/Save"),TRUE);
+   }
+-  control_draw(255, window_visible);
++//  control_draw(255, window_visible);
+ }
+ 
+ void menu_about_callback()
+ {
+-  control_about("GTK+","Ocelot Interface");
++  draw_about("GTK+","Ocelot Interface");
+ }
+ 
+ void menu_pause_callback()
+--- sim-688/noble/noble.h.orig	2008-05-27 20:49:14.000000000 +0100
++++ sim-688/noble/noble.h	2008-05-27 20:49:14.000000000 +0100
+@@ -16,7 +16,7 @@
+ 
+ /*	Variable Definitions */
+ 
+-#undef  APE_SCRIPTING
++#define  APE_SCRIPTING
+ #undef	 SCRIPT_DEBUG
+ 
+ 
+--- sim-688/Makefile.am.orig	2008-05-27 20:49:14.000000000 +0100
++++ sim-688/Makefile.am	2008-05-27 20:49:14.000000000 +0100
+@@ -0,0 +1,8 @@
++bin_PROGRAMS = nobleape #nacle
++nobleape_SOURCES = core/being.c core/land.c core/brain.c core/core.h gtk/platform.c gtk/platform.h gui/control.c gui/draw.c gui/gui.h noble/io.c noble/interpret.c noble/parse.c noble/noble.h
++#nobleape_SOURCES = core/being.c core/land.c core/brain.c core/core.h glut/glutform.c glut/glutform.h gui/control.c gui/draw.c gui/gui.h noble/io.c noble/interpret.c noble/parse.c noble/noble.h
++nobleape_CFLAGS = -I./core -I./gui -I./noble
++#nobleape_LDADD = -lglut
++
++#nacle_SOURCES = nacore/being.c nacore/land.c nacore/weather.c cle.c gui/control.c gui/draw.c noble/display.c noble/io.c script/interpret.c #script/parse.c nacore/core.h nacore/version.h gtk/platform.h gui/gui.h noble/noble.h scipt/script.h
++#nacle_CFLAGS = $(nobleape_CFLAGS) -DPLAT_CLE
+--- sim-688/configure.in.orig	2008-05-27 20:49:14.000000000 +0100
++++ sim-688/configure.in	2008-05-27 20:49:14.000000000 +0100
+@@ -0,0 +1,43 @@
++#                                               -*- Autoconf -*-
++# Process this file with autoconf to produce a configure script.
++
++AC_PREREQ(2.60)
++AC_INIT([nobleape], [0.682], [pedro.ferreira@fe.up.pt])
++AM_INIT_AUTOMAKE([1.9 foreign])
++AC_CONFIG_SRCDIR([config.h.in])
++AC_CONFIG_HEADER([config.h])
++
++# Checks for programs.
++AC_PROG_CC
++
++# Checks for libraries.
++if test -z "$PKG_CONFIG"; then
++   AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
++fi
++if test "$PKG_CONFIG" = "no" ; then
++   echo "*** pkg-config not found, can't build with gtk 2.0"
++fi
++
++PKG_CHECK_MODULES(GTK, gtk+-2.0,
++   CFLAGS="$CFLAGS $GTK_CFLAGS"
++   LIBS="$LIBS $GTK_LIBS",)
++
++# Checks for header files.
++AC_HEADER_STDC
++AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
++
++# Checks for typedefs, structures, and compiler characteristics.
++AC_C_CONST
++AC_HEADER_STDBOOL
++AC_C_INLINE
++AC_TYPE_SIZE_T
++AC_STRUCT_TM
++
++# Checks for library functions.
++AC_FUNC_MALLOC
++AC_FUNC_STAT
++AC_FUNC_STRFTIME
++AC_CHECK_FUNCS([strerror strstr])
++
++AC_CONFIG_FILES([Makefile])
++AC_OUTPUT
