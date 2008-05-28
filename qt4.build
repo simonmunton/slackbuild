@@ -6,7 +6,7 @@ TARNAME=qt-x11-opensource-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=4.3.4
+VERSION=4.4.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,30 +36,41 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 (cd ${TARNAME}-${VERSION}
 #patch -p1 < ${CWD}/.diff
+
 patch -p0 < ${CWD}/qt4-patches/0118-qtcopy-define.diff
 patch -p0 < ${CWD}/qt4-patches/0167-fix-group-reading.diff
 #patch -p0 < ${CWD}/qt4-patches/0172-prefer-xrandr-over-xinerama.diff
-patch -p0 < ${CWD}/qt4-patches/0175-fix-s390-qatomic.diff
-patch -p0 < ${CWD}/qt4-patches/0176-coverity-fixes.diff
-patch -p0 < ${CWD}/qt4-patches/0178-transparency-window-types.diff
-patch -p0 < ${CWD}/qt4-patches/0179-transient-hack.diff
+#patch -p0 < ${CWD}/qt4-patches/0175-fix-s390-qatomic.diff
+#patch -p0 < ${CWD}/qt4-patches/0176-coverity-fixes.diff
+#patch -p0 < ${CWD}/qt4-patches/0178-transparency-window-types.diff
+#patch -p0 < ${CWD}/qt4-patches/0179-transient-hack.diff
 patch -p0 < ${CWD}/qt4-patches/0180-window-role.diff
-patch -p0 < ${CWD}/qt4-patches/0184-dlopen-defaults-to-local.diff
-patch -p0 < ${CWD}/qt4-patches/0187-fix-font-fixed-pitch.diff
-patch -p0 < ${CWD}/qt4-patches/0191-listview-alternate-row-colors.diff
-patch -p0 < ${CWD}/qt4-patches/0192-itemdelegate-palette-state.diff
-patch -p0 < ${CWD}/qt4-patches/0194-fix-moveonly-dnd-in-itemviews.diff
+#patch -p0 < ${CWD}/qt4-patches/0184-dlopen-defaults-to-local.diff
+#patch -p0 < ${CWD}/qt4-patches/0187-fix-font-fixed-pitch.diff
+#patch -p0 < ${CWD}/qt4-patches/0191-listview-alternate-row-colors.diff
+#patch -p0 < ${CWD}/qt4-patches/0192-itemdelegate-palette-state.diff
+#patch -p0 < ${CWD}/qt4-patches/0194-fix-moveonly-dnd-in-itemviews.diff
 patch -p0 < ${CWD}/qt4-patches/0195-compositing-properties.diff
-patch -p0 < ${CWD}/qt4-patches/0200-fix-qsslsocket-waitfor.diff
+#patch -p0 < ${CWD}/qt4-patches/0200-fix-qsslsocket-waitfor.diff
 patch -p0 < ${CWD}/qt4-patches/0203-qtexthtmlparser-link-color.diff
 #patch -p0 < ${CWD}/qt4-patches/0204-fix-tulip-aliasing.diff
-patch -p0 < ${CWD}/qt4-patches/0205-fast-qpixmap-fill.diff
+#patch -p0 < ${CWD}/qt4-patches/0205-fast-qpixmap-fill.diff
 #patch -p0 < ${CWD}/qt4-patches/0206-fix-meta-modifier.diff
-patch -p0 < ${CWD}/qt4-patches/0207-better-xerrorhandler.diff
+#patch -p0 < ${CWD}/qt4-patches/0207-better-xerrorhandler.diff
 #patch -p0 < ${CWD}/qt4-patches/0208-fix-quitools-incompatibility.diff
 patch -p0 < ${CWD}/qt4-patches/0209-prevent-qt-mixing.diff
 patch -p0 < ${CWD}/qt4-patches/0210-fix-crash-q3stylesheet-font-size.diff
-patch -p0 < ${CWD}/qt4-patches/0211-q3action-crash.diff
+#patch -p0 < ${CWD}/qt4-patches/0211-q3action-crash.diff
+patch -p0 < ${CWD}/qt4-patches/0214-fix-qgraphicsproxywidget-tab-crash.diff
+patch -p0 < ${CWD}/qt4-patches/0216-allow-isystem-for-headers.diff
+patch -p0 < ${CWD}/qt4-patches/0220-no-x-recursion-in-xerrhandler.diff
+patch -p0 < ${CWD}/qt4-patches/0223-fix-qpixmap-hasalpha.diff
+patch -p0 < ${CWD}/qt4-patches/0224-fast-qpixmap-fill.diff
+patch -p0 < ${CWD}/qt4-patches/0225-invalidate-tabbar-geometry-on-refresh.patch
+patch -p0 < ${CWD}/qt4-patches/0226-qtreeview-column_resize_when_needed.diff
+patch -p0 < ${CWD}/qt4-patches/0227-qdatastream-regression.diff
+patch -p0 < ${CWD}/qt4-patches/0228-qsortfilterproxymodel-invalidate-noscroll.diff
+patch -p0 < ${CWD}/qt4-patches/0230-qtextcontrol-selectnextword.diff
 
 
 
@@ -84,16 +95,17 @@ echo yes |
 CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 ./configure -prefix /usr/lib/qt4 \
-            -debug-and-release \
             -release \
             -system-zlib \
             -system-libpng \
             -system-libmng \
             -system-libjpeg \
+	    -system-sqlite \
             -qt-gif \
             -stl \
             -no-g++-exceptions \
             -plugin-sql-mysql \
+            -plugin-sql-odbc \
             -plugin-sql-psql \
             -plugin-sql-sqlite \
             -I /usr/include/mysql \
@@ -146,28 +158,17 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a multi-platform C++ graphical user interface toolkit"
+Qt is a complete and well-developed object-oriented framework for
+developing graphical user interface (GUI) applications using C++.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Qt is a complete and well-developed object-oriented framework for
-${PKGNAME}: developing graphical user interface (GUI) applications using C++.
-${PKGNAME}:
-${PKGNAME}: This release is free only for development of free software for the X
-${PKGNAME}: Window System.  If you use Qt for developing commercial or other
-${PKGNAME}: non-free software, you must have a professional license.  Please see
-${PKGNAME}: http://www.trolltech.com/purchase.html for information on how to
-${PKGNAME}: obtain a professional license.
-${PKGNAME}:
-${PKGNAME}:
+This release is free only for development of free software for the X
+Window System.  If you use Qt for developing commercial or other
+non-free software, you must have a professional license.  Please see
+http://www.trolltech.com/purchase.html for information on how to
+obtain a professional license.
+
 EOF
 
 post_install
