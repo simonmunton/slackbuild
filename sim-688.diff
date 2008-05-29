@@ -1,5 +1,5 @@
---- sim-688/glut/glutform.c.orig	2008-05-27 20:49:13.000000000 +0100
-+++ sim-688/glut/glutform.c	2008-05-27 20:49:14.000000000 +0100
+--- sim-688/glut/glutform.c.orig	2008-05-28 11:31:39.000000000 +0100
++++ sim-688/glut/glutform.c	2008-05-28 11:31:39.000000000 +0100
 @@ -49,7 +49,7 @@
  
  /* 	*** check this syntax is right for your platform! 	***
@@ -20,8 +20,8 @@
  			
  			float	x = (X*STEP_SCALE)-MAP_SCALE_2;
  			float	z = (Y*STEP_SCALE)-MAP_SCALE_2;
---- sim-688/gtk/platform.c.orig	2008-05-27 20:49:13.000000000 +0100
-+++ sim-688/gtk/platform.c	2008-05-27 21:12:17.000000000 +0100
+--- sim-688/gtk/platform.c.orig	2008-05-28 11:31:39.000000000 +0100
++++ sim-688/gtk/platform.c	2008-05-29 15:52:49.000000000 +0100
 @@ -75,13 +75,16 @@
  #include "platform.h"
  #include "../noble/noble.h"
@@ -139,10 +139,22 @@
        return 0;
      }
    
-@@ -588,20 +628,12 @@
-   if (clock() - wait_lapse == 0)
-     usleep(30000);
- 
+@@ -576,32 +616,24 @@
+       window_updated |= control_mouse((n_byte)(firedown - 1), fire_x, fire_y, firecontrol);
+     }
+   
+-  wait_lapse = clock();
+-
+-  if (inPause == 0)
+-    {
+-      do {
+-	    window_updated |= control_cycle();
+-      } while (timed && ((clock()&7) != 0));
+-    }
+-
+-  if (clock() - wait_lapse == 0)
+-    usleep(30000);
+-
 -  if ((clock() - ticker) > 9870000 /* Magic number... machine-dependent? */)
 -    {
 -      ticker = clock();
@@ -150,16 +162,30 @@
 -      counter = 0;
 -    }
 -
-   window_updated |= UPDATE_FOR_BRAIN;
-   window_updated &= window_visible;
- 
+-  window_updated |= UPDATE_FOR_BRAIN;
+-  window_updated &= window_visible;
+-
 -  control_draw(1, window_updated);
 -  plat_update(window_updated);
--
++//  wait_lapse = clock();
+ 
 -  control_draw(0, window_updated);
++//  if (inPause == 0)
++//    {
++//      do {
++//	    window_updated |= control_cycle();
++//      } while (timed && ((clock()&7) != 0));
++//    }
++
++//  if (clock() - wait_lapse == 0)
++//    usleep(20000);
++
++//  window_updated |= UPDATE_FOR_BRAIN;
++//  window_updated &= window_visible;
++
 +  plat_update(control_simulate(window_updated, window_visible, show_weather,
-+                                (n_byte)(pause != 0) ,
-+                                600*clock() / CLOCKS_PER_SEC ));
++                                (n_byte)(inPause != 0) ,
++                                60*clock() / CLOCKS_PER_SEC ));
  
    window_updated = 0;
  
@@ -205,8 +231,8 @@
  }
  
  void menu_pause_callback()
---- sim-688/noble/noble.h.orig	2008-05-27 20:49:14.000000000 +0100
-+++ sim-688/noble/noble.h	2008-05-27 20:49:14.000000000 +0100
+--- sim-688/noble/noble.h.orig	2008-05-28 11:31:39.000000000 +0100
++++ sim-688/noble/noble.h	2008-05-28 11:31:39.000000000 +0100
 @@ -16,7 +16,7 @@
  
  /*	Variable Definitions */
@@ -216,8 +242,8 @@
  #undef	 SCRIPT_DEBUG
  
  
---- sim-688/Makefile.am.orig	2008-05-27 20:49:14.000000000 +0100
-+++ sim-688/Makefile.am	2008-05-27 20:49:14.000000000 +0100
+--- sim-688/Makefile.am.orig	2008-05-28 11:31:39.000000000 +0100
++++ sim-688/Makefile.am	2008-05-28 11:31:39.000000000 +0100
 @@ -0,0 +1,8 @@
 +bin_PROGRAMS = nobleape #nacle
 +nobleape_SOURCES = core/being.c core/land.c core/brain.c core/core.h gtk/platform.c gtk/platform.h gui/control.c gui/draw.c gui/gui.h noble/io.c noble/interpret.c noble/parse.c noble/noble.h
@@ -227,8 +253,8 @@
 +
 +#nacle_SOURCES = nacore/being.c nacore/land.c nacore/weather.c cle.c gui/control.c gui/draw.c noble/display.c noble/io.c script/interpret.c #script/parse.c nacore/core.h nacore/version.h gtk/platform.h gui/gui.h noble/noble.h scipt/script.h
 +#nacle_CFLAGS = $(nobleape_CFLAGS) -DPLAT_CLE
---- sim-688/configure.in.orig	2008-05-27 20:49:14.000000000 +0100
-+++ sim-688/configure.in	2008-05-27 20:49:14.000000000 +0100
+--- sim-688/configure.in.orig	2008-05-28 11:31:39.000000000 +0100
++++ sim-688/configure.in	2008-05-28 11:31:39.000000000 +0100
 @@ -0,0 +1,43 @@
 +#                                               -*- Autoconf -*-
 +# Process this file with autoconf to produce a configure script.

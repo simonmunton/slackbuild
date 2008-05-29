@@ -9,7 +9,7 @@ TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
 VERSION=2.12.9
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -44,6 +44,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/gtk+-2.10.14.diff
+ patch -p1 < ${CWD}/gtk+2-nsplugin.diff
 )
 fi
 
@@ -63,8 +64,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --localstatedir=/var/lib \
             --mandir=/usr/man \
             --with-xinput=yes \
-            --enable-debug=minimal \
-            --enable-static
+            --enable-debug=minimal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,6 +78,9 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/etc/gtk-2.0/im-multipress.conf ${PKG}/etc/gtk-2.0/im-multipress.conf.new
+doinst_config etc/gtk-2.0/im-multipress.conf.new
 
 mkdir -p ${PKG}/etc/profile.d
 
@@ -94,21 +97,11 @@ EOF
 
 chmod 755 ${PKG}/etc/profile.d/*
 
-mkdir -p ${PKG}/etc/gtk-2.0
+#mkdir -p ${PKG}/etc/gtk-2.0
 touch ${PKG}/etc/gtk-2.0/gtk.immodules
 touch ${PKG}/etc/gtk-2.0/gdk-pixbuf.loaders
 
-cat <<EOF >> ${PKG}/install/doinst.sh
-#
-if [ -x usr/bin/gtk-query-immodules-2.0 ]
-then
-usr/bin/gtk-query-immodules-2.0 > /etc/gtk-2.0/gtk.immodules
-fi
-if [ -x usr/bin/gdk-pixbuf-query-loaders ]
-then
-usr/bin/gdk-pixbuf-query-loaders > /etc/gtk-2.0/gdk-pixbuf.loaders
-fi
-EOF
+#rm -f /usr/share/icons/*/icon-theme.cache 1> /dev/null 2> /dev/null
 
 #strip_binaries
 

@@ -319,6 +319,21 @@ fi
 
 }
 
+get_real_path ()
+{
+if [ -L $1 ]
+then
+  l=`readlink $1`
+  if [ "/" == "${l:0:1}" ]
+  then
+    echo ${PKG}${l}
+  else
+    echo $1
+  fi
+else
+  echo $1
+fi
+}
 
 post_install ()
 {
@@ -432,10 +447,10 @@ EOF
 fi
 
 ##############################################################
-# if usr/lib/gtk-2.0/*/immodule exists, run
+# if usr/lib/gtk-2.0/*/immodules exists, run
 # gtk-query-immodules-2.0
 #
-if [ -d ${PKG}/usr/lib/gtk-2.0/*/immodule ]
+if [ -d ${PKG}/usr/lib/gtk-2.0/*/immodules -o -d ${PKG}/usr/lib/gtk-2.0/immodules ]
 then
   cat <<EOF >> ${PKG}/install/doinst.sh
 #
@@ -456,24 +471,29 @@ do
   fi
 done
 
-
+##############################################################
+# warn if pkgconfig files contain references to old X11 dir or build dir
+#
 if [ -d ${PKG}/usr/lib/pkgconfig ]
 then
   if grep /usr/X11 ${PKG}/usr/lib/pkgconfig/*pc 2>&1 > /dev/null
   then
     echo WARNING --- pkgconfig files contain reference to /usr/X11
   fi
-  if grep /home/ ${PKG}/usr/lib/pkgconfig/*pc 2>&1 > /dev/null
+  if grep ${CWD} ${PKG}/usr/lib/pkgconfig/*pc 2>&1 > /dev/null
   then
-    echo WARNING --- pkgconfig files contain reference to /home
+    echo WARNING --- pkgconfig files contain reference to build directory
   fi
 fi
 
+##############################################################
+# warn if .la files contain references to build dir
+#
 for f in `find ${PKG} -name "*.la"`
 do
-  if grep /home/ ${f} 2>&1 > /dev/null
+  if grep ${CWD} ${f} 2>&1 > /dev/null
   then
-    echo WARNING --- .la files contain reference to /home
+    echo WARNING --- .la files contain reference to build directory
     break
   fi
 done
@@ -485,9 +505,9 @@ perllocalpod
 #
 find ${PKG} -type l | while read f
 do
-if readlink $f | grep ${CWD} >& /dev/null
+if readlink ${f} | grep ${CWD} >& /dev/null
 then
-  echo WARNING --- symbolic link $f points to build directory
+  echo WARNING --- symbolic link ${f} points to build directory
 fi
 done
 }
