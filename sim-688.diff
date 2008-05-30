@@ -21,7 +21,7 @@
  			float	x = (X*STEP_SCALE)-MAP_SCALE_2;
  			float	z = (Y*STEP_SCALE)-MAP_SCALE_2;
 --- sim-688/gtk/platform.c.orig	2008-05-28 11:31:39.000000000 +0100
-+++ sim-688/gtk/platform.c	2008-05-29 15:52:49.000000000 +0100
++++ sim-688/gtk/platform.c	2008-05-30 10:35:40.000000000 +0100
 @@ -75,13 +75,16 @@
  #include "platform.h"
  #include "../noble/noble.h"
@@ -139,19 +139,14 @@
        return 0;
      }
    
-@@ -576,32 +616,24 @@
-       window_updated |= control_mouse((n_byte)(firedown - 1), fire_x, fire_y, firecontrol);
-     }
-   
--  wait_lapse = clock();
--
--  if (inPause == 0)
--    {
--      do {
--	    window_updated |= control_cycle();
+@@ -582,26 +622,18 @@
+     {
+       do {
+ 	    window_updated |= control_cycle();
 -      } while (timed && ((clock()&7) != 0));
--    }
--
++      } while (timed && ((clock()&0x700) != 0));
+     }
+ 
 -  if (clock() - wait_lapse == 0)
 -    usleep(30000);
 -
@@ -164,28 +159,18 @@
 -
 -  window_updated |= UPDATE_FOR_BRAIN;
 -  window_updated &= window_visible;
--
--  control_draw(1, window_updated);
--  plat_update(window_updated);
-+//  wait_lapse = clock();
- 
--  control_draw(0, window_updated);
-+//  if (inPause == 0)
-+//    {
-+//      do {
-+//	    window_updated |= control_cycle();
-+//      } while (timed && ((clock()&7) != 0));
-+//    }
-+
-+//  if (clock() - wait_lapse == 0)
-+//    usleep(20000);
-+
 +//  window_updated |= UPDATE_FOR_BRAIN;
 +//  window_updated &= window_visible;
-+
+ 
+-  control_draw(1, window_updated);
+-  plat_update(window_updated);
 +  plat_update(control_simulate(window_updated, window_visible, show_weather,
 +                                (n_byte)(inPause != 0) ,
 +                                60*clock() / CLOCKS_PER_SEC ));
+ 
+-  control_draw(0, window_updated);
++  if (clock() - wait_lapse == 0)
++    usleep(30000);
  
    window_updated = 0;
  

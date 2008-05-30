@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gimp
+TARNAME=gdb
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g/gimp
+TARSEP="-"
+TARDIR=~/tmp/gnu/gdb
 #TAR_EXT=.tar.gz
-VERSION=2.4.6
+VERSION=6.8
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gimp-2.4.0-rc1.diff
+ patch -p0 < ${CWD}/gdb-backtrace-6.8.diff
 )
 fi
 
@@ -59,10 +62,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --disable-static \
-
-#	    --enable-debug
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,11 +75,19 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/share/application-registry
-
 make install DESTDIR=${PKG}
 
-#strip_binaries
+# None of this stuff has ever been included in this package:
+rm -f $PKG/usr/lib/{libbfd*,libiberty*,libopcodes*}
+rmdir $PKG/usr/lib
+rm -f $PKG/usr/info/{annotate*,bfd*,configure*,standards*}
+rm -rf $PKG/usr/include
+
+# Use the -tui option if you want this.
+# Including a whole extra copy of the gdb binary is obnoxious:
+rm -f $PKG/usr/bin/gdbtui $PKG/usr/man/man1/gdbtui.1*
+
+strip_binaries
 
 fix_links
 
@@ -88,21 +96,21 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING HACKING INSTALL LICENSE MAINTAINERS NEWS PLUGIN_MAINTAINERS README* TODO.xml \
-  docs/Wilber* docs/keybindings.txt docs/quick_reference* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/gdb
+(cd gdb
+ cp -a NEWS README TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/gdb
+ cp -a gdbserver/README \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.gdbserver
+)
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU Image Manipulation Program"
-The GIMP is a powerful tool for the preparation and manipulation of
-digital images.  The GIMP provides the user with a wide variety of
-image manipulation, painting, processing, and rendering tools.  The
-GIMP's open design and extensible architecture make for a very
-powerful end product for photo and image retouching, web graphics
-design, or digital illustration.
-
+make_slack_desc << EOF
 EOF
 
 post_install
