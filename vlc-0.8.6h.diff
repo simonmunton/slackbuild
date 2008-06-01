@@ -1,0 +1,425 @@
+--- vlc-0.8.6h/modules/codec/ffmpeg/chroma.c.orig	2008-05-25 19:29:06.000000000 +0100
++++ vlc-0.8.6h/modules/codec/ffmpeg/chroma.c	2008-06-01 20:02:35.000000000 +0100
+@@ -37,6 +37,7 @@
+ #endif
+ 
+ #include "ffmpeg.h"
++#include <libswscale/swscale.h>
+ 
+ void E_(InitLibavcodec) ( vlc_object_t *p_object );
+ static void ChromaConversion( vout_thread_t *, picture_t *, picture_t * );
+@@ -91,26 +92,27 @@
+     p_vout->chroma.p_sys->i_src_ffmpeg_chroma = i_ffmpeg_chroma[0];
+     p_vout->chroma.p_sys->i_dst_ffmpeg_chroma = i_ffmpeg_chroma[1];
+ 
+-    if( ( p_vout->render.i_height != p_vout->output.i_height ||
+-          p_vout->render.i_width != p_vout->output.i_width ) &&
+-        ( p_vout->chroma.p_sys->i_dst_vlc_chroma == VLC_FOURCC('I','4','2','0')  ||
+-          p_vout->chroma.p_sys->i_dst_vlc_chroma == VLC_FOURCC('Y','V','1','2') ))
+-        
+-    {
+-        msg_Dbg( p_vout, "preparing to resample picture" );
+-        p_vout->chroma.p_sys->p_rsc =
+-            img_resample_init( p_vout->output.i_width, p_vout->output.i_height,
+-                               p_vout->render.i_width, p_vout->render.i_height );
+-        avpicture_alloc( &p_vout->chroma.p_sys->tmp_pic,
+-                         p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
+-                         p_vout->render.i_width, p_vout->render.i_height );
+-    }
+-    else
+-    {
+-        msg_Dbg( p_vout, "no resampling" );
+-        p_vout->chroma.p_sys->p_rsc = NULL;
+-    }
+-
++   /* if( ( p_vout->render.i_height != p_vout->output.i_height ||
++    *      p_vout->render.i_width != p_vout->output.i_width ) &&
++    *    ( p_vout->chroma.p_sys->i_dst_vlc_chroma == VLC_FOURCC('I','4','2','0')  ||
++    *      p_vout->chroma.p_sys->i_dst_vlc_chroma == VLC_FOURCC('Y','V','1','2') ))
++    *
++    * {
++         *msg_Dbg( p_vout, "preparing to resample picture" );
++         * p_vout->chroma.p_sys->p_rsc =
++         *    img_resample_init( p_vout->output.i_width, p_vout->output.i_height,
++         *                       p_vout->render.i_width, p_vout->render.i_height );
++         *avpicture_alloc( &p_vout->chroma.p_sys->tmp_pic,
++         *                p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
++         *                p_vout->render.i_width, p_vout->render.i_height );
++    *}
++    *else
++    *{
++    *
++    *     msg_Dbg( p_vout, "no resampling" );
++    *     p_vout->chroma.p_sys->p_rsc = NULL;
++    *}
++    */
+     /* libavcodec needs to be initialized for some chroma conversions */
+     E_(InitLibavcodec)(p_this);
+ 
+@@ -126,6 +128,7 @@
+     AVPicture src_pic;
+     AVPicture dest_pic;
+     int i;
++    struct SwsContext *img_convert_ctx;
+ 
+     /* Prepare the AVPictures for converion */
+     for( i = 0; i < p_src->i_planes; i++ )
+@@ -158,21 +161,33 @@
+         if( p_vout->render.i_bmask == 0x00ff0000 )
+             p_vout->chroma.p_sys->i_src_ffmpeg_chroma = PIX_FMT_BGR24;
+ 
+-    if( p_vout->chroma.p_sys->p_rsc )
+-    {
+-        img_convert( &p_vout->chroma.p_sys->tmp_pic,
+-                     p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
+-                     &src_pic, p_vout->chroma.p_sys->i_src_ffmpeg_chroma,
+-                     p_vout->render.i_width, p_vout->render.i_height );
+-        img_resample( p_vout->chroma.p_sys->p_rsc, &dest_pic,
+-                      &p_vout->chroma.p_sys->tmp_pic );
+-    }
+-    else
+-    {
+-        img_convert( &dest_pic, p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
+-                     &src_pic, p_vout->chroma.p_sys->i_src_ffmpeg_chroma,
+-                     p_vout->render.i_width, p_vout->render.i_height );
+-    }
++/*   if( p_vout->chroma.p_sys->p_rsc )
++ *   {
++ *        img_convert( &p_vout->chroma.p_sys->tmp_pic,
++ *                     p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
++ *                     &src_pic, p_vout->chroma.p_sys->i_src_ffmpeg_chroma,
++ *                     p_vout->render.i_width, p_vout->render.i_height );
++ *        img_resample( p_vout->chroma.p_sys->p_rsc, &dest_pic,
++ *                      &p_vout->chroma.p_sys->tmp_pic );
++ *
++ *   }
++ *   else
++ *   {
++ *        img_convert( &dest_pic, p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
++ *                    &src_pic, p_vout->chroma.p_sys->i_src_ffmpeg_chroma,
++ *                    p_vout->render.i_width, p_vout->render.i_height );
++ */
++        img_convert_ctx =
++               sws_getContext(p_vout->render.i_width, p_vout->render.i_height,
++                          p_vout->chroma.p_sys->i_src_ffmpeg_chroma,
++                          p_vout->render.i_width, p_vout->render.i_height,
++                          p_vout->chroma.p_sys->i_dst_ffmpeg_chroma,
++                          SWS_BICUBIC, NULL, NULL, NULL);
++        sws_scale(img_convert_ctx, src_pic.data, src_pic.linesize,
++                  0, p_vout->render.i_height,
++                  dest_pic.data, dest_pic.linesize);
++        sws_freeContext( img_convert_ctx );
++ /*   } */
+ }
+ 
+ /*****************************************************************************
+@@ -183,10 +198,11 @@
+ void E_(CloseChroma)( vlc_object_t *p_this )
+ {
+     vout_thread_t *p_vout = (vout_thread_t *)p_this;
+-    if( p_vout->chroma.p_sys->p_rsc )
+-    {
+-        img_resample_close( p_vout->chroma.p_sys->p_rsc );
+-        avpicture_free( &p_vout->chroma.p_sys->tmp_pic );
+-    }
++    /*if( p_vout->chroma.p_sys->p_rsc )
++     *{
++     *   img_resample_close( p_vout->chroma.p_sys->p_rsc );
++     *   avpicture_free( &p_vout->chroma.p_sys->tmp_pic );
++     *}
++     */
+     free( p_vout->chroma.p_sys );
+ }
+--- vlc-0.8.6h/modules/codec/ffmpeg/video.c.orig	2008-05-25 19:29:06.000000000 +0100
++++ vlc-0.8.6h/modules/codec/ffmpeg/video.c	2008-06-01 20:02:35.000000000 +0100
+@@ -39,6 +39,7 @@
+ #endif
+ 
+ #include "ffmpeg.h"
++#include <libswscale/swscale.h>
+ 
+ /*****************************************************************************
+  * decoder_sys_t : decoder descriptor
+@@ -833,11 +834,22 @@
+                 dest_pic.data[i] = p_pic->p[i].p_pixels;
+                 dest_pic.linesize[i] = p_pic->p[i].i_pitch;
+             }
+-            img_convert( &dest_pic, PIX_FMT_YUV420P,
++            /*img_convert( &dest_pic, PIX_FMT_YUV420P,
+                          (AVPicture *)p_ff_pic,
+                          p_sys->p_context->pix_fmt,
+                          p_sys->p_context->width,
+-                         p_sys->p_context->height );
++                         p_sys->p_context->height );*/
++            struct SwsContext *img_convert_ctx = sws_getContext(
++                     p_sys->p_context->width, p_sys->p_context->height,
++                     p_sys->p_context->pix_fmt,
++                     p_sys->p_context->width, p_sys->p_context->height,
++                     PIX_FMT_YUV420P,
++                     SWS_BICUBIC, NULL, NULL, NULL);
++           sws_scale(img_convert_ctx,
++                     (AVPicture *)p_ff_pic->data, (AVPicture *)p_ff_pic->linesize,
++                     0, p_sys->p_context->height,
++                     dest_pic.data, dest_pic.linesize);
++            sws_freeContext(img_convert_ctx);
+             break;
+         default:
+             msg_Err( p_dec, "don't know how to convert chroma %i",
+--- vlc-0.8.6h/modules/codec/ffmpeg/video_filter.c.orig	2008-05-25 19:29:06.000000000 +0100
++++ vlc-0.8.6h/modules/codec/ffmpeg/video_filter.c	2008-06-01 20:02:35.000000000 +0100
+@@ -39,6 +39,7 @@
+ #endif
+ 
+ #include "ffmpeg.h"
++#include <libswscale/swscale.h>
+ 
+ void E_(InitLibavcodec) ( vlc_object_t *p_object );
+ static int CheckInit( filter_t *p_filter );
+@@ -61,7 +62,8 @@
+     int i_dst_ffmpeg_chroma;
+ 
+     AVPicture tmp_pic;
+-    ImgReSampleContext *p_rsc;
++    /*ImgReSampleContext *p_rsc;*/
++    struct SwsContext *img_convert_ctx;
+ };
+ 
+ 
+@@ -116,7 +118,7 @@
+     }
+ 
+     /* Misc init */
+-    p_sys->p_rsc = NULL;
++    /*p_sys->p_rsc = NULL;*/
+     p_sys->b_enable_croppadd = b_enable_croppadd;
+     p_sys->i_src_ffmpeg_chroma =
+         E_(GetFfmpegChroma)( p_filter->fmt_in.video.i_chroma );
+@@ -125,6 +127,14 @@
+     p_filter->pf_video_filter = Process;
+     es_format_Init( &p_sys->fmt_in, 0, 0 );
+     es_format_Init( &p_sys->fmt_out, 0, 0 );
++    p_sys->img_convert_ctx = sws_getContext(
++                               p_filter->fmt_out.video.i_width,
++                               p_filter->fmt_out.video.i_height,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               p_filter->fmt_in.video.i_width,
++                               p_filter->fmt_in.video.i_height,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               SWS_BICUBIC, NULL, NULL, NULL);
+ 
+     /* Dummy alloc, will be reallocated in CheckInit */
+     avpicture_alloc( &p_sys->tmp_pic, p_sys->i_src_ffmpeg_chroma,
+@@ -133,7 +143,8 @@
+ 
+     if( CheckInit( p_filter ) != VLC_SUCCESS )
+     {	
+-        if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );
++        /*if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );*/
++	if( p_sys->img_convert_ctx ) sws_freeContext( p_sys->img_convert_ctx );
+         avpicture_free( &p_sys->tmp_pic );
+         free( p_sys );
+         return VLC_EGENERIC;
+@@ -176,7 +187,9 @@
+     filter_t *p_filter = (filter_t*)p_this;
+     filter_sys_t *p_sys = p_filter->p_sys;
+ 
+-    if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );
++    /*if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );*/
++    if( p_sys->img_convert_ctx ) sws_freeContext( p_sys->img_convert_ctx );
++
+     avpicture_free( &p_sys->tmp_pic );
+ 
+     free( p_sys );
+@@ -219,8 +232,10 @@
+ 
+     if ( b_change )
+     {
+-        if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );
+-        p_sys->p_rsc = 0;
++        /*if( p_sys->p_rsc ) img_resample_close( p_sys->p_rsc );
++        p_sys->p_rsc = 0;*/
++        if( p_sys->img_convert_ctx ) sws_freeContext( p_sys->img_convert_ctx );
++        p_sys->img_convert_ctx = NULL;
+ 
+         p_sys->b_convert =
+           p_filter->fmt_in.video.i_chroma != p_filter->fmt_out.video.i_chroma;
+@@ -290,7 +305,7 @@
+                                       - p_filter->fmt_out.video.i_x_offset;
+             }
+ 
+-#if LIBAVCODEC_BUILD >= 4708
++/*#if LIBAVCODEC_BUILD >= 4708
+             p_sys->p_rsc = img_resample_full_init( 
+                                p_filter->fmt_out.video.i_width,
+                                p_filter->fmt_out.video.i_height,
+@@ -308,18 +323,37 @@
+                                p_filter->fmt_in.video.i_height,
+                                i_croptop,i_cropbottom,
+                                i_cropleft,i_cropright );
+-#endif
++#endif*/
++            p_sys->img_convert_ctx = sws_getContext(
++                               p_filter->fmt_out.video.i_width - i_paddleft - i_paddright,
++                               p_filter->fmt_out.video.i_height - i_paddtop - i_paddbottom,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               p_filter->fmt_in.video.i_width,
++                               p_filter->fmt_in.video.i_height,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               SWS_BICUBIC, NULL, NULL, NULL);
++
+             msg_Dbg( p_filter, "input: %ix%i -> %ix%i",
+                 p_filter->fmt_out.video.i_width,
+                 p_filter->fmt_out.video.i_height,
+                 p_filter->fmt_in.video.i_width,
+                 p_filter->fmt_in.video.i_height);
+ 
+-            if( !p_sys->p_rsc )
++            /*if( !p_sys->p_rsc )*/
++            if( !p_sys->img_convert_ctx )
+             {
+                 msg_Err( p_filter, "img_resample_init failed" );
+                 return VLC_EGENERIC;
+             }
++        } else {
++            p_sys->img_convert_ctx = sws_getContext(
++                               p_filter->fmt_out.video.i_width,
++                               p_filter->fmt_out.video.i_height,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               p_filter->fmt_in.video.i_width,
++                               p_filter->fmt_in.video.i_height,
++                               p_sys->i_dst_ffmpeg_chroma,
++                               SWS_BICUBIC, NULL, NULL, NULL);
+         }
+ 
+         avpicture_free( &p_sys->tmp_pic );
+@@ -461,14 +495,15 @@
+ 
+     p_src = &src_pic;
+ 
+-    if( p_sys->b_resize && p_sys->p_rsc )
++    /*if( p_sys->b_resize && p_sys->p_rsc )*/
++    if( p_sys->b_resize && p_sys->img_convert_ctx )
+     {
+         p_dst = &dest_pic;
+         if( p_sys->b_resize_first )
+         {
+             if( p_sys->b_convert ) p_dst = &p_sys->tmp_pic;
+ 
+-#if LIBAVCODEC_BUILD >= 4708
++/*#if LIBAVCODEC_BUILD >= 4708
+             img_resample( p_sys->p_rsc, p_dst, p_src );
+ #else        
+             if ( p_sys->b_enable_croppadd )
+@@ -481,7 +516,12 @@
+             {
+                 img_resample( p_sys->p_rsc, p_dst, p_src );
+             }
+-#endif
++#endif*/
++            sws_scale(p_sys->img_convert_ctx, p_src->data, p_src->linesize,
++                  0, p_filter->fmt_out.video.i_height
++                                      - p_filter->fmt_out.video.i_visible_height
++                                      - p_filter->fmt_out.video.i_y_offset,
++                  p_dst->data, p_dst->linesize);
+ 
+             if (p_sys->b_enable_croppadd)
+             {
+@@ -518,18 +558,22 @@
+             p_fmt = &p_filter->fmt_in.video;
+         }
+ 
+-        img_convert( p_dst, p_sys->i_dst_ffmpeg_chroma,
++        /*img_convert( p_dst, p_sys->i_dst_ffmpeg_chroma,
+                      p_src, p_sys->i_src_ffmpeg_chroma,
+-                     p_fmt->i_width, p_fmt->i_height );
++                     p_fmt->i_width, p_fmt->i_height );*/
++        sws_scale(p_sys->img_convert_ctx, p_src->data, p_src->linesize,
++                  0, p_fmt->i_height,
++                  p_dst->data, p_dst->linesize);
+ 
+         p_src = p_dst;
+     }
+ 
+-    if( p_sys->b_resize && !p_sys->b_resize_first && p_sys->p_rsc )
++    /*if( p_sys->b_resize && !p_sys->b_resize_first && p_sys->p_rsc )*/
++    if( p_sys->b_resize && !p_sys->b_resize_first && p_sys->img_convert_ctx )
+     {
+         p_dst = &dest_pic;
+ 
+-#if LIBAVCODEC_BUILD >= 4708
++/*#if LIBAVCODEC_BUILD >= 4708
+         img_resample( p_sys->p_rsc, p_dst, p_src );
+ #else
+         if ( p_sys->b_enable_croppadd )
+@@ -542,7 +586,7 @@
+         {
+             img_resample( p_sys->p_rsc, p_dst, p_src );
+         }
+-#endif
++#endif*/
+  
+         if (p_sys->b_enable_croppadd)
+         {
+--- vlc-0.8.6h/configure.ac.orig	2008-05-28 17:28:28.000000000 +0100
++++ vlc-0.8.6h/configure.ac	2008-06-01 20:02:44.000000000 +0100
+@@ -2703,7 +2703,7 @@
+  else
+ 
+ dnl Trying with pkg-config
+-   PKG_CHECK_MODULES(FFMPEG,[libavcodec, libavformat],
++   PKG_CHECK_MODULES(FFMPEG,[libavcodec, libavformat, libswscale],
+     [
+      VLC_SAVE_FLAGS
+      CPPFLAGS="${CPPFLAGS} ${FFMPEG_CFLAGS}"
+@@ -2749,7 +2749,7 @@
+ 
+       AC_CHECK_LIB(avcodec, avcodec_init, [
+         VLC_ADD_BUILTINS([ffmpeg])
+-        VLC_ADD_LDFLAGS([ffmpeg],[-lavcodec])
++        VLC_ADD_LDFLAGS([ffmpeg],[-lavcodec -lswscale])
+         if test "${enable_sout}" != "no"; then
+             VLC_ADD_BUILTINS([stream_out_switcher])
+         fi],
+@@ -2762,7 +2762,7 @@
+ 	[$LDAVUTIL])
+ 
+       AC_CHECK_LIB(avformat, av_open_input_stream, [
+-        VLC_ADD_LDFLAGS([ffmpeg],[-lavformat -lz]) ], [], [-lavcodec -lz $LDAVUTIL])
++        VLC_ADD_LDFLAGS([ffmpeg],[-lavformat -lz]) ], [], [-lavcodec -lswscale -lz $LDAVUTIL])
+       LDFLAGS="${LDFLAGS_save}"
+       CPPFLAGS="${CPPFLAGS_save}"
+     ])
+@@ -2770,17 +2770,6 @@
+  fi 
+ fi
+ 
+-dnl Check if we have (required) img_resample() in libavcodec
+-if test "${enable_ffmpeg}" != "no"
+-then
+-     VLC_SAVE_FLAGS
+-     CFLAGS="${CFLAGS} ${CFLAGS_ffmpeg}"
+-     LDFLAGS="${LDFLAGS} ${LDFLAGS_ffmpeg}"
+-     AC_CHECK_LIB(avcodec, img_resample, ,
+-       [AC_MSG_ERROR([Your FFmpeg library doesn't have the needed img_resample() function. You should rebuild it with software scaler disabled])], -lavutil)
+-     VLC_RESTORE_FLAGS
+-fi
+-
+ dnl
+ dnl  ffmpegaltivec plugin
+ dnl
+@@ -2809,13 +2798,13 @@
+     dnl  Use a custom libffmpeg
+     AC_MSG_RESULT(${real_ffmpeg_tree}/libavcodec/libavcodecaltivec.a)
+     VLC_ADD_BUILTINS([ffmpegaltivec])
+-    VLC_ADD_LDFLAGS([ffmpegaltivec],[-L${real_ffmpeg_tree}/libavcodec -lavcodecaltivec])
++    VLC_ADD_LDFLAGS([ffmpegaltivec],[-L${real_ffmpeg_tree}/libavcodec -lavcodecaltivec -lswscale])
+     VLC_ADD_CPPFLAGS([ffmpeg],[-DNO_ALTIVEC_IN_FFMPEG])
+     VLC_ADD_CPPFLAGS([ffmpegaltivec],[-I${real_ffmpeg_tree}/libavcodec -I${real_ffmpeg_tree}/libavformat])
+ 
+     if test -f "${real_ffmpeg_tree}/libavformat/libavformat.a"; then
+       AC_DEFINE(HAVE_LIBAVFORMAT_TREE, 1, [Define if you have ffmpeg's libavformat.])
+-      VLC_ADD_LDFLAGS([ffmpegaltivec],[-L${real_ffmpeg_tree}/libavformat -lavformataltivec -lz])
++      VLC_ADD_LDFLAGS([ffmpegaltivec],[-L${real_ffmpeg_tree}/libavformat -lavformataltivec -lswscale -lz])
+       VLC_ADD_CPPFLAGS([ffmpegaltivec],[-I${real_ffmpeg_tree}/libavformat])
+     fi
+     VLC_ADD_LDFLAGS([stream_out_switcher],[-L${real_ffmpeg_tree}/libavcodec])
