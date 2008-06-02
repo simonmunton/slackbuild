@@ -1,19 +1,21 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=libvorbis
+TARNAME=libdrm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
 VERSION=20080602
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libdrm
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -24,6 +26,8 @@ FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTR
 pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
+PKG_MODULE=/tmp/package-${PKGNAME}-module
+rm -rf ${PKG_MODULE}
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -54,6 +58,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
@@ -67,6 +73,13 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+
+if [ -d linux-core ]
+then
+(cd linux-core
+ make ${NUM_JOBS} || exit
+)
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,6 +88,27 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+if [ -d linux-core ]
+then
+(cd linux-core
+ mkdir -p ${PKG_MODULE}/lib/modules/${KERNELRELEASE}/kernel/drivers/char/drm/
+ cp *.ko ${PKG_MODULE}/lib/modules/${KERNELRELEASE}/kernel/drivers/char/drm/
+
+ mkdir -p ${PKG_MODULE}/install
+ cat > ${PKG_MODULE}/install/doinst.sh << EOF
+#
+/sbin/depmod ${KERNELRELEASE}
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKG=${PKG_MODULE} PKGNAME=${PKGNAME}-module make_slack_desc << EOF "DRM kernel modules"
+DRM kernel modules
+
+EOF
+)
+fi
 
 #strip_binaries
 
@@ -85,31 +119,28 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* HACKING INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-mv ${PKG}/usr/share/doc/libvorbis-1.2.1svn/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir -p ${PKG}/usr/share/doc/libvorbis-1.2.1svn
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
-This library supports the Vorbis General Audio Compression Codec
-(commonly known as Ogg Vorbis).  Ogg Vorbis is a fully open,
-non-proprietary, patent-and-royalty-free, general-purpose compressed
-audio format for audio and music at fixed and variable bitrates.
-
-The libvorbis library requires libao and libogg.  You'll find some
-basic tools for creating and using Ogg Vorbis files in the
-vorbis-tools package.
+make_slack_desc << EOF "A library to support Direct Rendering"
+This library implements an interface to the kernel's DRM services.
+It is used to support hardware accelerated 3-D rendering.
 
 EOF
 
 post_install
 
 cd ${PKG}
-su -c "chown -R root.root ${PKG}; \
+su -c "chown -R root.root ${PKG} ${PKG_MODULE}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-chown -R ${USERNAME}.${GROUP} ${PKG}"
+if [ -d ${PKG_MODULE} ]; \
+then \
+cd ${PKG_MODULE}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE//-/_}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+fi; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG_MODULE}"
