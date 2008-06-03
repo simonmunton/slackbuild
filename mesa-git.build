@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=Mesa
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/m/Mesa3D
+#TAR_EXT=.tar.gz
+VERSION=20080603
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=mesa
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/Mesa-7.0.2.diff
+
+# git-checkout origin/r500-support
+ git-checkout
+
+ ./autogen.sh
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+#  (cd configs && rm -f current && ln -s linux-dri-x86 current)
+  true
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+            --mandir=/usr/man \
+	    --with-dri-driverdir=/usr/lib/xorg/modules/dri \
+	    --with-demos=xdemos
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} linux-dri-x86 INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri || exit
+#make ${NUM_JOBS} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri || exit
+# Make some "demos":
+#( cd progs/xdemos
+#  make -i INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri
+#)
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri
+make install DESTDIR=${PKG}
+
+# Install some "demos":
+( cd progs/xdemos
+  mkdir -p ${PKG}/usr/bin
+  cp glthreads glxcontexts glxdemo glxgears glxgears_fbconfig glxheads \
+    glxinfo glxpbdemo glxpixmap \
+    ${PKG}/usr/bin
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/{RELNOTES,relnotes}*
+
+cp -a \
+  docs/RELNOTES-${VERSION} docs/relnotes-${VERSION}.html docs/relnotes.html \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a 3-D graphics library"
+Mesa is a 3-D graphics library with an API very similar to that of
+another well-known 3-D graphics library.  :-)  The Mesa libraries are
+used by X to provide both software and hardware accelerated graphics.
+
+Mesa was written by Brian Paul.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
