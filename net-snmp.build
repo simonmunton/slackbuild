@@ -6,7 +6,7 @@ TARNAME=net-snmp
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=5.4.1
+VERSION=5.4.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -75,6 +75,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+NETSNMP_DONT_CHECK_VERSION=1 \
 make ${NUM_JOBS} || exit
 fi
 
@@ -91,15 +92,7 @@ cat ${CWD}/net-snmp-snmpd.conf > ${PKG}/etc/snmp/snmpd.conf.new
 mkdir -p ${PKG}/etc/rc.d
 cat ${CWD}/net-snmp-rc.snmpd > ${PKG}/etc/rc.d/rc.snmpd.new
 
-cat >> ${PKG}/install/doinst.sh << EOF
-# Keep same perms on rc.snmpd.new:
-if [ -e etc/rc.d/rc.snmpd ]; then
-  cp -a etc/rc.d/rc.snmpd etc/rc.d/rc.snmpd.new.incoming
-  cat etc/rc.d/rc.snmpd.new > etc/rc.d/rc.snmpd.new.incoming
-  mv etc/rc.d/rc.snmpd.new.incoming etc/rc.d/rc.snmpd.new
-fi
-EOF
-
+doinst_same_perm etc/rc.d/rc.snmpd
 doinst_config etc/snmp/snmpd.conf.new etc/rc.d/rc.snmpd.new
 
 #strip_binaries
@@ -111,34 +104,23 @@ compress_manpages
 compress_info
 
 cp -a \
-  AGENT.txt CHANGES COPYING* CodingStyle EXAMPLE* FAQ INSTALL NEWS PORTING README* TODO
+  AGENT.txt CHANGES COPYING* CodingStyle EXAMPLE* FAQ INSTALL NEWS PORTING README* TODO \
   AUTHORS PLANS \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "Simple Network Management Protocol tools"
+Various tools relating to the Simple Network Management Protocol
+including:
+An extensible agent
+An SNMP library
+Tools to request or set information from SNMP agents
+Tools to generate and handle SNMP traps
+A version of the unix 'netstat' command using SNMP
+A graphical Perl/Tk/SNMP based mib browser
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Various tools relating to the Simple Network Management Protocol
-${PKGNAME}: including:
-${PKGNAME}:     * An extensible agent
-${PKGNAME}:     * An SNMP library
-${PKGNAME}:     * tools to request or set information from SNMP agents
-${PKGNAME}:     * tools to generate and handle SNMP traps
-${PKGNAME}:     * a version of the unix 'netstat' command using SNMP
-${PKGNAME}:     * a graphical Perl/Tk/SNMP based mib browser
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install

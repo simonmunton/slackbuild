@@ -6,9 +6,11 @@ TARNAME=exiv2
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=0.16
+VERSION=0.17
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://www.exiv2.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,15 +47,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
+
+sed -i -e "s@-L${CWD}[^ ]*@@g" ${PKG}/usr/lib/libexiv2.la
 
 #strip_binaries
 
@@ -71,25 +86,13 @@ rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc/{templates,Makefile}
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Exif and IPTC image metadata library"
+Exiv2, a C++ library and a command line utility to read and
+write Exif and IPTC image metadata. The homepage of Exiv2 is:
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Exiv2, a C++ library and a command line utility to read and
-${PKGNAME}: write Exif and IPTC image metadata. The homepage of Exiv2 is:
-${PKGNAME}:
-${PKGNAME}:    http://www.exiv2.org/
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+   http://www.exiv2.org/
+
 EOF
 
 post_install
