@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=cryptmount
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/c
+#TAR_EXT=.tar.gz
+VERSION=3.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+	    
+sed -i -e '/chown root/d' Makefile
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/{usr/sbin,etc/{init.d,default}}
+
+make install DESTDIR=${PKG}
+
+mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
+mv ${PKG}/etc/rc.d/cryptmount ${PKG}/etc/rc.d/rc.cryptmount.new
+mv ${PKG}/etc/rc.d/cryptmount-early ${PKG}/etc/rc.d/rc.cryptmount-early.new
+mv ${PKG}/etc/default/cryptmount ${PKG}/etc/default/cryptmount.new
+mv ${PKG}/etc/cryptmount/cmtab ${PKG}/etc/cryptmount/cmtab.new
+chmod -x ${PKG}/etc/rc.d/*
+
+doinst_same_perm etc/rc.d/rc.cryptmount
+doinst_same_perm etc/rc.d/rc.cryptmount-early
+doinst_config etc/cryptmount/cmtab.new etc/rc.d/rc.cryptmount.new etc/rc.d/rc.cryptmount-early.new etc/default/cryptmount.new
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+        chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=\`grep "/etc/rc.d/rc.cryptmount" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start cryptmount" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.cryptmount ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.cryptmount start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+        
+        echo "" >> etc/rc.d/rc.local_shutdown
+        echo "# stop cryptmount" >> etc/rc.d/rc.local_shutdown
+        echo "if [ -x /etc/rc.d/rc.cryptmount ]; then" >> etc/rc.d/rc.local_shutdown
+        echo "  /etc/rc.d/rc.cryptmount stop" >> etc/rc.d/rc.local_shutdown
+        echo "fi" >> etc/rc.d/rc.local_shutdown
+fi
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* RELNOTES ToDo \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a utility for accessing encrypted filesystems"
+cryptmount is a utility for GNU/Linux operating systems which allows 
+an ordinary user to mount an encrypted filing system without requiring 
+superuser privileges. It is aimed at recent Linux systems using the 
+2.6 kernel series.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod u+srwx,go-w,go+r usr/bin/cryptmount ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
