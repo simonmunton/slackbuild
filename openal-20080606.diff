@@ -1,0 +1,21 @@
+--- openal-20080606/OpenAL-Sample/src/backends/alc_backend_sdl.c.orig	2008-05-08 20:52:21.000000000 +0100
++++ openal-20080606/OpenAL-Sample/src/backends/alc_backend_sdl.c	2008-06-15 07:25:24.000000000 +0100
+@@ -119,7 +119,8 @@
+ closeSDL (struct ALC_BackendPrivateData *privateData)
+ {
+   struct sdlData *sd = (struct sdlData *) privateData;
+-  free (sd->ringBuffer);
++  if (sd->ringBuffer)
++    free (sd->ringBuffer);
+   pSDL_CloseAudio ();
+ }
+ 
+@@ -332,6 +333,8 @@
+       return;
+     }
+ 
++  sd->ringBuffer = NULL;
++
+   *ops = &sdlOps;
+   *privateData = (struct ALC_BackendPrivateData *) sd;
+   _alDebug (ALD_CONTEXT, __FILE__, __LINE__,
