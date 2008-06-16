@@ -1,14 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=smb4k
+TARNAME=xkbcomp
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/s
+TARSEP="-"
+TARDIR=~/tmp/new/x/xorg/X11R7.3-post/app
 #TAR_EXT=.tar.gz
-VERSION=0.9.6
+VERSION=1.0.5
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -58,7 +61,10 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var \
+	    --infodir=/usr/info \
+	    --mandir=/usr/man \
+	    --disable-static
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,14 +79,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/lib/kde3
- for f in *.la
- do
-   sed -i -e "s@-L${CWD}[^ ]*@@g" ${f}
- done
-)
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,11 +94,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SMB/CIFS share browser for KDE"
-Smb4K is an SMB/CIFS share browser for KDE. It uses the Samba software 
-suite to access the SMB/CIFS shares of the local network neighborhood. 
-Its purpose is to provide a program that's easy to use and has as many 
-features as possible.
+make_slack_desc << EOF
+xkbcomp is part of X11.
+
+For more information about the X.Org Foundation (the providers of the
+X.Org implementation of the X Window System), see their website:
+
+http://www.x.org
 
 EOF
 
