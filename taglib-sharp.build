@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avahi
+TARNAME=taglib-sharp
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=0.6.23
+VERSION=2.0.3.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.avahi.org/"
+WEBPAGE="http://www.taglib-sharp.com/Download/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -61,11 +61,9 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var \
+            --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-            --enable-compat-howl \
-	    --enable-compat-libdns_sd \
-#            --disable-qt4
+	    --disable-docs
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,26 +78,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-#make all new config stuff have .new extension
-(cd ${PKG}
- list=`find etc -type f`
- for f in ${list}
- do
-   mv ${f} ${f}.new
-   doinst_config ${f}.new
- done
-)
-
-(cd ${PKG}/usr/lib/pkgconfig
- ln -s avahi-compat-howl.pc howl.pc
- cd ${PKG}/usr/include
- ln -s avahi-compat-libdns_sd/dns_sd.h dns_sd.h
-)
-
-doinst_addusergrp avahi avahi
-
-cat ${CWD}/avahi-doinst.sh >> ${PKG}/install/doinst.sh
-
 #strip_binaries
 
 fix_links
@@ -109,19 +87,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL LICENSE NEWS PLANS README* TODO docs \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "local network service discovery"
-Avahi is a system which facilitates service discovery on a local
-network. This means that you can plug your laptop or computer into a
-network and instantly be able to view other people who you can chat
-with, find printers to print to or find files being shared. This
-kind of technology is already found in Apple MacOS X (branded
-Rendezvous, Bonjour and sometimes Zeroconf) and is very convenient.
+make_slack_desc << EOF "C# interface to taglib"
+TagLib# is a FREE and Open Source library for the .NET 2.0 and Mono 
+frameworks which will let you tag your software with as much or as 
+little detail as you like without slowing you down. It supports a 
+large variety of movie and music formats which abstract away the work, 
+handling all the different cases, so all you have to do is access 
+file.Tag.Title, file.Tag.Lyrics, or file.Tag.Pictures.
 
 EOF
 

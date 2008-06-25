@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=itcl
+TARNAMEEXTRA=
+TARSEP=""
+TARDIR=~/tmp/new/i
+#TAR_EXT=.tar.gz
+VERSION=3.3
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://incrtcl.sourceforge.net/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/itcl-3.3.diff
+ patch -p1 < ${CWD}/itcl-3.3-libdir.patch
+ autoconf
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/tcl-private/generic" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/tcl-private/generic" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+TCL_VER=`echo 'puts $tcl_version' | tclsh`
+TCL_SITELIB=/usr/lib/tcl${TCL_VER}
+
+# Patch the updated location of the stub library
+#sed -i -e "s#/usr/lib/itcl${VERSION}#${TCL_SITELIB}/itcl${VERSION}#" \
+#        ${PKG}/usr/lib/itclConfig.sh
+
+sed -i -e "s@\${exec_prefix}@/usr@g" ${PKG}/usr/lib/itclConfig.sh
+sed -i -e "s@-L${CWD}[^ ']*@@g" -e "s@${CWD}[^ ']*@@" ${PKG}/usr/lib/itclConfig.sh
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "object-oriented extension to Tcl"
+incr Tcl provides the extra language support needed to build large 
+Tcl/Tk applications. It introduces the notion of objects, which act 
+as building blocks for an application. Each object is a bag of data 
+with a set of procedures or "methods" that are used to manipulate it. 
+Objects are organized into "classes" with identical characteristics, 
+and classes can inherit functionality from one another. This object-
+oriented paradigm adds another level of organization on top of the 
+basic variable/procedure elements, and the resulting code is easier 
+to understand and maintain. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

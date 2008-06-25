@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=iwidgets
+TARNAMEEXTRA=
+TARSEP=""
+TARDIR=~/tmp/new/i
+#TAR_EXT=.tar.gz
+VERSION=4.0.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/iwidgets-4.0.1.diff
+ autoconf
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+:
+#make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+
+# The configure script and Makefile for this package is horribly broken.
+# Installation is simple enough that it's easier to manually install the
+# files than try to patch the configure script and Makefile to work.
+
+TCL_VER=`echo 'puts $tcl_version' | tclsh`
+TCL_SITELIB=/usr/lib/tcl${TCL_VER}
+
+
+sed -e "s#@ITCL_VERSION@#3.3#" -e "s#@VERSION@#${VERSION}#" < iwidgets.tcl.in > iwidgets.tcl
+sed -e "s#@VERSION@#${VERSION}#" < pkgIndex.tcl.in > pkgIndex.tcl
+
+mkdir -p ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}
+install -p -m 644 generic/*.* ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}
+install -p -m 644 generic/tclIndex ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}
+install -p -m 644 iwidgets.tcl ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}
+install -p -m 644 pkgIndex.tcl ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}
+
+mkdir -p ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos
+for i in demos/* ; do
+    if [ -f $i ] ; then
+        install -p -m 644 $i ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos
+    fi
+done
+chmod 755 ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/catalog
+# Remove rpmlint warning.
+chmod 755 ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/scopedobject
+
+mkdir -p ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/images
+install -p -m 644 demos/images/*.* ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/images
+
+# These html pages are part of the demonstration scripts, so they aren't
+# packaged with the rest of the documentation.
+mkdir -p ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/html
+install -p -m 644 demos/html/*.html ${PKG}/${TCL_SITELIB}/${TARNAME}${VERSION}/demos/html
+
+mkdir -p ${PKG}/usr/man/mann
+install -p -m 644 doc/*.n ${PKG}/usr/man/mann/
+# This file conflicts with the one from tk-devel
+rm ${PKG}/usr/man/mann/panedwindow.n
+# This file conflicts with the one from tklib
+rm ${PKG}/usr/man/mann/datefield.n
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A set of useful widgets based on itcl and itk"
+A set of useful widgets based on itcl and itk.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

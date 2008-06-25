@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=brlcad
+TARNAME=itk
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/b
+TARSEP=""
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=7.12.4
+VERSION=3.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://incrtcl.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,8 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
- ./autogen.sh
+ patch -p1 < ${CWD}/itk-3.3.diff
+ patch -p1 < ${CWD}/itk-3.3-libdir.patch
+ autoconf
 )
 fi
 
@@ -58,13 +59,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/opt/brlcad \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/tcl-private/generic" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -I/usr/include/tcl-private/generic" \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-cppflags="-I/usr/include/tcl-private/generic -I/usr/include"
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -94,13 +94,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "solid modeling system"
-BRL-CAD is a powerful cross-platform open source solid modeling 
-system that includes interactive geometry editing, high-performance 
-ray-tracing for rendering and geometric analysis, image and signal-
-processing tools, a system performance analysis benchmark suite, 
-libraries for robust geometric representation, with more than 20 
-years of active development.
+make_slack_desc << EOF "object-oriented extension to Tk"
+incr Tk provides the extra language support needed to build large 
+Tcl/Tk applications. It introduces the notion of objects, which act 
+as building blocks for an application. Each object is a bag of data 
+with a set of procedures or "methods" that are used to manipulate it. 
+Objects are organized into "classes" with identical characteristics, 
+and classes can inherit functionality from one another. This object-
+oriented paradigm adds another level of organization on top of the 
+basic variable/procedure elements, and the resulting code is easier 
+to understand and maintain. 
 
 EOF
 
