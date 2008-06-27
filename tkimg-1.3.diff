@@ -1,5 +1,5 @@
 --- tkimg-1.3/base/tclconfig/tcl.m4.orig	2004-08-18 18:10:38.000000000 +0100
-+++ tkimg-1.3/base/tclconfig/tcl.m4	2008-06-24 21:58:41.000000000 +0100
++++ tkimg-1.3/base/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
 @@ -759,7 +759,7 @@
  	    # results, and the version is kept in special file).
  	
@@ -18,8 +18,333 @@
  	    fi
  	    if test "`uname -s`" = "AIX" ; then
  		system=AIX-`uname -v`.`uname -r`
---- tkimg-1.3/libjpeg/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:38.000000000 +0100
-+++ tkimg-1.3/libjpeg/tcl/tclconfig/tcl.m4	2008-06-24 21:58:41.000000000 +0100
+--- tkimg-1.3/tiff/Makefile.in.orig	2004-08-18 18:10:51.000000000 +0100
++++ tkimg-1.3/tiff/Makefile.in	2008-06-25 15:27:01.000000000 +0100
+@@ -354,7 +354,8 @@
+ 	-e	's/@CPACKAGE@/Tkimgtiff/'		\
+ 	-e	's/%PACKAGE%/$(PACKAGE)/'		\
+ 	-e	"s/%PACKAGE_UP%/`echo $(PACKAGE)| tr 'a-z' 'A-Z'`/"		\
+-	-e	's/%PHIMGTYPE%/"$(PHIMGTYPE)"/'
++	-e	's/%PHIMGTYPE%/"$(PHIMGTYPE)"/' \
++	-e	's/VERSION/"@VERSION@"/'
+ 
+ #========================================================================
+ # Create the pkgIndex.tcl file.
+--- tkimg-1.3/tiff/tiffJpeg.c.orig	2004-08-18 18:10:51.000000000 +0100
++++ tkimg-1.3/tiff/tiffJpeg.c	2008-06-25 15:27:01.000000000 +0100
+@@ -1,4 +1,4 @@
+-/* $Header: /cvsroot/tkimg/tkimg/tiff/tiffJpeg.c,v 1.2 2004/08/13 22:02:21 andreas_kupries Exp $ */
++/* $Header$ */
+ 
+ /*
+  * Copyright (c) 1994-1996 Sam Leffler
+@@ -225,8 +225,10 @@
+  * values per libtiff practice.
+  */
+ #define	CALLJPEG(sp, fail, op)	(SETJMP((sp)->exit_jmpbuf) ? (fail) : (op))
+-#define	CALLVJPEG(sp, op)	CALLJPEG(sp, 0, ((op),1))
+ 
++#define	CALLVJPEG(sp, op)	CALLJPEG(sp, 0, ((op),1))
++#undef  CALLVJPEG
++#define CALLVJPEG(sp, op)       (SETJMP((sp)->exit_jmpbuf) ? (0) : ((op),1))
+ 
+ static int
+ TIFFjpeg_create_compress(sp)
+@@ -728,15 +730,9 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ JPEGPreDecode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-JPEGPreDecode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+ 	JPEGState *sp = JState(tif);
+ 	TIFFDirectory *td = &tif->tif_dir;
+@@ -866,19 +862,11 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ JPEGDecode (
+     TIFF* tif,
+     tidata_t buf,
+     tsize_t cc,
+     tsample_t s)
+-#else
+-JPEGDecode(tif, buf, cc, s)
+-    TIFF* tif;
+-    tidata_t buf;
+-    tsize_t cc;
+-    tsample_t s;
+-#endif
+ {
+ 	JPEGState *sp = JState(tif);
+ 	tsize_t nrows;
+@@ -911,19 +899,11 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ JPEGDecodeRaw (
+     TIFF* tif,
+     tidata_t buf,
+     tsize_t cc,
+     tsample_t s)
+-#else
+-JPEGDecodeRaw(tif, buf, cc, s)
+-    TIFF* tif;
+-    tidata_t buf;
+-    tsize_t cc;
+-    tsample_t s;
+-#endif
+ {
+ 	JPEGState *sp = JState(tif);
+ 	JSAMPLE* inptr;
+@@ -1090,19 +1070,22 @@
+ 		 * default value is inappropriate for YCbCr.  Fill in the
+ 		 * proper value if application didn't set it.
+ 		 */
+-#ifdef COLORIMETRY_SUPPORT
+-		if (!TIFFFieldSet(tif, FIELD_REFBLACKWHITE)) {
+-			float refbw[6];
+-			long top = 1L << td->td_bitspersample;
+-			refbw[0] = 0;
+-			refbw[1] = (float)(top-1L);
+-			refbw[2] = (float)(top>>1);
+-			refbw[3] = refbw[1];
+-			refbw[4] = refbw[2];
+-			refbw[5] = refbw[1];
+-			TIFFSetField(tif, TIFFTAG_REFERENCEBLACKWHITE, refbw);
++		{
++			float *ref;
++			if (!TIFFGetField(tif, TIFFTAG_REFERENCEBLACKWHITE,
++					  &ref)) {
++				float refbw[6];
++				long top = 1L << td->td_bitspersample;
++				refbw[0] = 0;
++				refbw[1] = (float)(top-1L);
++				refbw[2] = (float)(top>>1);
++				refbw[3] = refbw[1];
++				refbw[4] = refbw[2];
++				refbw[5] = refbw[1];
++				TIFFSetField(tif, TIFFTAG_REFERENCEBLACKWHITE,
++					     refbw);
++			}
+ 		}
+-#endif
+ 		break;
+ 	case PHOTOMETRIC_PALETTE:		/* disallowed by Tech Note */
+ 	case PHOTOMETRIC_MASK:
+@@ -1178,15 +1161,9 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ JPEGPreEncode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-JPEGPreEncode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+ 	JPEGState *sp = JState(tif);
+ 	TIFFDirectory *td = &tif->tif_dir;
+--- tkimg-1.3/tiff/tiffZip.c.orig	2004-08-18 18:10:51.000000000 +0100
++++ tkimg-1.3/tiff/tiffZip.c	2008-06-25 15:27:01.000000000 +0100
+@@ -1,4 +1,4 @@
+-/* $Header: /cvsroot/tkimg/tkimg/tiff/tiffZip.c,v 1.2 2004/08/13 22:02:21 andreas_kupries Exp $ */
++/* $Header$ */
+ 
+ /*
+  * Copyright (c) 1995-1996 Sam Leffler
+@@ -104,15 +104,9 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ ZIPPreDecode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-ZIPPreDecode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+     ZIPState* sp = DecoderState(tif);
+ 
+@@ -124,19 +118,11 @@
+ }
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ ZIPDecode (
+     TIFF* tif,
+     tidata_t op,
+     tsize_t occ,
+     tsample_t s)
+-#else
+-ZIPDecode(tif, op, occ, s)
+-    TIFF* tif;
+-    tidata_t op;
+-    tsize_t occ;
+-    tsample_t s;
+-#endif
+ {
+     ZIPState* sp = DecoderState(tif);
+     static char module[] = "ZIPDecode";
+@@ -173,13 +159,8 @@
+ }
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ ZIPSetupEncode (
+     TIFF* tif)
+-#else
+-ZIPSetupEncode(tif)
+-    TIFF* tif;
+-#endif
+ {
+     ZIPState* sp = EncoderState(tif);
+     static char module[] = "ZIPSetupEncode";
+@@ -199,15 +180,9 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ ZIPPreEncode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-ZIPPreEncode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+     ZIPState *sp = EncoderState(tif);
+ 
+@@ -223,18 +198,10 @@
+  */
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ ZIPEncode (TIFF* tif,
+     tidata_t bp,
+     tsize_t cc,
+     tsample_t s)
+-#else
+-ZIPEncode(tif, bp, cc, s)
+-    TIFF* tif;
+-    tidata_t bp;
+-    tsize_t cc;
+-    tsample_t s;
+-#endif
+ {
+     ZIPState *sp = EncoderState(tif);
+     static char module[] = "ZIPEncode";
+--- tkimg-1.3/tiff/tiffPixar.c.orig	2004-08-18 18:10:51.000000000 +0100
++++ tkimg-1.3/tiff/tiffPixar.c	2008-06-25 15:27:01.000000000 +0100
+@@ -697,15 +697,9 @@
+  * Setup state for decoding a strip.
+  */
+ static int
+-#ifdef _USING_PROTOTYPES_
+ PixarLogPreDecode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-PixarLogPreDecode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+     PixarLogState* sp = DecoderState(tif);
+ 
+@@ -717,19 +711,11 @@
+ }
+ 
+ static int
+-#ifdef _USING_PROTOTYPES_
+ PixarLogDecode(
+     TIFF* tif,
+     tidata_t op,
+     tsize_t occ,
+     tsample_t s)
+-#else
+-PixarLogDecode(tif, op, occ, s)
+-    TIFF* tif;
+-    tidata_t op;
+-    tsize_t occ;
+-    tsample_t s;
+-#endif
+ {
+ 	TIFFDirectory *td = &tif->tif_dir;
+ 	PixarLogState* sp = DecoderState(tif);
+@@ -880,15 +866,9 @@
+  * Reset encoding state at the start of a strip.
+  */
+ static int
+-#ifdef _USING_PROTOTYPES_
+ PixarLogPreEncode (
+     TIFF* tif,
+     tsample_t s)
+-#else
+-PixarLogPreEncode(tif, s)
+-    TIFF* tif;
+-    tsample_t s;
+-#endif
+ {
+ 	PixarLogState *sp = EncoderState(tif);
+ 
+@@ -1077,19 +1057,11 @@
+  * Encode a chunk of pixels.
+  */
+ static	int
+-#ifdef _USING_PROTOTYPES_
+ PixarLogEncode(
+     TIFF* tif,
+     tidata_t bp,
+     tsize_t cc,
+     tsample_t s)
+-#else
+-PixarLogEncode(tif, bp, cc, s)
+-    TIFF* tif;
+-    tidata_t bp;
+-    tsize_t cc;
+-    tsample_t s;
+-#endif
+ {
+ 	TIFFDirectory *td = &tif->tif_dir;
+ 	PixarLogState *sp = EncoderState(tif);
+--- tkimg-1.3/libjpeg/tcl/Makefile.in.orig	2004-08-18 18:10:40.000000000 +0100
++++ tkimg-1.3/libjpeg/tcl/Makefile.in	2008-06-25 14:08:02.000000000 +0100
+@@ -31,7 +31,6 @@
+ 		jpegtcl.c		\
+ 		jpegtclStubInit.c	\
+ 		jpegtclStubLib.c	\
+-		$(jpeg_Sources)		\
+ 		@EXTRA_SOURCES@
+ 
+ WIN_SOURCES	= 
+@@ -199,7 +198,7 @@
+ CONFIG_CLEAN_FILES = Makefile jpegtclConfig.sh pkgIndex.tcl libjpeg
+ 
+ CPPFLAGS	= @CPPFLAGS@ -DPACKAGE_NAME=\"$(PACKAGE)\"
+-LIBS		= @LIBS@
++LIBS		= @LIBS@ -ljpeg
+ AR		= ar
+ CFLAGS		= @CFLAGS@
+ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+--- tkimg-1.3/libjpeg/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:40.000000000 +0100
++++ tkimg-1.3/libjpeg/tcl/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
 @@ -759,7 +759,7 @@
  	    # results, and the version is kept in special file).
  	
@@ -38,8 +363,197 @@
  	    fi
  	    if test "`uname -s`" = "AIX" ; then
  		system=AIX-`uname -v`.`uname -r`
---- tkimg-1.3/libpng/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:38.000000000 +0100
-+++ tkimg-1.3/libpng/tcl/tclconfig/tcl.m4	2008-06-24 21:58:41.000000000 +0100
+--- tkimg-1.3/libtiff/tcl/tifftcl.decls.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/tifftcl.decls	2008-06-25 14:08:18.000000000 +0100
+@@ -319,7 +319,7 @@
+ 
+ # Source: tif_dir.h ...
+ declare 110 generic {
+-    void _TIFFSetupFieldInfo(TIFF* tiffptr)
++    void _TIFFSetupFieldInfo(TIFF* tiffptr, const TIFFFieldInfo a[], size_t b)
+ }
+ declare 111 generic {
+     void TIFFMergeFieldInfo(TIFF* tiffptr, const TIFFFieldInfo* a, int b)
+@@ -392,7 +392,7 @@
+     int TIFFSetCompressionScheme(TIFF* tiffptr, int a)
+ }
+ declare 137 generic {
+-    int _TIFFSetDefaultCompressionState(TIFF* tiffptr)
++    void _TIFFSetDefaultCompressionState(TIFF* tiffptr)
+ }
+ declare 138 generic {
+     uint32 _TIFFDefaultStripSize(TIFF* tiffptr, uint32 a)
+@@ -407,16 +407,16 @@
+     void _TIFFsetString(char** a, char* b)
+ }
+ declare 142 generic {
+-    void _TIFFsetShortArray(uint16** a, uint16* b, long c)
++    void _TIFFsetShortArray(uint16** a, uint16* b, uint32 c)
+ }
+ declare 143 generic {
+-    void _TIFFsetLongArray(uint32** a, uint32* b, long c)
++    void _TIFFsetLongArray(uint32** a, uint32* b, uint32 c)
+ }
+ declare 144 generic {
+-    void _TIFFsetFloatArray(float** a, float* b, long c)
++    void _TIFFsetFloatArray(float** a, float* b, uint32 c)
+ }
+ declare 145 generic {
+-    void _TIFFsetDoubleArray(double** a, double* b, long c)
++    void _TIFFsetDoubleArray(double** a, double* b, uint32 c)
+ }
+ declare 146 generic {
+     void _TIFFprintAscii(FILE* a, const char* b)
+--- tkimg-1.3/libtiff/tcl/tifftclDecls.h.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/tifftclDecls.h	2008-06-25 14:08:18.000000000 +0100
+@@ -15,6 +15,12 @@
+  */
+ 
+ #include <tcl.h>
++/*
++ * The macro INLINE might be defined both in tcl.h and libtiff/port.h,
++ * so better prevent a conflict here.
++ */
++#undef INLINE
++
+ #include <tifftclDeclsMask.h>
+ #include <../libtiff/tiffio.h>
+ #include <../libtiff/tiffiop.h>
+@@ -296,7 +302,8 @@
+ /* Slot 108 is reserved */
+ /* Slot 109 is reserved */
+ /* 110 */
+-EXTERN void		_TIFFSetupFieldInfo _ANSI_ARGS_((TIFF* tiffptr));
++EXTERN void		_TIFFSetupFieldInfo _ANSI_ARGS_((TIFF* tiffptr,
++				const TIFFFieldInfo a[], size_t b));
+ /* 111 */
+ EXTERN void		TIFFMergeFieldInfo _ANSI_ARGS_((TIFF* tiffptr, 
+ 				const TIFFFieldInfo* a, int b));
+@@ -363,7 +370,7 @@
+ EXTERN int		TIFFSetCompressionScheme _ANSI_ARGS_((TIFF* tiffptr, 
+ 				int a));
+ /* 137 */
+-EXTERN int		_TIFFSetDefaultCompressionState _ANSI_ARGS_((
++EXTERN void		_TIFFSetDefaultCompressionState _ANSI_ARGS_((
+ 				TIFF* tiffptr));
+ /* 138 */
+ EXTERN uint32		_TIFFDefaultStripSize _ANSI_ARGS_((TIFF* tiffptr, 
+@@ -373,21 +380,21 @@
+ 				uint32* a, uint32* b));
+ /* 140 */
+ EXTERN void		_TIFFsetByteArray _ANSI_ARGS_((void** a, void* b, 
+-				long c));
++				uint32 c));
+ /* 141 */
+ EXTERN void		_TIFFsetString _ANSI_ARGS_((char** a, char* b));
+ /* 142 */
+ EXTERN void		_TIFFsetShortArray _ANSI_ARGS_((uint16** a, 
+-				uint16* b, long c));
++				uint16* b, uint32 c));
+ /* 143 */
+ EXTERN void		_TIFFsetLongArray _ANSI_ARGS_((uint32** a, uint32* b, 
+-				long c));
++				uint32 c));
+ /* 144 */
+ EXTERN void		_TIFFsetFloatArray _ANSI_ARGS_((float** a, float* b, 
+-				long c));
++				uint32 c));
+ /* 145 */
+ EXTERN void		_TIFFsetDoubleArray _ANSI_ARGS_((double** a, 
+-				double* b, long c));
++				double* b, uint32 c));
+ /* 146 */
+ EXTERN void		_TIFFprintAscii _ANSI_ARGS_((FILE* a, const char* b));
+ /* 147 */
+@@ -539,7 +546,7 @@
+     void *reserved107;
+     void *reserved108;
+     void *reserved109;
+-    void (*_TIFFSetupFieldInfo) _ANSI_ARGS_((TIFF* tiffptr)); /* 110 */
++    void (*_TIFFSetupFieldInfo) _ANSI_ARGS_((TIFF* tiffptr, const TIFFFieldInfo a[], size_t b)); /* 110 */
+     void (*tIFFMergeFieldInfo) _ANSI_ARGS_((TIFF* tiffptr, const TIFFFieldInfo* a, int b)); /* 111 */
+     void (*_TIFFPrintFieldInfo) _ANSI_ARGS_((TIFF* tiffptr, FILE* a)); /* 112 */
+     const TIFFFieldInfo* (*tIFFFindFieldInfo) _ANSI_ARGS_((TIFF* tiffptr, ttag_t a, TIFFDataType b)); /* 113 */
+@@ -566,15 +573,15 @@
+     void (*tIFFFreeDirectory) _ANSI_ARGS_((TIFF* tiffptr)); /* 134 */
+     int (*tIFFDefaultDirectory) _ANSI_ARGS_((TIFF* tiffptr)); /* 135 */
+     int (*tIFFSetCompressionScheme) _ANSI_ARGS_((TIFF* tiffptr, int a)); /* 136 */
+-    int (*_TIFFSetDefaultCompressionState) _ANSI_ARGS_((TIFF* tiffptr)); /* 137 */
++    void (*_TIFFSetDefaultCompressionState) _ANSI_ARGS_((TIFF* tiffptr)); /* 137 */
+     uint32 (*_TIFFDefaultStripSize) _ANSI_ARGS_((TIFF* tiffptr, uint32 a)); /* 138 */
+     void (*_TIFFDefaultTileSize) _ANSI_ARGS_((TIFF* tiffptr, uint32* a, uint32* b)); /* 139 */
+-    void (*_TIFFsetByteArray) _ANSI_ARGS_((void** a, void* b, long c)); /* 140 */
++    void (*_TIFFsetByteArray) _ANSI_ARGS_((void** a, void* b, uint32 c)); /* 140 */
+     void (*_TIFFsetString) _ANSI_ARGS_((char** a, char* b)); /* 141 */
+-    void (*_TIFFsetShortArray) _ANSI_ARGS_((uint16** a, uint16* b, long c)); /* 142 */
+-    void (*_TIFFsetLongArray) _ANSI_ARGS_((uint32** a, uint32* b, long c)); /* 143 */
+-    void (*_TIFFsetFloatArray) _ANSI_ARGS_((float** a, float* b, long c)); /* 144 */
+-    void (*_TIFFsetDoubleArray) _ANSI_ARGS_((double** a, double* b, long c)); /* 145 */
++    void (*_TIFFsetShortArray) _ANSI_ARGS_((uint16** a, uint16* b, uint32 c)); /* 142 */
++    void (*_TIFFsetLongArray) _ANSI_ARGS_((uint32** a, uint32* b, uint32 c)); /* 143 */
++    void (*_TIFFsetFloatArray) _ANSI_ARGS_((float** a, float* b, uint32 c)); /* 144 */
++    void (*_TIFFsetDoubleArray) _ANSI_ARGS_((double** a, double* b, uint32 c)); /* 145 */
+     void (*_TIFFprintAscii) _ANSI_ARGS_((FILE* a, const char* b)); /* 146 */
+     void (*_TIFFprintAsciiTag) _ANSI_ARGS_((FILE* a, const char* b, const char* c)); /* 147 */
+     int (*tIFFInitDumpMode) _ANSI_ARGS_((TIFF* tiffptr, int a)); /* 148 */
+--- tkimg-1.3/libtiff/tcl/Makefile.in.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/Makefile.in	2008-06-25 14:08:18.000000000 +0100
+@@ -31,7 +31,6 @@
+ 		tifftcl.c		\
+ 		tifftclStubInit.c	\
+ 		tifftclStubLib.c	\
+-		$(tiff_Sources)		\
+ 		@EXTRA_SOURCES@
+ 
+ WIN_SOURCES	= tif_win32.c
+@@ -195,7 +194,7 @@
+ CONFIG_CLEAN_FILES = Makefile tifftclConfig.sh pkgIndex.tcl port.h
+ 
+ CPPFLAGS	= @CPPFLAGS@ -DPACKAGE_NAME=\"$(PACKAGE)\"
+-LIBS		= @LIBS@
++LIBS		= @LIBS@ -ltiff
+ AR		= ar
+ CFLAGS		= @CFLAGS@
+ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+--- tkimg-1.3/libtiff/tcl/tifftclStubLib.c.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/tifftclStubLib.c	2008-06-25 14:08:18.000000000 +0100
+@@ -46,29 +46,17 @@
+ CONST char *
+ Tifftcl_InitStubs(interp, version, exact)
+     Tcl_Interp *interp;
+-    CONST char *version;
++    CONST84 char *version;
+     int exact;
+ {
+     CONST char *result;
++    ClientData data;
+ 
+-    /* HACK: de-CONST 'version' if compiled against 8.3.
+-     * The API has no CONST despite not modifying the argument
+-     * And a debug build with high warning-level on windows
+-     * will abort the compilation.
+-     */
+-
+-#if ((TCL_MAJOR_VERSION < 8) || ((TCL_MAJOR_VERSION == 8) && (TCL_MINOR_VERSION < 4)))
+-#define UNCONST (char*)
+-#else
+-#define UNCONST 
+-#endif
+-
+-    result = Tcl_PkgRequireEx(interp, PACKAGE_NAME, UNCONST version, exact,
+-		(ClientData *) &tifftclStubsPtr);
+-    if (!result || !tifftclStubsPtr) {
++    result = Tcl_PkgRequireEx(interp, PACKAGE_NAME, version, exact, &data);
++    if (!result || !data) {
+         return (char *) NULL;
+     }
+ 
++    tifftclStubsPtr = (TifftclStubs *) data;
+     return result;
+ }
+-#undef UNCONST
+--- tkimg-1.3/libtiff/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
 @@ -759,7 +759,7 @@
  	    # results, and the version is kept in special file).
  	
@@ -58,28 +572,1692 @@
  	    fi
  	    if test "`uname -s`" = "AIX" ; then
  		system=AIX-`uname -v`.`uname -r`
---- tkimg-1.3/libtiff/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:38.000000000 +0100
-+++ tkimg-1.3/libtiff/tcl/tclconfig/tcl.m4	2008-06-24 21:58:41.000000000 +0100
-@@ -759,7 +759,7 @@
- 	    # results, and the version is kept in special file).
- 	
- 	    if test -r /etc/.relid -a "X`uname -n`" = "X`uname -s`" ; then
--		system=MP-RAS-`awk '{print $3}' /etc/.relid'`
-+		system=MP-RAS-`awk '{print $3}' /etc/.relid`
- 	    fi
- 	    if test "`uname -s`" = "AIX" ; then
- 		system=AIX-`uname -v`.`uname -r`
-@@ -2026,7 +2026,7 @@
- 	    # results, and the version is kept in special file).
- 	
- 	    if test -r /etc/.relid -a "X`uname -n`" = "X`uname -s`" ; then
--		system=MP-RAS-`awk '{print $3}' /etc/.relid'`
-+		system=MP-RAS-`awk '{print $3}' /etc/.relid`
- 	    fi
- 	    if test "`uname -s`" = "AIX" ; then
- 		system=AIX-`uname -v`.`uname -r`
+--- tkimg-1.3/libtiff/tcl/tifftcl.h.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/tifftcl.h	2008-06-25 14:08:18.000000000 +0100
+@@ -22,14 +22,15 @@
+ #define __TIFFTCL_H__
+ 
+ #include "tcl.h"
++#include "../libtiff/tif_config.h"
+ 
+ #define TIFFTCL_MAJOR_VERSION	3
+-#define TIFFTCL_MINOR_VERSION	6
++#define TIFFTCL_MINOR_VERSION	8
+ #define TIFFTCL_RELEASE_LEVEL	TCL_RELEASE
+-#define TIFFTCL_RELEASE_SERIAL	1
++#define TIFFTCL_RELEASE_SERIAL	2
+ 
+-#define TIFFTCL_VERSION		"3.6.1"
+-#define TIFFTCL_PATCH_LEVEL	"3.6.1"
++#define TIFFTCL_VERSION		"3.8.2"
++#define TIFFTCL_PATCH_LEVEL	"3.8.2"
+ 
+ /*
+  * Used to block the rest of this header file from resource compilers so
+@@ -138,7 +139,7 @@
+ 
+ #ifdef USE_TIFFTCL_STUBS
+ EXTERN CONST char *
+-Tifftcl_InitStubs _ANSI_ARGS_((Tcl_Interp *interp, CONST char *version, int exact));
++Tifftcl_InitStubs _ANSI_ARGS_((Tcl_Interp *interp, CONST84 char *version, int exact));
+ #else
+ 
+ /*
+--- tkimg-1.3/libtiff/tcl/configure.in.orig	2004-08-18 18:10:47.000000000 +0100
++++ tkimg-1.3/libtiff/tcl/configure.in	2008-06-25 15:12:30.000000000 +0100
+@@ -30,8 +30,8 @@
+ PACKAGE=tifftcl
+ 
+ MAJOR_VERSION=3
+-MINOR_VERSION=6
+-PATCHLEVEL=1
++MINOR_VERSION=8
++PATCHLEVEL=2
+ 
+ VERSION=${MAJOR_VERSION}.${MINOR_VERSION}.${PATCHLEVEL}
+ NODOT_VERSION=${MAJOR_VERSION}${MINOR_VERSION}${PATCHLEVEL}
+@@ -200,10 +200,10 @@
+ # does not support this we have to bail out.
+ #--------------------------------------------------------------------
+ 
+-if test `grep STDC_HEADERS confdefs.h | wc -l` -eq 0
+-then
+-    AC_MSG_ERROR([Compiler does not use stdarg.h, required for TIFF])
+-fi
++#if test `grep STDC_HEADERS confdefs.h | wc -l` -eq 0
++#then
++#    AC_MSG_ERROR([Compiler does not use stdarg.h, required for TIFF])
++#fi
+ 
+ if test "X$host" = X -o "X$host" = XNONE
+ then
+--- tkimg-1.3/libtiff/RELEASE-DATE.orig	2004-08-18 18:10:44.000000000 +0100
++++ tkimg-1.3/libtiff/RELEASE-DATE	2008-06-25 15:20:13.000000000 +0100
+@@ -1 +1 @@
+-12/26/2003
++20060323
+--- tkimg-1.3/libtiff/libtiff/tiffconf.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tiffconf.h	2008-06-25 15:20:13.000000000 +0100
+@@ -1,152 +1,100 @@
+-/* $Header: /cvsroot/tkimg/tkimg/libtiff/libtiff/tiffconf.h,v 1.1 2004/08/13 22:02:18 andreas_kupries Exp $ */
++/* libtiff/tiffconf.h.  Generated by configure.  */
+ /*
+- * Copyright (c) 1988-1997 Sam Leffler
+- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+- *
+- * Permission to use, copy, modify, distribute, and sell this software and 
+- * its documentation for any purpose is hereby granted without fee, provided
+- * that (i) the above copyright notices and this permission notice appear in
+- * all copies of the software and related documentation, and (ii) the names of
+- * Sam Leffler and Silicon Graphics may not be used in any advertising or
+- * publicity relating to the software without the specific, prior written
+- * permission of Sam Leffler and Silicon Graphics.
+- * 
+- * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+- * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+- * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+- * 
+- * IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
+- * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+- * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+- * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+- * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+- * OF THIS SOFTWARE.
+- */
++  Configuration defines for installed libtiff.
++  This file maintained for backward compatibility. Do not use definitions
++  from this file in your programs.
++*/
+ 
+ #ifndef _TIFFCONF_
+-#define	_TIFFCONF_
+-/*
+- * Library Configuration Definitions.
+- *
+- * This file defines the default configuration for the library.
+- * If the target system does not have make or a way to specify
+- * #defines on the command line, this file can be edited to
+- * configure the library.  Otherwise, one can override portability
+- * and configuration-related definitions from a Makefile or command
+- * line by defining COMPRESSION_SUPPORT (see below).
+- */
++#define _TIFFCONF_
+ 
+-/*
+- * General portability-related defines:
+- *
+- * HAVE_IEEEFP		define as 0 or 1 according to the floating point
+- *			format suported by the machine
+- * BSDTYPES		define this if your system does NOT define the
+- *			usual 4BSD typedefs u_int et. al.
+- * HAVE_MMAP		enable support for memory mapping read-only files;
+- *			this is typically deduced by the configure script
+- * HOST_FILLORDER	native cpu bit order: one of FILLORDER_MSB2LSB
+- *			or FILLODER_LSB2MSB; this is typically set by the
+- *			configure script
+- * HOST_BIGENDIAN	native cpu byte order: 1 if big-endian (Motorola)
+- *			or 0 if little-endian (Intel); this may be used
+- *			in codecs to optimize code
+- * USE_64BIT_API	set to 1 if tif_unix.c should use lseek64(),
+- *                      fstat64() and stat64 allowing 2-4GB files.
+- */
+-#ifndef HAVE_IEEEFP
+-#define	HAVE_IEEEFP	1
+-#endif
+-#ifndef HOST_FILLORDER
+-#define	HOST_FILLORDER	FILLORDER_MSB2LSB
+-#endif
+-#ifndef	HOST_BIGENDIAN
+-#define	HOST_BIGENDIAN	1
+-#endif
+-
+-#ifndef USE_64BIT_API
+-#  define USE_64BIT_API	0
+-#endif
++/* Define to 1 if the system has the type `int16'. */
++/* #undef HAVE_INT16 */
+ 
+-#ifndef COMPRESSION_SUPPORT
+-/*
+- * Compression support defines:
+- *
+- *    CCITT_SUPPORT	enable support for CCITT Group 3 & 4 algorithms
+- *    PACKBITS_SUPPORT	enable support for Macintosh PackBits algorithm
+- *    LZW_SUPPORT	enable support for LZW algorithm
+- *    THUNDER_SUPPORT	enable support for ThunderScan 4-bit RLE algorithm
+- *    NEXT_SUPPORT	enable support for NeXT 2-bit RLE algorithm
+- *    OJPEG_SUPPORT	enable support for 6.0-style JPEG DCT algorithms
+- *			(requires IJG software)
+- *    JPEG_SUPPORT	enable support for post-6.0-style JPEG DCT algorithms
+- *			(requires freely available IJG software, see tif_jpeg.c)
+- *    ZIP_SUPPORT	enable support for Deflate algorithm
+- *			(requires freely available zlib software, see tif_zip.c)
+- *    PIXARLOG_SUPPORT	enable support for Pixar log-format algorithm
+- *    LOGLUV_SUPPORT	enable support for LogLuv high dynamic range encoding
+- */
+-#define	CCITT_SUPPORT
+-#define	PACKBITS_SUPPORT
+-#define	LZW_SUPPORT
+-#define	THUNDER_SUPPORT
+-#define	NEXT_SUPPORT
+-#define LOGLUV_SUPPORT
+-#endif /* COMPRESSION_SUPPORT */
++/* Define to 1 if the system has the type `int32'. */
++/* #undef HAVE_INT32 */
+ 
+-/*
+- * If JPEG compression is enabled then we must also include
+- * support for the colorimetry and YCbCr-related tags.
+- */
+-#ifdef JPEG_SUPPORT
+-#ifndef YCBCR_SUPPORT
+-#define	YCBCR_SUPPORT
+-#endif
+-#ifndef COLORIMETRY_SUPPORT
+-#define	COLORIMETRY_SUPPORT
+-#endif
+-#endif /* JPEG_SUPPORT */
++/* Define to 1 if the system has the type `int8'. */
++/* #undef HAVE_INT8 */
+ 
+-/*
+- * ``Orthogonal Features''
+- *
+- * STRIPCHOP_DEFAULT	default handling of strip chopping support (whether
+- *			or not to convert single-strip uncompressed images
+- *			to mutiple strips of ~8Kb--to reduce memory use)
+- * SUBIFD_SUPPORT	enable support for SubIFD tag (thumbnails and such)
+- * DEFAULT_EXTRASAMPLE_AS_ALPHA
+- *                      The RGBA interface will treat a fourth sample with
+- *                      no EXTRASAMPLE_ value as being ASSOCALPHA.  Many
+- *                      packages produce RGBA files but don't mark the alpha
+- *                      properly.
+- * CHECK_JPEG_YCBCR_SUBSAMPLING
+- *                      Enable picking up YCbCr subsampling info from the
+- *                      JPEG data stream to support files lacking the tag.
+- *                      See Bug 168 in Bugzilla, and JPEGFixupTestSubsampling()
+- *                      for details. 
+- */
+-#ifndef STRIPCHOP_DEFAULT
+-#define	STRIPCHOP_DEFAULT	TIFF_STRIPCHOP	/* default is to enable */
+-#endif
+-#ifndef SUBIFD_SUPPORT
+-#define	SUBIFD_SUPPORT		1	/* enable SubIFD tag (330) support */
+-#endif
+-#ifndef DEFAULT_EXTRASAMPLE_AS_ALPHA
++/* The size of a `int', as computed by sizeof. */
++#define SIZEOF_INT 4
++
++/* The size of a `long', as computed by sizeof. */
++#define SIZEOF_LONG 4
++
++/* Compatibility stuff. */
++
++/* Define as 0 or 1 according to the floating point format suported by the
++   machine */
++#define HAVE_IEEEFP 1
++
++/* Set the native cpu bit order (FILLORDER_LSB2MSB or FILLORDER_MSB2LSB) */
++#define HOST_FILLORDER FILLORDER_LSB2MSB
++
++/* Native cpu byte order: 1 if big-endian (Motorola) or 0 if little-endian
++   (Intel) */
++#define HOST_BIGENDIAN 0
++
++/* Support CCITT Group 3 & 4 algorithms */
++#define CCITT_SUPPORT 1
++
++/* Support JPEG compression (requires IJG JPEG library) */
++/* #undef JPEG_SUPPORT */
++
++/* Support LogLuv high dynamic range encoding */
++#define LOGLUV_SUPPORT 1
++
++/* Support LZW algorithm */
++#define LZW_SUPPORT 1
++
++/* Support NeXT 2-bit RLE algorithm */
++#define NEXT_SUPPORT 1
++
++/* Support Old JPEG compresson (read contrib/ojpeg/README first! Compilation
++   fails with unpatched IJG JPEG library) */
++/* #undef OJPEG_SUPPORT */
++
++/* Support Macintosh PackBits algorithm */
++#define PACKBITS_SUPPORT 1
++
++/* Support Pixar log-format algorithm (requires Zlib) */
++/* #undef PIXARLOG_SUPPORT */
++
++/* Support ThunderScan 4-bit RLE algorithm */
++#define THUNDER_SUPPORT 1
++
++/* Support Deflate compression */
++/* #undef ZIP_SUPPORT */
++
++/* Support strip chopping (whether or not to convert single-strip uncompressed
++   images to mutiple strips of ~8Kb to reduce memory usage) */
++#define STRIPCHOP_DEFAULT TIFF_STRIPCHOP
++
++/* Enable SubIFD tag (330) support */
++#define SUBIFD_SUPPORT 1
++
++/* Treat extra sample as alpha (default enabled). The RGBA interface will
++   treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many
++   packages produce RGBA files but don't mark the alpha properly. */
+ #define DEFAULT_EXTRASAMPLE_AS_ALPHA 1
+-#endif
+-#ifndef CHECK_JPEG_YCBCR_SUBSAMPLING
++
++/* Pick up YCbCr subsampling info from the JPEG data stream to support files
++   lacking the tag (default enabled). */
+ #define CHECK_JPEG_YCBCR_SUBSAMPLING 1
+-#endif
++
++/* Support MS MDI magic number files as TIFF */
++#define MDI_SUPPORT 1
+ 
+ /*
+  * Feature support definitions.
+  * XXX: These macros are obsoleted. Don't use them in your apps!
+  * Macros stays here for backward compatibility and should be always defined.
+  */
+-#define	COLORIMETRY_SUPPORT
+-#define	YCBCR_SUPPORT
+-#define	CMYK_SUPPORT
+-#define	ICC_SUPPORT
++#define COLORIMETRY_SUPPORT
++#define YCBCR_SUPPORT
++#define CMYK_SUPPORT
++#define ICC_SUPPORT
+ #define PHOTOSHOP_SUPPORT
+ #define IPTC_SUPPORT
+ 
+--- tkimg-1.3/libtiff/libtiff/tiffvers.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tiffvers.h	2008-06-25 15:20:13.000000000 +0100
+@@ -1,4 +1,4 @@
+-#define TIFFLIB_VERSION_STR "LIBTIFF, Version 3.6.1\nCopyright (c) 1988-1996 Sam Leffler\nCopyright (c) 1991-1996 Silicon Graphics, Inc."
++#define TIFFLIB_VERSION_STR "LIBTIFF, Version 3.8.2\nCopyright (c) 1988-1996 Sam Leffler\nCopyright (c) 1991-1996 Silicon Graphics, Inc."
+ /*
+  * This define can be used in code that requires
+  * compilation-related definitions specific to a
+@@ -6,4 +6,4 @@
+  * version checking should be done based on the
+  * string returned by TIFFGetVersion.
+  */
+-#define TIFFLIB_VERSION 20031226
++#define TIFFLIB_VERSION 20060323
+--- tkimg-1.3/libtiff/libtiff/tiffio.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tiffio.h	2008-06-25 15:20:13.000000000 +0100
+@@ -19,8 +19,8 @@
+  * IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
+  * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+  * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+- * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+- * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
++ * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF
++ * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+  * OF THIS SOFTWARE.
+  */
+ 
+@@ -75,29 +75,29 @@
+  * On windows you should define USE_WIN32_FILEIO if you are using tif_win32.c
+  * or AVOID_WIN32_FILEIO if you are using something else (like tif_unix.c).
+  *
+- * By default tif_win32.c is assumed on windows if not using the cygwin
+- * environment.
++ * By default tif_unix.c is assumed.
+  */
+ 
+ #if defined(_WINDOWS) || defined(__WIN32__) || defined(_Windows)
+-#  if !defined(__CYGWIN) && !defined(AVOID_WIN32_FILEIO) && !defined(USE_WIN32_FILIO)
+-#    define USE_WIN32_FILEIO
++#  if !defined(__CYGWIN) && !defined(AVOID_WIN32_FILEIO) && !defined(USE_WIN32_FILEIO)
++#    define AVOID_WIN32_FILEIO
+ #  endif
+ #endif
+ 
+ #if defined(USE_WIN32_FILEIO)
+-#include <windows.h>
+-#ifdef __WIN32__
++# define VC_EXTRALEAN
++# include <windows.h>
++# ifdef __WIN32__
+ DECLARE_HANDLE(thandle_t);	/* Win32 file handle */
+-#else
++# else
+ typedef	HFILE thandle_t;	/* client data handle */
+-#endif
++# endif /* __WIN32__ */
+ #else
+ typedef	void* thandle_t;	/* client data handle */
+-#endif
++#endif /* USE_WIN32_FILEIO */
+ 
+ #ifndef NULL
+-#define	NULL	0
++# define NULL	(void *)0
+ #endif
+ 
+ /*
+@@ -167,16 +167,6 @@
+ 	float	Yb2b[CIELABTORGB_TABLE_RANGE + 1];  /* Conversion of Yb to b */
+ } TIFFCIELabToRGB;
+ 
+-extern int TIFFCIELabToRGBInit(TIFFCIELabToRGB*, TIFFDisplay *, float*);
+-extern void TIFFCIELabToXYZ(TIFFCIELabToRGB *, uint32, int32, int32,
+-			    float *, float *, float *);
+-extern void TIFFXYZToRGB(TIFFCIELabToRGB *, float, float, float,
+-			 uint32 *, uint32 *, uint32 *);
+-
+-extern int TIFFYCbCrToRGBInit(TIFFYCbCrToRGB*, float*, float*);
+-extern void TIFFYCbCrtoRGB(TIFFYCbCrToRGB *, uint32, int32, int32,
+-			   uint32 *, uint32 *, uint32 *);
+-
+ /*
+  * RGBA-style image support.
+  */
+@@ -260,13 +250,14 @@
+ 
+ /* share internal LogLuv conversion routines? */
+ #ifndef LOGLUV_PUBLIC
+-#define LOGLUV_PUBLIC		1	
++#define LOGLUV_PUBLIC		1
+ #endif
+ 
+-#if defined(__cplusplus)
++#if defined(c_plusplus) || defined(__cplusplus)
+ extern "C" {
+ #endif
+ typedef	void (*TIFFErrorHandler)(const char*, const char*, va_list);
++typedef	void (*TIFFErrorHandlerExt)(thandle_t, const char*, const char*, va_list);
+ typedef	tsize_t (*TIFFReadWriteProc)(thandle_t, tdata_t, tsize_t);
+ typedef	toff_t (*TIFFSeekProc)(thandle_t, toff_t, int);
+ typedef	int (*TIFFCloseProc)(thandle_t);
+@@ -281,6 +272,11 @@
+ extern	TIFFCodec* TIFFRegisterCODEC(uint16, const char*, TIFFInitMethod);
+ extern	void TIFFUnRegisterCODEC(TIFFCodec*);
+ extern  int TIFFIsCODECConfigured(uint16);
++extern	TIFFCodec* TIFFGetConfiguredCODECs(void);
++
++/*
++ * Auxiliary functions.
++ */
+ 
+ extern	tdata_t _TIFFmalloc(tsize_t);
+ extern	tdata_t _TIFFrealloc(tdata_t, tsize_t);
+@@ -289,6 +285,58 @@
+ extern	int _TIFFmemcmp(const tdata_t, const tdata_t, tsize_t);
+ extern	void _TIFFfree(tdata_t);
+ 
++/*
++** Stuff, related to tag handling and creating custom tags.
++*/
++extern  int  TIFFGetTagListCount( TIFF * );
++extern  ttag_t TIFFGetTagListEntry( TIFF *, int tag_index );
++    
++#define	TIFF_ANY	TIFF_NOTYPE	/* for field descriptor searching */
++#define	TIFF_VARIABLE	-1		/* marker for variable length tags */
++#define	TIFF_SPP	-2		/* marker for SamplesPerPixel tags */
++#define	TIFF_VARIABLE2	-3		/* marker for uint32 var-length tags */
++
++#define FIELD_CUSTOM    65    
++
++typedef	struct {
++	ttag_t	field_tag;		/* field's tag */
++	short	field_readcount;	/* read count/TIFF_VARIABLE/TIFF_SPP */
++	short	field_writecount;	/* write count/TIFF_VARIABLE */
++	TIFFDataType field_type;	/* type of associated data */
++        unsigned short field_bit;	/* bit in fieldsset bit vector */
++	unsigned char field_oktochange;	/* if true, can change while writing */
++	unsigned char field_passcount;	/* if true, pass dir count on set */
++	char	*field_name;		/* ASCII name */
++} TIFFFieldInfo;
++
++typedef struct _TIFFTagValue {
++    const TIFFFieldInfo  *info;
++    int             count;
++    void           *value;
++} TIFFTagValue;
++
++extern	void TIFFMergeFieldInfo(TIFF*, const TIFFFieldInfo[], int);
++extern	const TIFFFieldInfo* TIFFFindFieldInfo(TIFF*, ttag_t, TIFFDataType);
++extern  const TIFFFieldInfo* TIFFFindFieldInfoByName(TIFF* , const char *,
++						     TIFFDataType);
++extern	const TIFFFieldInfo* TIFFFieldWithTag(TIFF*, ttag_t);
++extern	const TIFFFieldInfo* TIFFFieldWithName(TIFF*, const char *);
++
++typedef	int (*TIFFVSetMethod)(TIFF*, ttag_t, va_list);
++typedef	int (*TIFFVGetMethod)(TIFF*, ttag_t, va_list);
++typedef	void (*TIFFPrintMethod)(TIFF*, FILE*, long);
++    
++typedef struct {
++    TIFFVSetMethod	vsetfield;	/* tag set routine */
++    TIFFVGetMethod	vgetfield;	/* tag get routine */
++    TIFFPrintMethod	printdir;	/* directory print routine */
++} TIFFTagMethods;
++        
++extern  TIFFTagMethods *TIFFAccessTagMethods( TIFF * );
++extern  void *TIFFGetClientInfo( TIFF *, const char * );
++extern  void TIFFSetClientInfo( TIFF *, void *, const char * );
++
++extern	void TIFFCleanup(TIFF*);
+ extern	void TIFFClose(TIFF*);
+ extern	int TIFFFlush(TIFF*);
+ extern	int TIFFFlushData(TIFF*);
+@@ -297,6 +345,9 @@
+ extern	int TIFFGetFieldDefaulted(TIFF*, ttag_t, ...);
+ extern	int TIFFVGetFieldDefaulted(TIFF*, ttag_t, va_list);
+ extern	int TIFFReadDirectory(TIFF*);
++extern	int TIFFReadCustomDirectory(TIFF*, toff_t, const TIFFFieldInfo[],
++				    size_t);
++extern	int TIFFReadEXIFDirectory(TIFF*, toff_t);
+ extern	tsize_t TIFFScanlineSize(TIFF*);
+ extern	tsize_t TIFFRasterScanlineSize(TIFF*);
+ extern	tsize_t TIFFStripSize(TIFF*);
+@@ -308,11 +359,23 @@
+ extern	uint32 TIFFDefaultStripSize(TIFF*, uint32);
+ extern	void TIFFDefaultTileSize(TIFF*, uint32*, uint32*);
+ extern	int TIFFFileno(TIFF*);
++extern  int TIFFSetFileno(TIFF*, int);
++extern  thandle_t TIFFClientdata(TIFF*);
++extern  thandle_t TIFFSetClientdata(TIFF*, thandle_t);
+ extern	int TIFFGetMode(TIFF*);
++extern	int TIFFSetMode(TIFF*, int);
+ extern	int TIFFIsTiled(TIFF*);
+ extern	int TIFFIsByteSwapped(TIFF*);
+ extern	int TIFFIsUpSampled(TIFF*);
+ extern	int TIFFIsMSB2LSB(TIFF*);
++extern	int TIFFIsBigEndian(TIFF*);
++extern	TIFFReadWriteProc TIFFGetReadProc(TIFF*);
++extern	TIFFReadWriteProc TIFFGetWriteProc(TIFF*);
++extern	TIFFSeekProc TIFFGetSeekProc(TIFF*);
++extern	TIFFCloseProc TIFFGetCloseProc(TIFF*);
++extern	TIFFSizeProc TIFFGetSizeProc(TIFF*);
++extern	TIFFMapFileProc TIFFGetMapFileProc(TIFF*);
++extern	TIFFUnmapFileProc TIFFGetUnmapFileProc(TIFF*);
+ extern	uint32 TIFFCurrentRow(TIFF*);
+ extern	tdir_t TIFFCurrentDirectory(TIFF*);
+ extern	tdir_t TIFFNumberOfDirectories(TIFF*);
+@@ -323,6 +386,7 @@
+ extern	int TIFFWriteBufferSetup(TIFF*, tdata_t, tsize_t);
+ extern	int TIFFSetupStrips(TIFF *);
+ extern  int TIFFWriteCheck(TIFF*, int, const char *);
++extern	void TIFFFreeDirectory(TIFF*);
+ extern  int TIFFCreateDirectory(TIFF*);
+ extern	int TIFFLastDirectory(TIFF*);
+ extern	int TIFFSetDirectory(TIFF*, tdir_t);
+@@ -357,6 +421,9 @@
+ extern	int TIFFRGBAImageGet(TIFFRGBAImage*, uint32*, uint32, uint32);
+ extern	void TIFFRGBAImageEnd(TIFFRGBAImage*);
+ extern	TIFF* TIFFOpen(const char*, const char*);
++# ifdef __WIN32__
++extern	TIFF* TIFFOpenW(const wchar_t*, const char*);
++# endif /* __WIN32__ */
+ extern	TIFF* TIFFFdOpen(int, const char*, const char*);
+ extern	TIFF* TIFFClientOpen(const char*, const char*,
+ 	    thandle_t,
+@@ -365,10 +432,15 @@
+ 	    TIFFSizeProc,
+ 	    TIFFMapFileProc, TIFFUnmapFileProc);
+ extern	const char* TIFFFileName(TIFF*);
++extern	const char* TIFFSetFileName(TIFF*, const char *);
+ extern	void TIFFError(const char*, const char*, ...);
++extern	void TIFFErrorExt(thandle_t, const char*, const char*, ...);
+ extern	void TIFFWarning(const char*, const char*, ...);
++extern	void TIFFWarningExt(thandle_t, const char*, const char*, ...);
+ extern	TIFFErrorHandler TIFFSetErrorHandler(TIFFErrorHandler);
++extern	TIFFErrorHandlerExt TIFFSetErrorHandlerExt(TIFFErrorHandlerExt);
+ extern	TIFFErrorHandler TIFFSetWarningHandler(TIFFErrorHandler);
++extern	TIFFErrorHandlerExt TIFFSetWarningHandlerExt(TIFFErrorHandlerExt);
+ extern	TIFFExtendProc TIFFSetTagExtender(TIFFExtendProc);
+ extern	ttile_t TIFFComputeTile(TIFF*, uint32, uint32, uint32, tsample_t);
+ extern	int TIFFCheckTile(TIFF*, uint32, uint32, uint32, tsample_t);
+@@ -393,6 +465,7 @@
+ extern	void TIFFSwabLong(uint32*);
+ extern	void TIFFSwabDouble(double*);
+ extern	void TIFFSwabArrayOfShort(uint16*, unsigned long);
++extern	void TIFFSwabArrayOfTriples(uint8*, unsigned long);
+ extern	void TIFFSwabArrayOfLong(uint32*, unsigned long);
+ extern	void TIFFSwabArrayOfDouble(double*, unsigned long);
+ extern	void TIFFReverseBits(unsigned char *, unsigned long);
+@@ -422,56 +495,21 @@
+ extern	uint32 LogLuv32fromXYZ(float*, int);
+ #endif
+ #endif /* LOGLUV_PUBLIC */
+-
+-/*
+-** New stuff going public in 3.6.x.
+-*/
+-extern  int  TIFFGetTagListCount( TIFF * );
+-extern  ttag_t TIFFGetTagListEntry( TIFF *, int tag_index );
+     
+-#define	TIFF_ANY	TIFF_NOTYPE	/* for field descriptor searching */
+-#define	TIFF_VARIABLE	-1		/* marker for variable length tags */
+-#define	TIFF_SPP	-2		/* marker for SamplesPerPixel tags */
+-#define	TIFF_VARIABLE2	-3		/* marker for uint32 var-length tags */
+-
+-#define FIELD_CUSTOM    65    
+-
+-typedef	struct {
+-	ttag_t	field_tag;		/* field's tag */
+-	short	field_readcount;	/* read count/TIFF_VARIABLE/TIFF_SPP */
+-	short	field_writecount;	/* write count/TIFF_VARIABLE */
+-	TIFFDataType field_type;	/* type of associated data */
+-        unsigned short field_bit;	/* bit in fieldsset bit vector */
+-	unsigned char field_oktochange;	/* if true, can change while writing */
+-	unsigned char field_passcount;	/* if true, pass dir count on set */
+-	char	*field_name;		/* ASCII name */
+-} TIFFFieldInfo;
+-
+-typedef struct _TIFFTagValue {
+-    const TIFFFieldInfo  *info;
+-    int             count;
+-    void           *value;
+-} TIFFTagValue;
++extern int TIFFCIELabToRGBInit(TIFFCIELabToRGB*, TIFFDisplay *, float*);
++extern void TIFFCIELabToXYZ(TIFFCIELabToRGB *, uint32, int32, int32,
++			    float *, float *, float *);
++extern void TIFFXYZToRGB(TIFFCIELabToRGB *, float, float, float,
++			 uint32 *, uint32 *, uint32 *);
+ 
+-extern	void TIFFMergeFieldInfo(TIFF*, const TIFFFieldInfo[], int);
+-extern	const TIFFFieldInfo* TIFFFindFieldInfo(TIFF*, ttag_t, TIFFDataType);
+-extern	const TIFFFieldInfo* TIFFFieldWithTag(TIFF*, ttag_t);
++extern int TIFFYCbCrToRGBInit(TIFFYCbCrToRGB*, float*, float*);
++extern void TIFFYCbCrtoRGB(TIFFYCbCrToRGB *, uint32, int32, int32,
++			   uint32 *, uint32 *, uint32 *);
+ 
+-typedef	int (*TIFFVSetMethod)(TIFF*, ttag_t, va_list);
+-typedef	int (*TIFFVGetMethod)(TIFF*, ttag_t, va_list);
+-typedef	void (*TIFFPrintMethod)(TIFF*, FILE*, long);
+-    
+-typedef struct {
+-    TIFFVSetMethod	vsetfield;	/* tag set routine */
+-    TIFFVGetMethod	vgetfield;	/* tag get routine */
+-    TIFFPrintMethod	printdir;	/* directory print routine */
+-} TIFFTagMethods;
+-        
+-extern  TIFFTagMethods *TIFFAccessTagMethods( TIFF * );
+-extern  void *TIFFGetClientInfo( TIFF *, const char * );
+-extern  void TIFFSetClientInfo( TIFF *, void *, const char * );
+-    
+-#if defined(__cplusplus)
++#if defined(c_plusplus) || defined(__cplusplus)
+ }
+ #endif
++
+ #endif /* _TIFFIO_ */
++
++/* vim: set ts=8 sts=8 sw=8 noet: */
+--- tkimg-1.3/libtiff/libtiff/tiffiop.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tiffiop.h	2008-06-25 15:20:13.000000000 +0100
+@@ -29,21 +29,43 @@
+ /*
+  * ``Library-private'' definitions.
+  */
+-/*
+- * UNIX systems should run the configure script to generate
+- * a port.h file that reflects the system capabilities.
+- * Doing this obviates all the dreck done in tiffcomp.h.
+- */
+-#if defined(unix) || defined(__unix)
+-#include "port.h"
+-#include "tiffconf.h"
++
++#include "tif_config.h"
++
++#ifdef HAVE_FCNTL_H
++# include <fcntl.h>
++#endif
++
++#ifdef HAVE_SYS_TYPES_H
++# include <sys/types.h>
++#endif
++
++#ifdef HAVE_STRING_H
++# include <string.h>
++#endif
++
++#ifdef HAVE_ASSERT_H
++# include <assert.h>
+ #else
+-#include "tiffconf.h"
+-#include "tiffcomp.h"
++# define assert(x) 
+ #endif
++
++#ifdef HAVE_SEARCH_H
++# include <search.h>
++#else
++extern void *lfind(const void *, const void *, size_t *, size_t,
++		   int (*)(const void *, const void *));
++#endif
++
+ #include "tiffio.h"
+ #include "tif_dir.h"
+ 
++#ifndef STRIP_SIZE_DEFAULT
++# define STRIP_SIZE_DEFAULT 8192
++#endif
++
++#define    streq(a,b)      (strcmp(a,b) == 0)
++
+ #ifndef TRUE
+ #define	TRUE	1
+ #define	FALSE	0
+@@ -90,6 +112,8 @@
+ #define	TIFF_INSUBIFD		0x2000	/* currently writing a subifd */
+ #define	TIFF_UPSAMPLED		0x4000	/* library is doing data up-sampling */ 
+ #define	TIFF_STRIPCHOP		0x8000	/* enable strip chopping support */
++#define	TIFF_HEADERONLY		0x10000	/* read header only, do not process */
++					/* the first directory */
+ 	toff_t		tif_diroff;	/* file offset of current directory */
+ 	toff_t		tif_nextdiroff;	/* file offset of following directory */
+ 	toff_t*		tif_dirlist;	/* list of offsets to already seen */
+@@ -104,10 +128,9 @@
+ 	tstrip_t	tif_curstrip;	/* current strip for read/write */
+ 	toff_t		tif_curoff;	/* current offset for read/write */
+ 	toff_t		tif_dataoff;	/* current offset for writing dir */
+-#if SUBIFD_SUPPORT
++/* SubIFD support */
+ 	uint16		tif_nsubifd;	/* remaining subifds to write */
+ 	toff_t		tif_subifdoff;	/* offset for patching SubIFD link */
+-#endif
+ /* tiling support */
+ 	uint32 		tif_col;	/* current column (offset by row too) */
+ 	ttile_t		tif_curtile;	/* current tile for read/write */
+@@ -155,7 +178,8 @@
+ 	TIFFPostMethod	tif_postdecode;	/* post decoding routine */
+ /* tag support */
+ 	TIFFFieldInfo**	tif_fieldinfo;	/* sorted table of registered tags */
+-	int		tif_nfields;	/* # entries in registered tag table */
++	size_t		tif_nfields;	/* # entries in registered tag table */
++	const TIFFFieldInfo *tif_foundfield;/* cached pointer to already found tag */
+         TIFFTagMethods  tif_tagmethods; /* tag get/set/print routines */
+         TIFFClientInfoLink *tif_clientinfo; /* extra client information. */
+ };
+@@ -198,12 +222,15 @@
+ #endif
+ 
+ /* NB: the uint32 casts are to silence certain ANSI-C compilers */
+-#define	TIFFhowmany(x, y) ((((uint32)(x))+(((uint32)(y))-1))/((uint32)(y)))
+-#define	TIFFroundup(x, y) (TIFFhowmany(x,y)*((uint32)(y)))
++#define TIFFhowmany(x, y) ((((uint32)(x))+(((uint32)(y))-1))/((uint32)(y)))
++#define TIFFhowmany8(x) (((x)&0x07)?((uint32)(x)>>3)+1:(uint32)(x)>>3)
++#define	TIFFroundup(x, y) (TIFFhowmany(x,y)*(y))
+ 
+ #define TIFFmax(A,B) ((A)>(B)?(A):(B))
+ #define TIFFmin(A,B) ((A)<(B)?(A):(B))
+ 
++#define TIFFArrayCount(a) (sizeof (a) / sizeof ((a)[0]))
++
+ #if defined(__cplusplus)
+ extern "C" {
+ #endif
+@@ -218,28 +245,34 @@
+ extern  int  _TIFFNoPreCode (TIFF*, tsample_t); 
+ extern	int _TIFFNoSeek(TIFF*, uint32);
+ extern	void _TIFFSwab16BitData(TIFF*, tidata_t, tsize_t);
++extern	void _TIFFSwab24BitData(TIFF*, tidata_t, tsize_t);
+ extern	void _TIFFSwab32BitData(TIFF*, tidata_t, tsize_t);
+ extern	void _TIFFSwab64BitData(TIFF*, tidata_t, tsize_t);
+ extern	int TIFFFlushData1(TIFF*);
+-extern	void TIFFFreeDirectory(TIFF*);
+ extern	int TIFFDefaultDirectory(TIFF*);
++extern	void _TIFFSetDefaultCompressionState(TIFF*);
+ extern	int TIFFSetCompressionScheme(TIFF*, int);
+ extern	int TIFFSetDefaultCompressionState(TIFF*);
+ extern	uint32 _TIFFDefaultStripSize(TIFF*, uint32);
+ extern	void _TIFFDefaultTileSize(TIFF*, uint32*, uint32*);
++extern	int _TIFFDataSize(TIFFDataType);
+ 
+-extern	void _TIFFsetByteArray(void**, void*, long);
++extern	void _TIFFsetByteArray(void**, void*, uint32);
+ extern	void _TIFFsetString(char**, char*);
+-extern	void _TIFFsetShortArray(uint16**, uint16*, long);
+-extern	void _TIFFsetLongArray(uint32**, uint32*, long);
+-extern	void _TIFFsetFloatArray(float**, float*, long);
+-extern	void _TIFFsetDoubleArray(double**, double*, long);
++extern	void _TIFFsetShortArray(uint16**, uint16*, uint32);
++extern	void _TIFFsetLongArray(uint32**, uint32*, uint32);
++extern	void _TIFFsetFloatArray(float**, float*, uint32);
++extern	void _TIFFsetDoubleArray(double**, double*, uint32);
+ 
+ extern	void _TIFFprintAscii(FILE*, const char*);
+ extern	void _TIFFprintAsciiTag(FILE*, const char*, const char*);
+ 
+-GLOBALDATA(TIFFErrorHandler,_TIFFwarningHandler);
+-GLOBALDATA(TIFFErrorHandler,_TIFFerrorHandler);
++extern	TIFFErrorHandler _TIFFwarningHandler;
++extern	TIFFErrorHandler _TIFFerrorHandler;
++extern	TIFFErrorHandlerExt _TIFFwarningHandlerExt;
++extern	TIFFErrorHandlerExt _TIFFerrorHandlerExt;
++
++extern	tdata_t _TIFFCheckMalloc(TIFF*, size_t, size_t, const char*);
+ 
+ extern	int TIFFInitDumpMode(TIFF*, int);
+ #ifdef PACKBITS_SUPPORT
+@@ -286,3 +319,5 @@
+ }
+ #endif
+ #endif /* _TIFFIOP_ */
++
++/* vim: set ts=8 sts=8 sw=8 noet: */
+--- tkimg-1.3/libtiff/libtiff/tiff.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tiff.h	2008-06-25 15:20:13.000000000 +0100
+@@ -26,6 +26,9 @@
+ 
+ #ifndef _TIFF_
+ #define	_TIFF_
++
++#include "tiffconf.h"
++
+ /*
+  * Tag Image File Format (TIFF)
+  *
+@@ -36,30 +39,19 @@
+  *    Suite 200
+  *    Seattle, WA  98104
+  *    206-622-5500
++ *    
++ *    (http://partners.adobe.com/asn/developer/PDFS/TN/TIFF6.pdf)
++ *
++ * For Big TIFF design notes see the following link
++ *    http://gdal.maptools.org/twiki/bin/view/libtiff/BigTIFFDesign
+  */
+-#define	TIFF_VERSION	42
++#define	TIFF_VERSION	        42
++#define TIFF_BIGTIFF_VERSION    43
+ 
+ #define	TIFF_BIGENDIAN		0x4d4d
+ #define	TIFF_LITTLEENDIAN	0x4949
+-
+-/*
+- * The so called TIFF types conflict with definitions from inttypes.h 
+- * included from sys/types.h on AIX (at least using VisualAge compiler). 
+- * We try to work around this by detecting this case.  Defining 
+- * _TIFF_DATA_TYPEDEFS_ short circuits the later definitions in tiff.h, and
+- * we will in the holes not provided for by inttypes.h. 
+- *
+- * See http://bugzilla.remotesensing.org/show_bug.cgi?id=39
+- */
+-#if defined(_H_INTTYPES) && defined(_ALL_SOURCE) && defined(USING_VISUALAGE)
+-
+-#define _TIFF_DATA_TYPEDEFS_
+-typedef unsigned char uint8;
+-typedef unsigned short uint16;
+-typedef unsigned int uint32;
+-
+-#endif
+-
++#define	MDI_LITTLEENDIAN        0x5045
++#define	MDI_BIGENDIAN           0x4550
+ /*
+  * Intrinsic data types required by the file format:
+  *
+@@ -68,29 +60,28 @@
+  * 32-bit quantities	int32/uint32
+  * strings		unsigned char*
+  */
+-#ifndef _TIFF_DATA_TYPEDEFS_
+-#define _TIFF_DATA_TYPEDEFS_
+ 
+-#ifndef _AIX
+-#ifdef __STDC__
++#ifndef HAVE_INT8
+ typedef	signed char int8;	/* NB: non-ANSI compilers may not grok */
+-#else
+-typedef	char int8;
+-#endif
+ #endif
+ typedef	unsigned char uint8;
++#ifndef HAVE_INT16
+ typedef	short int16;
++#endif
+ typedef	unsigned short uint16;	/* sizeof (uint16) must == 2 */
+-#if defined(__alpha) || (defined(_MIPS_SZLONG) && _MIPS_SZLONG == 64) || defined(__LP64__) || defined(__arch64__)
++#if SIZEOF_INT == 4
++#ifndef HAVE_INT32
+ typedef	int int32;
++#endif
+ typedef	unsigned int uint32;	/* sizeof (uint32) must == 4 */
+-#else
++#elif SIZEOF_LONG == 4
++#ifndef HAVE_INT32
+ typedef	long int32;
++#endif
+ typedef	unsigned long uint32;	/* sizeof (uint32) must == 4 */
+ #endif
+-#endif /* _TIFF_DATA_TYPEDEFS_ */
+ 
+-/*	For TIFFReassignTagToIgnore */
++/* For TIFFReassignTagToIgnore */
+ enum TIFFIgnoreSense /* IGNORE tag table */
+ {
+ 	TIS_STORE,
+@@ -98,24 +89,29 @@
+ 	TIS_EMPTY
+ };
+ 
++/*
++ * TIFF header.
++ */
+ typedef	struct {
+ 	uint16	tiff_magic;	/* magic number (defines byte order) */
++#define TIFF_MAGIC_SIZE		2
+ 	uint16	tiff_version;	/* TIFF version number */
++#define TIFF_VERSION_SIZE	2
+ 	uint32	tiff_diroff;	/* byte offset to first directory */
++#define TIFF_DIROFFSET_SIZE	4
+ } TIFFHeader;
+ 
++
+ /*
+- * TIFF Image File Directories are comprised of
+- * a table of field descriptors of the form shown
+- * below.  The table is sorted in ascending order
+- * by tag.  The values associated with each entry
+- * are disjoint and may appear anywhere in the file
+- * (so long as they are placed on a word boundary).
++ * TIFF Image File Directories are comprised of a table of field
++ * descriptors of the form shown below.  The table is sorted in
++ * ascending order by tag.  The values associated with each entry are
++ * disjoint and may appear anywhere in the file (so long as they are
++ * placed on a word boundary).
+  *
+- * If the value is 4 bytes or less, then it is placed
+- * in the offset field to save space.  If the value
+- * is less than 4 bytes, it is left-justified in the
+- * offset field.
++ * If the value is 4 bytes or less, then it is placed in the offset
++ * field to save space.  If the value is less than 4 bytes, it is
++ * left-justified in the offset field.
+  */
+ typedef	struct {
+ 	uint16		tdir_tag;	/* see below */
+@@ -130,6 +126,7 @@
+  *  - items marked with a ! are introduced in revision 6.0.
+  *  - items marked with a % are introduced post revision 6.0.
+  *  - items marked with a $ are obsoleted by revision 6.0.
++ *  - items marked with a & are introduced by Adobe DNG specification.
+  */
+ 
+ /*
+@@ -191,7 +188,8 @@
+ #define     COMPRESSION_PIXARFILM	32908   /* Pixar companded 10bit LZW */
+ #define	    COMPRESSION_PIXARLOG	32909   /* Pixar companded 11bit ZIP */
+ #define	    COMPRESSION_DEFLATE		32946	/* Deflate compression */
+-#define     COMPRESSION_ADOBE_DEFLATE   8       /* Deflate compression, as recognized by Adobe */
++#define     COMPRESSION_ADOBE_DEFLATE   8       /* Deflate compression,
++						   as recognized by Adobe */
+ /* compression code 32947 is reserved for Oceana Matrix <dev@oceana.com> */
+ #define     COMPRESSION_DCS             32947   /* Kodak DCS encoding */
+ #define	    COMPRESSION_JBIG		34661	/* ISO JBIG */
+@@ -281,12 +279,15 @@
+ #define	TIFFTAG_ARTIST			315	/* creator of image */
+ #define	TIFFTAG_HOSTCOMPUTER		316	/* machine where created */
+ #define	TIFFTAG_PREDICTOR		317	/* prediction scheme w/ LZW */
++#define     PREDICTOR_NONE		1	/* no prediction scheme used */
++#define     PREDICTOR_HORIZONTAL	2	/* horizontal differencing */
++#define     PREDICTOR_FLOATINGPOINT	3	/* floating point predictor */
+ #define	TIFFTAG_WHITEPOINT		318	/* image white point */
+ #define	TIFFTAG_PRIMARYCHROMATICITIES	319	/* !primary chromaticities */
+ #define	TIFFTAG_COLORMAP		320	/* RGB map for pallette image */
+ #define	TIFFTAG_HALFTONEHINTS		321	/* !highlight+shadow info */
+-#define	TIFFTAG_TILEWIDTH		322	/* !rows/data tile */
+-#define	TIFFTAG_TILELENGTH		323	/* !cols/data tile */
++#define	TIFFTAG_TILEWIDTH		322	/* !tile width in pixels */
++#define	TIFFTAG_TILELENGTH		323	/* !tile height in pixels */
+ #define TIFFTAG_TILEOFFSETS		324	/* !offsets to data tiles */
+ #define TIFFTAG_TILEBYTECOUNTS		325	/* !byte counts for tiles */
+ #define	TIFFTAG_BADFAXLINES		326	/* lines w/ wrong pixel count */
+@@ -316,15 +317,19 @@
+ #define	    SAMPLEFORMAT_COMPLEXIEEEFP	6	/* !complex ieee floating */
+ #define	TIFFTAG_SMINSAMPLEVALUE		340	/* !variable MinSampleValue */
+ #define	TIFFTAG_SMAXSAMPLEVALUE		341	/* !variable MaxSampleValue */
+-#define	TIFFTAG_CLIPPATH		343	/* %ClipPath [Adobe TIFF technote 2] */
+-#define	TIFFTAG_XCLIPPATHUNITS	344	/* %XClipPathUnits [Adobe TIFF technote 2] */
+-#define	TIFFTAG_YCLIPPATHUNITS	344	/* %YClipPathUnits [Adobe TIFF technote 2] */
+-#define	TIFFTAG_INDEXED			345	/* %Indexed [Adobe TIFF Technote 3] */
++#define	TIFFTAG_CLIPPATH		343	/* %ClipPath
++						   [Adobe TIFF technote 2] */
++#define	TIFFTAG_XCLIPPATHUNITS		344	/* %XClipPathUnits
++						   [Adobe TIFF technote 2] */
++#define	TIFFTAG_YCLIPPATHUNITS		345	/* %YClipPathUnits
++						   [Adobe TIFF technote 2] */
++#define	TIFFTAG_INDEXED			346	/* %Indexed
++						   [Adobe TIFF Technote 3] */
+ #define	TIFFTAG_JPEGTABLES		347	/* %JPEG table stream */
+ #define	TIFFTAG_OPIPROXY		351	/* %OPI Proxy [Adobe TIFF technote] */
+ /*
+- * Tags 512-521 are obsoleted by Technical Note #2
+- * which specifies a revised JPEG-in-TIFF scheme.
++ * Tags 512-521 are obsoleted by Technical Note #2 which specifies a
++ * revised JPEG-in-TIFF scheme.
+  */
+ #define	TIFFTAG_JPEGPROC		512	/* !JPEG processing algorithm */
+ #define	    JPEGPROC_BASELINE		1	/* !baseline sequential */
+@@ -343,8 +348,11 @@
+ #define	    YCBCRPOSITION_CENTERED	1	/* !as in PostScript Level 2 */
+ #define	    YCBCRPOSITION_COSITED	2	/* !as in CCIR 601-1 */
+ #define	TIFFTAG_REFERENCEBLACKWHITE	532	/* !colorimetry info */
+-#define	TIFFTAG_XMLPACKET		700		/* %XML packet [Adobe XMP technote 9-14-02] (dkelly@apago.com) */
+-#define TIFFTAG_OPIIMAGEID		32781	/* %OPI ImageID [Adobe TIFF technote] */
++#define	TIFFTAG_XMLPACKET		700	/* %XML packet
++						   [Adobe XMP Specification,
++						   January 2004 */
++#define TIFFTAG_OPIIMAGEID		32781	/* %OPI ImageID
++						   [Adobe TIFF technote] */
+ /* tags 32952-32956 are private tags registered to Island Graphics */
+ #define TIFFTAG_REFPTS			32953	/* image reference points */
+ #define TIFFTAG_REGIONTACKPOINT		32954	/* region-xform tack point */
+@@ -378,7 +386,7 @@
+ /* tag 33432 is listed in the 6.0 spec w/ unknown ownership */
+ #define	TIFFTAG_COPYRIGHT		33432	/* copyright string */
+ /* IPTC TAG from RichTIFF specifications */
+-#define TIFFTAG_RICHTIFFIPTC    33723
++#define TIFFTAG_RICHTIFFIPTC		33723
+ /* 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@apago.com) */
+ #define TIFFTAG_IT8SITE			34016	/* site name */
+ #define TIFFTAG_IT8COLORSEQUENCE	34017	/* color seq. [RGB,CMYK,etc] */
+@@ -394,38 +402,125 @@
+ #define TIFFTAG_IT8PIXELINTENSITYRANGE	34027	/* MP pixel intensity value */
+ #define TIFFTAG_IT8TRANSPARENCYINDICATOR 34028	/* HC transparency switch */
+ #define TIFFTAG_IT8COLORCHARACTERIZATION 34029	/* color character. table */
+-#define TIFFTAG_IT8HCUSAGE			34030	/* HC usage indicator */
+-#define TIFFTAG_IT8TRAPINDICATOR	34031	/* Trapping indicator (untrapped=0, trapped=1) */
++#define TIFFTAG_IT8HCUSAGE		34030	/* HC usage indicator */
++#define TIFFTAG_IT8TRAPINDICATOR	34031	/* Trapping indicator
++						   (untrapped=0, trapped=1) */
+ #define TIFFTAG_IT8CMYKEQUIVALENT	34032	/* CMYK color equivalents */
+ /* tags 34232-34236 are private tags registered to Texas Instruments */
+ #define TIFFTAG_FRAMECOUNT              34232   /* Sequence Frame Count */
++/* tag 34377 is private tag registered to Adobe for PhotoShop */
++#define TIFFTAG_PHOTOSHOP		34377 
++/* tags 34665, 34853 and 40965 are documented in EXIF specification */
++#define TIFFTAG_EXIFIFD			34665	/* Pointer to EXIF private directory */
+ /* tag 34750 is a private tag registered to Adobe? */
+ #define TIFFTAG_ICCPROFILE		34675	/* ICC profile data */
+-/* tag 34377 is private tag registered to Adobe for PhotoShop */
+-#define TIFFTAG_PHOTOSHOP				34377 
+ /* tag 34750 is a private tag registered to Pixel Magic */
+ #define	TIFFTAG_JBIGOPTIONS		34750	/* JBIG options */
++#define TIFFTAG_GPSIFD			34853	/* Pointer to GPS private directory */
+ /* tags 34908-34914 are private tags registered to SGI */
+ #define	TIFFTAG_FAXRECVPARAMS		34908	/* encoded Class 2 ses. parms */
+ #define	TIFFTAG_FAXSUBADDRESS		34909	/* received SubAddr string */
+ #define	TIFFTAG_FAXRECVTIME		34910	/* receive time (secs) */
++#define	TIFFTAG_FAXDCS			34911	/* encoded fax ses. params, Table 2/T.30 */
+ /* tags 37439-37443 are registered to SGI <gregl@sgi.com> */
+ #define TIFFTAG_STONITS			37439	/* Sample value to Nits */
+ /* tag 34929 is a private tag registered to FedEx */
+ #define	TIFFTAG_FEDEX_EDR		34929	/* unknown use */
++#define TIFFTAG_INTEROPERABILITYIFD	40965	/* Pointer to Interoperability private directory */
++/* Adobe Digital Negative (DNG) format tags */
++#define TIFFTAG_DNGVERSION		50706	/* &DNG version number */
++#define TIFFTAG_DNGBACKWARDVERSION	50707	/* &DNG compatibility version */
++#define TIFFTAG_UNIQUECAMERAMODEL	50708	/* &name for the camera model */
++#define TIFFTAG_LOCALIZEDCAMERAMODEL	50709	/* &localized camera model
++						   name */
++#define TIFFTAG_CFAPLANECOLOR		50710	/* &CFAPattern->LinearRaw space
++						   mapping */
++#define TIFFTAG_CFALAYOUT		50711	/* &spatial layout of the CFA */
++#define TIFFTAG_LINEARIZATIONTABLE	50712	/* &lookup table description */
++#define TIFFTAG_BLACKLEVELREPEATDIM	50713	/* &repeat pattern size for
++						   the BlackLevel tag */
++#define TIFFTAG_BLACKLEVEL		50714	/* &zero light encoding level */
++#define TIFFTAG_BLACKLEVELDELTAH	50715	/* &zero light encoding level
++						   differences (columns) */
++#define TIFFTAG_BLACKLEVELDELTAV	50716	/* &zero light encoding level
++						   differences (rows) */
++#define TIFFTAG_WHITELEVEL		50717	/* &fully saturated encoding
++						   level */
++#define TIFFTAG_DEFAULTSCALE		50718	/* &default scale factors */
++#define TIFFTAG_DEFAULTCROPORIGIN	50719	/* &origin of the final image
++						   area */
++#define TIFFTAG_DEFAULTCROPSIZE		50720	/* &size of the final image 
++						   area */
++#define TIFFTAG_COLORMATRIX1		50721	/* &XYZ->reference color space
++						   transformation matrix 1 */
++#define TIFFTAG_COLORMATRIX2		50722	/* &XYZ->reference color space
++						   transformation matrix 2 */
++#define TIFFTAG_CAMERACALIBRATION1	50723	/* &calibration matrix 1 */
++#define TIFFTAG_CAMERACALIBRATION2	50724	/* &calibration matrix 2 */
++#define TIFFTAG_REDUCTIONMATRIX1	50725	/* &dimensionality reduction
++						   matrix 1 */
++#define TIFFTAG_REDUCTIONMATRIX2	50726	/* &dimensionality reduction
++						   matrix 2 */
++#define TIFFTAG_ANALOGBALANCE		50727	/* &gain applied the stored raw
++						   values*/
++#define TIFFTAG_ASSHOTNEUTRAL		50728	/* &selected white balance in
++						   linear reference space */
++#define TIFFTAG_ASSHOTWHITEXY		50729	/* &selected white balance in
++						   x-y chromaticity
++						   coordinates */
++#define TIFFTAG_BASELINEEXPOSURE	50730	/* &how much to move the zero
++						   point */
++#define TIFFTAG_BASELINENOISE		50731	/* &relative noise level */
++#define TIFFTAG_BASELINESHARPNESS	50732	/* &relative amount of
++						   sharpening */
++#define TIFFTAG_BAYERGREENSPLIT		50733	/* &how closely the values of
++						   the green pixels in the
++						   blue/green rows track the
++						   values of the green pixels
++						   in the red/green rows */
++#define TIFFTAG_LINEARRESPONSELIMIT	50734	/* &non-linear encoding range */
++#define TIFFTAG_CAMERASERIALNUMBER	50735	/* &camera's serial number */
++#define TIFFTAG_LENSINFO		50736	/* info about the lens */
++#define TIFFTAG_CHROMABLURRADIUS	50737	/* &chroma blur radius */
++#define TIFFTAG_ANTIALIASSTRENGTH	50738	/* &relative strength of the
++						   camera's anti-alias filter */
++#define TIFFTAG_SHADOWSCALE		50739	/* &used by Adobe Camera Raw */
++#define TIFFTAG_DNGPRIVATEDATA		50740	/* &manufacturer's private data */
++#define TIFFTAG_MAKERNOTESAFETY		50741	/* &whether the EXIF MakerNote
++						   tag is safe to preserve
++						   along with the rest of the
++						   EXIF data */
++#define	TIFFTAG_CALIBRATIONILLUMINANT1	50778	/* &illuminant 1 */
++#define TIFFTAG_CALIBRATIONILLUMINANT2	50779	/* &illuminant 2 */
++#define TIFFTAG_BESTQUALITYSCALE	50780	/* &best quality multiplier */
++#define TIFFTAG_RAWDATAUNIQUEID		50781	/* &unique identifier for
++						   the raw image data */
++#define TIFFTAG_ORIGINALRAWFILENAME	50827	/* &file name of the original
++						   raw file */
++#define TIFFTAG_ORIGINALRAWFILEDATA	50828	/* &contents of the original
++						   raw file */
++#define TIFFTAG_ACTIVEAREA		50829	/* &active (non-masked) pixels
++						   of the sensor */
++#define TIFFTAG_MASKEDAREAS		50830	/* &list of coordinates
++						   of fully masked pixels */
++#define TIFFTAG_ASSHOTICCPROFILE	50831	/* &these two tags used to */
++#define TIFFTAG_ASSHOTPREPROFILEMATRIX	50832	/* map cameras's color space
++						   into ICC profile space */
++#define TIFFTAG_CURRENTICCPROFILE	50833	/* & */
++#define TIFFTAG_CURRENTPREPROFILEMATRIX	50834	/* & */
+ /* tag 65535 is an undefined tag used by Eastman Kodak */
+ #define TIFFTAG_DCSHUESHIFTVALUES       65535   /* hue shift correction data */
+ 
+ /*
+- * The following are ``pseudo tags'' that can be
+- * used to control codec-specific functionality.
+- * These tags are not written to file.  Note that
+- * these values start at 0xffff+1 so that they'll
+- * never collide with Aldus-assigned tags.
++ * The following are ``pseudo tags'' that can be used to control
++ * codec-specific functionality.  These tags are not written to file.
++ * Note that these values start at 0xffff+1 so that they'll never
++ * collide with Aldus-assigned tags.
+  *
+- * If you want your private pseudo tags ``registered''
+- * (i.e. added to this file), send mail to sam@sgi.com
+- * with the appropriate C definitions to add.
++ * If you want your private pseudo tags ``registered'' (i.e. added to
++ * this file), please post a bug report via the tracking system at
++ * http://www.remotesensing.org/libtiff/bugs.html with the appropriate
++ * C definitions to add.
+  */
+ #define	TIFFTAG_FAXMODE			65536	/* Group 3/4 format control */
+ #define	    FAXMODE_CLASSIC	0x0000		/* default, include RTC */
+@@ -481,4 +576,72 @@
+ #define TIFFTAG_SGILOGENCODE		65561 /* SGILog data encoding control*/
+ #define     SGILOGENCODE_NODITHER	0     /* do not dither encoded values*/
+ #define     SGILOGENCODE_RANDITHER	1     /* randomly dither encd values */
++
++/*
++ * EXIF tags
++ */
++#define EXIFTAG_EXPOSURETIME		33434	/* Exposure time */
++#define EXIFTAG_FNUMBER			33437	/* F number */
++#define EXIFTAG_EXPOSUREPROGRAM		34850	/* Exposure program */
++#define EXIFTAG_SPECTRALSENSITIVITY	34852	/* Spectral sensitivity */
++#define EXIFTAG_ISOSPEEDRATINGS		34855	/* ISO speed rating */
++#define EXIFTAG_OECF			34856	/* Optoelectric conversion
++						   factor */
++#define EXIFTAG_EXIFVERSION		36864	/* Exif version */
++#define EXIFTAG_DATETIMEORIGINAL	36867	/* Date and time of original
++						   data generation */
++#define EXIFTAG_DATETIMEDIGITIZED	36868	/* Date and time of digital
++						   data generation */
++#define EXIFTAG_COMPONENTSCONFIGURATION	37121	/* Meaning of each component */
++#define EXIFTAG_COMPRESSEDBITSPERPIXEL	37122	/* Image compression mode */
++#define EXIFTAG_SHUTTERSPEEDVALUE	37377	/* Shutter speed */
++#define EXIFTAG_APERTUREVALUE		37378	/* Aperture */
++#define EXIFTAG_BRIGHTNESSVALUE		37379	/* Brightness */
++#define EXIFTAG_EXPOSUREBIASVALUE	37380	/* Exposure bias */
++#define EXIFTAG_MAXAPERTUREVALUE	37381	/* Maximum lens aperture */
++#define EXIFTAG_SUBJECTDISTANCE		37382	/* Subject distance */
++#define EXIFTAG_METERINGMODE		37383	/* Metering mode */
++#define EXIFTAG_LIGHTSOURCE		37384	/* Light source */
++#define EXIFTAG_FLASH			37385	/* Flash */
++#define EXIFTAG_FOCALLENGTH		37386	/* Lens focal length */
++#define EXIFTAG_SUBJECTAREA		37396	/* Subject area */
++#define EXIFTAG_MAKERNOTE		37500	/* Manufacturer notes */
++#define EXIFTAG_USERCOMMENT		37510	/* User comments */
++#define EXIFTAG_SUBSECTIME		37520	/* DateTime subseconds */
++#define EXIFTAG_SUBSECTIMEORIGINAL	37521	/* DateTimeOriginal subseconds */
++#define EXIFTAG_SUBSECTIMEDIGITIZED	37522	/* DateTimeDigitized subseconds */
++#define EXIFTAG_FLASHPIXVERSION		40960	/* Supported Flashpix version */
++#define EXIFTAG_COLORSPACE		40961	/* Color space information */
++#define EXIFTAG_PIXELXDIMENSION		40962	/* Valid image width */
++#define EXIFTAG_PIXELYDIMENSION		40963	/* Valid image height */
++#define EXIFTAG_RELATEDSOUNDFILE	40964	/* Related audio file */
++#define EXIFTAG_FLASHENERGY		41483	/* Flash energy */
++#define EXIFTAG_SPATIALFREQUENCYRESPONSE 41484	/* Spatial frequency response */
++#define EXIFTAG_FOCALPLANEXRESOLUTION	41486	/* Focal plane X resolution */
++#define EXIFTAG_FOCALPLANEYRESOLUTION	41487	/* Focal plane Y resolution */
++#define EXIFTAG_FOCALPLANERESOLUTIONUNIT 41488	/* Focal plane resolution unit */
++#define EXIFTAG_SUBJECTLOCATION		41492	/* Subject location */
++#define EXIFTAG_EXPOSUREINDEX		41493	/* Exposure index */
++#define EXIFTAG_SENSINGMETHOD		41495	/* Sensing method */
++#define EXIFTAG_FILESOURCE		41728	/* File source */
++#define EXIFTAG_SCENETYPE		41729	/* Scene type */
++#define EXIFTAG_CFAPATTERN		41730	/* CFA pattern */
++#define EXIFTAG_CUSTOMRENDERED		41985	/* Custom image processing */
++#define EXIFTAG_EXPOSUREMODE		41986	/* Exposure mode */
++#define EXIFTAG_WHITEBALANCE		41987	/* White balance */
++#define EXIFTAG_DIGITALZOOMRATIO	41988	/* Digital zoom ratio */
++#define EXIFTAG_FOCALLENGTHIN35MMFILM	41989	/* Focal length in 35 mm film */
++#define EXIFTAG_SCENECAPTURETYPE	41990	/* Scene capture type */
++#define EXIFTAG_GAINCONTROL		41991	/* Gain control */
++#define EXIFTAG_CONTRAST		41992	/* Contrast */
++#define EXIFTAG_SATURATION		41993	/* Saturation */
++#define EXIFTAG_SHARPNESS		41994	/* Sharpness */
++#define EXIFTAG_DEVICESETTINGDESCRIPTION 41995	/* Device settings description */
++#define EXIFTAG_SUBJECTDISTANCERANGE	41996	/* Subject distance range */
++#define EXIFTAG_GAINCONTROL		41991	/* Gain control */
++#define EXIFTAG_GAINCONTROL		41991	/* Gain control */
++#define EXIFTAG_IMAGEUNIQUEID		42016	/* Unique image ID */
++
+ #endif /* _TIFF_ */
++
++/* vim: set ts=8 sts=8 sw=8 noet: */
+--- tkimg-1.3/libtiff/libtiff/tif_config.h.orig	2008-06-25 15:20:13.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tif_config.h	2008-06-25 15:20:13.000000000 +0100
+@@ -0,0 +1,246 @@
++/* libtiff/tif_config.h.  Generated by configure.  */
++/* libtiff/tif_config.h.in.  Generated from configure.ac by autoheader.  */
++
++/* Support CCITT Group 3 & 4 algorithms */
++#define CCITT_SUPPORT 1
++
++/* Pick up YCbCr subsampling info from the JPEG data stream to support files
++   lacking the tag (default enabled). */
++#define CHECK_JPEG_YCBCR_SUBSAMPLING 1
++
++/* Support C++ stream API (requires C++ compiler) */
++#define CXX_SUPPORT 1
++
++/* Treat extra sample as alpha (default enabled). The RGBA interface will
++   treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many
++   packages produce RGBA files but don't mark the alpha properly. */
++#define DEFAULT_EXTRASAMPLE_AS_ALPHA 1
++
++/* Use the Apple OpenGL framework. */
++/* #undef HAVE_APPLE_OPENGL_FRAMEWORK */
++
++/* Define to 1 if you have the <assert.h> header file. */
++#define HAVE_ASSERT_H 1
++
++/* Define to 1 if you have the <dlfcn.h> header file. */
++#define HAVE_DLFCN_H 1
++
++/* Define to 1 if you have the <fcntl.h> header file. */
++#define HAVE_FCNTL_H 1
++
++/* Define to 1 if you have the `floor' function. */
++#define HAVE_FLOOR 1
++
++/* Define to 1 if you have the `getopt' function. */
++#define HAVE_GETOPT 1
++
++/* Define as 0 or 1 according to the floating point format suported by the
++   machine */
++#define HAVE_IEEEFP 1
++
++/* Define to 1 if the system has the type `int16'. */
++/* #undef HAVE_INT16 */
++
++/* Define to 1 if the system has the type `int32'. */
++/* #undef HAVE_INT32 */
++
++/* Define to 1 if the system has the type `int8'. */
++/* #undef HAVE_INT8 */
++
++/* Define to 1 if you have the <inttypes.h> header file. */
++#define HAVE_INTTYPES_H 1
++
++/* Define to 1 if you have the `isascii' function. */
++#define HAVE_ISASCII 1
++
++/* Define to 1 if you have the `lfind' function. */
++#define HAVE_LFIND 1
++
++/* Define to 1 if you have the `c' library (-lc). */
++#define HAVE_LIBC 1
++
++/* Define to 1 if you have the `m' library (-lm). */
++#define HAVE_LIBM 1
++
++/* Define to 1 if you have the <limits.h> header file. */
++#define HAVE_LIMITS_H 1
++
++/* Define to 1 if you have the <malloc.h> header file. */
++#define HAVE_MALLOC_H 1
++
++/* Define to 1 if you have the `memmove' function. */
++#define HAVE_MEMMOVE 1
++
++/* Define to 1 if you have the <memory.h> header file. */
++#define HAVE_MEMORY_H 1
++
++/* Define to 1 if you have the `memset' function. */
++#define HAVE_MEMSET 1
++
++/* Define to 1 if you have the `mmap' function. */
++#define HAVE_MMAP 1
++
++/* Define to 1 if you have the `pow' function. */
++#define HAVE_POW 1
++
++/* Define if you have POSIX threads libraries and header files. */
++#define HAVE_PTHREAD 1
++
++/* Define to 1 if you have the <search.h> header file. */
++#define HAVE_SEARCH_H 1
++
++/* Define to 1 if you have the `sqrt' function. */
++#define HAVE_SQRT 1
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#define HAVE_STDINT_H 1
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#define HAVE_STDLIB_H 1
++
++/* Define to 1 if you have the `strcasecmp' function. */
++#define HAVE_STRCASECMP 1
++
++/* Define to 1 if you have the `strchr' function. */
++#define HAVE_STRCHR 1
++
++/* Define to 1 if you have the <strings.h> header file. */
++#define HAVE_STRINGS_H 1
++
++/* Define to 1 if you have the <string.h> header file. */
++#define HAVE_STRING_H 1
++
++/* Define to 1 if you have the `strrchr' function. */
++#define HAVE_STRRCHR 1
++
++/* Define to 1 if you have the `strstr' function. */
++#define HAVE_STRSTR 1
++
++/* Define to 1 if you have the `strtol' function. */
++#define HAVE_STRTOL 1
++
++/* Define to 1 if you have the `strtoul' function. */
++#define HAVE_STRTOUL 1
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#define HAVE_SYS_STAT_H 1
++
++/* Define to 1 if you have the <sys/time.h> header file. */
++#define HAVE_SYS_TIME_H 1
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#define HAVE_SYS_TYPES_H 1
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#define HAVE_UNISTD_H 1
++
++/* Define to 1 if you have the <windows.h> header file. */
++/* #undef HAVE_WINDOWS_H */
++
++/* Native cpu byte order: 1 if big-endian (Motorola) or 0 if little-endian
++   (Intel) */
++#define HOST_BIGENDIAN 0
++
++/* Set the native cpu bit order (FILLORDER_LSB2MSB or FILLORDER_MSB2LSB) */
++#define HOST_FILLORDER FILLORDER_LSB2MSB
++
++/* Support JPEG compression (requires IJG JPEG library) */
++/* #undef JPEG_SUPPORT */
++
++/* Support LogLuv high dynamic range encoding */
++#define LOGLUV_SUPPORT 1
++
++/* Define to the sub-directory in which libtool stores uninstalled libraries.
++   */
++#define LT_OBJDIR ".libs/"
++
++/* Support LZW algorithm */
++#define LZW_SUPPORT 1
++
++/* Support Microsoft Document Imaging format */
++#define MDI_SUPPORT 1
++
++/* Support NeXT 2-bit RLE algorithm */
++#define NEXT_SUPPORT 1
++
++/* Define to 1 if your C compiler doesn't accept -c and -o together. */
++/* #undef NO_MINUS_C_MINUS_O */
++
++/* Support Old JPEG compresson (read contrib/ojpeg/README first! Compilation
++   fails with unpatched IJG JPEG library) */
++/* #undef OJPEG_SUPPORT */
++
++/* Name of package */
++#define PACKAGE "tiff"
++
++/* Support Macintosh PackBits algorithm */
++#define PACKBITS_SUPPORT 1
++
++/* Support Pixar log-format algorithm (requires Zlib) */
++/* #undef PIXARLOG_SUPPORT */
++
++/* Define to necessary symbol if this constant uses a non-standard name on
++   your system. */
++/* #undef PTHREAD_CREATE_JOINABLE */
++
++/* The size of a `int', as computed by sizeof. */
++#define SIZEOF_INT 4
++
++/* The size of a `long', as computed by sizeof. */
++#define SIZEOF_LONG 4
++
++/* Define to 1 if you have the ANSI C header files. */
++#define STDC_HEADERS 1
++
++/* Support strip chopping (whether or not to convert single-strip uncompressed
++   images to mutiple strips of specified size to reduce memory usage) */
++#define STRIPCHOP_DEFAULT TIFF_STRIPCHOP
++
++/* Default size of the strip in bytes (when strip chopping enabled) */
++#define STRIP_SIZE_DEFAULT 8192
++
++/* Enable SubIFD tag (330) support */
++#define SUBIFD_SUPPORT 1
++
++/* Support ThunderScan 4-bit RLE algorithm */
++#define THUNDER_SUPPORT 1
++
++/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
++#define TIME_WITH_SYS_TIME 1
++
++/* Define to 1 if your <sys/time.h> declares `struct tm'. */
++/* #undef TM_IN_SYS_TIME */
++
++/* Version number of package */
++#define VERSION "3.8.2"
++
++/* Define to 1 if your processor stores words with the most significant byte
++   first (like Motorola and SPARC, unlike Intel and VAX). */
++/* #undef WORDS_BIGENDIAN */
++
++/* Define to 1 if the X Window System is missing or not being used. */
++/* #undef X_DISPLAY_MISSING */
++
++/* Support Deflate compression */
++/* #undef ZIP_SUPPORT */
++
++/* Number of bits in a file offset, on hosts where this is settable. */
++#define _FILE_OFFSET_BITS 64
++
++/* Define for large files, on AIX-style hosts. */
++/* #undef _LARGE_FILES */
++
++/* Define to empty if `const' does not conform to ANSI C. */
++/* #undef const */
++
++/* Define to `__inline__' or `__inline' if that's what the C compiler
++   calls it, or to nothing if 'inline' is not supported under any name.  */
++#ifndef __cplusplus
++/* #undef inline */
++#endif
++
++/* Define to `long' if <sys/types.h> does not define. */
++/* #undef off_t */
++
++/* Define to `unsigned' if <sys/types.h> does not define. */
++/* #undef size_t */
+--- tkimg-1.3/libtiff/libtiff/tif_predict.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tif_predict.h	2008-06-25 15:20:13.000000000 +0100
+@@ -36,9 +36,9 @@
+  * the predictor code can cast tif_data to find its state.
+  */
+ typedef struct {
+-	int	predictor;		/* predictor tag value */
+-	int	stride;			/* sample stride over data */
+-	tsize_t	rowsize;		/* tile/strip row size */
++	int		predictor;	/* predictor tag value */
++	int		stride;		/* sample stride over data */
++	tsize_t		rowsize;	/* tile/strip row size */
+ 
+ 	TIFFPostMethod	pfunc;		/* horizontal differencer/accumulator */
+ 	TIFFCodeMethod	coderow;	/* parent codec encode/decode row */
+@@ -55,7 +55,10 @@
+ extern "C" {
+ #endif
+ extern	int TIFFPredictorInit(TIFF*);
++extern	int TIFFPredictorCleanup(TIFF*);
+ #if defined(__cplusplus)
+ }
+ #endif
+ #endif /* _TIFFPREDICT_ */
++
++/* vim: set ts=8 sts=8 sw=8 noet: */
+--- tkimg-1.3/libtiff/libtiff/tif_dir.h.orig	2004-08-18 18:10:46.000000000 +0100
++++ tkimg-1.3/libtiff/libtiff/tif_dir.h	2008-06-25 15:20:13.000000000 +0100
+@@ -36,7 +36,7 @@
+ typedef	struct {
+ #define	FIELD_SETLONGS	4
+ 	/* bit vector of fields that are set */
+-	u_long	td_fieldsset[FIELD_SETLONGS];
++	unsigned long	td_fieldsset[FIELD_SETLONGS];
+ 
+ 	uint32	td_imagewidth, td_imagelength, td_imagedepth;
+ 	uint32	td_tilewidth, td_tilelength, td_tiledepth;
+@@ -61,66 +61,23 @@
+ 	uint16	td_halftonehints[2];
+ 	uint16	td_extrasamples;
+ 	uint16*	td_sampleinfo;
+-	double	td_stonits;
+-	char*	td_documentname;
+-	char*	td_artist;
+-	char*	td_datetime;
+-	char*	td_hostcomputer;
+-	char*	td_imagedescription;
+-	char*	td_make;
+-	char*	td_model;
+-        char*   td_copyright;
+-	char*	td_pagename;
+ 	tstrip_t td_stripsperimage;
+ 	tstrip_t td_nstrips;		/* size of offset & bytecount arrays */
+ 	uint32*	td_stripoffset;
+ 	uint32*	td_stripbytecount;
+-#if SUBIFD_SUPPORT
++	int	td_stripbytecountsorted; /* is the bytecount array sorted ascending? */
+ 	uint16	td_nsubifd;
+ 	uint32*	td_subifd;
+-#endif
+-#ifdef YCBCR_SUPPORT
+-	float*	td_ycbcrcoeffs;
++	/* YCbCr parameters */
+ 	uint16	td_ycbcrsubsampling[2];
+ 	uint16	td_ycbcrpositioning;
+-#endif
+-#ifdef COLORIMETRY_SUPPORT
+-	float*	td_whitepoint;
+-	float*	td_primarychromas;
+-	float*	td_refblackwhite;
++	/* Colorimetry parameters */
+ 	uint16*	td_transferfunction[3];
+-#endif
+-#ifdef CMYK_SUPPORT
+-	uint16	td_inkset;
+-	uint16	td_ninks;
+-	uint16	td_dotrange[2];
++	/* CMYK parameters */
+ 	int	td_inknameslen;
+ 	char*	td_inknames;
+-	char*	td_targetprinter;
+-#endif
+-#ifdef ICC_SUPPORT
+-	uint32	td_profileLength;
+-	void	*td_profileData;
+-#endif
+-#ifdef PHOTOSHOP_SUPPORT
+-	uint32	td_photoshopLength;
+-	void	*td_photoshopData;
+-#endif
+-#ifdef IPTC_SUPPORT
+-	uint32	td_richtiffiptcLength;
+-	void	*td_richtiffiptcData;
+-#endif
+-        /* Begin Pixar Tag values. */
+-        uint32	td_imagefullwidth, td_imagefulllength;
+- 	char*	td_textureformat;
+- 	char*	td_wrapmodes;
+- 	float	td_fovcot;
+- 	float*	td_matrixWorldToScreen;
+- 	float*	td_matrixWorldToCamera;
+- 	/* End Pixar Tag Values. */
+-	uint32	td_xmlpacketLength;
+-	void	*td_xmlpacketData;
+-		int     td_customValueCount;
++
++	int     td_customValueCount;
+         TIFFTagValue *td_customValues;
+ } TIFFDirectory;
+ 
+@@ -153,26 +110,17 @@
+ #define	FIELD_PHOTOMETRIC		8
+ #define	FIELD_THRESHHOLDING		9
+ #define	FIELD_FILLORDER			10
+-#define	FIELD_DOCUMENTNAME		11
+-#define	FIELD_IMAGEDESCRIPTION		12
+-#define	FIELD_MAKE			13
+-#define	FIELD_MODEL			14
+ #define	FIELD_ORIENTATION		15
+ #define	FIELD_SAMPLESPERPIXEL		16
+ #define	FIELD_ROWSPERSTRIP		17
+ #define	FIELD_MINSAMPLEVALUE		18
+ #define	FIELD_MAXSAMPLEVALUE		19
+ #define	FIELD_PLANARCONFIG		20
+-#define	FIELD_PAGENAME			21
+ #define	FIELD_RESOLUTIONUNIT		22
+ #define	FIELD_PAGENUMBER		23
+ #define	FIELD_STRIPBYTECOUNTS		24
+ #define	FIELD_STRIPOFFSETS		25
+ #define	FIELD_COLORMAP			26
+-#define FIELD_ARTIST			27
+-#define FIELD_DATETIME			28
+-#define FIELD_HOSTCOMPUTER		29
+-/* unused - was FIELD_SOFTWARE          30 */
+ #define	FIELD_EXTRASAMPLES		31
+ #define FIELD_SAMPLEFORMAT		32
+ #define	FIELD_SMINSAMPLEVALUE		33
+@@ -180,33 +128,11 @@
+ #define FIELD_IMAGEDEPTH		35
+ #define FIELD_TILEDEPTH			36
+ #define	FIELD_HALFTONEHINTS		37
+-#define FIELD_YCBCRCOEFFICIENTS		38
+ #define FIELD_YCBCRSUBSAMPLING		39
+ #define FIELD_YCBCRPOSITIONING		40
+-#define	FIELD_REFBLACKWHITE		41
+-#define	FIELD_WHITEPOINT		42
+-#define	FIELD_PRIMARYCHROMAS		43
+ #define	FIELD_TRANSFERFUNCTION		44
+-#define	FIELD_INKSET			45
+ #define	FIELD_INKNAMES			46
+-#define	FIELD_DOTRANGE			47
+-#define	FIELD_TARGETPRINTER		48
+ #define	FIELD_SUBIFD			49
+-#define	FIELD_NUMBEROFINKS		50
+-#define FIELD_ICCPROFILE		51
+-#define FIELD_PHOTOSHOP			52
+-#define FIELD_RICHTIFFIPTC		53
+-#define FIELD_STONITS			54
+-/* Begin PIXAR */
+-#define	FIELD_IMAGEFULLWIDTH		55
+-#define	FIELD_IMAGEFULLLENGTH		56
+-#define FIELD_TEXTUREFORMAT		57
+-#define FIELD_WRAPMODES			58
+-#define FIELD_FOVCOT			59
+-#define FIELD_MATRIX_WORLDTOSCREEN	60
+-#define FIELD_MATRIX_WORLDTOCAMERA	61
+-#define FIELD_COPYRIGHT			62
+-#define FIELD_XMLPACKET			63
+ /*      FIELD_CUSTOM (see tiffio.h)     65 */
+ /* end of support for well-known tags; codec-private tags follow */
+ #define	FIELD_CODEC			66	/* base of codec-private tags */
+@@ -236,7 +162,7 @@
+ 	(v) & (tif)->tif_typemask[type]))
+ 
+ 
+-#define BITn(n)				(((u_long)1L)<<((n)&0x1f)) 
++#define BITn(n)				(((unsigned long)1L)<<((n)&0x1f)) 
+ #define BITFIELDn(tif, n)		((tif)->tif_dir.td_fieldsset[(n)/32]) 
+ #define TIFFFieldSet(tif, field)	(BITFIELDn(tif, field) & BITn(field)) 
+ #define TIFFSetFieldBit(tif, field)	(BITFIELDn(tif, field) |= BITn(field))
+@@ -248,7 +174,9 @@
+ #if defined(__cplusplus)
+ extern "C" {
+ #endif
+-extern	void _TIFFSetupFieldInfo(TIFF*);
++extern	const TIFFFieldInfo *_TIFFGetFieldInfo(size_t *);
++extern	const TIFFFieldInfo *_TIFFGetExifFieldInfo(size_t *);
++extern	void _TIFFSetupFieldInfo(TIFF*, const TIFFFieldInfo[], size_t);
+ extern	void _TIFFPrintFieldInfo(TIFF*, FILE*);
+ extern	TIFFDataType _TIFFSampleToTagType(TIFF*);
+ extern  const TIFFFieldInfo* _TIFFFindOrRegisterFieldInfo( TIFF *tif,
+@@ -257,11 +185,15 @@
+ extern  TIFFFieldInfo* _TIFFCreateAnonFieldInfo( TIFF *tif, ttag_t tag,
+                                                  TIFFDataType dt );
+ 
+-#define _TIFFMergeFieldInfo TIFFMergeFieldInfo
+-#define _TIFFFindFieldInfo  TIFFFindFieldInfo
+-#define _TIFFFieldWithTag   TIFFFieldWithTag
+-    
++#define _TIFFMergeFieldInfo	    TIFFMergeFieldInfo
++#define _TIFFFindFieldInfo	    TIFFFindFieldInfo
++#define _TIFFFindFieldInfoByName    TIFFFindFieldInfoByName
++#define _TIFFFieldWithTag	    TIFFFieldWithTag
++#define _TIFFFieldWithName	    TIFFFieldWithName
++
+ #if defined(__cplusplus)
+ }
+ #endif
+ #endif /* _TIFFDIR_ */
++
++/* vim: set ts=8 sts=8 sw=8 noet: */
+--- tkimg-1.3/libtiff/VERSION.orig	2004-08-18 18:10:44.000000000 +0100
++++ tkimg-1.3/libtiff/VERSION	2008-06-25 15:20:13.000000000 +0100
+@@ -1 +1 @@
+-3.6.1
++3.8.2
+--- tkimg-1.3/libz/tcl/Makefile.in.orig	2004-08-18 18:10:49.000000000 +0100
++++ tkimg-1.3/libz/tcl/Makefile.in	2008-06-25 14:08:09.000000000 +0100
+@@ -31,7 +31,6 @@
+ 		zlibtcl.c		\
+ 		zlibtclStubInit.c	\
+ 		zlibtclStubLib.c	\
+-		$(zlib_Sources)		\
+ 		@EXTRA_SOURCES@
+ 
+ WIN_SOURCES	= 
+@@ -187,7 +186,7 @@
+ CONFIG_CLEAN_FILES = Makefile zlibtclConfig.sh pkgIndex.tcl
+ 
+ CPPFLAGS	= @CPPFLAGS@ -DPACKAGE_NAME=\"$(PACKAGE)\"
+-LIBS		= @LIBS@
++LIBS		= @LIBS@ -lz
+ AR		= ar
+ CFLAGS		= @CFLAGS@
+ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 --- tkimg-1.3/libz/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:49.000000000 +0100
-+++ tkimg-1.3/libz/tcl/tclconfig/tcl.m4	2008-06-24 21:57:55.000000000 +0100
++++ tkimg-1.3/libz/tcl/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
 @@ -759,7 +759,7 @@
  	    # results, and the version is kept in special file).
  	
@@ -98,8 +2276,60 @@
  	    fi
  	    if test "`uname -s`" = "AIX" ; then
  		system=AIX-`uname -v`.`uname -r`
---- tkimg-1.3/tclconfig/tcl.m4.orig	2004-08-18 18:10:38.000000000 +0100
-+++ tkimg-1.3/tclconfig/tcl.m4	2008-06-24 21:58:41.000000000 +0100
+--- tkimg-1.3/tclconfig/tcl.m4.orig	2004-08-18 18:10:50.000000000 +0100
++++ tkimg-1.3/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
+@@ -759,7 +759,7 @@
+ 	    # results, and the version is kept in special file).
+ 	
+ 	    if test -r /etc/.relid -a "X`uname -n`" = "X`uname -s`" ; then
+-		system=MP-RAS-`awk '{print $3}' /etc/.relid'`
++		system=MP-RAS-`awk '{print $3}' /etc/.relid`
+ 	    fi
+ 	    if test "`uname -s`" = "AIX" ; then
+ 		system=AIX-`uname -v`.`uname -r`
+@@ -2026,7 +2026,7 @@
+ 	    # results, and the version is kept in special file).
+ 	
+ 	    if test -r /etc/.relid -a "X`uname -n`" = "X`uname -s`" ; then
+-		system=MP-RAS-`awk '{print $3}' /etc/.relid'`
++		system=MP-RAS-`awk '{print $3}' /etc/.relid`
+ 	    fi
+ 	    if test "`uname -s`" = "AIX" ; then
+ 		system=AIX-`uname -v`.`uname -r`
+--- tkimg-1.3/gif/gif.c.orig	2004-08-18 18:10:39.000000000 +0100
++++ tkimg-1.3/gif/gif.c	2008-06-25 14:07:57.000000000 +0100
+@@ -764,6 +764,10 @@
+ 		Tcl_PosixError(interp), (char *) NULL);
+ 	return TCL_ERROR;
+     }
++    if (initialCodeSize > MAX_LWZ_BITS) {
++	Tcl_AppendResult(interp, "error reading GIF image: malformed image", (char *) NULL);
++	return TCL_ERROR;
++    }
+     if (transparent!=-1) {
+ 	cmap[transparent][CM_RED] = 0;
+ 	cmap[transparent][CM_GREEN] = 0;
+--- tkimg-1.3/libpng/tcl/Makefile.in.orig	2004-08-18 18:10:43.000000000 +0100
++++ tkimg-1.3/libpng/tcl/Makefile.in	2008-06-25 14:08:04.000000000 +0100
+@@ -31,7 +31,6 @@
+ 		pngtcl.c		\
+ 		pngtclStubInit.c	\
+ 		pngtclStubLib.c	\
+-		$(png_Sources)		\
+ 		@EXTRA_SOURCES@
+ 
+ WIN_SOURCES	= 
+@@ -194,7 +193,7 @@
+ CPPFLAGS	= @CPPFLAGS@					\
+ 		-DZLIBTCL_VERSION=\"$(zlibtcl_VERSION)\"	\
+ 		-DPACKAGE_NAME=\"$(PACKAGE)\"
+-LIBS		= @LIBS@
++LIBS		= @LIBS@ -lpng
+ AR		= ar
+ CFLAGS		= @CFLAGS@
+ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+--- tkimg-1.3/libpng/tcl/tclconfig/tcl.m4.orig	2004-08-18 18:10:43.000000000 +0100
++++ tkimg-1.3/libpng/tcl/tclconfig/tcl.m4	2008-06-25 14:07:47.000000000 +0100
 @@ -759,7 +759,7 @@
  	    # results, and the version is kept in special file).
  	

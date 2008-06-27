@@ -61,6 +61,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+export CC=gcc
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
@@ -68,7 +70,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-threads
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +84,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install INSTALL_ROOT=${PKG}
+
+chmod -x ${PKG}/usr/{include/*,lib/*sh,lib/Img*/{*.a,*.tcl}}
 
 #strip_binaries
 
