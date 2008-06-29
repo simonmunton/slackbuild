@@ -6,7 +6,7 @@ TARNAME=tesseract
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=2.01
+VERSION=2.03
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,11 +46,13 @@ fi
 
  for f in tesseract-2.00.deu.tar.gz  tesseract-2.00.fra.tar.gz  tesseract-2.00.nld.tar.gz \
           tesseract-2.00.eng.tar.gz  tesseract-2.00.ita.tar.gz  tesseract-2.00.spa.tar.gz \
-	  tesseract-2.01.deu-f.tar.gz tesseract-2.01.por.tar.gz \
-	  tesseract-2.01.patch1.tar.gz
+	  tesseract-2.01.deu-f.tar.gz tesseract-2.01.por.tar.gz 
+#	  tesseract-2.01.patch1.tar.gz
  do
    tar xf ${TARDIR}/${f}
  done
+
+ mv java/makefile java/makefile.x
 )
 fi
 
@@ -99,27 +101,15 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "OCR engine"
+The Tesseract OCR engine was one of the top 3 engines in the 1995 UNLV
+Accuracy test. Since then it has had little work done on it, but it is
+probably one of the most accurate open source OCR engines available.
+The source code will read a binary, grey or color image and output
+text. A tiff reader is built in that will read uncompressed TIFF
+images, or libtiff can be added to read compressed images.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: The Tesseract OCR engine was one of the top 3 engines in the 1995 UNLV
-${PKGNAME}: Accuracy test. Since then it has had little work done on it, but it is
-${PKGNAME}: probably one of the most accurate open source OCR engines available.
-${PKGNAME}: The source code will read a binary, grey or color image and output
-${PKGNAME}: text. A tiff reader is built in that will read uncompressed TIFF
-${PKGNAME}: images, or libtiff can be added to read compressed images.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
