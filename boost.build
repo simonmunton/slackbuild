@@ -6,7 +6,7 @@ TARNAME=boost
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=1_34_1
+VERSION=1_35_0
 VERSIONEXTRA=
 BUILD=1
 
@@ -63,12 +63,12 @@ then
 ./configure --prefix=/usr
 fi
 
+# use LIBS="--layout=system" to make without version numbers
+LIBS="--layout=system --build-type=minimal"
+
 if [ ${DO_MAKE} == "yes" ]
 then
-
-# use LIBS="--layout=system" to make without version numbers
-make LIBS="--layout=system" || exit
-
+make LIBS="$LIBS" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -76,8 +76,7 @@ then
   exit
 fi
 
-# use LIBS="--layout=system" to make without version numbers
-make install LIBS="--layout=system" \
+make install LIBS="$LIBS" \
 	    PREFIX=${PKG}/usr \
 	    EPREFIX=${PKG}/usr \
 	    LIBDIR=${PKG}/usr/lib \
@@ -133,28 +132,16 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Boost template library"
+Boost provides free peer-reviewed portable C++ source libraries. The
+emphasis is on libraries which work well with the C++ Standard
+Library, in the hopes of establishing "existing practice" for
+extensions and providing reference implementations so that the Boost
+libraries are suitable for eventual standardization. (Some of the
+libraries have already been proposed for inclusion in the C++
+Standards Committee's upcoming C++ Standard Library Technical Report.)
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: Boost provides free peer-reviewed portable C++ source libraries.  The
-${PKGNAME}: emphasis is on libraries which work well with the C++ Standard
-${PKGNAME}: Library, in the hopes of establishing "existing practice" for
-${PKGNAME}: extensions and providing reference implementations so that the Boost
-${PKGNAME}: libraries are suitable for eventual standardization. (Some of the
-${PKGNAME}: libraries have already been proposed for inclusion in the C++
-${PKGNAME}: Standards Committee's upcoming C++ Standard Library Technical Report.)
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install
