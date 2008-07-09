@@ -1,0 +1,185 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=bind
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/b
+#TAR_EXT=.tar.gz
+VERSION=9.4.2-P1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.isc.org"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/bind-9.4.2-P1.diff
+
+# Remove use of SO_BSDCOMPAT which has been obsolete since the 2.2.x kernel series,
+# and generates warnings under 2.6.x kernels:
+ patch -p1 < ${CWD}/bind.so_bsdcompat.diff
+
+# We want to use /var/run/named/, not just /var/run/.
+# This allows changing the ownership of that directory if we want to run
+# named as a non-root user.
+ patch -p1 < ${CWD}/bind.var.run.named.diff
+# Threads break '-u' on Linux (for now)
+
+# The man pages should reflect /var/run/named:
+ patch -p1 < ${CWD}/bind.man.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --with-libtool \
+	    --enable-shared \
+	    --disable-static \
+	    --enable-threads \
+	    --with-openssl=/usr
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# We like symlinks.
+( cd ${PKG}/usr/sbin
+  ln -sf named lwresd
+)
+
+# We like a lot of symlinks.
+#( cd ${PKG}/usr/man/man3
+#  sh ${CWD}/bind-3link.sh
+#)
+
+# Install init script:
+mkdir -p ${PKG}/etc/rc.d
+cp -a ${CWD}/bind-rc.bind ${PKG}/etc/rc.d/rc.bind.new
+chmod 644 ${PKG}/etc/rc.d/rc.bind.new
+
+# Add /var/run/named directory:
+mkdir -p ${PKG}/var/run/named
+
+# Fix library perms:
+chmod 755 ${PKG}/usr/lib/*
+
+# Add sample config files for a simple caching nameserver:
+mkdir -p ${PKG}/var/named/caching-example
+cat ${CWD}/bind-caching-example-named.conf > ${PKG}/etc/named.conf.new
+cat ${CWD}/bind-caching-example-localhost.zone > ${PKG}/var/named/caching-example/localhost.zone
+cat ${CWD}/bind-caching-example-named.local > ${PKG}/var/named/caching-example/named.local
+cat ${CWD}/bind-caching-example-named.root > ${PKG}/var/named/caching-example/named.root
+
+doinst_same_perm etc/rc.d/rc.bind
+doinst_config etc/rc.d/rc.bind.new etc/named.conf.new
+
+cat >> ${PKG}/install/doinst.sh << EOF
+
+# Add a /var/named if it doesn't exist:
+if [ ! -d var/named ]; then
+  mkdir -p var/named
+  chmod 755 var/named
+fi
+
+# Generate /etc/rndc.key if there's none there,
+# and there also no /etc/rndc.conf (the other
+# way to set this up).
+if [ ! -r etc/rndc.key -a ! -r /etc/rndc.conf ]; then
+  chroot . /sbin/ldconfig
+  chroot . /usr/sbin/rndc-confgen -a 2> /dev/null
+fi
+
+EOF
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO CHANGES COPYRIGHT FAQ* \
+  doc/arm doc/misc \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+# This one should have the correct perms of the config file:
+chmod 644 ${PKG}/usr/doc/${TARNAME}-${VERSION}/misc/rndc.conf-sample
+
+# One format of this is plenty.  Especially get rid of the bloated PDF.
+( cd ${PKG}/usr/doc/bind-${VERSION}/arm
+  rm -f Makefile* *.pdf *.xml README.SGML latex-fixup.pl
+)
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "DNS server and utilities"
+The named daemon and support utilities such as dig, host, and
+nslookup.  Sample configuration files for running a simple caching
+nameserver are included.  Documentation for advanced name server
+setup can be found in /usr/doc/bind-9.x.x/.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
