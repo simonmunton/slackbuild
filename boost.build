@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/boost-1_35_0.diff
 )
 fi
 
@@ -83,6 +83,9 @@ make install LIBS="$LIBS" \
 	    LIBDIR=${PKG}/usr/lib \
 	    INCLUDEDIR=${PKG}/usr/include
 
+# no static libs
+rm ${PKG}/usr/lib/*.a
+
 #(cd ${PKG}/usr/include; ln -s boost*/boost boost)
 
 (cd ${PKG}/usr/lib
@@ -117,18 +120,14 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 (cd ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs
- rm -rf date_time/{build,src,test,xmldoc,test}
- rm -rf filesystem/{build,src,test}
- rm -rf graph/{build,src,test}
- rm -rf iostreams/{build,src,test}
- rm -rf program_options/{build,src,test}
- rm -rf python/{build,src,test,pyste}
- rm -rf regex/{build,src,test,performance,tools}
- rm -rf serialization/{build,src,test,*ide}
- rm -rf signals/{build,src,test}
- rm -rf test/{build,src,test,tools}
- rm -rf thread/{build,src,test}
- rm -rf wave/{build,src,test}
+ find . -type d -name build -exec rm -rf {} \;
+ find . -type d -name src -exec rm -rf {} \;
+ find . -type d -name test -exec rm -rf {} \;
+ find . -type d -name xmldoc -exec rm -rf {} \;
+ find . -type d -name pyste -exec rm -rf {} \;
+ find . -type d -name performance -exec rm -rf {} \;
+ find . -type d -name tools -exec rm -rf {} \;
+ find . -type d -name "*ide" -exec rm -rf {} \;
 )
 
 fix_docs
