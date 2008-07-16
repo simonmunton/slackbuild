@@ -3,12 +3,12 @@
 . build_funcs
 
 TARNAME=ogre
-TARNAMEEXTRA=-linux_osx
+TARNAMEEXTRA=
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=v1-4-5
+VERSION=v1-4-9
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ogrenew ${TARNAME}-${VERSION}
+mv ogre ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +43,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- ./bootstrap
+ #./bootstrap
 )
 fi
 
@@ -78,6 +78,13 @@ fi
 ln -s `pwd`/Samples/Common/bin ${PKG}/Samples
 
 make install DESTDIR=${PKG} ogreexecdir=/Samples
+
+(cd ${PKG}/usr/lib/OGRE
+ for f in *.la
+ do
+   sed -i -e "s@-L${CWD}[^ ]*@@g" ${f}
+ done
+)
 
 rm ${PKG}/Samples
 

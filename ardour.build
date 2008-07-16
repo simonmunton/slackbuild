@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.4.1
+VERSION=2.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -60,7 +60,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons PREFIX=/usr FFT_ANALYSIS=1 LV2=1 || exit
+scons PREFIX=/usr FFT_ANALYSIS=1 LV2=1 FREESOUND=1 FREEDESKTOP=1 || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,7 +68,14 @@ then
   exit
 fi
 
+mkdir -p ${PKG}/usr/share/icons/hicolor ${PKG}/usr/share/mime/packages ${PKG}/usr/share/applications
+touch ${PKG}/usr/share/icons/hicolor/index.theme
+
 scons install DESTDIR=${PKG}
+
+rm ${PKG}/usr/share/icons/hicolor/{index.theme,icon-theme.cache}
+rm ${PKG}/usr/share/mime/*
+rm ${PKG}/usr/share/applications/mimeinfo.cache
 
 cat > ${PKG}/install/doinst.sh << EOF
 if which setcap >& /dev/null
