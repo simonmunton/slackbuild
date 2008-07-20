@@ -1,0 +1,37 @@
+--- openldap-2.4.11/include/ldap_defaults.h.orig	2008-02-11 23:26:40.000000000 +0000
++++ openldap-2.4.11/include/ldap_defaults.h	2008-07-20 21:48:37.000000000 +0100
+@@ -47,7 +47,7 @@
+ 	/* location of the default slapd config file */
+ #define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
+ #define SLAPD_DEFAULT_CONFIGDIR		LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.d"
+-#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "openldap-data"
++#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "lib/openldap-data"
+ #define SLAPD_DEFAULT_DB_MODE		0600
+ #define SLAPD_DEFAULT_UCDATA		LDAP_DATADIR LDAP_DIRSEP "ucdata"
+ 	/* default max deref depth for aliases */
+--- openldap-2.4.11/servers/slapd/Makefile.in.orig	2008-02-11 23:26:43.000000000 +0000
++++ openldap-2.4.11/servers/slapd/Makefile.in	2008-07-20 21:52:59.000000000 +0100
+@@ -429,10 +429,10 @@
+ 	fi
+ 
+ install-db-config: FORCE
+-	@-$(MKDIR) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir)
+-	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-data
++	@-$(MKDIR) $(DESTDIR)$(localstatedir)/lib $(DESTDIR)$(sysconfdir)
++	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/lib/openldap-data
+ 	$(INSTALL) $(INSTALLFLAGS) -m 600 $(srcdir)/DB_CONFIG \
+-		$(DESTDIR)$(localstatedir)/openldap-data/DB_CONFIG.example
++		$(DESTDIR)$(localstatedir)/lib/openldap-data/DB_CONFIG.example
+ 	$(INSTALL) $(INSTALLFLAGS) -m 600 $(srcdir)/DB_CONFIG \
+ 		$(DESTDIR)$(sysconfdir)/DB_CONFIG.example
+ 
+--- openldap-2.4.11/servers/slapd/slapd.conf.orig	2007-02-13 20:22:22.000000000 +0000
++++ openldap-2.4.11/servers/slapd/slapd.conf	2008-07-20 21:54:48.000000000 +0100
+@@ -60,6 +60,6 @@
+ # The database directory MUST exist prior to running slapd AND 
+ # should only be accessible by the slapd and slap tools.
+ # Mode 700 recommended.
+-directory	%LOCALSTATEDIR%/openldap-data
++directory	%LOCALSTATEDIR%/lib/openldap-data
+ # Indices to maintain
+ index	objectClass	eq
