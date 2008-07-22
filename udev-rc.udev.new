@@ -94,6 +94,15 @@ case "$1" in
 	# Call udevtrigger and udevsettle to do the device configuration:
 	/sbin/udevadm trigger $OPT && /sbin/udevadm settle --timeout=120
 
+	# Make /dev/root node
+	if [ ! -e /dev/root ]; then
+	    eval `udevadm info --export --export-prefix="ROOT_" --device-id-of-file=/`
+	    if [ $((ROOT_MAJOR)) -ne 0 ] ; then
+	      /usr/bin/mknod -m640 /dev/root b $ROOT_MAJOR $ROOT_MINOR
+            fi
+	fi
+
+
 	;;
     stop)
 	echo "Stopping udevd"
