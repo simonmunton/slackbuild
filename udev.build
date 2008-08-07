@@ -6,7 +6,7 @@ TARNAME=udev
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=125
+VERSION=126
 VERSIONEXTRA=
 BUILD=1
 
@@ -58,7 +58,11 @@ EXTRAS="extras/ata_id extras/cdrom_id extras/edd_id extras/firmware \
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  true
+./configure --prefix=/usr \
+	    --exec-prefix=/ \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -72,6 +76,11 @@ then
 fi
 
 make install DESTDIR=${PKG} EXTRAS="${EXTRAS}"
+
+(cd ${PKG}/usr/lib
+ SONAME=`readlink libvolume_id.so`
+ ln -sf /lib/${SONAME##*/} libvolume_id.so
+)
 
 #scsi_id is needed by multipath
 mkdir -p ${PKG}/sbin

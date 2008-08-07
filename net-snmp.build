@@ -6,7 +6,7 @@ TARNAME=net-snmp
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=5.4.1.1
+VERSION=5.4.1.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -76,7 +76,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 NETSNMP_DONT_CHECK_VERSION=1 \
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} INSTALLDIRS=vendor || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,7 +84,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install INSTALLDIRS=vendor DESTDIR=${PKG}
 
 mkdir -p ${PKG}/var/lib/net-snmp
 mkdir -p ${PKG}/etc/snmp
@@ -111,7 +111,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "Simple Network Management Protocol tools"
+make_slack_desc << EOF "Simple Network Management Protocol tools"
 Various tools relating to the Simple Network Management Protocol
 including:
 An extensible agent
