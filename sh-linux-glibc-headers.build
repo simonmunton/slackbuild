@@ -1,0 +1,122 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=glibc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/glibc
+#TAR_EXT=.tar.gz
+VERSION=2.7
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=sh-linux-glibc-headers
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/glibc-2.7.diff
+
+ tar xf ${TARDIR}/glibc-libidn-{VERSION}.tar.bz2
+ mv glibc-libidn-{VERSION} libidn
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+CTARGET=sh-linux
+
+mkdir build-hdr-$CTARGET
+cd build-hdr-$CTARGET
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+../configure --prefix=/usr \
+             --build=i486-slackware-linux \
+	     --host=${CTARGET} \
+	     --with-headers=/usr/${CTARGET}/usr/include \
+	     --disable-sanity-checks \
+             --with-cpu=sh4
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+true
+#make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make -k install-headers install_root=${PKG}/usr/${CTARGET}
+
+mkdir -p ${PKG}/usr/${CTARGET}/usr/include/gnu
+touch ${PKG}/usr/${CTARGET}/usr/include/gnu/stubs.h
+cp bits/stdio_lim.h ${PKG}/usr/${CTARGET}/usr/include/bits/
+
+ln -s usr/include ${PKG}/usr/${CTARGET}/sys-include
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+rm -rf ${PKG}/usr/doc
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "glibc for SuperH"
+glibc for SuperH
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gcc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/gcc
+#TAR_EXT=.tar.gz
+VERSION=4.2.4
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=sh-linux-gcc
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+CTARGET=sh-linux
+
+mkdir build-${CTARGET}
+cd build-${CTARGET}
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+../configure --prefix=/usr \
+	     --target=$CTARGET \
+	     --with-sysroot=/usr/$CTARGET \
+	     --enable-languages=c,c++ \
+	    --enable-checking \
+	    --with-system-zlib \
+            --disable-libunwind-exceptions \
+            --enable-shared \
+	    --enable-__cxa_atexit \
+    	    --enable-c99 \
+	    --enable-threads=posix \
+            --enable-long-long \
+             --enable-multilib --with-multilib-list=m4,m4-nofpu,m4a,m4a-nofpu --with-endian=little \
+	     --with-cpu=sh4
+
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} all-gcc || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install-gcc DESTDIR=${PKG}
+
+rm -rf ${PKG}/usr/{info,include,lib/libiberty.a,man,share}
+
+touch ${PKG}/usr/lib/gcc/sh-linux/${VERSION}/libgcc_eh.a
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+rm -rf ${PKG}/usr/doc
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "gcc for SuperH"
+gcc for SuperH
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
