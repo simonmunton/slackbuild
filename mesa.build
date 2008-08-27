@@ -6,7 +6,7 @@ TARNAME=Mesa
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
-VERSION=7.0.2
+VERSION=7.0.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -47,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/Mesa-7.0.2.diff
+# patch -p1 < ${CWD}/Mesa-7.0.2.diff
 )
 fi
 
@@ -59,8 +59,18 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  (cd configs && rm -f current && ln -s linux-dri-x86 current)
-  true
+true
+
+(cd configs && rm -f current && ln -s linux-dri-x86 current)
+
+#make realclean
+
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var \
+#            --mandir=/usr/man \
+#            --with-dri-driverdir=/usr/lib/xorg/modules/dri \
+#            --with-demos=xdemos
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,6 +88,7 @@ then
   exit
 fi
 
+#make install DESTDIR=${PKG}
 make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri
 
 # Install some "demos":
@@ -109,7 +120,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc <<EOF "a 3-D graphics library"
 Mesa is a 3-D graphics library with an API very similar to that of
 another well-known 3-D graphics library.  :-)  The Mesa libraries are
 used by X to provide both software and hardware accelerated graphics.

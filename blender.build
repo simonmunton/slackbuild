@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.46
+VERSION=2.47
 VERSIONEXTRA=
 BUILD=1
 
@@ -64,7 +64,8 @@ if [ ${DO_MAKE} == "yes" ]
 then
 PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
-scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1  BF_PYTHON_VERSION=${PYTHON_VERSION} BF_BUILDDIR=`pwd`/build || exit
+scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 \
+                  BF_PYTHON_VERSION=${PYTHON_VERSION} BF_BUILDDIR=./build BF_INSTALLDIR=./install/linux2 || exit
 
 install -d release/plugins/include
 install -m 644 source/blender/blenpluginapi/*.h release/plugins/include
@@ -82,8 +83,8 @@ fi
 
 mkdir -p ${PKG}/usr/share/blender/{.blender,plugins} ${PKG}/usr/bin
 
-cp ../install/linux2/blender ${PKG}/usr/bin/blender.bin
-cp ../install/linux2/blenderplayer ${PKG}/usr/bin
+cp install/linux2/blender ${PKG}/usr/bin/blender.bin
+cp install/linux2/blenderplayer ${PKG}/usr/bin
 
 cp -pr release/scripts ${PKG}/usr/share/blender/.blender
 cp -p release/VERSION ${PKG}/usr/share/blender/.blender
@@ -111,15 +112,15 @@ cp ${CWD}/blender-wrapper ${PKG}/usr/bin/blender
 #/usr/share/blender/blender $*
 #EOF
 
-cat << EOF > ${PKG}/usr/bin/blenderplayer
-#!/bin/bash
-#
-/usr/share/blender/blenderplayer $@
-EOF
+#cat << EOF > ${PKG}/usr/bin/blenderplayer
+##!/bin/bash
+##
+#/usr/share/blender/blenderplayer $@
+#EOF
 
 chmod +x ${PKG}/usr/bin/*
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
