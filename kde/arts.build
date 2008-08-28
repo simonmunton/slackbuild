@@ -1,22 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=libidn
+TARNAME=arts
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnu/libidn
+TARDIR=~/tmp/new/k/kde-3.5.10
 #TAR_EXT=.tar.gz
-VERSION=1.10
+VERSION=1.5.10
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/arts.tmpdir.diff
 )
 fi
 
@@ -53,16 +55,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-            --includedir=/usr/include/idn
+	    --with-xinerama \
+	    --disable-debug
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -86,16 +92,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/NEWS doc/README doc/TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "implementation of Stringprep, Punycode and IDNA specs"
-GNU Libidn is an implementation of the Stringprep, Punycode and IDNA
-specifications defined by the IETF Internationalized Domain Names
-(IDN) working group, used for internationalized domain names.
+make_slack_desc << EOF "Analog Realtime Synthesizer"
+aRts is the core sound system for KDE, and is short for "analog
+realtime synthesizer".  aRts is designed to create or process sound
+using small specialized modules.  These may create a waveform, play
+samples, filter data, add signals, perform effects (like delay,
+flanger or chorus), or output the data to the soundcard.
 
 EOF
 
