@@ -1,0 +1,185 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=kdebase
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/k/kde-3.5.10
+#TAR_EXT=.tar.gz
+VERSION=3.5.10
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+ARCH=i686
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc/kde \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-shadow \
+	    --with-xinerama \
+	    --disable-debug
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# Move the KDM files someplace FHS compliant:
+mkdir -p ${PKG}/etc/kde
+mv ${PKG}/usr/share/config/kdm ${PKG}/etc/kde
+( cd ${PKG}/usr/share/config ; ln -sf ../../../etc/kde/kdm . )
+
+### !!! KLUDGE ALERT !!! ###
+### CAUSES ARTS TO NOT USE REALTIME PRIORITY BY DEFAULT, WORKING AROUND A LOGOUT HANG ###
+### THIS SHOULD BE RECONSIDERED WITH EACH KDEBASE RELEASE! ###
+cat ${CWD}/kdebase/kludge/kcmartsrc > ${PKG}/usr/share/config/kcmartsrc
+### !!! KLUDGE ALERT !!! ###
+
+mkdir -p ${PKG}/usr/doc/kdebase-$VERSION
+cp -a \
+  AUTHORS COPYING INSTALL README kdebase.lsm \
+  ${PKG}/usr/doc/kdebase-$VERSION
+mkdir -p ${PKG}/etc/X11/xinit ${PKG}/etc/profile.d
+cat ${CWD}/kdebase/xinit/xinitrc.kde > ${PKG}/etc/X11/xinit/xinitrc.kde
+cat ${CWD}/kdebase/profile.d/kde.sh > ${PKG}/etc/profile.d/kde.sh
+cat ${CWD}/kdebase/profile.d/kde.csh > ${PKG}/etc/profile.d/kde.csh
+chmod 755 ${PKG}/etc/X11/xinit/xinitrc.kde ${PKG}/etc/profile.d/kde.sh ${PKG}/etc/profile.d/kde.csh
+
+# Change the konsole defaults to look like the real Linux console:
+cat ${CWD}/kdebase/config/konsolerc > ${PKG}/usr/share/config/konsolerc
+chmod 644 ${PKG}/usr/share/config/konsolerc
+
+# Make konsole a login shell by default:
+cat ${CWD}/kdebase/config/konsole.desktop > ${PKG}/usr/share/applications/kde/konsole.desktop
+chmod 644 ${PKG}/usr/share/applications/kde/konsole.desktop
+
+# set sane defaults for antialiasing:
+if [ ! -e ${PKG}/usr/share/config/kdeglobals ]; then
+  cat ${CWD}/kdebase/config/kdeglobals > ${PKG}/usr/share/config/kdeglobals
+  chmod 644 ${PKG}/usr/share/config/kdeglobals
+else
+  # This might be fixed or unsafe.  Better check it out...
+  echo
+  echo "BAILOUT: kdeglobals already exists.  Check to see if anti-aliased"
+  echo "         fonts work out-of-the-box now..."
+  echo
+  exit 1
+fi
+
+# Setup config files for KDM:
+${PKG}/usr/bin/genkdmconf --no-old --no-old-scripts --no-backup --in ${PKG}/usr/share/config/kdm
+# Not allowing root to login at the console is just plain silly.  If they have physical access to
+# the machine, what's the point of trying to stop this?  Even the kdmrc file says this is supposed
+# to be the default.
+cat ${PKG}/usr/share/config/kdm/kdmrc | perl -pi -e 's|AllowRootLogin=false|AllowRootLogin=true|' > ${PKG}/usr/share/config/kdm/kdmrc.new
+rm -f ${PKG}/usr/share/config/kdm/kdmrc
+cp -a ${PKG}/usr/share/config/kdm/Xsession ${PKG}/usr/share/config/kdm/Xsession.orig
+cat ${CWD}/kdebase/config/Xsession > ${PKG}/usr/share/config/kdm/Xsession
+mv ${PKG}/usr/share/config/kdm/backgroundrc ${PKG}/usr/share/config/kdm/backgroundrc.new
+
+
+cat << EOF >> ${PKG}/install/doinst.sh
+# Save old config files:
+if [ ! -L etc/X11/kdm ]; then
+  if [ -d etc/X11/kdm ]; then
+    mkdir -p etc/kde/kdm
+    cp -a etc/X11/kdm/* etc/kde/kdm
+    rm -rf etc/X11/kdm
+    ( cd etc/X11 ; ln -sf /etc/kde/kdm kdm )
+  fi
+elif [ ! -e etc/X11/kdm ]; then
+  mkdir -p etc/X11
+  ( cd etc/X11 ; ln -sf /etc/kde/kdm kdm )
+fi
+EOF
+
+doinst_config etc/kde/kdm/kdmrc.new etc/kde/kdm/backgroundrc.new
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "KDE base package"
+Core applications for the K Desktop Environment.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

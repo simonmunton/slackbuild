@@ -2,12 +2,12 @@
 #
 . ../build_funcs
 
-TARNAME=kdevelop
+TARNAME=kdesdk
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/k/kde-3.5.10
 #TAR_EXT=.tar.gz
-VERSION=3.5.3
+VERSION=3.5.10
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,11 +55,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# Avoid a version number in .la files:
-if [ -d /usr/lib/qt ]; then
-  QTDIR=/usr/lib/qt
-fi
-
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -67,10 +65,12 @@ CFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc/kde \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
 	    --with-xinerama \
 	    --disable-debug \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --with-apr-config=/usr/bin/apr-1-config \
+	    --with-apu-config=/usr/bin/apu-1-config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -94,16 +94,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  BUGS ChangeLog INSTALL kdevelop.lsm  \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE development environment"
-The KDevelop integrated C/C++ application development environment.
-
+make_slack_desc << EOF "KDE Software Development Kit"
+KDE Software Development Kit. This is a collection of applications
+and tools used by KDE developers. It also has example code for use in
+learning KDE programming or starting a new KDE application.
 EOF
 
 post_install
