@@ -1,0 +1,140 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gdm
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnome
+#TAR_EXT=.tar.gz
+VERSION=2.22.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+            --with-prefetch \
+            --disable-scrollkeeper \
+	    --enable-authentication-scheme=shadow
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} gdm_dmx_reconnect_proxy_LDFLAGS="-L/usr/X11R6/lib -lXext" || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#mkdir -p ${PKG}/var/lib/log/gdm
+mkdir -p ${PKG}/var/lib/gdm
+
+make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/share/xsessions
+(cd ${PKG}/usr/share/xsessions
+ tar xf ${CWD}/gdm-Sessions.tar
+)
+
+#mkdir -p ${PKG}/var/log/gdm
+#rmdir ${PKG}/var/lib/log/gdm
+#ln -s ../../log/gdm ${PKG}/var/lib/log/gdm
+
+mv ${PKG}/etc/X11/gdm/custom.conf ${PKG}/etc/X11/gdm/custom.conf.new
+#mv ${PKG}/etc/X11/gdm/gdmprefetchlist ${PKG}/etc/X11/gdm/gdmprefetchlist.new
+
+doinst_config etc/X11/gdm/custom.conf.new 
+#etc/X11/gdm/gdmprefetchlist.new
+
+mkdir -p ${PKG}/etc/X11
+(cd ${PKG}/etc/X11
+ ln -sf ../gdm gdm
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "GNOME Display Manager"
+Gdm (the GNOME Display Manager) is a highly configurable
+reimplementation of xdm, the X Display Manager. Gdm allows you to log
+into your system with the X Window System running and supports
+running several different X sessions on your local machine at the
+same time.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod -R 755 *; \
+chmod 755 var/log/gdm; \
+chmod 1770 var/gdm var/run/gdm var/lib/gdm; \
+chown root:gdm var/gdm var/run/gdm var/lib/gdm; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
