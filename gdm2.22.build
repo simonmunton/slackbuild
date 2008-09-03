@@ -92,16 +92,18 @@ mkdir -p ${PKG}/usr/share/xsessions
 #rmdir ${PKG}/var/lib/log/gdm
 #ln -s ../../log/gdm ${PKG}/var/lib/log/gdm
 
-mv ${PKG}/etc/X11/gdm/custom.conf ${PKG}/etc/X11/gdm/custom.conf.new
+mv ${PKG}/etc/gdm/custom.conf ${PKG}/etc/gdm/custom.conf.new
 #mv ${PKG}/etc/X11/gdm/gdmprefetchlist ${PKG}/etc/X11/gdm/gdmprefetchlist.new
 
-doinst_config etc/X11/gdm/custom.conf.new 
+doinst_config etc/gdm/custom.conf.new 
 #etc/X11/gdm/gdmprefetchlist.new
 
 mkdir -p ${PKG}/etc/X11
 (cd ${PKG}/etc/X11
  ln -sf ../gdm gdm
 )
+
+mkdir -p ${PKG}/var/state/gdm
 
 #strip_binaries
 
@@ -136,5 +138,6 @@ chmod -R 755 *; \
 chmod 755 var/log/gdm; \
 chmod 1770 var/gdm var/run/gdm var/lib/gdm; \
 chown root:gdm var/gdm var/run/gdm var/lib/gdm; \
+chown gdm:gdm var/state/gdm; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
