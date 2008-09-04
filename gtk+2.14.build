@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=ConsoleKit
+TARNAME=gtk+
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.3.0
+VERSION=2.14.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.freedesktop.org/wiki/Software/ConsoleKit"
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gtk+2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +43,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/gtk+-2.10.14.diff
+ patch -p1 < ${CWD}/gtk+2-nsplugin.diff
 )
 fi
 
@@ -57,12 +56,15 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+# add -ggdb to flags for debug
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man
+            --localstatedir=/var/lib \
+            --mandir=/usr/man \
+            --with-xinput=yes \
+            --enable-debug=minimal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,6 +78,30 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/etc/gtk-2.0/im-multipress.conf ${PKG}/etc/gtk-2.0/im-multipress.conf.new
+doinst_config etc/gtk-2.0/im-multipress.conf.new
+
+mkdir -p ${PKG}/etc/profile.d
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.csh
+#!/bin/csh
+setenv GDK_USE_XFT 1
+EOF
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.sh
+#!/bin/sh
+GDK_USE_XFT=1
+export GDK_USE_XFT
+EOF
+
+chmod 755 ${PKG}/etc/profile.d/*
+
+#mkdir -p ${PKG}/etc/gtk-2.0
+touch ${PKG}/etc/gtk-2.0/gtk.immodules
+touch ${PKG}/etc/gtk-2.0/gdk-pixbuf.loaders
+
+#rm -f /usr/share/icons/*/icon-theme.cache 1> /dev/null 2> /dev/null
 
 #strip_binaries
 
@@ -92,9 +118,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "users, sessions and seats tracking framework"
-ConsoleKit provides a D-Bus API for programs to obtain information 
-about the users, sessions, and seats that are present on a system.
+make_slack_desc << EOF "multi-platform toolkit for GUIs"
+This is GTK+, a multi-platform toolkit for creating graphical user
+interfaces.  Offering a complete set of widgets, GTK+ is suitable for
+projects ranging from small one-off projects to complete application
+suites.
 
 EOF
 
