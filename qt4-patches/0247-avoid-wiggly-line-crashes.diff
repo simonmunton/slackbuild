@@ -1,0 +1,21 @@
+qt-bugs@ issue : N225275
+Trolltech task ID : none yet
+bugs.kde.org number : ?
+applied: no
+author: from Trolltech
+
+The generateWavyPath function produces NaN arc's when the minWidth 
+is negative. this apparently happens because textitems that do not
+have a glyph are sometimes drawn. the 2nd check is just for clarification
+
+--- src/gui/painting/qpainter.cpp
++++ src/gui/painting/qpainter.cpp
+@@ -5188,7 +5188,7 @@ static QPainterPath generateWavyPath(qre
+ 
+         // cut-off at the last arc segment
+         if (remaining < 2 * radius)
+-            angle = 180 * acos(1 - remaining / radius) / Q_PI;
++            angle = 180 * remaining / (2 * radius);
+ 
+         path.arcTo(xs, ys, 2*radius, 2*radius, 180, up ? angle : -angle);
+ 

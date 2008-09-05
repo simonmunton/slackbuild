@@ -1,0 +1,22 @@
+qt-bugs@ issue : none
+Trolltech task ID : none
+bugs.kde.org number : 158127
+applied: yes
+author: Leo Franchi <lfranchi@kde.org>
+
+Off-by-one error in the clipboard code, causes a crash on Qt/Mac.
+
+Index: src/gui/kernel/qclipboard_mac.cpp
+===================================================================
+--- src/gui/kernel/qclipboard_mac.cpp	(revision 839845)
++++ src/gui/kernel/qclipboard_mac.cpp	(working copy)
+@@ -248,7 +248,7 @@
+ #endif
+ 
+     QList<QByteArray> md = promise.convertor->convertFromMime(promise.mime, promise.data, flavorAsQString);
+-    if (md.size() < promise.offset)
++    if (md.size() <= promise.offset)
+         return cantGetFlavorErr;
+     const QByteArray &ba = md[promise.offset];
+     QCFType<CFDataRef> data = CFDataCreate(0, (UInt8*)ba.constData(), ba.size());
+

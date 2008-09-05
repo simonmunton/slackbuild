@@ -1,0 +1,24 @@
+qt-bugs@ issue : N217145
+Trolltech task ID : 217218 (Status: closed; Version fix: 4.4.2)
+applied: yes
+author: Laurent Montel <montel@kde.org>
+
+This is a regression in qt4.4.x
+It can't display an image in a q3textedit.
+(I reported bug to TT and TT send me patch which must be apply in qt4.4.2)
+
+--- src/qt3support/other/q3mimefactory.cpp	2008-06-25 14:24:16 -0000
++++ src/qt3support/other/q3mimefactory.cpp	2008-06-25 14:24:16 -0000
+
+@@ -152,9 +152,8 @@
+         QByteArray mimetype("application/octet-stream");
+         if (extensions.contains(e))
+             mimetype = extensions[e].latin1();
+-        QByteArray imgfmt = QImageReader::imageFormat(abs_name);
+-        if (!imgfmt.isEmpty())
+-            mimetype = "image/" + imgfmt.toLower();
++        if (!QImageReader::imageFormat(abs_name).isEmpty())
++            mimetype = "application/x-qt-image";
+ 
+         QFile f(abs_name);
+         if (f.open(QIODevice::ReadOnly) && f.size()) {
