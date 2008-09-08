@@ -1,19 +1,21 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=mkvtoolnix
+TARNAME=libdrm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
-VERSION=2.3.0
+VERSION=20080908
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libdrm
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -24,6 +26,8 @@ FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTR
 pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
+PKG_MODULE=/tmp/package-${PKGNAME}-module
+rm -rf ${PKG_MODULE}
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -44,6 +48,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ ./autogen.sh
 )
 fi
 
@@ -52,6 +57,8 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -66,6 +73,13 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+
+if [ -d linux-core ]
+then
+(cd linux-core
+ make ${NUM_JOBS} LINUXDIR=/usr/src/linux-${KERNELRELEASE} || exit
+)
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,6 +88,28 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+if [ -d linux-core ]
+then
+(cd linux-core
+# mkdir -p ${PKG_MODULE}/lib/modules/${KERNELRELEASE}/kernel/drivers/char/drm/
+# cp *.ko ${PKG_MODULE}/lib/modules/${KERNELRELEASE}/kernel/drivers/char/drm/
+ make LINUXDIR=/usr/src/linux-${KERNELRELEASE} INSTALL_MOD_PATH=${PKG_MODULE} install
+
+ mkdir -p ${PKG_MODULE}/install
+ cat > ${PKG_MODULE}/install/doinst.sh << EOF
+#
+/sbin/depmod ${KERNELRELEASE}
+
+EOF
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+PKG=${PKG_MODULE} PKGNAME=${PKGNAME}-module make_slack_desc << EOF "DRM kernel modules"
+DRM kernel modules
+
+EOF
+)
+fi
 
 #strip_binaries
 
@@ -90,17 +126,22 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "tools for Matroska files"
-MKVToolnix is a set of tools to create, alter and inspect Matroska 
-files under Linux, other Unices and Windows. They do for Matroska 
-what the OGMtools do for the OGM format and then some.
+make_slack_desc << EOF "A library to support Direct Rendering"
+This library implements an interface to the kernel's DRM services.
+It is used to support hardware accelerated 3-D rendering.
 
 EOF
 
 post_install
 
 cd ${PKG}
-su -c "chown -R root.root ${PKG}; \
+su -c "chown -R root.root ${PKG} ${PKG_MODULE}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-chown -R ${USERNAME}.${GROUP} ${PKG}"
+if [ -d ${PKG_MODULE} ]; \
+then \
+cd ${PKG_MODULE}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE//-/_}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+fi; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG_MODULE}"
