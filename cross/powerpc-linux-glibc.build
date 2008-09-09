@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wesnoth
+TARNAME=glibc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/gnu/glibc
 #TAR_EXT=.tar.gz
-VERSION=1.4.5
+VERSION=2.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=powerpc-linux-glibc
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,27 +55,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+CTARGET=powerpc-linux
+
+mkdir build-${CTARGET}
+cd build-${CTARGET}
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-server \
-            --enable-campaign-server \
-            --enable-editor \
-            --enable-tools \
-            --with-kde \
-            --with-gnome \
-            --with-server-uid=simon \
-            --with-server-gid=users
+libc_cv_forced_unwind=yes \
+libc_cv_c_cleanup=yes \
+../configure --prefix=/usr \
+	     --build=i486-slackware-linux \
+	     --host=${CTARGET}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} -r || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,7 +79,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install install_root=${PKG}/usr/${CTARGET}
+
+#mkdir -p ${PKG}/usr/${CTARGET}/usr/include/gnu
+#touch ${PKG}/usr/${CTARGET}/usr/include/gnu/stubs.h
+#cp bits/stdio_lim.h ${PKG}/usr/${CTARGET}/usr/include/bits/
+
+#ln -s usr/include ${PKG}/usr/${CTARGET}/sys-include
 
 #strip_binaries
 
@@ -99,16 +101,10 @@ cp -a \
 
 fix_docs
 
+rm -rf ${PKG}/usr/doc
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "turn-based fantasy strategy game"
-Battle for Wesnoth is a turn-based fantasy strategy game.
-
-Defeat all enemy leaders using a well-chosen cadre of troops, taking
-care to manage your resources of gold and villages. All units have
-their own strengths and weaknesses; to win, deploy your forces to
-their best advantage while denying your foes the chance to do the
-same. As units gain experience, they acquire new abilities and become
-more powerful.
+make_slack_desc << EOF "glibc for powerpc"
+glibc for powerpc
 
 EOF
 

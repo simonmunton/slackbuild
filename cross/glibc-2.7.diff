@@ -1,0 +1,142 @@
+--- glibc-2.7/nptl/sysdeps/unix/sysv/linux/sh/lowlevellock.S.orig	2007-08-03 16:44:15.000000000 +0100
++++ glibc-2.7/nptl/sysdeps/unix/sysv/linux/sh/lowlevellock.S	2008-08-19 21:08:19.000000000 +0100
+@@ -76,7 +76,7 @@
+ 	add	tmp2, tmp 	; \
+ 	mov.l	@tmp, tmp2	; \
+ 	bra	98f		; \
+-	 mov	#FUTEX_PRIVATE_FLAG, tmp
++	 mov	#FUTEX_PRIVATE_FLAG, tmp ; \
+ 99:	.word	PRIVATE_FUTEX - TLS_PRE_TCB_SIZE ; \
+ 98:	extu.b	tmp, tmp	; \
+ 	xor	tmp, reg	; \
+@@ -88,7 +88,7 @@
+ 	add	tmp2, tmp 	; \
+ 	mov.l	@tmp, tmp2	; \
+ 	bra	98f		; \
+-	 mov	#FUTEX_PRIVATE_FLAG, tmp
++	 mov	#FUTEX_PRIVATE_FLAG, tmp ; \
+ 99:	.word	PRIVATE_FUTEX - TLS_PRE_TCB_SIZE ; \
+ 98:	extu.b	tmp, tmp	; \
+ 	xor	tmp, reg	; \
+@@ -96,13 +96,13 @@
+ 	mov	#FUTEX_WAIT, tmp ; \
+ 	or	tmp, reg
+ # endif
+-# define LOAD_FUTEX_WAKE(reg,tmp) \
++# define LOAD_FUTEX_WAKE(reg,tmp,tmp2) \
+ 	stc	gbr, tmp	; \
+ 	mov.w	99f, tmp2	; \
+ 	add	tmp2, tmp 	; \
+ 	mov.l	@tmp, tmp2	; \
+ 	bra	98f		; \
+-	 mov	#FUTEX_PRIVATE_FLAG, tmp
++	 mov	#FUTEX_PRIVATE_FLAG, tmp ; \
+ 99:	.word	PRIVATE_FUTEX - TLS_PRE_TCB_SIZE ; \
+ 98:	extu.b	tmp, tmp	; \
+ 	xor	tmp, reg	; \
+--- glibc-2.7/nptl/sysdeps/unix/sysv/linux/sh/lowlevelrobustlock.S.orig	2007-08-03 16:44:57.000000000 +0100
++++ glibc-2.7/nptl/sysdeps/unix/sysv/linux/sh/lowlevelrobustlock.S	2008-08-19 21:08:22.000000000 +0100
+@@ -42,7 +42,7 @@
+ 	add	tmp2, tmp 	; \
+ 	mov.l	@tmp, tmp2	; \
+ 	bra	98f		; \
+-	 mov	#FUTEX_PRIVATE_FLAG, tmp
++	 mov	#FUTEX_PRIVATE_FLAG, tmp ; \
+ 99:	.word	PRIVATE_FUTEX - TLS_PRE_TCB_SIZE ; \
+ 98:	extu.b	tmp, tmp	; \
+ 	xor	tmp, reg	; \
+@@ -54,7 +54,7 @@
+ 	add	tmp2, tmp 	; \
+ 	mov.l	@tmp, tmp2	; \
+ 	bra	98f		; \
+-	 mov	#FUTEX_PRIVATE_FLAG, tmp
++	 mov	#FUTEX_PRIVATE_FLAG, tmp ; \
+ 99:	.word	PRIVATE_FUTEX - TLS_PRE_TCB_SIZE ; \
+ 98:	extu.b	tmp, tmp	; \
+ 	xor	tmp, reg	; \
+--- glibc-2.7/sysdeps/unix/sysv/linux/sh/sys/user.h.orig	2003-02-08 02:32:42.000000000 +0000
++++ glibc-2.7/sysdeps/unix/sysv/linux/sh/sys/user.h	2008-08-18 22:57:06.000000000 +0100
+@@ -21,6 +21,8 @@
+ 
+ #include <features.h>
+ 
++#include <linux/autoconf.h>
++
+ #include <asm/user.h>
+ 
+ #undef start_thread
+--- glibc-2.7/sysdeps/unix/sysv/linux/sh/sysdep.S.orig	2005-12-30 22:16:43.000000000 +0000
++++ glibc-2.7/sysdeps/unix/sysv/linux/sh/sysdep.S	2008-08-19 22:33:14.000000000 +0100
+@@ -32,3 +32,13 @@
+ 
+ #define __syscall_error __syscall_error_1
+ #include <sysdeps/unix/sh/sysdep.S>
++
++	.data
++	.align 3
++	.globl ___fpscr_values
++	.type ___fpscr_values, @object
++	.size ___fpscr_values, 8
++___fpscr_values:
++	.long	0
++	.long	0x80000
++weak_alias (___fpscr_values, __fpscr_values)
+--- glibc-2.7/sysdeps/unix/sysv/linux/sh/Versions.orig	2003-09-01 05:05:09.000000000 +0100
++++ glibc-2.7/sysdeps/unix/sysv/linux/sh/Versions	2008-08-19 22:33:14.000000000 +0100
+@@ -2,6 +2,7 @@
+   GLIBC_2.2 {
+     # functions used in other libraries
+     __xstat64; __fxstat64; __lxstat64;
++    __fpscr_values;
+ 
+     # a*
+     alphasort64;
+--- glibc-2.7/sysdeps/unix/sysv/linux/dl-osinfo.h.orig	2007-09-15 23:54:08.000000000 +0100
++++ glibc-2.7/sysdeps/unix/sysv/linux/dl-osinfo.h	2008-08-20 09:26:26.000000000 +0100
+@@ -83,6 +83,10 @@
+   int parts;
+   char *cp;
+   struct utsname uts;
++  int dotsfound = 0;
++  int versionindex = 0;
++  char *choppoint;
++
+ 
+   /* Try the uname system call.  */
+   if (__uname (&uts))
+@@ -102,8 +106,34 @@
+   else
+     buf = uts.release;
+ 
++  /* We are only interested in the first three kernel numbers, so */
++  /* chop off anything past that: */
++
++  choppoint = buf;
++  while (1)
++    {
++      versionindex++;
++      if (versionindex == 63) break;
++      if (*choppoint == '.') dotsfound++;
++      choppoint++;
++      if (dotsfound == 2)
++      {
++        if (*choppoint == '0' || *choppoint == '1'
++          || *choppoint == '2' || *choppoint == '3'
++          || *choppoint == '4' || *choppoint == '5'
++          || *choppoint == '6' || *choppoint == '7'
++          || *choppoint == '8' || *choppoint == '9')
++          continue;
++        else
++          {
++            *choppoint = 0;
++            break;
++          }
++      }
++    }
++
+   /* Now convert it into a number.  The string consists of at most
+-     three parts.  */
++     three parts.  Now it does, anyway.  ;-)  */
+   version = 0;
+   parts = 0;
+   cp = buf;

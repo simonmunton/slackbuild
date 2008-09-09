@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wesnoth
+TARNAME=linux
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/k/kernel
 #TAR_EXT=.tar.gz
-VERSION=1.4.5
+VERSION=2.6.26
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=sh-linux-kernel-headers
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,27 +55,19 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+CTARGET=sh-linux
+T_ARCH=sh
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-server \
-            --enable-campaign-server \
-            --enable-editor \
-            --enable-tools \
-            --with-kde \
-            --with-gnome \
-            --with-server-uid=simon \
-            --with-server-gid=users
+cp ../sh-config .config
+rm include/asm
+yes "" | make ARCH=${T_ARCH} CROSS_COMPILE=${CTARGET}- oldconfig prepare
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,7 +75,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make ARCH=${T_ARCH} CROSS_COMPILE=${CTARGET}- headers_install INSTALL_HDR_PATH=${PKG}/usr/${CTARGET}/usr
+
+mkdir -p ${PKG}/usr/$CTARGET/usr/include/asm
+cp -a include/linux include/asm-generic ${PKG}/usr/$CTARGET/usr/include/
+cp -a include/asm-$T_ARCH/* ${PKG}/usr/$CTARGET/usr/include/asm
+
+sed -i -e "/CONFIG_CPU_SH4/ i #define CONFIG_CPU_SH4" ${PKG}/usr/$CTARGET/usr/include/asm/sigcontext.h
 
 #strip_binaries
 
@@ -99,16 +97,11 @@ cp -a \
 
 fix_docs
 
-#-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "turn-based fantasy strategy game"
-Battle for Wesnoth is a turn-based fantasy strategy game.
+rm -rf ${PKG}/usr/doc
 
-Defeat all enemy leaders using a well-chosen cadre of troops, taking
-care to manage your resources of gold and villages. All units have
-their own strengths and weaknesses; to win, deploy your forces to
-their best advantage while denying your foes the chance to do the
-same. As units gain experience, they acquire new abilities and become
-more powerful.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "kernel headers for SuperH"
+kernel headers for SuperH
 
 EOF
 

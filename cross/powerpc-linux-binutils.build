@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wesnoth
+TARNAME=binutils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/gnu/binutils
 #TAR_EXT=.tar.gz
-VERSION=1.4.5
+VERSION=2.18
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=powerpc-linux-binutils
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,22 +55,19 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+CTARGET=powerpc-linux
+
+mkdir build-${CTARGET}
+cd build-${CTARGET}
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-server \
-            --enable-campaign-server \
-            --enable-editor \
-            --enable-tools \
-            --with-kde \
-            --with-gnome \
-            --with-server-uid=simon \
-            --with-server-gid=users
+../configure --prefix=/usr \
+	    --target=${CTARGET} \
+	    --with-sysroot=/usr/${CTARGET} \
+	    --disable-werror
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -84,6 +81,15 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+rm -rf ${PKG}/usr/{info,lib,man,share}
+(cd ${PKG}/usr/${CTARGET}/bin
+ for f in *
+ do
+   rm ${f}
+   ln -sf /usr/bin/${CTARGET}-${f} ${f}
+ done
+)
 
 #strip_binaries
 
@@ -100,15 +106,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "turn-based fantasy strategy game"
-Battle for Wesnoth is a turn-based fantasy strategy game.
-
-Defeat all enemy leaders using a well-chosen cadre of troops, taking
-care to manage your resources of gold and villages. All units have
-their own strengths and weaknesses; to win, deploy your forces to
-their best advantage while denying your foes the chance to do the
-same. As units gain experience, they acquire new abilities and become
-more powerful.
+make_slack_desc << EOF "binutils for poewrpc"
+binutils for powerpc
 
 EOF
 

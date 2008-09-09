@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wesnoth
+TARNAME=gcc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/gnu/gcc
 #TAR_EXT=.tar.gz
-VERSION=1.4.5
+VERSION=4.2.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=sh-linux-gcc
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,27 +55,34 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+CTARGET=sh-linux
+
+mkdir build-${CTARGET}
+cd build-${CTARGET}
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-server \
-            --enable-campaign-server \
-            --enable-editor \
-            --enable-tools \
-            --with-kde \
-            --with-gnome \
-            --with-server-uid=simon \
-            --with-server-gid=users
+../configure --prefix=/usr \
+	     --target=$CTARGET \
+	     --with-sysroot=/usr/$CTARGET \
+	     --enable-languages=c,c++ \
+	    --enable-checking \
+	    --with-system-zlib \
+            --disable-libunwind-exceptions \
+            --enable-shared \
+	    --enable-__cxa_atexit \
+    	    --enable-c99 \
+	    --enable-threads=posix \
+            --enable-long-long \
+             --enable-multilib --with-multilib-list=m4,m4-nofpu,m4a,m4a-nofpu --with-endian=little \
+	     --with-cpu=sh4
+
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} all-gcc || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,7 +90,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install-gcc DESTDIR=${PKG}
+
+rm -rf ${PKG}/usr/{info,include,lib/libiberty.a,man,share}
+
+touch ${PKG}/usr/lib/gcc/sh-linux/${VERSION}/libgcc_eh.a
 
 #strip_binaries
 
@@ -99,16 +110,11 @@ cp -a \
 
 fix_docs
 
-#-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "turn-based fantasy strategy game"
-Battle for Wesnoth is a turn-based fantasy strategy game.
+rm -rf ${PKG}/usr/doc
 
-Defeat all enemy leaders using a well-chosen cadre of troops, taking
-care to manage your resources of gold and villages. All units have
-their own strengths and weaknesses; to win, deploy your forces to
-their best advantage while denying your foes the chance to do the
-same. As units gain experience, they acquire new abilities and become
-more powerful.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "gcc for SuperH"
+gcc for SuperH
 
 EOF
 
