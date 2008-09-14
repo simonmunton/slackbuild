@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=gmult
+TARNAME=joystick
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=4.0
+VERSION=1.2.15
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ rm linux
 )
 fi
 
@@ -57,17 +58,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} jstest jscal jsattach || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +73,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1}
+cp jstest jscal jsattach ${PKG}/usr/bin
+cp *.1 ${PKG}/usr/man/man1
 
 #strip_binaries
 
@@ -86,21 +86,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO *.txt \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
+chmod -x ${PKG}/usr/doc/${TARNAME}-${VERSION}/*
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Multiplication Puzzle game"
-Multiplication Puzzle is a simple game inspired by the multiplication 
-game inside the popular editor emacs.
-
-You are presented with a long multiplication problem where a 3-digit 
-number is multiplied by a 2-digit number, yielding two intermediate 
-4-digit number and a final 5-digit answer.  However, all the digits 
-are replaced by letters. Your job is to discover which letters are 
-which digits.
+make_slack_desc << EOF "joystick utilities"
+joystick utilities
 
 EOF
 

@@ -1,0 +1,60 @@
+--- wavplay-1.4/wavplay.h.orig	1999-12-04 00:06:42.000000000 +0000
++++ wavplay-1.4/wavplay.h	2008-09-14 09:51:16.000000000 +0100
+@@ -500,7 +500,7 @@
+ extern int UnlockDSP(int ipc,int playrecx,ErrFunc erf);
+ 
+ extern WAVFILE *WavOpenForRead(const char *Pathname,ErrFunc erf);
+-extern WAVFILE *WavOpenForWrite(const char *Pathname,OprMode m,UInt32 sample_rate,UInt16 bits,UInt32 samples,ErrFunc erf);
++extern WAVFILE *WavOpenForWrite(const char *Pathname,Chan chmode,UInt32 sample_rate,UInt16 bits,UInt32 samples,ErrFunc erf);
+ extern void WavReadOverrides(WAVFILE *wfile,WavPlayOpts *wavopts);
+ extern int WavClose(WAVFILE *wfile,ErrFunc erf);
+ 
+--- wavplay-1.4/xltwavplay.c.orig	2008-09-14 10:00:43.000000000 +0100
++++ wavplay-1.4/xltwavplay.c	2008-09-14 10:00:55.000000000 +0100
+@@ -68,9 +68,6 @@
+ #include <sys/stat.h>
+ #include <assert.h>
+ 
+-#ifndef NO_EDITRES
+-#include <X11/Xmu/Editres.h>
+-#endif
+ 
+ #include <Xm/Xm.h>
+ #include <Xm/MainW.h>
+@@ -89,6 +86,10 @@
+ #include <Xm/List.h>
+ #include <Xm/Frame.h>
+ 
++#ifndef NO_EDITRES
++#include <X11/Xmu/Editres.h>
++#endif
++
+ #include "xmsprint.h"
+ #include "xltwavplay.h"
+ #include "wavplay.h"
+--- wavplay-1.4/Makefile.orig	1999-12-04 00:06:42.000000000 +0000
++++ wavplay-1.4/Makefile	2008-09-14 10:08:04.000000000 +0100
+@@ -215,9 +215,9 @@
+ 
+ install_wavplay: wavplay wavrec
+ 	@[ ! -d "$(INSTDIR)" ] && echo "You do not have a directory $(INSTDIR); Check INSTDIR in make file." && exit 13 || :
+-	$(INSTALL) -o root -g root -m 555 wavplay $(INSTDIR)
++	$(INSTALL) -m 755 wavplay $(INSTDIR)
+ 	rm -f $(INSTDIR)/wavrec
+-	ln $(INSTDIR)/wavplay $(INSTDIR)/wavrec
++	ln -s $(INSTDIR)/wavplay $(INSTDIR)/wavrec
+ 	@[ ! -z "$(SCHED_PRIORITY)" ] && echo "*** DO 'make setuid_root' IF YOU WANT REAL TIME SCHEDULING ***" || :
+ 	@echo
+ 
+@@ -234,9 +234,9 @@
+ 	@echo
+ 
+ install_xltwavplay: xltwavplay
+-	$(INSTALL) -o root -g root -m 555 xltwavplay $(INSTDIR)
++	$(INSTALL) -m 755 xltwavplay $(INSTDIR)
+ 	@[ ! -z "$(USERES)" ] \
+-		&& $(INSTALL) -o root -g root -m 555 xltwavplay.res $(RESDIR)/xltwavplay \
++		&& $(INSTALL) -m 755 xltwavplay.res $(RESDIR)/xltwavplay \
+ 		&& ls -dlL $(RESDIR)/xltwavplay/xltwavplay.res \
+ 		|| rm -f $(RESDIR)/xltwavplay
+ 
