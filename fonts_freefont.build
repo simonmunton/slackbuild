@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=autofig
-TARNAMEEXTRA=
+TARNAME=freefont
+TARNAMEEXTRA=-ttf
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/gnu/freefont
 #TAR_EXT=.tar.gz
-VERSION=0.1
+VERSION=20080912
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,10 +15,10 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=fonts_freefont
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -57,17 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+true
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +70,30 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+DESTDIR=usr/share/fonts/truetype/freefont
+
+mkdir -p ${PKG}/${DESTDIR}
+
+cp *.ttf ${PKG}/${DESTDIR}
+
+touch ${PKG}/${DESTDIR}/{fonts.dir,fonts.scale}
+
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+if [ -x usr/bin/mkfontscale ]; then
+  echo "Creating font.scale:  /usr/bin/mkfontscale"
+  usr/bin/mkfontscale ${DESTDIR}
+fi
+if [ -x usr/bin/mkfontdir ]; then
+  echo "Creating font.dir:  /usr/bin/mkfontdir"
+  usr/bin/mkfontdir ${DESTDIR}
+fi
+if [ -x usr/bin/fc-cache ]; then
+  echo "Updating X font indexes:  /usr/bin/fc-cache"
+  usr/bin/fc-cache
+fi
+
+EOF
 
 #strip_binaries
 
@@ -86,13 +104,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ChangeLog doc \
+  AUTHORS COPYING* CREDITS INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "FreeFont truetype fonts"
+The GNU FreeFont project aims to provide a useful set of free scalable
+(i.e., OpenType) fonts covering as much as possible of the ISO 
+10646/Unicode UCS (Universal Character Set).
+
 EOF
 
 post_install
