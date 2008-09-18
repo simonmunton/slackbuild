@@ -1,0 +1,95 @@
+--- qalculate-kde-0.9.6/admin/acinclude.m4.in.orig	2006-08-01 13:37:34.000000000 +0100
++++ qalculate-kde-0.9.6/admin/acinclude.m4.in	2008-09-18 20:58:09.000000000 +0100
+@@ -3231,7 +3231,6 @@
+           CXXFLAGS="$CXXFLAGS -fno-reorder-blocks"
+           CFLAGS="$CFLAGS -fno-reorder-blocks"
+     fi
+-    KDE_CHECK_COMPILER_FLAG(fno-exceptions,[CXXFLAGS="$CXXFLAGS -fno-exceptions"])
+     KDE_CHECK_COMPILER_FLAG(fno-check-new, [CXXFLAGS="$CXXFLAGS -fno-check-new"])
+     KDE_CHECK_COMPILER_FLAG(fno-common, [CXXFLAGS="$CXXFLAGS -fno-common"])
+     KDE_CHECK_COMPILER_FLAG(fexceptions, [USE_EXCEPTIONS="-fexceptions"], USE_EXCEPTIONS=	)
+--- qalculate-kde-0.9.6/admin/cvs.sh.orig	2006-09-03 12:03:09.000000000 +0100
++++ qalculate-kde-0.9.6/admin/cvs.sh	2008-09-18 21:01:23.000000000 +0100
+@@ -68,7 +68,7 @@
+     echo "*** KDE requires automake $required_automake_version"
+     exit 1
+     ;;
+-  automake*1.6.* | automake*1.7* | automake*1.8* | automake*1.9*)
++  automake*1.6.* | automake*1.7* | automake*1.8* | automake*1.9* | automake*1.10*)
+     echo "*** $AUTOMAKE_STRING found."
+     UNSERMAKE=no
+     ;;
+--- qalculate-kde-0.9.6/src/qalculate_kde.desktop.orig	2006-03-17 07:33:21.000000000 +0000
++++ qalculate-kde-0.9.6/src/qalculate_kde.desktop	2008-09-18 20:58:12.000000000 +0100
+@@ -1,6 +1,6 @@
+ [Desktop Entry]
+ Encoding=UTF-8
+-Name=Qalculate!
++Name=Qalculate! (QT)
+ GenericName=Scientific Calculator
+ Exec=qalculate-kde
+ Icon=qalculate_kde
+--- qalculate-kde-0.9.6/configure.in.in.orig	2007-05-18 09:10:17.000000000 +0100
++++ qalculate-kde-0.9.6/configure.in.in	2008-09-18 20:58:09.000000000 +0100
+@@ -8,12 +8,6 @@
+ 
+ AC_LANG([C++])
+ 
+-AC_PATH_CLN(1.1.0, [
+-     	LIBS="$LIBS $CLN_LIBS"
+-     	CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
+-  	AC_DEFINE(HAVE_LIBCLN,1,[If CLN can be used])
+-], AC_MSG_ERROR([No suitable installed version of CLN could be found.]))
+-
+ PKG_CHECK_MODULES(QALCULATE, [
+ 	libxml-2.0
+ 	glib-2.0
+@@ -25,4 +19,15 @@
+ LIBS="$LIBS $QALCULATE_LIBS"
+ CFLAGS="$CFLAGS $QALCULATE_CFLAGS"
+ CPPFLAGS="$CPPFLAGS $QALCULATE_CFLAGS"
++ 
++PKG_CHECK_MODULES(CLN, [ cln >= 1.2 ],
++                  [have_recent_cln=yes], [have_recent_cln=no])
++AC_SUBST(CLN_CPPFLAGS)
++AC_SUBST(CLN_LIBS)
++
++if test "$have_recent_cln" = yes ; then
++   AC_DEFINE(HAVE_LIBCLN12, 1, [Define if CLN can be used])
++   LIBS="$LIBS $CLN_LIBS"
++   CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
++fi
+ 
+--- qalculate-kde-0.9.6/configure.in.orig	2007-06-17 12:33:58.000000000 +0100
++++ qalculate-kde-0.9.6/configure.in	2008-09-18 21:01:29.000000000 +0100
+@@ -73,12 +73,6 @@
+ 
+ AC_LANG([C++])
+ 
+-AC_PATH_CLN(1.1.0, [
+-     	LIBS="$LIBS $CLN_LIBS"
+-     	CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
+-  	AC_DEFINE(HAVE_LIBCLN,1,[If CLN can be used])
+-], AC_MSG_ERROR([No suitable installed version of CLN could be found.]))
+-
+ PKG_CHECK_MODULES(QALCULATE, [
+ 	libxml-2.0
+ 	glib-2.0
+@@ -90,6 +84,17 @@
+ LIBS="$LIBS $QALCULATE_LIBS"
+ CFLAGS="$CFLAGS $QALCULATE_CFLAGS"
+ CPPFLAGS="$CPPFLAGS $QALCULATE_CFLAGS"
++ 
++PKG_CHECK_MODULES(CLN, [ cln >= 1.2 ],
++                  [have_recent_cln=yes], [have_recent_cln=no])
++AC_SUBST(CLN_CPPFLAGS)
++AC_SUBST(CLN_LIBS)
++
++if test "$have_recent_cln" = yes ; then
++   AC_DEFINE(HAVE_LIBCLN12, 1, [Define if CLN can be used])
++   LIBS="$LIBS $CLN_LIBS"
++   CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
++fi
+ 
+ KDE_CREATE_SUBDIRSLIST
+ AC_CONFIG_FILES([ Makefile ])
