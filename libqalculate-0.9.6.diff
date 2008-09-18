@@ -1,0 +1,61 @@
+--- libqalculate-0.9.6/libqalculate/Number.cc.orig	2007-05-18 09:03:22.000000000 +0100
++++ libqalculate-0.9.6/libqalculate/Number.cc	2008-09-18 20:25:18.000000000 +0100
+@@ -15,6 +15,7 @@
+ #include "Calculator.h"
+ 
+ #include <sstream>
++#include <limits.h>
+ #include "util.h"
+ 
+ #define REAL_PRECISION_FLOAT_RE(x)		cln::cl_float(cln::realpart(x), cln::float_format(PRECISION + 1))
+@@ -28,6 +29,7 @@
+ 
+ using namespace cln;
+ 
++/*
+ void cln::cl_abort() {
+ 	CALCULATOR->error(true, "CLN Error: see terminal output (probably too large or small floating point number)", NULL);
+ 	if(CALCULATOR->busy()) {
+@@ -36,7 +38,7 @@
+ 		exit(0);
+ 	}
+ }
+-
++*/
+ string printCL_I(cl_I integ, int base = 10, bool display_sign = true, BaseDisplay base_display = BASE_DISPLAY_NORMAL, bool lower_case = false) {
+ 	if(base == BASE_ROMAN_NUMERALS) {
+ 		if(!zerop(integ) && integ < 10000 && integ > -10000) {
+--- libqalculate-0.9.6/configure.in.orig	2007-05-18 09:08:26.000000000 +0100
++++ libqalculate-0.9.6/configure.in	2008-09-18 20:25:09.000000000 +0100
+@@ -91,13 +91,6 @@
+ 
+ AC_LANG([C++])
+ 
+-AC_PATH_CLN(1.1.0, [
+-     	LIBS="$LIBS $CLN_LIBS"
+-     	CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
+-  	AC_DEFINE(HAVE_LIBCLN,1,[If CLN can be used])
+-], AC_MSG_ERROR([No suitable installed version of CLN could be found.]))
+-
+-
+ PKG_CHECK_MODULES(GLIB, [
+ 	glib-2.0
+ 	libxml-2.0 >= 2.3.8
+@@ -105,6 +98,17 @@
+ AC_SUBST(GLIB_CFLAGS)
+ AC_SUBST(GLIB_LIBS)
+ 
++PKG_CHECK_MODULES(CLN, [ cln >= 1.2 ],
++                  [have_recent_cln=yes], [have_recent_cln=no])
++AC_SUBST(CLN_CPPFLAGS)
++AC_SUBST(CLN_LIBS)
++
++if test "$have_recent_cln" = "yes" ; then
++   AC_DEFINE(HAVE_RECENT_CLN, 1, [Define if CLN can be used])
++   LIBS="$LIBS $CLN_LIBS"
++   CPPFLAGS="$CPPFLAGS $CLN_CPPFLAGS"
++fi
++
+ dnl  --------------------------------
+ dnl | check for readline            |-----------------------------------------
+ dnl  --------------------------------
