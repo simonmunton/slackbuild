@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=wormux
+TARNAME=kompozer
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.8.1
-VERSIONEXTRA=
+VERSION=0.7.10
+VERSIONEXTRA=dfsg-src
 BUILD=1
 
 WEBPAGE=""
@@ -51,23 +51,18 @@ fi
 
 pre_configure
 
-cd ${TARNAME}-${VERSION}
+cd ${TARNAME}-${VERSION}/mozilla
 
 fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make -f client.mk build_all ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make -f client.mk install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -92,18 +87,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A convivial mass murder game"
-Have the mascots of your favorite free software battle in the Wormux
-arena using dynamite, grenades, baseball bat and other weapons ...
-Exterminate your opponent in a funny 2D toon-style scenery.
+make_slack_desc << EOF "web authoring system"
+KompoZer is a complete web authoring system that combines web file 
+management and easy-to-use WYSIWYG web page editing.
 
-Each player (2 minimum, on the same PC) controls the team of his 
-choice (tux, gnu, firefox, wilber,...) and must destroy his 
-adversaries using more or less casual weapons.
-
-Although a minimum of strategy is required to be victorious, Wormux 
-is pre-eminently a "convivial mass murder" game where, turn by turn, 
-each team attempts to produce maximum damage to their opponents.
+KompoZer is designed to be extremely easy to use, making it ideal for 
+non-technical computer users who want to create an attractive, 
+professional-looking web site without needing to know HTML or web 
+coding. 
 
 EOF
 
