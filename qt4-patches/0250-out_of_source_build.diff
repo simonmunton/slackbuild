@@ -1,0 +1,43 @@
+qt-bugs@ issue : N227213
+Trolltech task ID : none yet
+applied: no
+author: Christian Ehrlicher <ch.ehrlicher@gmx.de>
+        Ralf Habacker <ralf.habacker@freenet.de>
+
+Fix configure.exe to do an out-of-source build on windows
+
+
+Index: tools/configure/configureapp.cpp
+===================================================================
+--- tools/configure/configureapp.cpp	(revision 862665)
++++ tools/configure/configureapp.cpp	(working copy)
+@@ -2932,7 +2956,7 @@
+         args += buildPath + "/bin/syncqt.bat";
+         QStringList env;
+         env += QString("QTDIR=" + sourcePath);
+-        //env += QString("PATH=" + buildPath + "/bin/;%PATH%");
++        env += QString("PATH=" + buildPath + "/bin/;" + qgetenv("PATH"));
+         Environment::execute(args, env, QStringList());
+     }
+ }
+@@ -3185,10 +3209,19 @@
+                     QString dirPath = fixSeparators( it->directory + "/" );
+                     QString projectName = it->proFile;
+                     QString makefileName = buildPath + "/" + dirPath + it->target;
++
++                    if (sourcePath != buildPath)
++                        QDir().mkpath(buildPath + "/" + dirPath);
++
+                     QStringList args;
+ 
+                     args << fixSeparators( buildPath + "/bin/qmake" );
+-                    args << projectName;
++
++                    if (sourcePath != buildPath)
++                        args << fixSeparators(sourcePath + "/" + dirPath + projectName);
++                    else
++                        args << projectName;
++
+                     args << dictionary[ "QMAKE_ALL_ARGS" ];
+ 
+                     cout << "For " << qPrintable(dirPath + projectName) << endl;
