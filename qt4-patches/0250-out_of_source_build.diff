@@ -41,3 +41,22 @@ Index: tools/configure/configureapp.cpp
                      args << dictionary[ "QMAKE_ALL_ARGS" ];
  
                      cout << "For " << qPrintable(dirPath + projectName) << endl;
+Index: bin/syncqt
+===================================================================
+--- bin/syncqt	(revision 863314)
++++ bin/syncqt	(working copy)
+@@ -342,9 +342,13 @@
+         $match_dir = $tmp;
+         $i = $slash;
+     }
++    my $cnt_ofs = 0;
++    if(!checkUnix() && $match_dir =~ /^[a-zA-Z]:$/) {
++      $cnt_ofs = 1;
++    }
+     if($match_dir) {
+         my $after = substr($dir, length($match_dir));
+-        my $count = ($after =~ tr,/,,);
++        my $count = ($after =~ tr,/,,) - $cnt_ofs;
+         my $dots = "";
+         for(my $i = 0; $i < $count; $i++) {
+             $dots .= "../";
