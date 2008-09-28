@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=nemiver
+TARNAME=dblatex
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=0.6.3
+VERSION=0.2.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,17 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+python setup.py install --root=${PKG} --prefix=/usr
 
 #strip_binaries
 
@@ -92,10 +87,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "graphical debugger for Gnome"
-Nemiver is a standalone graphical debugger that integrates well in 
-the GNOME desktop environment. It currently features a backend which 
-uses the well known GNU Debugger gdb to debug C / C++ programs. 
+make_slack_desc << EOF "DocBook to LaTeX/ConTeXt Publishing"
+DocBook to LaTeX/ConTeXt Publishing
 
 EOF
 
