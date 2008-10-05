@@ -1,0 +1,24 @@
+--- dvdstyler-1.7.0/src/mediatrc_ffmpeg.cpp.orig	2008-08-24 21:34:02.000000000 +0100
++++ dvdstyler-1.7.0/src/mediatrc_ffmpeg.cpp	2008-10-05 22:42:20.000000000 +0100
+@@ -958,8 +958,8 @@
+ 
+ 			if (!codec->codec_tag) {
+ 				if ( !os->oformat->codec_tag || av_codec_get_id(
+-						os->oformat->codec_tag, icodec->codec_tag) > 0
+-						|| av_codec_get_tag(os->oformat->codec_tag,
++						(const AVCodecTag**)os->oformat->codec_tag, icodec->codec_tag) > 0
++						|| av_codec_get_tag((const AVCodecTag**)os->oformat->codec_tag,
+ 								icodec->codec_id) <= 0)
+ 					codec->codec_tag = icodec->codec_tag;
+ 			}
+--- dvdstyler-1.7.0/configure.orig	2008-10-05 11:43:22.000000000 +0100
++++ dvdstyler-1.7.0/configure	2008-10-05 22:39:37.000000000 +0100
+@@ -5687,7 +5687,7 @@
+ 	:
+ fi
+ 
+-for ac_header in ffmpeg/avutil.h
++for ac_header in libavutil/avutil.h
+ do
+ as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then

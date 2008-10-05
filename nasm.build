@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gst-python
+TARNAME=nasm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=0.10.13
+VERSION=2.04
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -66,6 +68,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+(cd doc
+ make ${NUM_JOBS} || exit
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +78,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALLROOT=${PKG}
+(cd doc
+ mkdir -p ${PKG}/usr/info
+ make install DESTDIR=${PKG} INSTALLROOT=${PKG} infodir=/usr/info
+)
 
 #strip_binaries
 
@@ -90,9 +99,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GStreamer Python wrapper"
-This module contains a wrapper that allows GStreamer applications
-to be written in Python.
+make_slack_desc << EOF "The Netwide Assembler, a portable x86 assembler with Intel-like syntax"
+NASM is the Netwide Assembler, a free portable assembler for the Intel
+80x86 microprocessor series, using primarily the traditional Intel
+instruction mnemonics and syntax.
 
 EOF
 

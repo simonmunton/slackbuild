@@ -1,0 +1,82 @@
+--- vlc-0.9.3/modules/demux/avformat/demux.c.orig	2008-09-19 02:09:25.000000000 +0100
++++ vlc-0.9.3/modules/demux/avformat/demux.c	2008-10-05 11:57:21.000000000 +0100
+@@ -84,7 +84,7 @@
+ static int Control( demux_t *p_demux, int i_query, va_list args );
+ 
+ static int IORead( void *opaque, uint8_t *buf, int buf_size );
+-static offset_t IOSeek( void *opaque, offset_t offset, int whence );
++static off64_t IOSeek( void *opaque, off64_t offset, int whence );
+ 
+ /*****************************************************************************
+  * Open
+@@ -170,7 +170,7 @@
+                     (int (*) (URLContext *, unsigned char *, int))IORead;
+     p_sys->url.prot->url_write = 0;
+     p_sys->url.prot->url_seek =
+-                    (offset_t (*) (URLContext *, offset_t, int))IOSeek;
++                    (off64_t (*) (URLContext *, off64_t, int))IOSeek;
+     p_sys->url.prot->url_close = 0;
+     p_sys->url.prot->next = 0;
+     init_put_byte( &p_sys->io, p_sys->io_buffer, p_sys->io_buffer_size,
+@@ -493,7 +493,7 @@
+     return i_ret ? i_ret : -1;
+ }
+ 
+-static offset_t IOSeek( void *opaque, offset_t offset, int whence )
++static off64_t IOSeek( void *opaque, off64_t offset, int whence )
+ {
+     URLContext *p_url = opaque;
+     demux_t *p_demux = p_url->priv_data;
+--- vlc-0.9.3/modules/demux/avformat/mux.c.orig	2008-09-18 22:03:35.000000000 +0100
++++ vlc-0.9.3/modules/demux/avformat/mux.c	2008-10-05 11:58:02.000000000 +0100
+@@ -78,7 +78,7 @@
+ static int Mux      ( sout_mux_t * );
+ 
+ static int IOWrite( void *opaque, uint8_t *buf, int buf_size );
+-static offset_t IOSeek( void *opaque, offset_t offset, int whence );
++static off64_t IOSeek( void *opaque, off64_t offset, int whence );
+ 
+ /*****************************************************************************
+  * Open
+@@ -135,7 +135,7 @@
+     p_sys->url.prot->url_write =
+                     (int (*) (URLContext *, unsigned char *, int))IOWrite;
+     p_sys->url.prot->url_seek =
+-                    (offset_t (*) (URLContext *, offset_t, int))IOSeek;
++                    (off64_t (*) (URLContext *, off64_t, int))IOSeek;
+     p_sys->url.prot->url_close = 0;
+     p_sys->url.prot->next = 0;
+     init_put_byte( &p_sys->io, p_sys->io_buffer, p_sys->io_buffer_size,
+@@ -475,7 +475,7 @@
+     return i_ret ? i_ret : -1;
+ }
+ 
+-static offset_t IOSeek( void *opaque, offset_t offset, int whence )
++static off64_t IOSeek( void *opaque, off64_t offset, int whence )
+ {
+     URLContext *p_url = opaque;
+     sout_mux_t *p_mux = p_url->priv_data;
+--- vlc-0.9.3/modules/codec/x264.c.orig	2008-09-23 23:41:30.000000000 +0100
++++ vlc-0.9.3/modules/codec/x264.c	2008-10-05 11:53:36.000000000 +0100
+@@ -1083,8 +1083,8 @@
+ #endif
+ 
+ #if X264_BUILD >= 41
+-    var_Get( p_enc, SOUT_CFG_PREFIX "b-rdo", &val );
+-    p_sys->param.analyse.b_bframe_rdo = val.b_bool;
++//    var_Get( p_enc, SOUT_CFG_PREFIX "b-rdo", &val );
++//    p_sys->param.analyse.b_bframe_rdo = val.b_bool;
+ #endif
+ 
+ #if X264_BUILD >= 42
+@@ -1093,8 +1093,8 @@
+ #endif
+ 
+ #if X264_BUILD >= 43
+-    var_Get( p_enc, SOUT_CFG_PREFIX "bime", &val );
+-    p_sys->param.analyse.b_bidir_me = val.b_bool;
++//    var_Get( p_enc, SOUT_CFG_PREFIX "bime", &val );
++//    p_sys->param.analyse.b_bidir_me = val.b_bool;
+ #endif
+ 
+ #if X264_BUILD >= 44

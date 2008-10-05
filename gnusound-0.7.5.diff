@@ -1,295 +1,114 @@
---- gnusound-0.7.5/modules/file_flac.c.orig	2005-06-19 16:44:26.000000000 +0100
-+++ gnusound-0.7.5/modules/file_flac.c	2008-07-06 22:06:21.000000000 +0100
-@@ -36,7 +36,7 @@
+--- gnusound-0.7.5/modules/file_ffmpeg.c.orig	2008-07-05 17:00:26.000000000 +0100
++++ gnusound-0.7.5/modules/file_ffmpeg.c	2008-10-05 22:31:38.000000000 +0100
+@@ -37,8 +37,8 @@
+ #warning "Not building ffmpeg support."
+ #else
  
-     /* Decoder support. */
+-#include <ffmpeg/avformat.h>
+-#include <ffmpeg/avcodec.h>
++#include <libavformat/avformat.h>
++#include <libavcodec/avcodec.h>
  
--    FLAC__FileDecoder *decoder;
-+    FLAC__StreamDecoder *decoder;
-     
-     int dec_inited;
-     int dec_error;
-@@ -51,7 +51,7 @@
+ struct ffmpeg_data {
+     AVFormatContext *format_context;
+--- gnusound-0.7.5/configure.orig	2008-10-05 22:13:18.000000000 +0100
++++ gnusound-0.7.5/configure	2008-10-05 22:29:16.000000000 +0100
+@@ -8556,8 +8556,8 @@
  
-     /* Encoder support */
  
--    FLAC__FileEncoder *encoder;
-+    FLAC__StreamEncoder *encoder;
- 
-     int enc_inited;
-     int enc_error;
-@@ -96,7 +96,7 @@
-     }
- 
- static FLAC__StreamDecoderWriteStatus 
--flac_dec_write_callback(const FLAC__FileDecoder *decoder,
-+flac_dec_write_callback(const FLAC__StreamDecoder *decoder,
-                         const FLAC__Frame *frame,
-                         const FLAC__int32 * const buffer[],
-                         void *client_data) {
-@@ -132,7 +132,7 @@
- }
- 
- static void 
--flac_dec_metadata_callback(const FLAC__FileDecoder *decoder,
-+flac_dec_metadata_callback(const FLAC__StreamDecoder *decoder,
-                            const FLAC__StreamMetadata *metadata,
-                            void *client_data) {    
-     struct flac_data *flac_data = ((struct file *)client_data)->driver_data;
-@@ -174,7 +174,7 @@
- }
- 
- static void
--flac_dec_error_callback(const FLAC__FileDecoder *decoder,
-+flac_dec_error_callback(const FLAC__StreamDecoder *decoder,
-                         FLAC__StreamDecoderErrorStatus status,
-                         void *client_data) {
-     struct flac_data *flac_data = ((struct file *)client_data)->driver_data;
-@@ -186,30 +186,31 @@
- flac_open_for_reading(struct file *file,
-                       struct file_params *params) {
-     struct flac_data *flac_data = file->driver_data;
--    FLAC__FileDecoder *decoder;
-+    FLAC__StreamDecoder *decoder;
- 
--    decoder = FLAC__file_decoder_new();
-+    decoder = FLAC__stream_decoder_new();
-     
--    FLAC__file_decoder_set_md5_checking(decoder, false);
--    FLAC__file_decoder_set_filename(decoder, file->name);
--    FLAC__file_decoder_set_metadata_ignore_all(decoder);
--    FLAC__file_decoder_set_metadata_respond(decoder, FLAC__METADATA_TYPE_STREAMINFO);
--    FLAC__file_decoder_set_metadata_respond(decoder, FLAC__METADATA_TYPE_VORBIS_COMMENT);
--    FLAC__file_decoder_set_write_callback(decoder, flac_dec_write_callback);
--    FLAC__file_decoder_set_metadata_callback(decoder, flac_dec_metadata_callback);
--    FLAC__file_decoder_set_error_callback(decoder, flac_dec_error_callback);
--    FLAC__file_decoder_set_client_data(decoder, file);
--    if(FLAC__file_decoder_init(decoder) != FLAC__FILE_DECODER_OK)
--        return cmd_new_error_val("Could not initialize FLAC decoder: %s", FLAC__FileDecoderStateString[FLAC__file_decoder_get_state(decoder)]);
-+    FLAC__stream_decoder_set_md5_checking(decoder, false);
-+//    FLAC__file_decoder_set_filename(decoder, file->name);
-+    FLAC__stream_decoder_set_metadata_ignore_all(decoder);
-+    FLAC__strea_decoder_set_metadata_respond(decoder, FLAC__METADATA_TYPE_STREAMINFO);
-+    FLAC__stream_decoder_set_metadata_respond(decoder, FLAC__METADATA_TYPE_VORBIS_COMMENT);
-+    if(FLAC__stream_decoder_init_file(decoder,
-+				file->name,
-+				flac_dec_write_callback,
-+				flac_dec_metadata_callback,
-+				flac_dec_error_callback,
-+				file) != FLAC__STREAM_DECODER_INIT_STATUS_OK)
-+        return cmd_new_error_val("Could not initialize FLAC decoder: %s", FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder)]);
-     
--    if(!FLAC__file_decoder_process_until_end_of_metadata(decoder))
--        return cmd_new_error_val("Could not process FLAC metadata: %s", FLAC__FileDecoderStateString[FLAC__file_decoder_get_state(decoder)]);
-+    if(!FLAC__stream_decoder_process_until_end_of_metadata(decoder))
-+        return cmd_new_error_val("Could not process FLAC metadata: %s", FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder)]);
-     
-     flac_data->decoder = decoder;
-     
-     if(!flac_data->dec_inited || flac_data->dec_error) {
--        FLAC__file_decoder_finish(decoder);
--        FLAC__file_decoder_delete(decoder);
-+        FLAC__stream_decoder_finish(decoder);
-+        FLAC__stream_decoder_delete(decoder);
-         return cmd_new_error_val("Could not find STREAM info or "
-                                  "STREAM info was invalid");
-     }
-@@ -217,8 +218,8 @@
-     /* This is highly unlikely. */
- 
-     if(flac_data->dec_max_blocksize > SAVE_BUF_SIZE) {
--        FLAC__file_decoder_finish(decoder);
--        FLAC__file_decoder_delete(decoder);
-+        FLAC__stream_decoder_finish(decoder);
-+        FLAC__stream_decoder_delete(decoder);
-         return cmd_new_error_val("The maximum blocksize (%d) for this file "
-                                  "is larger than SAVE_BUF_SIZE (%d), increase "
-                                  "SAVE_BUF_SIZE and recompile", 
-@@ -239,7 +240,7 @@
-     struct flac_data *flac_data = file->driver_data;
-     struct cmd_value *r;
-     int err, bits_per_sample;
--    FLAC__FileEncoder *encoder;
-+    FLAC__StreamEncoder *encoder;
-     const char *status;
-     int max_lpc_order = 0,
-         blocksize = 1152,
-@@ -258,13 +259,13 @@
-     if(!flac_data->enc_buffer) 
-         return cmd_new_error_val("Could not allocate encoder buffer");
- 
--    encoder = FLAC__file_encoder_new();
-+    encoder = FLAC__stream_encoder_new();
- 
-     /* Standard properties. */
- 
--    FLAC__file_encoder_set_filename(encoder, file->name);
--    FLAC__file_encoder_set_channels(encoder, params->channels);
--    FLAC__file_encoder_set_sample_rate(encoder, params->sample_rate);
-+//    FLAC__file_encoder_set_filename(encoder, file->name);
-+    FLAC__stream_encoder_set_channels(encoder, params->channels);
-+    FLAC__stream_encoder_set_sample_rate(encoder, params->sample_rate);
-     switch(params->sample_type) {
-     case SAMPLE_TYPE_INT_8:
-         bits_per_sample = 8;
-@@ -281,7 +282,7 @@
-         bits_per_sample = 24;
-         break;
-     }
--    FLAC__file_encoder_set_bits_per_sample(encoder, bits_per_sample);
-+    FLAC__stream_encoder_set_bits_per_sample(encoder, bits_per_sample);
- 
-     /* FLAC encoding parameters. */
- 
-@@ -348,38 +349,32 @@
-         break;
-     }
-     
--    FLAC__file_encoder_set_do_exhaustive_model_search(encoder, exhaustive_model_search);
--    FLAC__file_encoder_set_blocksize(encoder, blocksize);
--    FLAC__file_encoder_set_max_lpc_order(encoder, max_lpc_order);
--    FLAC__file_encoder_set_min_residual_partition_order(encoder, residual_partition_order_min);
--    FLAC__file_encoder_set_max_residual_partition_order(encoder, residual_partition_order_max);
-+    FLAC__stream_encoder_set_do_exhaustive_model_search(encoder, exhaustive_model_search);
-+    FLAC__stream_encoder_set_blocksize(encoder, blocksize);
-+    FLAC__stream_encoder_set_max_lpc_order(encoder, max_lpc_order);
-+    FLAC__stream_encoder_set_min_residual_partition_order(encoder, residual_partition_order_min);
-+    FLAC__stream_encoder_set_max_residual_partition_order(encoder, residual_partition_order_max);
-     if(params->channels == 2) {
--        FLAC__file_encoder_set_do_mid_side_stereo(encoder, mid_side);
--        FLAC__file_encoder_set_loose_mid_side_stereo(encoder, adaptive_mid_side);
-+        FLAC__stream_encoder_set_do_mid_side_stereo(encoder, mid_side);
-+        FLAC__stream_encoder_set_loose_mid_side_stereo(encoder, adaptive_mid_side);
-     }
-     
--    if((err = FLAC__file_encoder_init(encoder)) != FLAC__FILE_ENCODER_OK) {
-+    if((err = FLAC__stream_encoder_init_file(encoder,
-+					    file->name,
-+					    NULL,
-+					    file)) != FLAC__STREAM_ENCODER_INIT_STATUS_OK) {
- 
-         /* Initialization failed, get error condition. */
- 
-         if(flac_data->enc_buffer)
-             mem_free(flac_data->enc_buffer);
-         
--        if(FLAC__file_encoder_get_state(encoder) == 
--           FLAC__FILE_ENCODER_SEEKABLE_STREAM_ENCODER_ERROR) {
--            if(FLAC__file_encoder_get_seekable_stream_encoder_state(encoder) ==
--               FLAC__SEEKABLE_STREAM_ENCODER_STREAM_ENCODER_ERROR)
--                status = FLAC__StreamEncoderStateString[FLAC__file_encoder_get_stream_encoder_state(encoder)];
--            else
--                status = FLAC__SeekableStreamEncoderStateString[FLAC__file_encoder_get_seekable_stream_encoder_state(encoder)];
--        } else {
--            status = FLAC__FileEncoderStateString[FLAC__file_encoder_get_state(encoder)];
--        }
-+        status = FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(encoder)];
-         
-         FAIL("encoder initialization failure: %s\n", status);
-         r = cmd_new_error_val("Could not initialize encoder: %s", status);
- 
--        FLAC__file_encoder_delete(encoder);
-+        FLAC__stream_encoder_delete(encoder);
- 
-         return r;
-         
-@@ -419,7 +414,7 @@
-      * buffer. 
-      */
- 
--    if(!FLAC__file_decoder_process_single(flac_data->decoder))
-+    if(!FLAC__stream_decoder_process_single(flac_data->decoder))
-         return -1;
- 
-     if(flac_data->dec_error)
-@@ -463,11 +458,11 @@
-         break;
-     }
- 
--    err = FLAC__file_encoder_process_interleaved(flac_data->encoder,
-+    err = FLAC__stream_encoder_process_interleaved(flac_data->encoder,
-                                                  flac_data->enc_buffer,
-                                                  count);
-     if(!err) {
--        FAIL("encoder failure: %s\n", FLAC__FileEncoderStateString[FLAC__file_encoder_get_state(flac_data->encoder)]);
-+        FAIL("encoder failure: %s\n", FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(flac_data->encoder)]);
-         return -1;
-     }
-     
-@@ -479,16 +474,16 @@
-     struct flac_data *flac_data = file->driver_data;
- 
-     if(flac_data->dec_inited) {
--        FLAC__file_decoder_finish(flac_data->decoder);
--        FLAC__file_decoder_delete(flac_data->decoder);
-+        FLAC__stream_decoder_finish(flac_data->decoder);
-+        FLAC__stream_decoder_delete(flac_data->decoder);
-         //        if(flac_data->dec_buffer)
-         //            mem_free(flac_data->dec_buffer);
-         flac_data->dec_inited = 0;
-     }
- 
-     if(flac_data->enc_inited) {
--        FLAC__file_encoder_finish(flac_data->encoder);
--        FLAC__file_encoder_delete(flac_data->encoder);
-+        FLAC__stream_encoder_finish(flac_data->encoder);
-+        FLAC__stream_encoder_delete(flac_data->encoder);
-         if(flac_data->enc_buffer)
-             mem_free(flac_data->enc_buffer);
-         flac_data->enc_inited = 0;
---- gnusound-0.7.5/configure.orig	2008-07-06 09:03:42.000000000 +0100
-+++ gnusound-0.7.5/configure	2008-07-06 22:09:52.000000000 +0100
-@@ -8889,9 +8889,9 @@
- 
+ if test "${ac_cv_header_ffmpeg_avformat_h+set}" = set; then
+-  { echo "$as_me:$LINENO: checking for ffmpeg/avformat.h" >&5
+-echo $ECHO_N "checking for ffmpeg/avformat.h... $ECHO_C" >&6; }
++  { echo "$as_me:$LINENO: checking for libavformat/avformat.h" >&5
++echo $ECHO_N "checking for libavformat/avformat.h... $ECHO_C" >&6; }
+ if test "${ac_cv_header_ffmpeg_avformat_h+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
  fi
- if test $ac_cv_header_FLAC_format_h = yes; then
--  { echo "$as_me:$LINENO: checking for FLAC__file_decoder_new in -lFLAC" >&5
--echo $ECHO_N "checking for FLAC__file_decoder_new in -lFLAC... $ECHO_C" >&6; }
--if test "${ac_cv_lib_FLAC_FLAC__file_decoder_new+set}" = set; then
-+  { echo "$as_me:$LINENO: checking for FLAC__stream_decoder_new in -lFLAC" >&5
-+echo $ECHO_N "checking for FLAC__stream_decoder_new in -lFLAC... $ECHO_C" >&6; }
-+if test "${ac_cv_lib_FLAC_FLAC__stream_decoder_new+set}" = set; then
+@@ -8565,8 +8565,8 @@
+ echo "${ECHO_T}$ac_cv_header_ffmpeg_avformat_h" >&6; }
+ else
+   # Is the header compilable?
+-{ echo "$as_me:$LINENO: checking ffmpeg/avformat.h usability" >&5
+-echo $ECHO_N "checking ffmpeg/avformat.h usability... $ECHO_C" >&6; }
++{ echo "$as_me:$LINENO: checking libavformat/avformat.h usability" >&5
++echo $ECHO_N "checking libavformat/avformat.h usability... $ECHO_C" >&6; }
+ cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -8574,7 +8574,7 @@
+ cat >>conftest.$ac_ext <<_ACEOF
+ /* end confdefs.h.  */
+ $ac_includes_default
+-#include <ffmpeg/avformat.h>
++#include <libavformat/avformat.h>
+ _ACEOF
+ rm -f conftest.$ac_objext
+ if { (ac_try="$ac_compile"
+@@ -8606,15 +8606,15 @@
+ echo "${ECHO_T}$ac_header_compiler" >&6; }
+ 
+ # Is the header present?
+-{ echo "$as_me:$LINENO: checking ffmpeg/avformat.h presence" >&5
+-echo $ECHO_N "checking ffmpeg/avformat.h presence... $ECHO_C" >&6; }
++{ echo "$as_me:$LINENO: checking libavformat/avformat.h presence" >&5
++echo $ECHO_N "checking libavformat/avformat.h presence... $ECHO_C" >&6; }
+ cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+ cat confdefs.h >>conftest.$ac_ext
+ cat >>conftest.$ac_ext <<_ACEOF
+ /* end confdefs.h.  */
+-#include <ffmpeg/avformat.h>
++#include <libavformat/avformat.h>
+ _ACEOF
+ if { (ac_try="$ac_cpp conftest.$ac_ext"
+ case "(($ac_try" in
+@@ -8647,30 +8647,30 @@
+ # So?  What about this header?
+ case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+   yes:no: )
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: accepted by the compiler, rejected by the preprocessor!" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: proceeding with the compiler's result" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: proceeding with the compiler's result" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: accepted by the compiler, rejected by the preprocessor!" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: proceeding with the compiler's result" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: proceeding with the compiler's result" >&2;}
+     ac_header_preproc=yes
+     ;;
+   no:yes:* )
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: present but cannot be compiled" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: present but cannot be compiled" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h:     check for missing prerequisite headers?" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h:     check for missing prerequisite headers?" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: see the Autoconf documentation" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: see the Autoconf documentation" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h:     section \"Present But Cannot Be Compiled\"" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: proceeding with the preprocessor's result" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: proceeding with the preprocessor's result" >&2;}
+-    { echo "$as_me:$LINENO: WARNING: ffmpeg/avformat.h: in the future, the compiler will take precedence" >&5
+-echo "$as_me: WARNING: ffmpeg/avformat.h: in the future, the compiler will take precedence" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: present but cannot be compiled" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: present but cannot be compiled" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h:     check for missing prerequisite headers?" >&5
++echo "$as_me: WARNING: libavformat/avformat.h:     check for missing prerequisite headers?" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: see the Autoconf documentation" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: see the Autoconf documentation" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h:     section \"Present But Cannot Be Compiled\"" >&5
++echo "$as_me: WARNING: libavformat/avformat.h:     section \"Present But Cannot Be Compiled\"" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: proceeding with the preprocessor's result" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: proceeding with the preprocessor's result" >&2;}
++    { echo "$as_me:$LINENO: WARNING: libavformat/avformat.h: in the future, the compiler will take precedence" >&5
++echo "$as_me: WARNING: libavformat/avformat.h: in the future, the compiler will take precedence" >&2;}
+ 
+     ;;
+ esac
+-{ echo "$as_me:$LINENO: checking for ffmpeg/avformat.h" >&5
+-echo $ECHO_N "checking for ffmpeg/avformat.h... $ECHO_C" >&6; }
++{ echo "$as_me:$LINENO: checking for libavformat/avformat.h" >&5
++echo $ECHO_N "checking for libavformat/avformat.h... $ECHO_C" >&6; }
+ if test "${ac_cv_header_ffmpeg_avformat_h+set}" = set; then
    echo $ECHO_N "(cached) $ECHO_C" >&6
  else
-   ac_check_lib_save_LIBS=$LIBS
-@@ -8909,11 +8909,11 @@
- #ifdef __cplusplus
- extern "C"
- #endif
--char FLAC__file_decoder_new ();
-+char FLAC__stream_decoder_new ();
- int
- main ()
- {
--return FLAC__file_decoder_new ();
-+return FLAC__stream_decoder_new ();
-   ;
-   return 0;
- }
-@@ -8936,21 +8936,21 @@
- 	 test ! -s conftest.err
-        } && test -s conftest$ac_exeext &&
-        $as_test_x conftest$ac_exeext; then
--  ac_cv_lib_FLAC_FLAC__file_decoder_new=yes
-+  ac_cv_lib_FLAC_FLAC__stream_decoder_new=yes
- else
-   echo "$as_me: failed program was:" >&5
- sed 's/^/| /' conftest.$ac_ext >&5
- 
--	ac_cv_lib_FLAC_FLAC__file_decoder_new=no
-+	ac_cv_lib_FLAC_FLAC__stream_decoder_new=no
- fi
- 
- rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-       conftest$ac_exeext conftest.$ac_ext
- LIBS=$ac_check_lib_save_LIBS
- fi
--{ echo "$as_me:$LINENO: result: $ac_cv_lib_FLAC_FLAC__file_decoder_new" >&5
--echo "${ECHO_T}$ac_cv_lib_FLAC_FLAC__file_decoder_new" >&6; }
--if test $ac_cv_lib_FLAC_FLAC__file_decoder_new = yes; then
-+{ echo "$as_me:$LINENO: result: $ac_cv_lib_FLAC_FLAC__stream_decoder_new" >&5
-+echo "${ECHO_T}$ac_cv_lib_FLAC_FLAC__stream_decoder_new" >&6; }
-+if test $ac_cv_lib_FLAC_FLAC__stream_decoder_new = yes; then
-   cat >>confdefs.h <<\_ACEOF
- #define HAVE_FLAC 1
- _ACEOF
