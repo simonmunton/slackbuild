@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avidemux
+TARNAME=texinfo
 TARNAMEEXTRA=
-TARSEP="_"
-TARDIR=~/tmp/new/a
+TARSEP="-"
+TARDIR=~/tmp/gnu/texinfo
 #TAR_EXT=.tar.gz
-VERSION=2.4.3
-VERSIONEXTRA=
-BUILD=2
+VERSION=4.13
+VERSIONEXTRA=a
+BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/avidemux-2.4.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX="/usr" .
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -70,6 +77,20 @@ fi
 
 make install DESTDIR=${PKG}
 
+cp ${CWD}/texinfo.dir ${PKG}/usr/info/dir
+
+cat >> ${PKG}/install/doinst.sh << EOF
+infos=\`ls usr/info | grep \.info\.gz | tr '\012' ' '\`
+if [ -n "\${infos}" ]
+then
+  for n in \${infos}
+  do
+    install-info --info-dir=usr/info usr/info/\${n}
+  done
+fi
+
+EOF
+
 #strip_binaries
 
 fix_links
@@ -80,18 +101,21 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS INTRODUCTION \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A graphical multiplex/demultiplex tool using GTK"
-Avidemux is a graphical tool to edit AVI. It allows you to multiplex 
-and demultiplex audio to/from video.
+make_slack_desc << EOF "GNU software documentation system"
+'Texinfo' is a documentation system that uses a single source file to
+produce both on-line information and printed output.  Using Texinfo,
+you can create a printed document with the normal features of a book,
+including chapters, sections, cross references, and indices.  From the
+same Texinfo source file, you can create a menu-driven, on-line Info
+file with nodes, menus, cross references, and indices.
 
-It is able to cut video, import BMP, MJPEG and MPEG video, and encode 
-them. You can also process video with included filters. It requires a 
-DivX compatible encoder and the Gimp Toolkit (GTK) libraries.
+This package is needed to read the documentation files in /usr/info.
 
 EOF
 

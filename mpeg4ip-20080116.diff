@@ -1,5 +1,36 @@
+--- mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp.orig	2005-05-09 22:29:45.000000000 +0100
++++ mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp	2008-10-06 08:09:45.000000000 +0100
+@@ -153,7 +153,8 @@
+ typedef long Long; 
+ typedef unsigned long ULong; 
+ typedef int Int; 
+-typedef void Void; 
++//typedef void Void; 
++#define Void void
+ typedef int Bool; 
+ typedef long CoordI; 
+ typedef double CoordD; 
+--- mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am.orig	2006-02-09 17:57:29.000000000 +0000
++++ mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am	2008-10-06 08:09:45.000000000 +0100
+@@ -1,5 +1,5 @@
+ 
+-AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
++AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -D_OBSS_ @BILLS_CPPWARNINGS@
+ 
+ INCLUDES = -I$(srcdir)/../include
+ 
+--- mpeg4ip-20080116/lib/SDLAudio/configure.in.orig	2005-01-17 20:46:07.000000000 +0000
++++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2008-10-06 08:09:45.000000000 +0100
+@@ -47,6 +47,7 @@
+ 
+ AC_LIBTOOL_WIN32_DLL
+ AM_PROG_LIBTOOL
++AM_PROG_AS
+ AC_PROG_MAKE_SET
+ AC_PROG_CC
+ AC_C_INLINE
 --- mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:01.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h	2008-10-06 08:09:45.000000000 +0100
 @@ -26,7 +26,7 @@
  #include "codec_plugin.h"
  extern "C" {
@@ -10,7 +41,7 @@
  #include <avcodec.h>
  #endif
 --- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp.orig	2007-07-02 21:26:03.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp	2008-05-20 11:19:52.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp	2008-10-06 08:09:45.000000000 +0100
 @@ -324,6 +324,10 @@
      ffmpeg_interface_unlock();
      free(ffmpeg->m_c);
@@ -49,7 +80,7 @@
  					 ffmpeg->have_cached_ts ?
  					 ffmpeg->cached_ts : ts);
 --- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:03.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h	2008-05-20 11:17:12.000000000 +0100
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h	2008-10-06 08:09:45.000000000 +0100
 @@ -27,7 +27,8 @@
  #include "codec_plugin.h"
  extern "C" {
@@ -69,7 +100,7 @@
    bool m_video_initialized;
    int m_did_pause;
 --- mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h.orig	2007-07-02 21:26:04.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h	2008-10-06 08:09:45.000000000 +0100
 @@ -25,7 +25,7 @@
  #include "audio_encoder.h"
  extern "C" {
@@ -80,7 +111,7 @@
  #include <avcodec.h>
  #endif
 --- mpeg4ip-20080116/server/mp4live/video_ffmpeg.h.orig	2007-07-02 21:26:05.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/video_ffmpeg.h	2008-05-20 10:55:26.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_ffmpeg.h	2008-10-06 08:09:45.000000000 +0100
 @@ -25,7 +25,7 @@
  #include "video_encoder.h"
  extern "C" {
@@ -91,7 +122,7 @@
  #include <avcodec.h>
  #endif
 --- mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp.orig	2007-07-02 21:26:05.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp	2008-05-20 10:55:26.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp	2008-10-06 08:09:45.000000000 +0100
 @@ -27,7 +27,7 @@
  #ifdef HAVE_FFMPEG
  extern "C" {
@@ -101,39 +132,8 @@
  #else
  #include <avcodec.h>
  #endif
---- mpeg4ip-20080116/lib/SDLAudio/configure.in.orig	2005-01-17 20:46:07.000000000 +0000
-+++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2008-05-20 10:55:35.000000000 +0100
-@@ -47,6 +47,7 @@
- 
- AC_LIBTOOL_WIN32_DLL
- AM_PROG_LIBTOOL
-+AM_PROG_AS
- AC_PROG_MAKE_SET
- AC_PROG_CC
- AC_C_INLINE
---- mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am.orig	2006-02-09 17:57:29.000000000 +0000
-+++ mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am	2008-05-20 11:28:01.000000000 +0100
-@@ -1,5 +1,5 @@
- 
--AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
-+AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -D_OBSS_ @BILLS_CPPWARNINGS@
- 
- INCLUDES = -I$(srcdir)/../include
- 
---- mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp.orig	2005-05-09 22:29:45.000000000 +0100
-+++ mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp	2008-05-20 10:55:22.000000000 +0100
-@@ -153,7 +153,8 @@
- typedef long Long; 
- typedef unsigned long ULong; 
- typedef int Int; 
--typedef void Void; 
-+//typedef void Void; 
-+#define Void void
- typedef int Bool; 
- typedef long CoordI; 
- typedef double CoordD; 
---- mpeg4ip-20080116/configure.in.orig	2007-09-28 21:45:08.000000000 +0100
-+++ mpeg4ip-20080116/configure.in	2008-05-20 10:55:35.000000000 +0100
+--- mpeg4ip-20080116/configure.in.orig	2008-10-06 21:02:45.000000000 +0100
++++ mpeg4ip-20080116/configure.in	2008-10-06 21:02:58.000000000 +0100
 @@ -512,10 +512,10 @@
       if test x$have_ffmpeg = xtrue; then
          AC_DEFINE(HAVE_FFMPEG_INSTALLED, 1, [defined if ffmpeg is installed])
@@ -149,3 +149,12 @@
          AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
  	AC_CHECK_LIB(amrnb, VADxEncoder_Interface_init, 
  		     [have_amr_nb=true], [have_amr_nb=false])
+@@ -769,7 +769,7 @@
+ 
+    if test x$USENASM = xtrue; then
+ 	AC_MSG_CHECKING(nasm version...)
+-	BILLSNASM_arg=`nasm -r | tr '.' ' '`
++	BILLSNASM_arg=`nasm -v | tr '.' ' '`
+         BILLSNASM_ret=`util/testnasm.sh $BILLSNASM_arg`
+ 	if test x$BILLSNASM_ret = x"yes"; then
+ 	   USENASM=true
