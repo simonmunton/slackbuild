@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=xcircuit
+TARNAME=electric-fence
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/x
+TARSEP="_"
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=3.6.139
-VERSIONEXTRA=
+VERSION=2.1.13
+VERSIONEXTRA=-0.1
 BUILD=1
 
 WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=ElectricFence
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -46,7 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- autoreconf
 )
 fi
 
@@ -58,12 +57,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,9 +70,8 @@ then
   exit
 fi
 
-make install install-man1 DESTDIR=${PKG}
-
-rm -rf ${PKG}/usr/lib/xcircuit-*/man
+mkdir -p ${PKG}/usr/lib ${PKG}/usr/man/man3
+make install DESTDIR=${PKG} LIB_INSTALL_DIR=${PKG}/usr/lib MAN_INSTALL_DIR=${PKG}/usr/man/man3
 
 #strip_binaries
 
@@ -95,8 +88,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "X11 drawing program"
-An X11 drawing program [especially for circuit schematics]
+make_slack_desc << EOF "a different kind of malloc() debugger"
+Electric Fence is a different kind of malloc() debugger. It uses the 
+virtual memory hardware of your system to detect when software 
+overruns the boundaries of a malloc() buffer. It will also detect any 
+accesses of memory that has been released by free(). Because it uses 
+the VM hardware for detection, Electric Fence stops your program on 
+the first instruction that causes a bounds violation. It's then 
+trivial to use a debugger to display the offending statement.
 
 EOF
 
