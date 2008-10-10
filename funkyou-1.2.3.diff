@@ -1,0 +1,86 @@
+--- funkyou-1.2.3/funkyou/cvocoder.cpp.orig	2002-10-11 20:44:34.000000000 +0100
++++ funkyou-1.2.3/funkyou/cvocoder.cpp	2008-10-10 22:07:33.000000000 +0100
+@@ -87,7 +87,7 @@
+ 	
+ int CVocoder::OpenSoundcard(){
+     int dsps = 0;
+-    int rate = 44100;      /* Sample rate */
++    unsigned int rate = 44100;      /* Sample rate */
+     int exact_rate;        /* Sample rate returned by */
+                            /* snd_pcm_hw_params_set_rate_near */
+     int dir;               /* exact_rate == rate --> dir = 0 */
+@@ -129,10 +129,10 @@
+ 
+     /* Set sample rate. If the exact rate is not supported */
+     /* by the hardware, use nearest possible rate.         */
+-    exact_rate = snd_pcm_hw_params_set_rate_near(pcm_rec, hwparams, rate, &dir);
++    exact_rate = snd_pcm_hw_params_set_rate_near(pcm_rec, hwparams, &rate, &dir);
+     if (dir != 0) {
+-      fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n
+-                       ==> Using %d Hz instead.\n", rate, exact_rate);
++      fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n"
++                      "==> Using %d Hz instead.\n", rate, exact_rate);
+     }
+ 
+     /* Set number of channels */
+--- funkyou-1.2.3/funkyou/cdecoder.h.orig	2002-10-13 18:17:34.000000000 +0100
++++ funkyou-1.2.3/funkyou/cdecoder.h	2008-10-10 22:09:04.000000000 +0100
+@@ -29,7 +29,7 @@
+ #include <pthread.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include "libmpeg3/libmpeg3.h"
++#include <mpeg3/libmpeg3.h>
+ #include <vorbis/codec.h>
+ #include <vorbis/vorbisfile.h>
+ 
+--- funkyou-1.2.3/funkyou/cdecoder.cpp.orig	2002-10-13 18:14:22.000000000 +0100
++++ funkyou-1.2.3/funkyou/cdecoder.cpp	2008-10-10 22:12:04.000000000 +0100
+@@ -363,7 +363,7 @@
+       loop_position = 44100;  // 1sec
+ 
+       // try mp3file
+-      mp3stream = mpeg3_open(filename);
++      mp3stream = mpeg3_open(filename, NULL);
+       if (mp3stream) {
+         channels = mpeg3_audio_channels(mp3stream,0); //stream 0
+         samplerate = mpeg3_sample_rate(mp3stream,0);
+--- funkyou-1.2.3/funkyou/cengine.cpp.orig	2002-10-13 19:07:32.000000000 +0100
++++ funkyou-1.2.3/funkyou/cengine.cpp	2008-10-10 22:13:48.000000000 +0100
+@@ -267,7 +267,7 @@
+ int CEngine::OpenSoundcards(){
+ 
+ 	int dsps = 0;
+-    int rate = 44100;      /* Sample rate */
++    unsigned int rate = 44100;      /* Sample rate */
+     int exact_rate;        /* Sample rate returned by */
+                            /* snd_pcm_hw_params_set_rate_near */
+     int dir;               /* exact_rate == rate --> dir = 0 */
+@@ -308,10 +308,10 @@
+ 
+     /* Set sample rate. If the exact rate is not supported */
+     /* by the hardware, use nearest possible rate.         */
+-    exact_rate = snd_pcm_hw_params_set_rate_near(pcm_front, hwparams, rate, &dir);
++    exact_rate = snd_pcm_hw_params_set_rate_near(pcm_front, hwparams, &rate, &dir);
+     if (dir != 0) {
+-      fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n
+-                       ==> Using %d Hz instead.\n", rate, exact_rate);
++      fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n"
++                      "==> Using %d Hz instead.\n", rate, exact_rate);
+     }
+ 
+     /* Set number of channels */
+@@ -387,10 +387,10 @@
+ 
+        /* Set sample rate. If the exact rate is not supported */
+        /* by the hardware, use nearest possible rate.         */
+-       exact_rate = snd_pcm_hw_params_set_rate_near(pcm_rear, hwparams, rate, &dir);
++       exact_rate = snd_pcm_hw_params_set_rate_near(pcm_rear, hwparams, &rate, &dir);
+        if (dir != 0) {
+-         fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n
+-                          ==> Using %d Hz instead.\n", rate, exact_rate);
++         fprintf(stderr, "The rate %d Hz is not supported by your hardware.\n"
++                         "==> Using %d Hz instead.\n", rate, exact_rate);
+          have_monitor = false;
+        }
+ 

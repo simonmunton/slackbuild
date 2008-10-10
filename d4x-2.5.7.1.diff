@@ -1,25 +1,5 @@
---- d4x-2.5.7.1/main/path.cc.orig	2008-05-09 11:36:59.000000000 +0100
-+++ d4x-2.5.7.1/main/path.cc	2008-05-09 11:37:09.000000000 +0100
-@@ -3,13 +3,15 @@
- using namespace d4x;
- 
- void Path::normalize(){
--	size_type p=npos;
-+	size_type p=0;
- 	while((p=find("//",p))!=npos){
- 		replace(p,2,"/");
- 	};
-+	p = 0;
- 	while((p=find("/./",p))!=npos){
- 		replace(p,3,"/");
- 	};
-+	p = 0;
- 	while((p=find("/../"),p)!=npos){
- 		size_type r=rfind('/',p-1);
- 		if (r!=npos){
-diff -ur d4x-2.5.7.1/configure d4x-2.5.7.1.new/configure
---- d4x-2.5.7.1/configure	2006-04-12 17:48:29.000000000 +0100
-+++ d4x-2.5.7.1.new/configure	2008-01-22 11:25:45.000000000 +0000
+--- d4x-2.5.7.1/configure.orig	2006-04-12 17:48:29.000000000 +0100
++++ d4x-2.5.7.1/configure	2008-10-10 08:58:07.000000000 +0100
 @@ -18397,10 +18397,6 @@
  _ACEOF
  
@@ -31,21 +11,37 @@ diff -ur d4x-2.5.7.1/configure d4x-2.5.7.1.new/configure
  
  cat >>confdefs.h <<\_ACEOF
  #define _FILE_OFFSET_BITS 64
-diff -ur d4x-2.5.7.1/main/face/list.cc d4x-2.5.7.1.new/main/face/list.cc
---- d4x-2.5.7.1/main/face/list.cc	2006-03-20 00:29:41.000000000 +0000
-+++ d4x-2.5.7.1.new/main/face/list.cc	2008-01-22 10:49:08.000000000 +0000
-@@ -8,7 +8,7 @@
-  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  */
--#define GTK_DISABLE_DEPRECATED
-+//#define GTK_DISABLE_DEPRECATED
+--- d4x-2.5.7.1/main/locstr.cc.orig	2005-11-11 21:38:45.000000000 +0000
++++ d4x-2.5.7.1/main/locstr.cc	2008-10-10 09:54:28.000000000 +0100
+@@ -691,7 +691,7 @@
+ 	date.tm_isdst=-1;
+ 	if (tmp && *tmp) {
+ 		tmp=extract_string(tmp,data);
+-		sscanf(data,"%i",&date.tm_mday);
++		sscanf(data,"%d",&date.tm_mday);
+ 	};
+ 	if (tmp && *tmp) {
+ 		tmp=extract_string(tmp,data);
+@@ -699,7 +699,7 @@
+ 	};
+ 	if (tmp && *tmp) {
+ 		tmp=extract_string(tmp,data);
+-		sscanf(data,"%i",&date.tm_year);
++		sscanf(data,"%d",&date.tm_year);
+ 		date.tm_year-=1900;
+ 	};
+ 	if (tmp && *tmp) {
+@@ -1362,6 +1362,8 @@
+ };
  
- #include <stdio.h>
- #include <gtk/gtk.h>
-diff -ur d4x-2.5.7.1/main/httpd.cc d4x-2.5.7.1.new/main/httpd.cc
---- d4x-2.5.7.1/main/httpd.cc	2006-04-05 20:01:41.000000000 +0100
-+++ d4x-2.5.7.1.new/main/httpd.cc	2008-01-23 15:29:40.000000000 +0000
+ int file_copy(char *from,char *to,char *buf,int size){
++	if (equal(from, to))
++		return 0;
+ 	FILE *src=fopen(from,"r");
+ 	if (src==NULL){
+ 		return(-1);
+--- d4x-2.5.7.1/main/httpd.cc.orig	2006-04-05 20:01:41.000000000 +0100
++++ d4x-2.5.7.1/main/httpd.cc	2008-10-10 09:54:35.000000000 +0100
 @@ -124,10 +124,24 @@
  	if (tmp==NULL) return(NULL);
  	tmp=skip_spaces(tmp+1);
@@ -89,21 +85,27 @@ diff -ur d4x-2.5.7.1/main/httpd.cc d4x-2.5.7.1.new/main/httpd.cc
  	HTTP->import_ctrl_socket(s);
  	RetrNum=1;
  	tDownloader::reconnect();
-diff -ur d4x-2.5.7.1/main/locstr.cc d4x-2.5.7.1.new/main/locstr.cc
---- d4x-2.5.7.1/main/locstr.cc	2005-11-11 21:38:45.000000000 +0000
-+++ d4x-2.5.7.1.new/main/locstr.cc	2008-01-22 10:49:08.000000000 +0000
-@@ -1362,6 +1362,8 @@
- };
+--- d4x-2.5.7.1/main/path.cc.orig	2005-09-13 05:25:53.000000000 +0100
++++ d4x-2.5.7.1/main/path.cc	2008-10-10 08:58:07.000000000 +0100
+@@ -3,13 +3,15 @@
+ using namespace d4x;
  
- int file_copy(char *from,char *to,char *buf,int size){
-+	if (equal(from, to))
-+		return 0;
- 	FILE *src=fopen(from,"r");
- 	if (src==NULL){
- 		return(-1);
-diff -ur d4x-2.5.7.1/main/sslsocket.cc d4x-2.5.7.1.new/main/sslsocket.cc
---- d4x-2.5.7.1/main/sslsocket.cc	2005-09-16 05:27:04.000000000 +0100
-+++ d4x-2.5.7.1.new/main/sslsocket.cc	2008-01-23 14:25:15.000000000 +0000
+ void Path::normalize(){
+-	size_type p=npos;
++	size_type p=0;
+ 	while((p=find("//",p))!=npos){
+ 		replace(p,2,"/");
+ 	};
++	p = 0;
+ 	while((p=find("/./",p))!=npos){
+ 		replace(p,3,"/");
+ 	};
++	p = 0;
+ 	while((p=find("/../"),p)!=npos){
+ 		size_type r=rfind('/',p-1);
+ 		if (r!=npos){
+--- d4x-2.5.7.1/main/sslsocket.cc.orig	2005-09-16 05:27:04.000000000 +0100
++++ d4x-2.5.7.1/main/sslsocket.cc	2008-10-10 08:58:07.000000000 +0100
 @@ -23,8 +23,12 @@
  		return(SOCKET_CANT_CONNECT);
  	con_flag=0;
@@ -132,3 +134,14 @@ diff -ur d4x-2.5.7.1/main/sslsocket.cc d4x-2.5.7.1.new/main/sslsocket.cc
  	con_flag=1;
  	return 0;
  };
+--- d4x-2.5.7.1/main/face/list.cc.orig	2006-03-20 00:29:41.000000000 +0000
++++ d4x-2.5.7.1/main/face/list.cc	2008-10-10 08:58:07.000000000 +0100
+@@ -8,7 +8,7 @@
+  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  */
+-#define GTK_DISABLE_DEPRECATED
++//#define GTK_DISABLE_DEPRECATED
+ 
+ #include <stdio.h>
+ #include <gtk/gtk.h>
