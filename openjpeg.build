@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=openvrml
+TARNAME=openjpeg
 TARNAMEEXTRA=
-TARSEP="-"
+TARSEP="_"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=0.17.9
+VERSION=v1_3
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=OpenJPEG
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv OpenJPEG_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/openjpeg-v1_3.diff
 )
 fi
 
@@ -53,21 +55,21 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-BOOST_LIB_SUFFIX=-mt \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static
+(cd build
+ cmake .. -DBUILD_EXAMPLES:BOOL=ON -DCMAKE_INSTALL_PREFIX="/usr" -DBUILD_SHARED_LIBS=ON -DCMAKE_SHARED_LINKER_FLAGS="-lm"
+)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+(cd build
+LDFLAGS=-lm \
 make ${NUM_JOBS} || exit
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,16 +77,22 @@ then
   exit
 fi
 
+(cd build
+LDFLAGS=-lm \
 make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/bin
-(cd examples
- ../libtool --mode=install install sdl-viewer /tmp/package-openvrml/usr/bin
 )
 
-mv ${PKG}/usr/lib/mozilla ${PKG}/usr/lib/firefox
+mkdir -p ${PKG}/usr/include
+mv ${PKG}/openjpeg/* ${PKG}/usr/include
+rm -rf ${PKG}/openjpeg
 
-strip_binaries
+mkdir -p ${PKG}/usr/man/man1
+cp ${CWD}/openjpeg_image_to_j2k.1 ${PKG}/usr/man/man1/image_to_j2k.1
+cp ${CWD}/openjpeg_index_create.1 ${PKG}/usr/man/man1/index_create.1
+cp ${CWD}/openjpeg_j2k_to_image.1 ${PKG}/usr/man/man1/j2k_to_image.1
+
+
+#strip_binaries
 
 fix_links
 
@@ -99,10 +107,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "portable toolkit for VRML and X3D files"
-OpenVRML is a portable toolkit including a C++ library for reading
-and displaying VRML and X3D files, an OpenGL renderer, and a Mozilla
-Web browser plug-in for viewing VRML and X3D content on the Internet.
+make_slack_desc << EOF "open-source JPEG 2000 codec"
+The OpenJPEG library is an  written in C 
+language. It has been developed in order to promote the use of JPEG 
+2000, the new still-image compression standard from the Joint 
+Photographic Experts Group (JPEG). In addition to the basic codec, 
+various other features are under development, among them the JP2 and 
+MJ2 (Motion JPEG 2000) file formats, an indexing tool useful for the 
+JPIP protocol, JPWL-tools for error-resilience, a Java-viewer for 
+j2k-images, ... 
 
 EOF
 

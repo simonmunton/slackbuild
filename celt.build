@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=openvrml
+TARNAME=celt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/o
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.17.9
+VERSION=0.5.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,12 +59,10 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-BOOST_LIB_SUFFIX=-mt \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,14 +77,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/bin
-(cd examples
- ../libtool --mode=install install sdl-viewer /tmp/package-openvrml/usr/bin
-)
-
-mv ${PKG}/usr/lib/mozilla ${PKG}/usr/lib/firefox
-
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -99,10 +92,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "portable toolkit for VRML and X3D files"
-OpenVRML is a portable toolkit including a C++ library for reading
-and displaying VRML and X3D files, an OpenGL renderer, and a Mozilla
-Web browser plug-in for viewing VRML and X3D content on the Internet.
+make_slack_desc << EOF "very low delay audio codec"
+CELT is a very low delay audio codec designed for high-quality 
+communications. Its potential uses include video-conferencing and 
+network music performance. The code is still in early stage, so it 
+may be broken from time to time and the bit-stream is not frozen yet, 
+so it is different from one version to another. Oh, and don't complain 
+if it sets your house on fire.
 
 EOF
 
