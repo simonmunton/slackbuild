@@ -6,19 +6,19 @@ CWD=`pwd`
 PKG=/tmp/package-ooo
 
 # Change to the version of OOo you are using this script with
-VERSION=2.4.1
+VERSION=3.0.0
 
 # 2.0 hack - directory versions don't match package name versions
-S_VERSION=2.4
+S_VERSION=3
 
 # Most of the packages are i586. Edit this only if that changes
 ARCH=${ARCH:-i586}
 
 # Most OOo packages are build 1 - edit this if that changes
-BUILD=9310
+BUILD=9358
 
 # As of 2.0.2 the menus have a different build revision
-BUILD_MENU=9268
+BUILD_MENU=9354
 
 # Change to the name of the file you downloaded from OOo
 # Usually in the form of: OOo_$VERSION_LinuxIntel_install.tar.gz
@@ -65,10 +65,10 @@ mv $PKG/RPMS/desktop-integration/* $PKG/RPMS
 
 # Delete the RedHat, Mandrake/ Mandriva and Free Desktop menus
 # Do *not* add SuSE here - that package is needed later
-rm $PKG/RPMS/openoffice.org-redhat*
-rm $PKG/RPMS/openoffice.org-mandr*
-rm $PKG/RPMS/openoffice.org-freedesktop*
-rm $PKG/RPMS/openoffice.org-debian*
+rm $PKG/RPMS/openoffice.org*-redhat*
+rm $PKG/RPMS/openoffice.org*-mandr*
+rm $PKG/RPMS/openoffice.org*-freedesktop*
+rm $PKG/RPMS/openoffice.org*-debian*
 
 # Add any other packages you don't want here in the form
 # rm $PKG/RPMS/openofficeorg-$PACKAGENAME*
@@ -89,7 +89,7 @@ cd $PKG/package
 
 # Dirty hack until I can find a nice way to fix the multiple build revisions problem
 (  
-  RPM=openoffice.org-suse-menus-${S_VERSION}-${BUILD_MENU}.noarch.rpm
+  RPM=openoffice.org*-suse-menus-${S_VERSION}-${BUILD_MENU}.noarch.rpm
   rpm2cpio $PKG/$RPM | cpio -imd -R 0:0 2> /dev/null
   rm $PKG/$RPM
 
@@ -159,10 +159,14 @@ _EOF_
 chmod a+x $PKG/package/install/doinst.sh
 chmod -R 755 $PKG/package/usr/bin
 
-for file in $PKG/openoffice.org*-$VERSION-*.rpm
+for file in $PKG/o*.rpm
 do
     extractPackage $file
 done
+
+cp -pr $PKG/package/opt/gnome/* $PKG/package/usr
+cp -pr $PKG/package/opt/kde3/* $PKG/package/usr
+rm -rf $PKG/package/opt/gnome $PKG/package/opt/kde3
 
 #    buildPackage 
 cat > $PKG/package/install/slack-desc << EOF
