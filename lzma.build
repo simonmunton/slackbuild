@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/7zip
 #TAR_EXT=.tar.gz
 VERSION=457
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://www.7-zip.org/"
 # "http://tukaani.org/lzma/"
@@ -49,9 +49,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
- cat CPP/7zip/Compress/LZMA_Alone/makefile.gcc | tr -d '\r' | sed -e "s/^\\(CFLAGS =.*\\)/\\1 -D_FILE_OFFSET_BITS=64/" > CPP/7zip/Compress/LZMA_Alone/makefile.gcc.new
- mv CPP/7zip/Compress/LZMA_Alone/makefile.gcc.new CPP/7zip/Compress/LZMA_Alone/makefile.gcc
+ patch -p1 < ${CWD}/lzma-457.diff
+ #cat CPP/7zip/Compress/LZMA_Alone/makefile.gcc | tr -d '\r' | sed -e "s/^\\(CFLAGS =.*\\)/\\1 -D_FILE_OFFSET_BITS=64/" > CPP/7zip/Compress/LZMA_Alone/makefile.gcc.new
+ #mv CPP/7zip/Compress/LZMA_Alone/makefile.gcc.new CPP/7zip/Compress/LZMA_Alone/makefile.gcc
 )
 fi
 
@@ -72,6 +72,8 @@ then
 make ${NUM_JOBS} -f makefile.gcc || exit
 )
 
+#Sqlzma=../../Common make -C CPP/7zip/Compress/LZMA_Alone -f sqlzma.mk
+#Sqlzma=../../Common make -C CPP/7zip/Compress/LZMA_C -f sqlzma.mk
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,12 +81,20 @@ then
   exit
 fi
 
-(cd CPP/7zip/Compress/LZMA_Alone
+
 mkdir -p ${PKG}/usr/bin
-cp lzma ${PKG}/usr/bin
+cp CPP/7zip/Compress/LZMA_Alone/{lzma,lzma_alone} ${PKG}/usr/bin
 
 mkdir -p ${PKG}/usr/man/man1
-cp ${CWD}/lzma.1 ${PKG}/usr/man/man1
+cp ${CWD}/{lzma.1,lzma_alone.1} ${PKG}/usr/man/man1
+
+(cd ${PKG}/usr/bin
+ ln -s lzma unlzma
+ ln -s lzma lzcat
+
+ cd ${PKG}/usr/man/man1
+ ln -s lzma.1 unlzma.1
+ ln -s lzma.1 lzcat.1
 )
 
 #strip_binaries
@@ -102,7 +112,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "Compression method of 7z format in 7-Zip program"
+LZMA is a compression algorithm, based on the famous Lempel Ziv
+compression method.
+The main characteristics of the algorithm are very good compression,
+fast decompression, use of lot of RAM for compression and low usage 
+of RAM for decompression.
+LZMA provides high compression ratio and very fast decompression, so 
+it is very suitable for embedded applications. For example, it can be 
+used for ROM (firmware) compression.
+
 EOF
 
 post_install

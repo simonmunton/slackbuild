@@ -1,0 +1,2122 @@
+diff -Nur lzma-457.orig/CPP/7zip/Common/FileStreams.h lzma-457/CPP/7zip/Common/FileStreams.h
+--- lzma-457.orig/CPP/7zip/Common/FileStreams.h	2007-10-19 11:02:12.000000000 +0100
++++ lzma-457/CPP/7zip/Common/FileStreams.h	2008-10-14 22:40:49.000000000 +0100
+@@ -72,12 +72,12 @@
+   public IOutStream,
+   public CMyUnknownImp
+ {
++public:
+   #ifdef USE_WIN_FILE
+   NWindows::NFile::NIO::COutFile File;
+   #else
+   NC::NFile::NIO::COutFile File;
+   #endif
+-public:
+   virtual ~COutFileStream() {}
+   bool Create(LPCTSTR fileName, bool createAlways)
+   {
+diff -Nur lzma-457.orig/CPP/7zip/Common/sqlzma.h lzma-457/CPP/7zip/Common/sqlzma.h
+--- lzma-457.orig/CPP/7zip/Common/sqlzma.h	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Common/sqlzma.h	2008-10-14 22:21:05.000000000 +0100
+@@ -0,0 +1,83 @@
++/*
++ * Copyright (C) 2006 Junjiro Okajima
++ * Copyright (C) 2006 Tomas Matejicek, slax.org
++ *
++ * LICENSE follows the described one in lzma.
++ */
++
++/* $Id: sqlzma.h,v 1.15 2007/11/09 14:42:12 jro Exp $ */
++
++#ifndef __sqlzma_h__
++#define __sqlzma_h__
++
++#ifndef __KERNEL__
++#include <stdlib.h>
++#include <string.h>
++#include <zlib.h>
++#ifdef _REENTRANT
++#include <pthread.h>
++#endif
++#else
++#include <linux/zlib.h>
++#endif
++#define _7ZIP_BYTE_DEFINED
++
++/*
++ * detect the compression method automatically by the first byte of compressed
++ * data.
++ * according to rfc1950, the first byte of zlib compression must be 0x?8.
++ */
++#define is_lzma(c)	(c == 0x5d)
++
++/* ---------------------------------------------------------------------- */
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#ifndef __KERNEL__
++/* for mksquashfs only */
++struct sqlzma_opts {
++	unsigned int	try_lzma:1;
++	unsigned int 	dicsize;
++};
++int sqlzma_cm(struct sqlzma_opts *opts, z_stream *stream, Bytef *next_in, uInt
++	      avail_in, Bytef *next_out, uInt avail_out);
++#endif
++
++/* ---------------------------------------------------------------------- */
++/*
++ * Three patterns for sqlzma uncompression. very dirty code.
++ * - kernel space (squashfs kernel module)
++ * - user space with pthread (mksquashfs)
++ * - user space without pthread (unsquashfs)
++ */
++
++struct sized_buf {
++	unsigned int	sz;
++	unsigned char	*buf;
++};
++
++enum {SQUN_PROB, SQUN_RESULT, SQUN_LAST};
++struct sqlzma_un {
++	int			un_lzma;
++	struct sized_buf	un_a[SQUN_LAST];
++	unsigned char           un_prob[31960]; /* unlzma 64KB - 1MB */
++	z_stream		un_stream;
++#define un_cmbuf	un_stream.next_in
++#define un_cmlen	un_stream.avail_in
++#define un_resbuf	un_stream.next_out
++#define un_resroom	un_stream.avail_out
++#define un_reslen	un_stream.total_out
++};
++
++int sqlzma_init(struct sqlzma_un *un, int do_lzma, unsigned int res_sz);
++int sqlzma_un(struct sqlzma_un *un, struct sized_buf *src, struct sized_buf *dst);
++void sqlzma_fin(struct sqlzma_un *un);
++
++/* ---------------------------------------------------------------------- */
++
++#ifdef __cplusplus
++};
++#endif
++#endif
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/Exception.h lzma-457/CPP/7zip/Compress/LZMA_Alone/Exception.h
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/Exception.h	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/Exception.h	2008-10-14 22:21:20.000000000 +0100
+@@ -0,0 +1,45 @@
++/* A couple of exceptions for lzmp.
++ *
++ * Copyright (C) 2005 Ville Koskinen
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _EXCEPTION_H_
++#define _EXCEPTION_H_
++
++#include <string>
++using std::string;
++
++class Exception
++{
++private:
++	string message;
++public:
++	Exception(char *what): message(what) { }
++	Exception(string what): message(what) { }
++
++	~Exception() { }
++
++	string what(void) { return message; }
++};
++
++class ArgumentException: public Exception
++{
++public:
++	ArgumentException(char *what): Exception(what) { }
++	ArgumentException(string what): Exception(what) { }
++
++	~ArgumentException() { }
++};
++
++#endif
++
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/comp.cc lzma-457/CPP/7zip/Compress/LZMA_Alone/comp.cc
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/comp.cc	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/comp.cc	2008-10-14 22:20:23.000000000 +0100
+@@ -0,0 +1,260 @@
++/*
++ * Copyright (C) 2006-2007 Junjiro Okajima
++ * Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++ *
++ * LICENSE follows the described one in lzma.txt.
++ */
++
++/* $Id: comp.cc,v 1.3 2007/11/13 13:27:23 jro Exp $ */
++
++// extract some parts from lzma443/C/7zip/Compress/LZMA_Alone/LzmaAlone.cpp
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <assert.h>
++#include <errno.h>
++
++#include "StdAfx.h"
++#include "../../../Common/MyInitGuid.h"
++//#include "../../../Common/MyWindows.h"
++#include "../../../Common/StringConvert.h"
++//#include "../../../Common/StringToInt.h"
++//#include "../../Common/StreamUtils.h"
++#include "../LZMA/LZMAEncoder.h"
++
++#include <pthread.h>
++#include <zlib.h>
++#include "sqlzma.h"
++
++//////////////////////////////////////////////////////////////////////
++
++class CMemoryStream {
++protected:
++	Bytef *m_data;
++	UInt64 m_limit;
++	UInt64 m_pos;
++
++public:
++	CMemoryStream(Bytef *data, UInt64 size)
++		: m_data(data), m_limit(size), m_pos(0) {}
++
++	virtual ~CMemoryStream() {}
++};
++
++class CInMemoryStream : public CMemoryStream, public IInStream,
++			public CMyUnknownImp {
++//protected:
++	CMyComPtr<ISequentialInStream> m_stream;
++
++public:
++	MY_UNKNOWN_IMP1(IInStream);
++
++	CInMemoryStream(Bytef *data, UInt64 size)
++		: CMemoryStream(data, size), m_stream(this) {}
++
++	virtual ~CInMemoryStream() {}
++
++	STDMETHOD(Read)(void *data, UInt32 size, UInt32 *processedSize)
++	{
++		UInt64 room = m_limit - m_pos;
++		if (size > room)
++			size = room;
++		if (size) {
++			memcpy(data, m_data + m_pos, size);
++			m_pos += size;
++		}
++		if (processedSize)
++			*processedSize = size;
++		return S_OK;
++	}
++
++	// disabled all
++	STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64 *newPosition) {
++		assert(0);
++		return E_NOTIMPL;
++	}
++};
++
++class COutMemoryStream : public CMemoryStream, public IOutStream,
++			 public CMyUnknownImp {
++//protected:
++	CMyComPtr<ISequentialOutStream> m_stream;
++
++public:
++	MY_UNKNOWN_IMP1(IOutStream);
++
++	COutMemoryStream(Bytef *data, UInt64 size)
++		: CMemoryStream(data, size), m_stream(this) {}
++
++	virtual ~COutMemoryStream() {}
++
++	UInt32 GetSize() {return m_pos;}
++
++	STDMETHOD(Write)(const void *data, UInt32 size, UInt32 *processedSize) {
++		if (m_pos + size > m_limit)
++			return -ENOSPC;
++		memcpy(m_data + m_pos, data, size);
++		m_pos += size;
++		if (processedSize)
++			*processedSize = size;
++		return S_OK;
++	}
++
++	// disabled all
++	STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64 *newPosition) {
++		assert(0);
++		return E_NOTIMPL;
++	}
++	STDMETHOD(SetSize)(Int64 newSize) {
++		assert(0);
++		return E_NOTIMPL;
++	}
++};
++
++//////////////////////////////////////////////////////////////////////
++
++static int
++LzmaCompress(Bytef *next_in, uInt avail_in, Bytef *next_out, uInt avail_out,
++	     struct sqlzma_opts *opts, uLong *total_out)
++{
++	int err;
++	HRESULT res;
++	const Byte a[] = {
++		avail_in, avail_in >> 8, avail_in >> 16, avail_in >> 24,
++		0, 0, 0, 0
++	};
++
++	NCompress::NLZMA::CEncoder encoderSpec;
++	CMyComPtr<ICompressCoder> encoder = &encoderSpec;
++	encoder->AddRef();
++	CInMemoryStream inStreamSpec(next_in, avail_in);
++	CMyComPtr<ISequentialInStream> inStream = &inStreamSpec;
++	inStream->AddRef();
++	COutMemoryStream outStreamSpec(next_out, avail_out);
++	CMyComPtr<ISequentialOutStream> outStream = &outStreamSpec;
++	outStream->AddRef();
++
++	// these values are dpending upon is_lzma() macro in sqlzma.h
++	const UInt32 dictionary = opts->dicsize;
++	//fprintf(stderr, "dic %u\n", dictionary);
++	const UString mf = L"BT4";
++	const UInt32 posStateBits = 2;
++	const UInt32 litContextBits = 3; // for normal files
++	// UInt32 litContextBits = 0; // for 32-bit data
++	const UInt32 litPosBits = 0;
++	// UInt32 litPosBits = 2; // for 32-bit data
++	//const UInt32 algorithm = 2;
++	const UInt32 algorithm = 1;
++	const UInt32 numFastBytes = 128;
++	const UInt32 matchFinderCycles = 16 + numFastBytes / 2;
++	//const bool matchFinderCyclesDefined = false;
++	const PROPID propIDs[] = {
++		NCoderPropID::kDictionarySize,
++		NCoderPropID::kPosStateBits,
++		NCoderPropID::kLitContextBits,
++		NCoderPropID::kLitPosBits,
++		NCoderPropID::kAlgorithm,
++		NCoderPropID::kNumFastBytes,
++		NCoderPropID::kMatchFinder,
++		NCoderPropID::kEndMarker,
++		NCoderPropID::kNumThreads,
++		NCoderPropID::kMatchFinderCycles
++	};
++	const int kNumPropsMax = sizeof(propIDs) / sizeof(propIDs[0]);
++	PROPVARIANT properties[kNumPropsMax];
++	for (int p = 0; p < 6; p++)
++		properties[p].vt = VT_UI4;
++	properties[0].ulVal = UInt32(dictionary);
++	properties[1].ulVal = UInt32(posStateBits);
++	properties[2].ulVal = UInt32(litContextBits);
++	properties[3].ulVal = UInt32(litPosBits);
++	properties[4].ulVal = UInt32(algorithm);
++	properties[5].ulVal = UInt32(numFastBytes);
++
++	properties[6].vt = VT_BSTR;
++	properties[6].bstrVal = (BSTR)(const wchar_t *)mf;
++	properties[7].vt = VT_BOOL;
++	properties[7].boolVal = VARIANT_FALSE;	// EOS
++	properties[8].vt = VT_UI4;
++	properties[8].ulVal = 1; // numThreads
++	properties[9].vt = VT_UI4;
++	properties[9].ulVal = UInt32(matchFinderCycles);
++
++	err = -EINVAL;
++	res = encoderSpec.SetCoderProperties(propIDs, properties,
++					     kNumPropsMax - 1);
++	if (res)
++		goto out;
++	res = encoderSpec.WriteCoderProperties(outStream);
++	if (res)
++		goto out;
++
++	UInt32 r;
++	res = outStream->Write(a, sizeof(a), &r);
++	if (res || r != sizeof(a))
++		goto out;
++
++	err = encoder->Code(inStream, outStream, 0, /*broken*/0, 0);
++	if (err)
++		goto out;
++	*total_out = outStreamSpec.GetSize();
++
++ out:
++	return err;
++}
++
++//////////////////////////////////////////////////////////////////////
++
++#define Failure(p) do { \
++	fprintf(stderr, "%s:%d: please report to jro " \
++		"{%02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x}\n", \
++		__func__, __LINE__, \
++		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]); \
++	abort(); \
++} while(0)
++
++extern "C" int
++sqlzma_cm(struct sqlzma_opts *opts, z_stream *stream, Bytef *next_in, uInt
++	  avail_in, Bytef *next_out, uInt avail_out)
++{
++	int err;
++	Bytef *p = next_out;
++	uInt l = avail_out;
++
++	stream->next_in = next_in;
++	stream->avail_in = avail_in;
++	stream->next_out = p;
++	stream->avail_out = l;
++	err = deflate(stream, Z_FINISH);
++	if (err != Z_STREAM_END && err != Z_OK)
++		goto out_err;
++	if (avail_in < stream->total_out)
++		return err;
++	if (is_lzma(*p))
++		Failure(p);
++
++	if (opts->try_lzma) {
++		unsigned char a[stream->total_out];
++		uLong processed;
++
++		memcpy(a, p, stream->total_out);
++
++		// malloc family in glibc and stdc++ seems to be thread-safe
++		err = LzmaCompress(next_in, avail_in, p, l, opts, &processed);
++		if (!err && processed <= stream->total_out) {
++			if (!is_lzma(*next_out))
++				Failure(next_out);
++			stream->total_out = processed;
++			err = Z_STREAM_END;
++		} else {
++			//puts("by zlib");
++			memcpy(p, a, stream->total_out);
++			err = Z_STREAM_END;
++		}
++	}
++	return err;
++
++ out_err:
++	fprintf(stderr, "%s: ZLIB err %s\n", __func__, zError(err));
++	return err;
++}
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/lzma_version.h lzma-457/CPP/7zip/Compress/LZMA_Alone/lzma_version.h
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/lzma_version.h	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/lzma_version.h	2008-10-14 22:21:20.000000000 +0100
+@@ -0,0 +1,31 @@
++#ifndef LZMA_VERSION_H
++#define LZMA_VERSION_H
++
++/*
++    Version and copyright information used by LZMA utils.
++*/
++
++static const char *LZMA_SDK_VERSION_STRING = "4.43";
++
++static const char *LZMA_SDK_COPYRIGHT_STRING =
++		"Copyright (C) 1999-2006 Igor Pavlov";
++
++static const char *LZMA_SDK_COPYRIGHT_INFO =
++		"  See http://7-zip.org/sdk.html or the documentation of LZMA SDK for\n"
++		"  the license. For reference, the version 4.43 is free software\n"
++		"  licensed under the GNU LGPL.";
++
++
++static const char *LZMA_UTILS_VERSION_STRING = PACKAGE_VERSION;
++
++static const char *LZMA_UTILS_COPYRIGHT_STRING =
++		"Copyright (C) 2006 Lasse Collin";
++
++static const char *LZMA_UTILS_COPYRIGHT_INFO =
++		"This program comes with ABSOLUTELY NO WARRANTY.\n"
++		"You may redistribute copies of this program\n"
++		"under the terms of the GNU General Public License.\n"
++		"For more information about these matters, see the file "
++		"named COPYING.\n";
++
++#endif /* ifndef LZMA_VERSION_H */
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/lzmp.cpp lzma-457/CPP/7zip/Compress/LZMA_Alone/lzmp.cpp
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/lzmp.cpp	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/lzmp.cpp	2008-10-14 22:47:57.000000000 +0100
+@@ -0,0 +1,896 @@
++/*
++ * LZMA command line tool similar to gzip to encode and decode LZMA files.
++ *
++ * Copyright (C) 2005 Ville Koskinen
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
++ * USA.
++ */
++
++#include "../../../Common/MyWindows.h"
++#include "../../../Common/MyInitGuid.h"
++
++#include <iostream>
++using std::cout;
++using std::cerr;
++using std::endl;
++
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++#include <string>
++using std::string;
++#include <vector>
++using std::vector;
++typedef vector<string> stringVector;
++
++#include <unistd.h>
++#include <getopt.h>
++#include <signal.h>
++
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <utime.h>
++#include <sys/time.h> // futimes()
++
++// For Solaris
++#ifndef HAVE_FUTIMES
++//#define futimes(fd, tv) futimesat(fd, NULL, tv)
++#endif
++
++#if defined(_WIN32) || defined(OS2) || defined(MSDOS)
++#include <fcntl.h>
++#include <io.h>
++#define MY_SET_BINARY_MODE(file) setmode(fileno(file),O_BINARY)
++#else
++#define MY_SET_BINARY_MODE(file)
++#endif
++
++#include "../../../7zip/Common/FileStreams.h"
++
++#include "../../../Common/Types.h"
++
++#include "../../../7zip/Compress/LZMA/LZMADecoder.h"
++#include "../../../7zip/Compress/LZMA/LZMAEncoder.h"
++
++#include "Exception.h"
++
++#include "lzma_version.h"
++
++namespace lzma {
++
++const char *PROGRAM_VERSION = PACKAGE_VERSION;
++const char *PROGRAM_COPYRIGHT = "Copyright (C) 2006 Ville Koskinen";
++
++/* LZMA_Alone switches:
++    -a{N}:  set compression mode - [0, 2], default: 2 (max)
++    -d{N}:  set dictionary - [0,28], default: 23 (8MB)
++    -fb{N}: set number of fast bytes - [5, 255], default: 128
++    -lc{N}: set number of literal context bits - [0, 8], default: 3
++    -lp{N}: set number of literal pos bits - [0, 4], default: 0
++    -pb{N}: set number of pos bits - [0, 4], default: 2
++    -mf{MF_ID}: set Match Finder: [bt2, bt3, bt4, bt4b, pat2r, pat2,
++                pat2h, pat3h, pat4h, hc3, hc4], default: bt4
++*/
++
++struct lzma_option {
++	short compression_mode;			// -a
++	short dictionary;			// -d
++	short fast_bytes;			// -fb
++	wchar_t *match_finder;			// -mf
++	short literal_context_bits;		// -lc
++	short literal_pos_bits;			// -lp
++	short pos_bits;				// -pb
++};
++
++/* The following is a mapping from gzip/bzip2 style -1 .. -9 compression modes
++ * to the corresponding LZMA compression modes. Thanks, Larhzu, for coining
++ * these. */
++const lzma_option option_mapping[] = {
++	{ 0,  0,  0,    NULL, 0, 0, 0},		// -0 (needed for indexing)
++	{ 0, 16, 64,  L"hc4", 3, 0, 2},		// -1
++	{ 0, 20, 64,  L"hc4", 3, 0, 2},		// -2
++	{ 1, 19, 64,  L"bt4", 3, 0, 2},		// -3
++	{ 2, 20, 64,  L"bt4", 3, 0, 2},		// -4
++	{ 2, 21, 128, L"bt4", 3, 0, 2},		// -5
++	{ 2, 22, 128, L"bt4", 3, 0, 2},		// -6
++	{ 2, 23, 128, L"bt4", 3, 0, 2},		// -7
++	{ 2, 24, 255, L"bt4", 3, 0, 2},		// -8
++	{ 2, 25, 255, L"bt4", 3, 0, 2},		// -9
++};
++
++struct extension_pair {
++	char *from;
++	char *to;
++};
++
++const extension_pair known_extensions[] = {
++	{ ".lzma", "" },
++	{ ".tlz", ".tar" },
++	{ NULL, NULL }
++};
++
++/* Sorry, I just happen to like enumerations. */
++enum PROGRAM_MODE {
++	PM_COMPRESS = 0,
++	PM_DECOMPRESS,
++	PM_TEST,
++	PM_HELP,
++	PM_LICENSE,
++	PM_VERSION
++};
++
++enum {
++	STATUS_OK = 0,
++	STATUS_ERROR = 1,
++	STATUS_WARNING = 2
++};
++
++/* getopt options. */
++/* struct option { name, has_arg, flag, val } */
++const struct option long_options[] = {
++	{ "stdout", 0, 0, 'c' },
++	{ "decompress", 0, 0, 'd' },
++	{ "compress", 0, 0, 'z' },
++	{ "keep", 0, 0, 'k' },
++	{ "force", 0, 0, 'f' },
++	{ "test", 0, 0, 't' },
++	{ "suffix", 1, 0, 'S' },
++	{ "quiet", 0, 0, 'q' },
++	{ "verbose", 0, 0, 'v' },
++	{ "help", 0, 0, 'h' },
++	{ "license", 0, 0, 'L' },
++	{ "version", 0, 0, 'V' },
++	{ "fast", 0, 0, '1' },
++	{ "best", 0, 0, '9' },
++	{ 0, 0, 0, 0 }
++};
++
++/* getopt option string (for the above options). */
++const char option_string[] = "cdzkftS:qvhLV123456789A:D:F:";
++
++/* Defaults. */
++PROGRAM_MODE program_mode = PM_COMPRESS;
++int	verbosity			= 0;
++bool	stdinput			= false;
++bool	stdoutput			= false;
++bool	keep				= false;
++bool	force				= false;
++int	compression_mode		= 7;
++//char	*suffix				= strdup(".lzma");
++char	*suffix				= strdup(known_extensions[0].from);
++lzma_option	advanced_options 	= { -1, -1, -1, NULL, -1, -1, -1 };
++
++void print_help(const char *const argv0)
++{
++	// Help goes to stdout while other messages go to stderr.
++	cout << "\nlzma " << PROGRAM_VERSION
++		<< " " << PROGRAM_COPYRIGHT << "\n"
++		"Based on LZMA SDK " << LZMA_SDK_VERSION_STRING << " "
++		<< LZMA_SDK_COPYRIGHT_STRING
++		<< "\n\nUsage: " << argv0
++		<< " [flags and input files in any order]\n"
++"  -c --stdout       output to standard output\n"
++"  -d --decompress   force decompression\n"
++"  -z --compress     force compression\n"
++"  -k --keep         keep (don't delete) input files\n"
++"  -f --force        force overwrite of output file and compress links\n"
++"  -t --test         test compressed file integrity\n"
++"  -S .suf  --suffix .suf   use suffix .suf on compressed files\n"
++"  -q --quiet        suppress error messages\n"
++"  -v --verbose      be verbose\n"
++"  -h --help         print this message\n"
++"  -L --license      display the license information\n"
++"  -V --version      display version numbers of LZMA SDK and lzma\n"
++"  -1 .. -2          fast compression\n"
++"  -3 .. -9          good to excellent compression. -7 is the default.\n"
++"     --fast         alias for -1\n"
++"     --best         alias for -9 (usually *not* what you want)\n\n"
++"  Memory usage depends a lot on the chosen compression mode -1 .. -9.\n"
++"  See the man page lzma(1) for details.\n\n";
++}
++
++void print_license(void)
++{
++	cout << "\n  LZMA command line tool " << PROGRAM_VERSION << " - "
++		<< PROGRAM_COPYRIGHT
++		<< "\n  LZMA SDK " << LZMA_SDK_VERSION_STRING << " - "
++		<< LZMA_SDK_COPYRIGHT_STRING
++		<< "\n  This program is a part of the LZMA utils package.\n"
++		"  http://tukaani.org/lzma/\n\n"
++"  This program is free software; you can redistribute it and/or\n"
++"  modify it under the terms of the GNU General Public License\n"
++"  as published by the Free Software Foundation; either version 2\n"
++"  of the License, or (at your option) any later version.\n"
++"\n"
++"  This program is distributed in the hope that it will be useful,\n"
++"  but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
++"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
++"  GNU General Public License for more details.\n"
++"\n";
++}
++
++void print_version(void)
++{
++	cout << "LZMA command line tool " << PROGRAM_VERSION << "\n"
++		<< "LZMA SDK " << LZMA_SDK_VERSION_STRING << "\n";
++}
++
++short str2int (const char *str, const int &min, const int &max)
++{
++	int value = -1;
++	char *endptr = NULL;
++	if (str == NULL || str[0] == '\0')
++		throw ArgumentException("Invalid integer option");
++	value = strtol (str, &endptr, 10);
++	if (*endptr != '\0' || value < min || value > max)
++		throw ArgumentException("Invalid integer option");
++	return value;
++}
++
++void parse_options(int argc, char **argv, stringVector &filenames)
++{
++	/* Snatched from getopt(3). */
++	int c;
++
++	/* Check how we were called */
++	{
++		char *p = strrchr (argv[0], '/'); // Remove path prefix, if any
++		if (p++ == NULL)
++			p = argv[0];
++		if (strstr (p, "un") != NULL) {
++			program_mode = PM_DECOMPRESS;
++		} else if (strstr (p, "cat") != NULL) {
++			program_mode = PM_DECOMPRESS;
++			stdoutput = true;
++		}
++	}
++
++	while (-1 != (c = getopt_long(argc, argv, option_string,
++			long_options, NULL))) {
++		switch (c) {
++			// stdout
++			case 'c':
++				stdoutput = true;
++				break;
++
++			// decompress
++			case 'd':
++				program_mode = PM_DECOMPRESS;
++				break;
++
++			// compress
++			case 'z':
++				program_mode = PM_COMPRESS;
++				break;
++
++			// keep
++			case 'k':
++				keep = true;
++				break;
++
++			// force
++			case 'f':
++				force = true;
++				break;
++
++			// test
++			case 't':
++				program_mode = PM_TEST;
++				break;
++
++			// suffix
++			case 'S':
++				if (optarg) {
++					free(suffix);
++					suffix = strdup(optarg);
++				}
++				break;
++
++			// quiet
++			case 'q':
++				verbosity = 0;
++				break;
++
++			// verbose
++			case 'v':
++				verbosity++;
++				break;
++
++			// help
++			case 'h':
++				program_mode = PM_HELP;
++				break;
++
++			// license
++			case 'L':
++				program_mode = PM_LICENSE;
++				break;
++
++			// version
++			case 'V':
++				program_mode = PM_VERSION;
++				break;
++
++			case '1': case '2': case '3': case '4': case '5':
++			case '6': case '7': case '8': case '9':
++				compression_mode = c - '0';
++				break;
++
++			// Advanced options //
++			// Compression mode
++			case 'A':
++				advanced_options.compression_mode =
++						str2int (optarg, 0, 2);
++				break;
++
++			// Dictionary size
++			case 'D':
++				advanced_options.dictionary =
++						str2int (optarg, 0, 28);
++				break;
++
++			// Fast bytes
++			case 'F':
++				advanced_options.fast_bytes =
++						str2int (optarg, 0, 273);
++				break;
++
++			default:
++				throw ArgumentException("");
++				break;
++		} // switch(c)
++	} // while(1)
++
++	for (int i = optind; i < argc; i++) {
++		if (strcmp("-", argv[i]) == 0)
++			continue;
++		filenames.push_back(argv[i]);
++	}
++} // parse_options
++
++void set_encoder_properties(NCompress::NLZMA::CEncoder *encoder,
++		lzma_option &opt)
++{
++	/* Almost verbatim from LzmaAlone.cpp. */
++	    PROPID propIDs[] =
++	{
++		NCoderPropID::kDictionarySize,
++		NCoderPropID::kPosStateBits,
++		NCoderPropID::kLitContextBits,
++		NCoderPropID::kLitPosBits,
++		NCoderPropID::kAlgorithm,
++		NCoderPropID::kNumFastBytes,
++		NCoderPropID::kMatchFinder,
++		NCoderPropID::kEndMarker
++	};
++	const int kNumProps = sizeof(propIDs) / sizeof(propIDs[0]);
++#define VALUE(x) (advanced_options.x >= 0 ? advanced_options.x : opt.x)
++	PROPVARIANT properties[kNumProps];
++	for (int p = 0; p < 6; p++)
++		properties[p].vt = VT_UI4;
++	properties[0].ulVal = UInt32(1 << VALUE (dictionary));
++	properties[1].ulVal = UInt32(VALUE (pos_bits));
++	properties[2].ulVal = UInt32(VALUE (literal_context_bits));
++	properties[3].ulVal = UInt32(VALUE (literal_pos_bits));
++	properties[4].ulVal = UInt32(VALUE (compression_mode));
++	properties[5].ulVal = UInt32(VALUE (fast_bytes));
++#undef VALUE
++
++	properties[6].vt = VT_BSTR;
++	properties[6].bstrVal = (BSTR)opt.match_finder;
++
++	properties[7].vt = VT_BOOL;
++	properties[7].boolVal = stdinput ? VARIANT_TRUE : VARIANT_FALSE;
++
++	if (encoder->SetCoderProperties(propIDs, properties, kNumProps) != S_OK)
++		throw Exception("SetCoderProperties() error");
++}
++
++void encode(NCompress::NLZMA::CEncoder *encoderSpec,
++		CMyComPtr<ISequentialInStream> inStream,
++		CMyComPtr<ISequentialOutStream> outStream,
++		lzma_option encoder_options,
++		UInt64 fileSize)
++{
++	set_encoder_properties(encoderSpec, encoder_options);
++
++	encoderSpec->WriteCoderProperties(outStream);
++
++	for (int i = 0; i < 8; i++)
++	{
++		Byte b = Byte(fileSize >> (8 * i));
++		if (outStream->Write(&b, sizeof(b), 0) != S_OK)
++			throw Exception("Write error while encoding");
++	}
++
++	HRESULT result = encoderSpec->Code(inStream, outStream, 0, 0, 0);
++
++	if (result == E_OUTOFMEMORY)
++		throw Exception("Cannot allocate memory");
++	else if (result != S_OK) {
++		char buffer[33];
++		snprintf(buffer, 33, "%d", (unsigned int)result);
++		throw Exception(string("Encoder error: ") + buffer);
++	}
++}
++
++void decode(NCompress::NLZMA::CDecoder *decoderSpec,
++		CMyComPtr<ISequentialInStream> inStream,
++		CMyComPtr<ISequentialOutStream> outStream)
++{
++	const UInt32 kPropertiesSize = 5;
++	Byte properties[kPropertiesSize];
++	UInt32 processedSize;
++	UInt64 fileSize = 0;
++
++	if (inStream->Read(properties, kPropertiesSize, &processedSize) != S_OK)
++		throw Exception("Read error");
++	if (processedSize != kPropertiesSize)
++		throw Exception("Read error");
++	if (decoderSpec->SetDecoderProperties2(properties, kPropertiesSize) != S_OK)
++		throw Exception("SetDecoderProperties() error");
++
++	for (int i = 0; i < 8; i++)
++	{
++		Byte b;
++
++		if (inStream->Read(&b, sizeof(b), &processedSize) != S_OK)
++			throw Exception("Read error");
++		if (processedSize != 1)
++			throw Exception("Read error");
++
++		fileSize |= ((UInt64)b) << (8 * i);
++	}
++
++	if (decoderSpec->Code(inStream, outStream, 0, &fileSize, 0) != S_OK)
++		throw Exception("Decoder error");
++}
++
++int open_instream(const string infile,
++		CMyComPtr<ISequentialInStream> &inStream,
++		UInt64 &fileSize)
++{
++	CInFileStream *inStreamSpec = new CInFileStream;
++	inStream = inStreamSpec;
++	if (!inStreamSpec->Open(infile.c_str()))
++		throw Exception("Cannot open input file " + infile);
++
++	inStreamSpec->File.GetLength(fileSize);
++
++	return inStreamSpec->File.GetHandle();
++}
++
++int open_outstream(const string outfile,
++		CMyComPtr<ISequentialOutStream> &outStream)
++{
++	COutFileStream *outStreamSpec = new COutFileStream;
++	outStream = outStreamSpec;
++
++	bool open_by_force = (program_mode == PM_TEST) | force;
++
++	if (!outStreamSpec->Create(outfile.c_str(), open_by_force))
++		throw Exception("Cannot open output file " + outfile);
++
++	return outStreamSpec->File.GetHandle();
++}
++
++double get_ratio(int inhandle, int outhandle)
++{
++	struct stat in_stats, out_stats;
++	fstat(inhandle, &in_stats);
++	fstat(outhandle, &out_stats);
++
++	return (double)out_stats.st_size / (double)in_stats.st_size;
++}
++
++mode_t get_file_mode(string filename)
++{
++	struct stat in_stat;
++	lstat(filename.c_str(), &in_stat);
++
++	return in_stat.st_mode;
++}
++
++bool string_ends_with(string str, string ending)
++{
++	return equal(ending.rbegin(), ending.rend(), str.rbegin());
++}
++
++bool extension_is_known(string filename)
++{
++	bool known_format = false;
++	extension_pair extension; int i = 1;
++
++	extension = known_extensions[0];
++	while (extension.from != NULL) {
++		if (string_ends_with(filename, extension.from)) {
++			known_format = true;
++			break;
++		}
++		extension = known_extensions[i];
++		i++;
++	}
++
++	if (!known_format) {
++		if (!string_ends_with(filename, suffix)) {
++			return false;
++		}
++	}
++
++	return true;
++}
++
++string replace_extension(string filename)
++{
++	int suffix_starts_at = filename.length() - strlen (suffix);
++	string from_suffix = filename.substr(suffix_starts_at, strlen (suffix));
++	string ret = filename.substr(0, suffix_starts_at);
++	extension_pair extension; int i = 1;
++
++	bool found_replacement = false;
++	extension = known_extensions[0];
++	while (extension.from != NULL) {
++		if (from_suffix.compare(extension.from) == 0) {
++			ret += extension.to;
++			found_replacement = true;
++			break;
++		}
++
++		extension = known_extensions[i];
++		i++;
++	}
++
++	return ret;
++}
++
++string pretty_print_status(string filename, string output_filename,
++		string ratio)
++{
++	string ret = "";
++
++	ret += filename;
++	ret += ":\t ";
++
++	if (program_mode == PM_TEST) {
++		ret += "decoded succesfully";
++
++		return ret;
++	}
++
++	if (!stdinput && !stdoutput) {
++		ret += ratio;
++		ret += " -- ";
++	}
++
++	if (program_mode == PM_COMPRESS) {
++		if (keep) {
++			ret += "encoded succesfully";
++
++			return ret;
++		}
++
++		ret += "replaced with ";
++		ret += output_filename;
++
++		return ret;
++	}
++
++	if (program_mode == PM_DECOMPRESS) {
++		if (keep) {
++			ret += "decoded succesfully";
++
++			return ret;
++		}
++
++		ret += "replaced with ";
++		ret += output_filename;
++
++		return ret;
++	}
++
++	return ret;
++}
++
++static string archive_name; // I know, it is crude, but I haven't found any other
++    // way then making a global variable to transfer filename to handler
++
++void signal_handler (int signum)
++{
++    unlink (archive_name.c_str()); // deleting
++    signal (signum, SIG_DFL); // we return the default function to used signal
++    kill (getpid(), signum); // and then send this signal to the process again
++}
++
++} // namespace lzma
++
++
++int main(int argc, char **argv)
++{
++	using namespace lzma;
++	using std::cerr;
++
++	stringVector filenames;
++
++	signal (SIGTERM,signal_handler);
++	signal (SIGHUP,signal_handler);
++	signal (SIGINT,signal_handler);
++
++	try {
++		parse_options(argc, argv, filenames);
++	}
++	catch (...) {
++		return STATUS_ERROR;
++	}
++
++	if (program_mode == PM_HELP) {
++		print_help(argv[0]);
++		return STATUS_OK;
++	}
++	else if (program_mode == PM_LICENSE) {
++		print_license();
++		return STATUS_OK;
++	}
++	else if (program_mode == PM_VERSION) {
++		print_version();
++		return STATUS_OK;
++	}
++
++	if (filenames.empty()) {
++		stdinput = true;
++		stdoutput = true;
++
++		/* FIXME: get rid of this */
++		filenames.push_back("-");
++	}
++
++	/* Protection: always create new files with 0600 in order to prevent
++	 * outsiders from reading incomplete data. */
++	umask(0077);
++
++	bool warning = false;
++
++	for (int i = 0; i < filenames.size(); i++) {
++		CMyComPtr<ISequentialInStream> inStream;
++		CMyComPtr<ISequentialOutStream> outStream;
++		UInt64 fileSize = 0;
++		int inhandle = 0, outhandle = 0;
++		string output_filename;
++
++		if (stdinput) {
++			inStream = new CStdInFileStream;
++			MY_SET_BINARY_MODE(stdin);
++			fileSize = (UInt64)(Int64)-1;
++
++			inhandle = STDIN_FILENO;
++
++			outStream = new CStdOutFileStream;
++			MY_SET_BINARY_MODE(stdout);
++
++			outhandle = STDOUT_FILENO;
++		}
++		else {
++			mode_t infile_mode = get_file_mode(filenames[i]);
++			if (!S_ISREG(infile_mode)) {
++				if (S_ISDIR(infile_mode)) {
++					warning = true;
++					cerr << argv[0] << ": " << filenames[i] << ": "
++						<< "cowardly refusing to work on directory"
++						<< endl;
++
++					continue;
++				}
++				else if (S_ISLNK(infile_mode)) {
++					if (!stdoutput && !force) {
++						warning = true;
++
++					cerr << argv[0] << ": " << filenames[i] << ": "
++							<< "cowardly refusing to work on symbolic link "
++							<< "(use --force to force encoding or decoding)"
++							<< endl;
++
++						continue;
++					}
++				}
++				else {
++					warning = true;
++
++					cerr << argv[0] << ": " << filenames[i] << ": "
++						<< "doesn't exist or is not a regular file"
++						<< endl;
++
++					continue;
++				}
++			}
++
++			// Test if the file already ends with *suffix.
++			if (program_mode == PM_COMPRESS && !force
++					&& string_ends_with(filenames[i],
++						suffix)) {
++				warning = true;
++
++				cerr << filenames[i] << " already has "
++					<< suffix << " suffix -- unchanged\n";
++
++				continue;
++			}
++
++			// Test if the file extension is known.
++			if (program_mode == PM_DECOMPRESS
++					&& !extension_is_known(filenames[i])) {
++				warning = true;
++
++				cerr << filenames[i] << ": "
++					<< " unknown suffix -- unchanged"
++					<< endl;
++
++				continue;
++			}
++
++			try {
++				inhandle = open_instream(filenames[i], inStream, fileSize);
++			}
++			catch (Exception e) {
++				cerr << argv[0] << ": " << e.what() << endl;
++				return STATUS_ERROR;
++			}
++
++			if (stdoutput) {
++				outStream = new CStdOutFileStream;
++				MY_SET_BINARY_MODE(stdout);
++
++				outhandle = STDOUT_FILENO;
++			}
++			else {
++				/* Testing mode is nothing else but decoding
++				 * and throwing away the result. */
++				if (program_mode == PM_TEST)
++					output_filename = "/dev/null";
++				else if (program_mode == PM_DECOMPRESS)
++					output_filename = replace_extension(filenames[i]);
++				else
++					output_filename = filenames[i]
++							+ suffix;
++				archive_name = output_filename;
++
++				try {
++					outhandle = open_outstream(output_filename, outStream);
++				}
++				catch (Exception e) {
++					cerr << argv[0] << ": " << e.what() << endl;
++					return STATUS_ERROR;
++				}
++			}
++
++		}
++
++		// Unless --force is specified, do not read/write compressed
++		// data from/to a terminal.
++		if (!force) {
++			if (program_mode == PM_COMPRESS && isatty(outhandle)) {
++				cerr << argv[0] << ": compressed data not "
++					"written to a terminal. Use "
++					"-f to force compression.\n"
++					<< argv[0] << ": For help, type: "
++					<< argv[0] << " -h\n";
++				return STATUS_ERROR;
++			} else if (program_mode == PM_DECOMPRESS
++					&& isatty(inhandle)) {
++				cerr << argv[0] << ": compressed data not "
++					"read from a terminal. Use "
++					"-f to force decompression.\n"
++					<< argv[0] << ": For help, type: "
++					<< argv[0] << " -h\n";
++				return STATUS_ERROR;
++			}
++		}
++
++		if (program_mode == PM_COMPRESS) {
++			    NCompress::NLZMA::CEncoder *encoderSpec =
++				      new NCompress::NLZMA::CEncoder;
++
++			lzma_option options = option_mapping[compression_mode];
++
++			try {
++				encode(encoderSpec, inStream, outStream, options, fileSize);
++			}
++			catch (Exception e) {
++				cerr << argv[0] << ": " << e.what() << endl;
++				unlink(output_filename.c_str());
++				delete(encoderSpec);
++
++				return STATUS_ERROR;
++			}
++
++			delete(encoderSpec);
++		}
++		else {			// PM_DECOMPRESS | PM_TEST
++		    NCompress::NLZMA::CDecoder *decoderSpec =
++		        new NCompress::NLZMA::CDecoder;
++
++			try {
++				decode(decoderSpec, inStream, outStream);
++			}
++			catch (Exception e) {
++				cerr << argv[0] << ": " << e.what() << endl;
++				unlink(output_filename.c_str());
++				delete(decoderSpec);
++
++				return STATUS_ERROR;
++			}
++
++			delete(decoderSpec);
++		}
++
++		/* Set permissions and owners. */
++		if ( (program_mode == PM_COMPRESS || program_mode == PM_DECOMPRESS )
++				&& (!stdinput && !stdoutput) ) {
++
++			int ret = 0;
++			struct stat file_stats;
++			ret = fstat(inhandle, &file_stats);
++
++			ret = fchmod(outhandle, file_stats.st_mode);
++			ret = fchown(outhandle, file_stats.st_uid, file_stats.st_gid);
++			// We need to call fchmod() again, since otherwise the SUID bits
++			// are lost.
++			ret = fchmod(outhandle, file_stats.st_mode);
++
++			struct timeval file_times[2];
++			// Access time
++			file_times[0].tv_sec = file_stats.st_atime;
++			file_times[0].tv_usec = 0;
++			// Modification time
++			file_times[1].tv_sec = file_stats.st_mtime;
++			file_times[1].tv_usec = 0;
++
++			ret = futimes(outhandle, file_times);
++
++			if (!keep)
++				unlink(filenames[i].c_str());
++		}
++
++		if (verbosity > 0) {
++			if (stdoutput) {
++				cerr << filenames[i] << ":\t ";
++				cerr << "decoded succesfully"
++					<< endl;
++			}
++
++			else {
++				char buf[10] = { 0 };
++
++				if (program_mode == PM_DECOMPRESS)
++					snprintf(buf, 10, "%.2f%%",
++							(1 - get_ratio(outhandle, inhandle)) * 100);
++				if (program_mode == PM_COMPRESS)
++					snprintf(buf, 10, "%.2f%%",
++							(1 - get_ratio(inhandle, outhandle)) * 100);
++
++				string ratio = buf;
++				cerr << pretty_print_status(filenames[i], output_filename,
++						ratio)
++					<< endl;
++			}
++		}
++	}
++
++	if (warning)
++		return STATUS_WARNING;
++
++	return STATUS_OK;
++}
++
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/makefile.gcc lzma-457/CPP/7zip/Compress/LZMA_Alone/makefile.gcc
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/makefile.gcc	2007-06-25 09:54:32.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/makefile.gcc	2008-10-14 22:43:13.000000000 +0100
+@@ -1,139 +1,164 @@
+-PROG = lzma
+-CXX = g++ -O2 -Wall
+-CXX_C = gcc -O2 -Wall
+-LIB = -lm
+-RM = rm -f
+-CFLAGS = -c
+-
+-ifdef SystemDrive
+-IS_MINGW = 1
+-endif
+-
+-ifdef IS_MINGW
+-FILE_IO =FileIO
+-FILE_IO_2 =Windows/$(FILE_IO)
+-LIB2 = -luuid 
+-else
+-FILE_IO =C_FileIO
+-FILE_IO_2 =Common/$(FILE_IO)
+-endif
+-
+-OBJS = \
+-  LzmaAlone.o \
+-  LzmaBench.o \
+-  LzmaBenchCon.o \
+-  LzmaRam.o \
+-  LZMADecoder.o \
+-  LZMAEncoder.o \
+-  LZOutWindow.o \
+-  RangeCoderBit.o \
+-  InBuffer.o \
+-  OutBuffer.o \
+-  FileStreams.o \
+-  StreamUtils.o \
+-  $(FILE_IO).o \
+-  CommandLineParser.o \
+-  CRC.o \
+-  IntToString.o \
+-  MyString.o \
+-  StringConvert.o \
+-  StringToInt.o \
+-  MyVector.o \
+-  7zCrc.o \
+-  Alloc.o \
+-  BranchX86.o \
+-  MatchFinder.o \
+-  LzmaDecode.o \
+-  LzmaRamDecode.o \
+-
+-
+-all: $(PROG)
+-
+-$(PROG): $(OBJS)
+-	$(CXX) -o $(PROG) $(LDFLAGS) $(OBJS) $(LIB) $(LIB2)
+-
+-LzmaAlone.o: LzmaAlone.cpp
+-	$(CXX) $(CFLAGS) LzmaAlone.cpp
+-
+-LzmaBench.o: LzmaBench.cpp
+-	$(CXX) $(CFLAGS) LzmaBench.cpp
+-
+-LzmaBenchCon.o: LzmaBenchCon.cpp
+-	$(CXX) $(CFLAGS) LzmaBenchCon.cpp
+-
+-LzmaRam.o: LzmaRam.cpp
+-	$(CXX) $(CFLAGS) LzmaRam.cpp
+-
+-LZMADecoder.o: ../LZMA/LZMADecoder.cpp
+-	$(CXX) $(CFLAGS) ../LZMA/LZMADecoder.cpp
+-
+-LZMAEncoder.o: ../LZMA/LZMAEncoder.cpp
+-	$(CXX) $(CFLAGS) ../LZMA/LZMAEncoder.cpp
+-
+-LZOutWindow.o: ../LZ/LZOutWindow.cpp
+-	$(CXX) $(CFLAGS) ../LZ/LZOutWindow.cpp
+-
+-RangeCoderBit.o: ../RangeCoder/RangeCoderBit.cpp
+-	$(CXX) $(CFLAGS) ../RangeCoder/RangeCoderBit.cpp
+-
+-InBuffer.o: ../../Common/InBuffer.cpp
+-	$(CXX) $(CFLAGS) ../../Common/InBuffer.cpp
+-
+-OutBuffer.o: ../../Common/OutBuffer.cpp
+-	$(CXX) $(CFLAGS) ../../Common/OutBuffer.cpp
+-
+-FileStreams.o: ../../Common/FileStreams.cpp
+-	$(CXX) $(CFLAGS) ../../Common/FileStreams.cpp
+-
+-StreamUtils.o: ../../Common/StreamUtils.cpp
+-	$(CXX) $(CFLAGS) ../../Common/StreamUtils.cpp
+-
+-$(FILE_IO).o: ../../../$(FILE_IO_2).cpp
+-	$(CXX) $(CFLAGS) ../../../$(FILE_IO_2).cpp
+-
+-
+-CommandLineParser.o: ../../../Common/CommandLineParser.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/CommandLineParser.cpp
+-
+-CRC.o: ../../../Common/CRC.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/CRC.cpp
+-
+-MyWindows.o: ../../../Common/MyWindows.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/MyWindows.cpp
+-
+-IntToString.o: ../../../Common/IntToString.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/IntToString.cpp
+-
+-MyString.o: ../../../Common/MyString.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/MyString.cpp
+-
+-StringConvert.o: ../../../Common/StringConvert.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/StringConvert.cpp
+-
+-StringToInt.o: ../../../Common/StringToInt.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/StringToInt.cpp
+-
+-MyVector.o: ../../../Common/MyVector.cpp
+-	$(CXX) $(CFLAGS) ../../../Common/MyVector.cpp
+-
+-7zCrc.o: ../../../../C/7zCrc.c
+-	$(CXX_C) $(CFLAGS) ../../../../C/7zCrc.c
+-
+-Alloc.o: ../../../../C/Alloc.c
+-	$(CXX_C) $(CFLAGS) ../../../../C/Alloc.c
+-
+-BranchX86.o: ../../../../C/Compress/Branch/BranchX86.c
+-	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Branch/BranchX86.c
+-
+-MatchFinder.o: ../../../../C/Compress/Lz/MatchFinder.c
+-	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Lz/MatchFinder.c
+-
+-LzmaDecode.o: ../../../../C/Compress/Lzma/LzmaDecode.c
+-	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Lzma/LzmaDecode.c
+-
+-LzmaRamDecode.o: LzmaRamDecode.c
+-	$(CXX_C) $(CFLAGS) LzmaRamDecode.c
+-
+-clean:
+-	-$(RM) $(PROG) $(OBJS)
+-
++PROG = lzma_alone
++PROG2 = lzma
++CXX = g++ -O2 -Wall
++CXX_C = gcc -O2 -Wall
++LIB = -lm
++RM = rm -f
++CFLAGS = -c -D_FILE_OFFSET_BITS=64 -DPACKAGE_VERSION="\"4.32.0beta3\""
++
++ifdef SystemDrive
++IS_MINGW = 1
++endif
++
++ifdef IS_MINGW
++FILE_IO =FileIO
++FILE_IO_2 =Windows/$(FILE_IO)
++LIB2 = -luuid 
++else
++FILE_IO =C_FileIO
++FILE_IO_2 =Common/$(FILE_IO)
++endif
++
++OBJS = \
++  LzmaAlone.o \
++  LzmaBench.o \
++  LzmaBenchCon.o \
++  LzmaRam.o \
++  LZMADecoder.o \
++  LZMAEncoder.o \
++  LZOutWindow.o \
++  RangeCoderBit.o \
++  InBuffer.o \
++  OutBuffer.o \
++  FileStreams.o \
++  StreamUtils.o \
++  $(FILE_IO).o \
++  CommandLineParser.o \
++  CRC.o \
++  IntToString.o \
++  MyString.o \
++  StringConvert.o \
++  StringToInt.o \
++  MyVector.o \
++  7zCrc.o \
++  Alloc.o \
++  BranchX86.o \
++  MatchFinder.o \
++  LzmaDecode.o \
++  LzmaRamDecode.o \
++
++OBJS2 = \
++  C_FileIO.o \
++  CRC.o \
++  Alloc.o \
++  FileStreams.o \
++  StreamUtils.o \
++  InBuffer.o \
++  OutBuffer.o \
++  LZMADecoder.o \
++  RangeCoderBit.o \
++  LZOutWindow.o \
++  StringConvert.o \
++  StringToInt.o \
++  LZMAEncoder.o \
++  7zCrc.o \
++  MatchFinder.o \
++  lzmp.o
++
++
++all: $(PROG) $(PROG2)
++
++$(PROG2): $(OBJS2)
++	$(CXX) -o $(PROG2) $(LDFLAGS) $(OBJS2) $(LIB)
++
++lzmp.o: lzmp.cpp
++	$(CXX) $(CFLAGS) lzmp.cpp
++
++$(PROG): $(OBJS)
++	$(CXX) -o $(PROG) $(LDFLAGS) $(OBJS) $(LIB) $(LIB2)
++
++LzmaAlone.o: LzmaAlone.cpp
++	$(CXX) $(CFLAGS) LzmaAlone.cpp
++
++LzmaBench.o: LzmaBench.cpp
++	$(CXX) $(CFLAGS) LzmaBench.cpp
++
++LzmaBenchCon.o: LzmaBenchCon.cpp
++	$(CXX) $(CFLAGS) LzmaBenchCon.cpp
++
++LzmaRam.o: LzmaRam.cpp
++	$(CXX) $(CFLAGS) LzmaRam.cpp
++
++LZMADecoder.o: ../LZMA/LZMADecoder.cpp
++	$(CXX) $(CFLAGS) ../LZMA/LZMADecoder.cpp
++
++LZMAEncoder.o: ../LZMA/LZMAEncoder.cpp
++	$(CXX) $(CFLAGS) ../LZMA/LZMAEncoder.cpp
++
++LZOutWindow.o: ../LZ/LZOutWindow.cpp
++	$(CXX) $(CFLAGS) ../LZ/LZOutWindow.cpp
++
++RangeCoderBit.o: ../RangeCoder/RangeCoderBit.cpp
++	$(CXX) $(CFLAGS) ../RangeCoder/RangeCoderBit.cpp
++
++InBuffer.o: ../../Common/InBuffer.cpp
++	$(CXX) $(CFLAGS) ../../Common/InBuffer.cpp
++
++OutBuffer.o: ../../Common/OutBuffer.cpp
++	$(CXX) $(CFLAGS) ../../Common/OutBuffer.cpp
++
++FileStreams.o: ../../Common/FileStreams.cpp
++	$(CXX) $(CFLAGS) ../../Common/FileStreams.cpp
++
++StreamUtils.o: ../../Common/StreamUtils.cpp
++	$(CXX) $(CFLAGS) ../../Common/StreamUtils.cpp
++
++$(FILE_IO).o: ../../../$(FILE_IO_2).cpp
++	$(CXX) $(CFLAGS) ../../../$(FILE_IO_2).cpp
++
++
++CommandLineParser.o: ../../../Common/CommandLineParser.cpp
++	$(CXX) $(CFLAGS) ../../../Common/CommandLineParser.cpp
++
++CRC.o: ../../../Common/CRC.cpp
++	$(CXX) $(CFLAGS) ../../../Common/CRC.cpp
++
++MyWindows.o: ../../../Common/MyWindows.cpp
++	$(CXX) $(CFLAGS) ../../../Common/MyWindows.cpp
++
++IntToString.o: ../../../Common/IntToString.cpp
++	$(CXX) $(CFLAGS) ../../../Common/IntToString.cpp
++
++MyString.o: ../../../Common/MyString.cpp
++	$(CXX) $(CFLAGS) ../../../Common/MyString.cpp
++
++StringConvert.o: ../../../Common/StringConvert.cpp
++	$(CXX) $(CFLAGS) ../../../Common/StringConvert.cpp
++
++StringToInt.o: ../../../Common/StringToInt.cpp
++	$(CXX) $(CFLAGS) ../../../Common/StringToInt.cpp
++
++MyVector.o: ../../../Common/MyVector.cpp
++	$(CXX) $(CFLAGS) ../../../Common/MyVector.cpp
++
++7zCrc.o: ../../../../C/7zCrc.c
++	$(CXX_C) $(CFLAGS) ../../../../C/7zCrc.c
++
++Alloc.o: ../../../../C/Alloc.c
++	$(CXX_C) $(CFLAGS) ../../../../C/Alloc.c
++
++BranchX86.o: ../../../../C/Compress/Branch/BranchX86.c
++	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Branch/BranchX86.c
++
++MatchFinder.o: ../../../../C/Compress/Lz/MatchFinder.c
++	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Lz/MatchFinder.c
++
++LzmaDecode.o: ../../../../C/Compress/Lzma/LzmaDecode.c
++	$(CXX_C) $(CFLAGS) ../../../../C/Compress/Lzma/LzmaDecode.c
++
++LzmaRamDecode.o: LzmaRamDecode.c
++	$(CXX_C) $(CFLAGS) LzmaRamDecode.c
++
++clean:
++	-$(RM) $(PROG) $(OBJS) $(PROG2) $(OBJS2)
++
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/sqlzma.mk lzma-457/CPP/7zip/Compress/LZMA_Alone/sqlzma.mk
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_Alone/sqlzma.mk	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_Alone/sqlzma.mk	2008-10-14 22:20:29.000000000 +0100
+@@ -0,0 +1,62 @@
++
++# Copyright (C) 2006-2007 Junjiro Okajima
++# Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++#
++# LICENSE follows the described one in lzma.txt.
++
++# $Id: sqlzma.mk,v 1.1 2007/11/05 05:43:36 jro Exp $
++
++ifndef Sqlzma
++$(error Sqlzma is not defined)
++endif
++
++include makefile.gcc
++
++ifdef UseDebugFlags
++DebugFlags = -Wall -O0 -g -UNDEBUG
++endif
++# -pthread
++CXXFLAGS = ${CFLAGS} -D_REENTRANT -include pthread.h -DNDEBUG ${DebugFlags}
++Tgt = liblzma_r.a
++
++all: ${Tgt}
++
++RObjs = LZMAEncoder_r.o Alloc_r.o StreamUtils_r.o LZInWindow_r.o CRC_r.o \
++	RangeCoderBit_r.o OutBuffer_r.o 7zCrc_r.o
++
++%_r.cc: ../LZMA/%.cpp
++	ln $< $@
++%_r.c: ../../../../C/%.c
++	ln $< $@
++%_r.c: ../../Archive/7z_C/%.c
++	ln $< $@
++%_r.cc: ../../Common/%.cpp
++	ln $< $@
++%_r.cc: ../../../Common/%.cpp
++	ln $< $@
++%_r.cc: ../RangeCoder/%.cpp
++	ln $< $@
++%_r.cc: ../LZ/%.cpp
++	ln $< $@
++LZMAEncoder_r.o: CXXFLAGS += -I../LZMA
++Alloc_r.o: CFLAGS += -I../../../Common
++StreamUtils_r.o: CXXFLAGS += -I../../Common
++RangeCoderBit_r.o: CXXFLAGS += -I../RangeCoder
++OutBuffer_r.o: CXXFLAGS += -I../../Common
++7zCrc_r.o: CFLAGS += -I../../Archive/7z_C
++LZInWindow_r.o: CFLAGS += -I../LZ
++CRC_r.o: CFLAGS += -I../../../Common
++
++comp.o: CXXFLAGS += -I${Sqlzma}
++comp.o: comp.cc ${Sqlzma}/sqlzma.h
++
++liblzma_r.a: ${RObjs} comp.o
++	${AR} cr $@ $^
++
++clean: clean_sqlzma
++clean_sqlzma:
++	$(RM) comp.o *_r.o ${Tgt} *~
++
++# Local variables: ;
++# compile-command: (concat "make Sqlzma=../../../../.. -f " (file-name-nondirectory (buffer-file-name)));
++# End: ;
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod/Makefile lzma-457/CPP/7zip/Compress/LZMA_C/kmod/Makefile
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod/Makefile	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/kmod/Makefile	2008-10-14 22:21:11.000000000 +0100
+@@ -0,0 +1,13 @@
++
++# Copyright (C) 2006-2007 Junjiro Okajima
++# Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++#
++# LICENSE follows the described one in lzma.txt.
++
++# $Id: Makefile,v 1.1 2007/11/05 05:43:36 jro Exp $
++
++EXTRA_CFLAGS += -I/usr/include
++
++obj-m += unlzma.o sqlzma.o
++unlzma-y := module.o
++sqlzma-y := uncomp.o
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod/module.c lzma-457/CPP/7zip/Compress/LZMA_C/kmod/module.c
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod/module.c	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/kmod/module.c	2008-10-14 22:20:34.000000000 +0100
+@@ -0,0 +1,36 @@
++
++/*
++ * Copyright (C) 2006-2007 Junjiro Okajima
++ * Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++ *
++ * LICENSE follows the described one in lzma.txt.
++ */
++
++/* $Id: module.c,v 1.1 2007/11/05 05:43:36 jro Exp $ */
++
++#include <linux/init.h>
++#include <linux/module.h>
++
++#include "LzmaDecode.c"
++
++EXPORT_SYMBOL(LzmaDecodeProperties);
++EXPORT_SYMBOL(LzmaDecode);
++
++#if 0
++static int __init unlzma_init(void)
++{
++	return 0;
++}
++
++static void __exit unlzma_exit(void)
++{
++}
++
++module_init(unlzma_init);
++module_exit(unlzma_exit);
++#endif
++
++MODULE_LICENSE("GPL");
++MODULE_VERSION("$Id: module.c,v 1.1 2007/11/05 05:43:36 jro Exp $");
++MODULE_DESCRIPTION("LZMA uncompress. "
++		   "A tiny wrapper for LzmaDecode.c in LZMA SDK from www.7-zip.org.");
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod.mk lzma-457/CPP/7zip/Compress/LZMA_C/kmod.mk
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/kmod.mk	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/kmod.mk	2008-10-14 22:20:23.000000000 +0100
+@@ -0,0 +1,40 @@
++
++# Copyright (C) 2006-2007 Junjiro Okajima
++# Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++#
++# LICENSE follows the described one in lzma.txt.
++
++# $Id: kmod.mk,v 1.1 2007/11/05 05:43:35 jro Exp $
++
++ifndef Sqlzma
++$(error Sqlzma is not defined)
++endif
++ifndef KDir
++$(error KDir is not defined)
++endif
++
++#include makefile.gcc
++
++Kmod = kmod
++EXTRA_CFLAGS += -Wall -Werror -I${CURDIR} -I${Sqlzma}
++# -D_LZMA_PROB32
++EXTRA_CFLAGS += $(shell ${CPP} ${CFLAGS} -P testflags.c)
++
++all: ${Kmod}/uncomp.c
++	${MAKE} EXTRA_CFLAGS="${EXTRA_CFLAGS}" M=${CURDIR}/${Kmod} \
++		-C ${KDir} C=0 V=0 modules
++
++${Kmod}/uncomp.c: uncomp.c
++	ln $< $@
++
++clean: clean_kmod
++clean_kmod:
++	${MAKE} -C ${KDir} M=${CURDIR}/${Kmod} V=0 clean
++	${RM} ${Kmod}/*~
++	-@test -e ${Kmod}/uncomp.c && \
++		diff -q ${Kmod}/uncomp.c uncomp.c > /dev/null && \
++		find ${Kmod}/uncomp.c -links +1 | xargs -r ${RM}
++
++# Local variables: ;
++# compile-command: (concat "make Sqlzma=../../../../.. KDir=/lib/modules/`uname -r`/build -f " (file-name-nondirectory (buffer-file-name)));
++# End: ;
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/sqlzma.mk lzma-457/CPP/7zip/Compress/LZMA_C/sqlzma.mk
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/sqlzma.mk	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/sqlzma.mk	2008-10-14 22:20:23.000000000 +0100
+@@ -0,0 +1,47 @@
++
++# Copyright (C) 2006-2007 Junjiro Okajima
++# Copyright (C) 2006-2007 Tomas Matejicek, slax.org
++#
++# LICENSE follows the described one in lzma.txt.
++
++# $Id: sqlzma.mk,v 1.1 2007/11/05 05:43:36 jro Exp $
++
++ifndef Sqlzma
++$(error Sqlzma is not defined)
++endif
++
++#include makefile.gcc
++CFLAGS = -c -O2 -Wall -pedantic -D _LZMA_PROB32
++
++ifdef KDir
++include kmod.mk
++endif
++
++ifdef UseDebugFlags
++DebugFlags = -O0 -g -UNDEBUG
++endif
++CFLAGS += -DNDEBUG ${DebugFlags}
++Tgt = libunlzma.a libunlzma_r.a
++
++all: ${Tgt}
++
++%_r.c: %.c
++	ln $< $@
++# -pthread
++%_r.o: CFLAGS += -D_REENTRANT -include pthread.h
++
++uncomp.o uncomp_r.o: CFLAGS += -I${Sqlzma}
++uncomp.o: uncomp.c ${Sqlzma}/sqlzma.h
++
++libunlzma.a: uncomp.o LzmaDecode.o
++	${AR} cr $@ $^
++libunlzma_r.a: uncomp_r.o LzmaDecode_r.o
++	${AR} cr $@ $^
++
++clean: clean_sqlzma
++clean_sqlzma:
++	$(RM) ${Tgt} uncomp.o uncomp_r.o LzmaDecode_r.o LzmaDecode.o  *~
++
++# Local variables: ;
++# compile-command: (concat "make Sqlzma=../../../../.. -f " (file-name-nondirectory (buffer-file-name)));
++# End: ;
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/testflags.c lzma-457/CPP/7zip/Compress/LZMA_C/testflags.c
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/testflags.c	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/testflags.c	2008-10-14 22:20:23.000000000 +0100
+@@ -0,0 +1,5 @@
++#ifdef _LZMA_PROB32
++-D_LZMA_PROB32
++#else
++-U_LZMA_PROB32
++#endif
+diff -Nur lzma-457.orig/CPP/7zip/Compress/LZMA_C/uncomp.c lzma-457/CPP/7zip/Compress/LZMA_C/uncomp.c
+--- lzma-457.orig/CPP/7zip/Compress/LZMA_C/uncomp.c	1970-01-01 01:00:00.000000000 +0100
++++ lzma-457/CPP/7zip/Compress/LZMA_C/uncomp.c	2008-10-14 22:20:23.000000000 +0100
+@@ -0,0 +1,221 @@
++/*
++ * Copyright (C) 2006, 2007 Junjiro Okajima
++ * Copyright (C) 2006, 2007 Tomas Matejicek, slax.org
++ *
++ * LICENSE follows the described one in lzma.txt.
++ */
++
++/* $Id: uncomp.c,v 1.1 2007/11/05 05:43:36 jro Exp $ */
++
++/* extract some parts from lzma443/C/7zip/Compress/LZMA_C/LzmaTest.c */
++
++#ifndef __KERNEL__
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <errno.h>
++#include <assert.h>
++#include <pthread.h>
++#define unlikely(x)		__builtin_expect(!!(x), 0)
++#define BUG_ON(x)		assert(!(x))
++/* sqlzma buffers are always larger than a page. true? */
++#define kmalloc(sz,gfp)		malloc(sz)
++#define kfree(p)		free(p)
++#define zlib_inflate(s, f)	inflate(s, f)
++#define zlib_inflateInit(s)	inflateInit(s)
++#define zlib_inflateReset(s)	inflateReset(s)
++#define zlib_inflateEnd(s)	inflateEnd(s)
++#else
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/vmalloc.h>
++#ifndef WARN_ON_ONCE
++#define WARN_ON_ONCE(b)	WARN_ON(b)
++#endif
++#endif /* __KERNEL__ */
++
++#include "sqlzma.h"
++#include "LzmaDecode.h"
++
++static int LzmaUncompress(struct sqlzma_un *un)
++{
++	int err, i, ret;
++	SizeT outSize, inProcessed, outProcessed, srclen;
++	/* it's about 24-80 bytes structure, if int is 32-bit */
++	CLzmaDecoderState state;
++	unsigned char *dst, *src, a[8];
++	struct sized_buf *sbuf;
++
++	/* Decode LZMA properties and allocate memory */
++	err = -EINVAL;
++	src = un->un_cmbuf;
++	ret = LzmaDecodeProperties(&state.Properties, src, LZMA_PROPERTIES_SIZE);
++	src += LZMA_PROPERTIES_SIZE;
++	if (unlikely(ret != LZMA_RESULT_OK))
++		goto out;
++	i = LzmaGetNumProbs(&state.Properties);
++	if (unlikely(i <= 0))
++		i = 1;
++	i *= sizeof(CProb);
++	sbuf = un->un_a + SQUN_PROB;
++	if (unlikely(sbuf->sz < i)) {
++		if (sbuf->buf && sbuf->buf != un->un_prob)
++			kfree(sbuf->buf);
++#ifdef __KERNEL__
++		printk("%s:%d: %d --> %d\n", __func__, __LINE__, sbuf->sz, i);
++#else
++		printf("%d --> %d\n", sbuf->sz, i);
++#endif
++		err = -ENOMEM;
++		sbuf->sz = 0;
++		sbuf->buf = kmalloc(i, GFP_ATOMIC);
++		if (unlikely(!sbuf->buf))
++			goto out;
++		sbuf->sz = i;
++	}
++	state.Probs = (void*)sbuf->buf;
++
++	/* Read uncompressed size */
++	memcpy(a, src, sizeof(a));
++	src += sizeof(a);
++	outSize = a[0] | (a[1] << 8) | (a[2] << 16) | (a[3] << 24);
++
++	err = -EINVAL;
++	dst = un->un_resbuf;
++	if (unlikely(!dst || outSize > un->un_reslen))
++		goto out;
++	un->un_reslen = outSize;
++	srclen = un->un_cmlen - (src - un->un_cmbuf);
++
++	/* Decompress */
++	err = LzmaDecode(&state, src, srclen, &inProcessed, dst, outSize,
++			 &outProcessed);
++	if (err)
++		err = -EINVAL;
++
++ out:
++#ifndef __KERNEL__
++	if (err)
++		fprintf(stderr, "err %d\n", err);
++#endif
++	return err;
++}
++
++int sqlzma_un(struct sqlzma_un *un, struct sized_buf *src,
++	      struct sized_buf *dst)
++{
++	int err, by_lzma = 0;
++	if (un->un_lzma && is_lzma(*src->buf)) {
++		by_lzma = 1;
++		un->un_cmbuf = src->buf;
++		un->un_cmlen = src->sz;
++		un->un_resbuf = dst->buf;
++		un->un_reslen = dst->sz;
++
++		/* this library is thread-safe */
++		err = LzmaUncompress(un);
++		goto out;
++	}
++
++	err = zlib_inflateReset(&un->un_stream);
++	if (unlikely(err != Z_OK))
++		goto out;
++	un->un_stream.next_in = src->buf;
++	un->un_stream.avail_in = src->sz;
++	un->un_stream.next_out = dst->buf;
++	un->un_stream.avail_out = dst->sz;
++	err = zlib_inflate(&un->un_stream, Z_FINISH);
++	if (err == Z_STREAM_END)
++		err = 0;
++
++ out:
++	if (err) {
++#ifdef __KERNEL__
++		WARN_ON_ONCE(1);
++#else
++		char a[64] = "ZLIB ";
++		if (by_lzma) {
++			strcpy(a, "LZMA ");
++#ifdef _REENTRANT
++			strerror_r(err, a + 5, sizeof(a) - 5);
++#else
++			strncat(a, strerror(err), sizeof(a) - 5);
++#endif
++		} else
++			strncat(a, zError(err), sizeof(a) - 5);
++		fprintf(stderr, "%s: %.*s\n", __func__, sizeof(a), a);
++#endif
++	}
++	return err;
++}
++
++int sqlzma_init(struct sqlzma_un *un, int do_lzma, unsigned int res_sz)
++{
++	int err;
++
++	err = -ENOMEM;
++	un->un_lzma = do_lzma;
++	memset(un->un_a, 0, sizeof(un->un_a));
++	un->un_a[SQUN_PROB].buf = un->un_prob;
++	un->un_a[SQUN_PROB].sz = sizeof(un->un_prob);
++	if (res_sz) {
++		un->un_a[SQUN_RESULT].buf = kmalloc(res_sz, GFP_KERNEL);
++		if (unlikely(!un->un_a[SQUN_RESULT].buf))
++			return err;
++		un->un_a[SQUN_RESULT].sz = res_sz;
++	}
++
++	un->un_stream.next_in = NULL;
++	un->un_stream.avail_in = 0;
++#ifdef __KERNEL__
++	un->un_stream.workspace = kmalloc(zlib_inflate_workspacesize(), GFP_KERNEL);
++	if (unlikely(!un->un_stream.workspace))
++		return err;
++#else
++	un->un_stream.opaque = NULL;
++	un->un_stream.zalloc = Z_NULL;
++	un->un_stream.zfree = Z_NULL;
++#endif
++	err = zlib_inflateInit(&un->un_stream);
++	if (unlikely(err == Z_MEM_ERROR))
++		return -ENOMEM;
++	BUG_ON(err);
++	return err;
++}
++
++void sqlzma_fin(struct sqlzma_un *un)
++{
++	int i;
++	for (i = 0; i < SQUN_LAST; i++)
++		if (un->un_a[i].buf && un->un_a[i].buf != un->un_prob)
++			kfree(un->un_a[i].buf);
++	BUG_ON(zlib_inflateEnd(&un->un_stream) != Z_OK);
++}
++
++#ifdef __KERNEL__
++EXPORT_SYMBOL(sqlzma_un);
++EXPORT_SYMBOL(sqlzma_init);
++EXPORT_SYMBOL(sqlzma_fin);
++
++#if 0
++static int __init sqlzma_init(void)
++{
++	return 0;
++}
++
++static void __exit sqlzma_exit(void)
++{
++}
++
++module_init(sqlzma_init);
++module_exit(sqlzma_exit);
++#endif
++
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR("Junjiro Okajima <sfjro at users dot sf dot net>");
++MODULE_VERSION("$Id: uncomp.c,v 1.1 2007/11/05 05:43:36 jro Exp $");
++MODULE_DESCRIPTION("LZMA uncompress for squashfs. "
++		   "Some functions for squashfs to support LZMA and "
++		   "a tiny wrapper for LzmaDecode.c in LZMA SDK from www.7-zip.org.");
++#endif
+diff -Nur lzma-457.orig/CPP/Common/C_FileIO.h lzma-457/CPP/Common/C_FileIO.h
+--- lzma-457.orig/CPP/Common/C_FileIO.h	2007-09-10 08:49:07.000000000 +0100
++++ lzma-457/CPP/Common/C_FileIO.h	2008-10-14 22:21:20.000000000 +0100
+@@ -24,6 +24,7 @@
+   bool Close();
+   bool GetLength(UInt64 &length) const;
+   off_t Seek(off_t distanceToMove, int moveMethod) const;
++  int GetHandle() const { return _handle; }
+ };
+ 
+ class CInFile: public CFileBase
