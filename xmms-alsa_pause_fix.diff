@@ -1,0 +1,19 @@
+--- xmms/Output/alsa/audio.c.~1.28.~	2004-01-27 23:02:12.000000000 +0100
++++ xmms/Output/alsa/audio.c	2004-03-04 01:51:16.000000000 +0100
+@@ -189,8 +189,14 @@
+ 
+ 	if (alsa_can_pause)
+ 		snd_pcm_pause(alsa_pcm, p);
+-	else if (p)
+-		snd_pcm_drop(alsa_pcm);
++	else
++	{
++		if (p)
++			snd_pcm_drop(alsa_pcm);
++		else
++			snd_pcm_prepare(alsa_pcm);
++		force_start = FALSE;
++	}
+ 
+ 	if (!p)
+ 		paused = FALSE;

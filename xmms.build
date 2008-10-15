@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libsigc++
+TARNAME=xmms
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARSEP="-"
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=2.2.3
+VERSION=1.2.10
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/xmms-alsa_pause_fix.diff
+ patch -p1 < ${CWD}/xmms-1.2.10.diff
+ patch -p1 < ${CWD}/xmms-fix.diff
 )
 fi
 
@@ -59,7 +64,10 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-static \
+	    --enable-simd \
+	    --with-ipv6
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,9 +82,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv $PKG/usr/share/doc/libsigc-2.0/docs $PKG/usr/doc/$PKGNAME-$VERSION
-rmdir -p $PKG/usr/share/doc/libsigc-2.0
-
 #strip_binaries
 
 fix_links
@@ -86,21 +91,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* FAQ INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Typesafe Signal Framework for C++"
-This library implements a full callback system for use in widget
-libraries, abstract interfaces, and general programming. Originally
-part of the Gtk-- widget set, libsigc++ is now a seperate library to
-provide for more general use. It is the most complete library of its
-kind with the ablity to connect an abstract callback to a class
-method, function, or function object. It contains adaptor classes for
-connection of dissimilar callbacks and has an ease of use unmatched 
-by other C++ callback libraries.
+make_slack_desc << EOF "X Multimedia System"
+XMMS is the X Multimedia System.  It is used to play audio and other
+kinds of media files.  By default XMMS can play MPEG audio, Ogg
+Vorbis, RIFF wav, most module formats, and a few other formats.  XMMS
+can be extended through plugins to play a number of other audio and
+video formats.
 
 EOF
 
