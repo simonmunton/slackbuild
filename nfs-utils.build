@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=1.1.1
+VERSION=1.1.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/nfs-utils.lwrap.needs.lnsl.diff
+ patch -p1 < ${CWD}/nfs-utils-1.1.4.diff
 )
 fi
 
@@ -83,15 +83,21 @@ mkdir -p ${PKG}/etc/rc.d ${PKG}/var/{lib/nfs,log/nfsd}
 
 make install DESTDIR=${PKG}
 
-# Remove things that seem like bad ideas, and hope it all still works:
-#rm -f $PKG/sbin/*mount* $PKG/usr/man/man8/*mount.nfs*
-rm -f $PKG/var/lib/nfs/*tab
+# These might be in use:
+( cd ${PKG}/var/lib/nfs
+  for config_file in etab rmtab state xtab ; do
+    mv ${config_file} ${config_file}.new
+    doinst_config var/lib/nfs/${config_file}.new
+  done
+)
 
+# No NFSv4 yet, so remove these:
+rm -f ${PKG}/sbin/*nfs4
+
+# Why were we doing this?
+mkdir -p ${PKG}/sbin
 mv ${PKG}/usr/sbin/rpc.statd ${PKG}/sbin
 ( cd ${PKG}/usr/sbin ; ln -sf ../../sbin/rpc.statd . )
-
-cat ${CWD}/nfs-utils-rc.nfsd > ${PKG}/etc/rc.d/rc.nfsd.new
-doinst_config etc/rc.d/rc.nfsd.new
 
 cat > ${PKG}/etc/exports.new << EOF
 # See exports(5) for a description.
@@ -101,23 +107,14 @@ EOF
 
 doinst_config etc/exports.new
 
+cat ${CWD}/nfs-utils-rc.nfsd > ${PKG}/etc/rc.d/rc.nfsd.new
+doinst_same_perm etc/rc.d/rc.nfsd
+doinst_config etc/rc.d/rc.nfsd.new
+
 cat >> ${PKG}/install/doinst.sh << EOF
-
-# If you already had your own /etc/exports, this one is probably useless...
-rm -f etc/exports.new
-
-if [ ! -r var/lib/nfs/rmtab ]; then
-  touch var/lib/nfs/rmtab
-  chmod 644 var/lib/nfs/rmtab
-fi
-if [ ! -r var/lib/nfs/xtab ]; then
-  touch var/lib/nfs/xtab
-  chmod 644 var/lib/nfs/xtab
-fi
-if [ ! -r var/lib/nfs/etab ]; then
-  touch var/lib/nfs/etab
-  chmod 644 var/lib/nfs/etab
-fi
+#
+rm -f var/lib/nfs/*.new
+#
 EOF
 
 #strip_binaries
@@ -137,11 +134,10 @@ cp -a \
   utils/statd/COPYING utils/statd/COPYRIGHT utils/statd/TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}/statd
 
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "Network File System daemons and utilities"
 The nfs-utils package contains the necessary daemons and utilities to
 run an NFS server on Linux.
 
