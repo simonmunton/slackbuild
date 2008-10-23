@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mixxx
+TARNAME=OpenDJMix
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.6.1
-VERSIONEXTRA=-src
-BUILD=2
+VERSION=1.0_Beta-20080903
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://www.mixxx.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-Beta-1.0 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -60,12 +60,19 @@ PATH=/usr/lib/qt4/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+            --enable-alsa \
+            --enable-jack
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons prefix=/usr qtdir=${QTDIR} script=1 || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,17 +80,9 @@ then
   exit
 fi
 
-scons install prefix=/usr install_root=${PKG}/usr qtdir=${QTDIR} script=1
+make install DESTDIR=${PKG}
 
-strip_binaries
-
-mv ${PKG}/usr/bin/mixxx ${PKG}/usr/bin/mixxx.bin
-cat >  ${PKG}/usr/bin/mixxx << EOF
-#!/bin/sh
-LD_LIBRARY_PATH=${QTDIR}/lib mixxx.bin "\$@"
-EOF
-chmod +x ${PKG}/usr/bin/mixxx
-
+#strip_binaries
 
 fix_links
 
@@ -98,9 +97,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source DJ software"
-Mixxx is free, open source DJ software that gives you everything you 
-need to perform live mixes.
+make_slack_desc << EOF "mp3 dj'ing system"
+OpenDJMix is a mp3 dj'ing system. It consist of library for managing 
+& mixing MP3 plus a Trolltech QT front-end.
+
+It has been tested mainly on Mac Os X and should also work on Linux.
+It may work on other system on which QT has been ported as soon as 
+the operating system support POSIX thread library.
 
 EOF
 
