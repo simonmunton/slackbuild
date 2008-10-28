@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gutenprint
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/g
+#TAR_EXT=.tar.gz
+VERSION=5.2.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --with-cups \
+	    --with-gimp2 \
+	    --with-gimp2-as-gutenprint \
+	    --disable-libgutenprintui \
+	    --enable-libgutenprintui2 \
+	    --enable-escputil \
+	    --disable-static
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+
+mkdir -p ${PKG}/var/log/setup
+cat > ${PKG}/var/log/setup/setup.06.gutenprint << EOF
+#!/bin/sh
+#BLURB="Run cups-genppd to generate Gutenprint PPDs"
+if [ -x usr/sbin/cups-genppd.5.0 ]; then
+  chroot . /bin/mkdir -p /usr/share/cups/model/gutenprint/5.0
+  chroot . /usr/sbin/cups-genppd.5.0 1> /dev/null 2> /dev/null
+fi
+EOF
+chmod 755 ${PKG}/var/log/setup/setup.06.gutenprint
+
+cat >> ${PKG}/install/doinst.sh << EOF 
+if [ -x usr/sbin/cups-genppd.5.0 ]; then
+  chroot . /bin/mkdir -p /usr/share/cups/model/gutenprint/5.0
+  chroot . /usr/sbin/cups-genppd.5.0 1> /dev/null 2> /dev/null
+fi
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  ABOUT-NLS AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+  ( cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+    ln -sf /usr/share/gutenprint/doc .
+    ln -sf /usr/share/gutenprint/samples .
+  )
+
+# Big...  again, it's in the source if you want it.
+rm -f ${PKG}/usr/share/gutenprint/doc/*.pdf
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "IJS printer driver for Ghostscript and CUPS"
+Gutenprint (formerly named Gimp-Print) is a suite of printer drivers
+that may be used with most common print spooling systems, including
+CUPS, LPRng, or others.  These drivers provide high quality printing
+in many cases equal to or better than proprietary vendor-supplied
+drivers.  Gutenprint also includes an enhanced print plug-in for the
+GIMP image editor.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg --prepend -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
