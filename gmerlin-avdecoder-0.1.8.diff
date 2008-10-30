@@ -1,0 +1,71 @@
+--- gmerlin-avdecoder-0.1.8/lib/demux_ffmpeg.c.orig	2008-05-15 22:47:59.000000000 +0100
++++ gmerlin-avdecoder-0.1.8/lib/demux_ffmpeg.c	2008-10-30 19:51:55.000000000 +0000
+@@ -64,7 +64,7 @@
+   return -1;
+   }
+ 
+-static offset_t lavf_seek(URLContext *h, offset_t pos, int whence)
++static int64_t lavf_seek(URLContext *h, int64_t pos, int whence)
+   {
+   bgav_input_context_t * input;
+   input = (bgav_input_context_t *)h->priv_data;
+@@ -455,7 +455,7 @@
+   if(map->bits)
+     s->data.audio.bits_per_sample = map->bits;
+   else
+-    s->data.audio.bits_per_sample = codec->bits_per_sample;
++    s->data.audio.bits_per_sample = codec->bits_per_coded_sample;
+ 
+   s->data.audio.block_align = codec->block_align;
+   if(!s->data.audio.block_align &&
+@@ -532,7 +532,7 @@
+   s->data.video.format.pixel_height = codec->sample_aspect_ratio.den;
+   if(!s->data.video.format.pixel_width) s->data.video.format.pixel_width = 1;
+   if(!s->data.video.format.pixel_height) s->data.video.format.pixel_height = 1;
+-  s->data.video.depth = codec->bits_per_sample;
++  s->data.video.depth = codec->bits_per_coded_sample;
+   
+   s->ext_size = codec->extradata_size;
+   s->ext_data = codec->extradata;
+--- gmerlin-avdecoder-0.1.8/lib/audio_ffmpeg.c.orig	2008-05-15 22:47:59.000000000 +0100
++++ gmerlin-avdecoder-0.1.8/lib/audio_ffmpeg.c	2008-10-30 19:55:03.000000000 +0000
+@@ -592,7 +592,7 @@
+   priv->ctx->sample_rate     = s->data.audio.format.samplerate;
+   priv->ctx->block_align     = s->data.audio.block_align;
+   priv->ctx->bit_rate        = s->codec_bitrate;
+-  priv->ctx->bits_per_sample = s->data.audio.bits_per_sample;
++  priv->ctx->bits_per_coded_sample = s->data.audio.bits_per_sample;
+ 
+   if(priv->info->codec_tag != -1)
+     priv->ctx->codec_tag = priv->info->codec_tag;
+--- gmerlin-avdecoder-0.1.8/lib/video_ffmpeg.c.orig	2008-07-15 22:19:11.000000000 +0100
++++ gmerlin-avdecoder-0.1.8/lib/video_ffmpeg.c	2008-10-30 19:55:49.000000000 +0000
+@@ -830,7 +830,7 @@
+   priv->ctx = avcodec_alloc_context();
+   priv->ctx->width = s->data.video.format.frame_width;
+   priv->ctx->height = s->data.video.format.frame_height;
+-  priv->ctx->bits_per_sample = s->data.video.depth;
++  priv->ctx->bits_per_coded_sample = s->data.video.depth;
+ #if 1
+   priv->ctx->codec_tag   =
+     ((s->fourcc & 0x000000ff) << 24) |
+--- gmerlin-avdecoder-0.1.8/configure.orig	2008-07-22 18:05:29.000000000 +0100
++++ gmerlin-avdecoder-0.1.8/configure	2008-10-30 19:45:05.000000000 +0000
+@@ -25387,7 +25387,7 @@
+ 
+ have_theora="false"
+ 
+-THEORA_REQUIRED="1.0alpha5"
++THEORA_REQUIRED="1.0RC1"
+ 
+ # Check whether --enable-theora was given.
+ if test "${enable_theora+set}" = set; then
+@@ -26857,7 +26857,7 @@
+     #include <stdio.h>
+     main()
+     {
+-#if DVDREAD_VERSION < 905
++#if DVDREAD_VERSION < 904
+     return -1;
+ #else
+     return 0;

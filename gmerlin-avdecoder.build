@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=nasm
+TARNAME=gmerlin-avdecoder
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/n
+TARDIR=~/tmp/new/g/gmerlin
 #TAR_EXT=.tar.gz
-VERSION=2.05.01
+VERSION=0.1.8
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://gmerlin.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gmerlin-avdecoder-0.1.8.diff
 )
 fi
 
@@ -68,9 +68,6 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-(cd doc
- make ${NUM_JOBS} || exit
-)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,11 +75,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALLROOT=${PKG}
-(cd doc
- mkdir -p ${PKG}/usr/info
- make install DESTDIR=${PKG} INSTALLROOT=${PKG} infodir=/usr/info
-)
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -99,10 +92,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Netwide Assembler, a portable x86 assembler with Intel-like syntax"
-NASM is the Netwide Assembler, a free portable assembler for the Intel
-80x86 microprocessor series, using primarily the traditional Intel
-instruction mnemonics and syntax.
+make_slack_desc << EOF "Gmerlin A/V decoder library"
+Gmerlin A/V decoder library
 
 EOF
 
