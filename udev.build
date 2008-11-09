@@ -6,9 +6,9 @@ TARNAME=udev
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=130
+VERSION=132
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -102,7 +102,8 @@ mkdir -p ${PKG}/sbin
 mv ${PKG}/usr/share/man ${PKG}/usr
 rmdir ${PKG}/usr/share
 
-mkdir -p ${PKG}/lib/firmware \
+mkdir -p ${PKG}/etc/udev/rules.d \
+	 ${PKG}/lib/firmware \
          ${PKG}/etc/modprobe.d \
          ${PKG}/etc/rc.d
 
@@ -110,14 +111,18 @@ cp ${CWD}/udev.conf ${PKG}/etc/udev/udev.conf
 
 ## slackware rules
 cp -a $CWD/udev-40-slackware.rules $PKG/lib/udev/rules.d/40-slackware.rules
-cp -a $CWD/udev-40-video.rules $PKG/lib/udev/rules.d/40-video.rules
+#cp -a $CWD/udev-40-video.rules $PKG/lib/udev/rules.d/40-video.rules
 cp -a $CWD/udev-65-permissions.rules $PKG/lib/udev/rules.d/65-permissions.rules
 cp -a $CWD/udev-90-network.rules $PKG/lib/udev/rules.d/90-network.rules
 
 ## upstream rule
 cp -a rules/packages/40-alsa.rules ${PKG}/lib/udev/rules.d
-#cp -a rules/packages/64-device-mapper.rules ${PKG}/lib/udev/rules.d
-cp -a rules/packages/64-md-raid.rules ${PKG}/lib/udev/rules.d
+cp -a rules/packages/40-isdn.rules ${PKG}/lib/udev/rules.d/
+cp -a rules/packages/40-zaptel.rules ${PKG}/lib/udev/rules.d/
+#cp -a rules/packages/40-pilot-links.rules ${PKG}/etc/udev/rules.d/
+#cp -a rules/packages/64-md-raid.rules ${PKG}/lib/udev/rules.d
+# This one is shared with Gentoo
+cp -a rules/gentoo/40-video.rules $PKG/lib/udev/rules.d/
 
 ## slackware rc.udev
 cp ${CWD}/udev-rc.udev.new ${PKG}/etc/rc.d/rc.udev.new
@@ -126,18 +131,19 @@ cp ${CWD}/udev-blacklist.new ${PKG}/etc/modprobe.d/blacklist.new
 cp ${CWD}/udev-isapnp.new ${PKG}/etc/modprobe.d/isapnp.new
 cp ${CWD}/udev-psmouse.new ${PKG}/etc/modprobe.d/psmouse.new
 
-mkdir -p ${PKG}/lib/udev/devices
+mkdir -p ${PKG}/lib/udev/devices/shm
 
 (cd ${PKG}/lib/udev/devices
  ln -snf /proc/self/fd fd
- ln -snf fd/0 stdin
- ln -snf fd/1 stdout
- ln -snf fd/2 stderr
+ ln -snf /proc/self/fd/0 stdin
+ ln -snf /proc/self/fd/1 stdout
+ ln -snf /proc/self/fd/2 stderr
  ln -snf /proc/kcore core
+ ln -snf null X0R
 # mknod, mkfifo done later
 )
 
-for f in floppy-extra-devs.sh modalias_ieee1394 nethelper.sh rc.optical-symlinks
+for f in nethelper.sh
 do
   cp ${CWD}/udev-${f} ${PKG}/lib/udev/${f}
 done
