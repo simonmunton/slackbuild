@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=akonadi
+TARNAME=vacuum
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=1.0.0
+VERSION=0.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://pim.kde.org/akonadi/"
+WEBPAGE="http://apocalypse.rulez.org/vacuum"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,12 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX=/usr .
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,8 +92,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PIM Storage Service"
-Akonadi - The PIM Storage Service
+make_slack_desc << EOF "fast-paced action game"
+Vacuum Magic is a fast-paced action game. The point of the game is using
+your magical vacuum field to collect food and defend against monsters.
+Food and certain monsters can also be spat out and used as a projectile
+against other monsters.
+
+Vacuum Magic can be played by up to six players, either cooperatively,
+or against each other.
+
+For more information, please visit our website at
+http://apocalypse.rulez.org/vacuum
 
 EOF
 
