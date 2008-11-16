@@ -1,0 +1,140 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=mDNSResponder
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m
+#TAR_EXT=.tar.gz
+VERSION=108.6
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+ sed -i -e 's@ldconfig@/bin/true@' -e 's|/etc|\$\(SYSCONFDIR\)|g' mDNSPosix/Makefile
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+(cd mDNSPosix
+make os=linux ${NUM_JOBS} || exit
+)
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/{bin,include,lib,sbin,man/{man5,man8}}
+mkdir -p ${PKG}/etc/rc.d ${PKG}/lib
+# create temporary nsswitch.conf for make install not to complain
+touch ${PKG}/etc/nsswitch.conf
+
+(cd mDNSPosix
+make install os=linux DESTDIR=${PKG} \
+    INSTBASE=${PKG}/usr \
+    SYSCONFDIR=${PKG}/etc \
+    STARTUPSCRIPTDIR=${PKG}/etc/rc.d \
+    RUNLEVELSCRIPTSDIR= \
+    MANPATH=${PKG}/usr/man \
+    NSSINSTPATH=${PKG}/lib \
+    LDCONFIG=/bin/true
+)
+
+mv ${PKG}/etc/rc.d/mdns ${PKG}/etc/rc.d/rc.mdns
+
+rm ${PKG}/etc/nsswitch.conf*
+
+rm -f ${PKG}/lib/libnss_mdns.so.2
+ln -s libnss_mdns-0.2.so ${PKG}/lib/libnss_mdns.so.2
+rm -f ${PKG}/usr/lib/libdns_sd.so
+ln -s libdns_sd.so.1 ${PKG}/usr/lib/libdns_sd.so
+
+chmod -x ${PKG}/usr/include/*
+chmod +x ${PKG}/lib/*so
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO mDNSPosix/*.txt \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+chmod -x ${PKG}/usr/doc/${TARNAME}-${VERSION}/*
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Multicast DNS and DNS Service Discovery"
+Multicast DNS and DNS Service Discovery are technologies that allow 
+you to register IP-based services and browse the network for those 
+services. For more information about mDNS, see the mDNS web site.
+  <http://www.multicastdns.org/>
+
+Multicast DNS is part of a family of technologies resulting from the
+efforts of the IETF Zeroconf working group.  For information about
+other Zeroconf technologies, see the Zeroconf web site.
+  <http://www.zeroconf.org/>
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
