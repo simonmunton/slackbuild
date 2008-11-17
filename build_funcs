@@ -250,29 +250,19 @@ then
   rmdir ${PKG}/usr/share/man
 fi
 
-if [ -d ${PKG}/usr/man ]
+if [ -d ${PKG}/usr/man -o -d ${PKG}/usr/X11R6/man ]
 then
   # compress man pages
-  find ${PKG}/usr/man -type f -exec gzip {} \;
+  find ${PKG}/usr/man ${PKG}/usr/X11R6/man -type f -exec gzip {} \;
 
   # make links point to right places
-  for f in `find ${PKG}/usr/man -type l`
+  for f in `find ${PKG}/usr/man ${PKG}/usr/X11R6/man -type l`
   do
-    mv ${f} ${f}.gz
-    ln -sf `readlink ${f}.gz`.gz ${f}.gz
-  done
-fi
-
-if [ -d ${PKG}/usr/X11R6/man ]
-then
-  # compress man pages
-  find ${PKG}/usr/X11R6/man -type f -exec gzip {} \;
-
-  # make links point to right places
-  for f in `find ${PKG}/usr/X11R6/man -type l`
-  do
-    mv ${f} ${f}.gz
-    ln -sf `readlink ${f}.gz`.gz ${f}.gz
+    if [ "${f: -3}" != ".gz" ]
+    then
+      mv ${f} ${f}.gz
+      ln -sf `readlink ${f}.gz`.gz ${f}.gz
+    fi
   done
 fi
 }

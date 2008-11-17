@@ -1,121 +1,180 @@
 #!/bin/bash
 #
-CWD=`pwd`
-PKGNAME=ncurses
-PKG_EXT=.tar.gz
-TAR_OPTS=xzvf
-VERSION=5.4
+. build_funcs
+
+TARNAME=ncurses
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/ncurses
+#TAR_EXT=.tar.gz
+VERSION=5.7
 VERSIONEXTRA=
-ARCH=i486
 BUILD=1
-USERNAME=`id -un`
-GROUP=`id -gn`
 
-CPUOPT="-mcpu"
-GCCVER=`gcc -v 2>&1 > /dev/null | grep "gcc version" | sed -e "s/.*gcc version *//"`
-case $GCCVER in
-  3.4*|4.*) CPUOPT="-mtune" ;;
-esac
+WEBPAGE=""
 
-PKGDIR=~/tmp/gnu/ncurses/
-PKG=/tmp/package-$PKGNAME
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
 
-if [ ! -f $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT ]
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
 then
-  echo Can\'t find $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+  echo Can\'t find ${FULL_TARNAME}
   exit
 fi
 
-rm -rf $PKG
-mkdir -p $PKG
-
-if [ ! -d $PKGNAME-$VERSION ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-#cd /tmp
-tar $TAR_OPTS $PKGDIR/$PKGNAME-$VERSION$VERSIONEXTRA$PKG_EXT
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
 fi
 
-cd $PKGNAME-$VERSION
-#chown -R root.root .
-find . -perm 666 -exec chmod 644 {} \;
-find . -perm 664 -exec chmod 644 {} \;
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-./configure \
-  --prefix=/usr \
-  --with-gpm \
-  --disable-termcap \
-  --with-normal \
-  --with-shared \
-  --enable-symlinks \
-  --with-debug \
-  --without-profile \
-  --without-ada \
-  --program-prefix="" \
-#  --enable-widec \
-  i486-slackware-linux
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
 
+pre_configure
 
-make
+cd ${TARNAME}-${VERSION}
 
-make install DESTDIR=$PKG
+fix_perms
 
-if [ -d $PKG/usr/man ]
-then
-# compress man pages
-find $PKG/usr/man -exec gzip {} \;
-
-# make links point to right places
-for f in `find $PKG/usr/man -type l`
+for WIDEC in "" "--enable-widec"
 do
-mv $f $f.gz
-ln -sf `readlink $f.gz`.gz $f.gz
+
+mkdir build${WIDEC}
+cd build${WIDEC}
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-gpm \
+	    --disable-termcap \
+	    --with-normal \
+	    --with-shared \
+	    --enable-symlinks \
+	    --without-debug \
+	    --without-profile \
+	    --without-ada \
+	    ${WIDEC}
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
 done
-fi
 
-if [ -d $PKG/usr/info ]
-then
-rm $PKG/usr/info/dir
+# Move the include files from /usr/include into
+# /usr/include/ncurses, then make symlinks back
+# into /usr/include.
+( cd ${PKG}/usr/include
+  rm -rf ncurses
+  mkdir ncurses
+  mv *.h ncurses
+  for file in ncurses/* ; do
+    ln -sf $file .
+  done
+  # This shouldn't clobber the real one:
+  mv termcap.h termcap-ncurses.h
+)
 
-# compress info pages
-find $PKG/usr/info -exec gzip {} \;
-fi
+# Move the ncurses libraries into /lib, since they're important:
+mkdir -p ${PKG}/lib
+( cd ${PKG}/usr/lib
+  chmod 755 *.so
+  chmod 644 *.a
+  mv libncurses.so.5* ${PKG}/lib
+  mv libncursesw.so.5* ${PKG}/lib
+  rm -f libncurses.so
+  ln -sf /lib/libncurses.so.5 libncurses.so
+  rm -f libncursesw.so
+  ln -sf /lib/libncursesw.so.5 libncursesw.so
+  # Olde obsolete names, just in case
+  rm -f libcurses.so
+  ln -sf libncurses.so libcurses.so
+  rm -f libcursesw.so
+  ln -sf libncursesw.so libcursesw.so
+)
 
-mkdir -p $PKG/usr/doc/$PKGNAME-$VERSION
+# Set TERMINFO to point to the package:
+export TERMINFO=${PKG}/usr/share/terminfo
+# Fix the xterm, screen, rxvt, and Eterm entries:
+for tfile in ${CWD}/ncurses-xterm.terminfo ${CWD}/ncurses-screeninfo.src ${CWD}/ncurses-rxvt.terminfo ${CWD}/ncurses-Eterm.ti ; do
+  if [ -r $tfile ]; then
+    progs/tic -v $tfile
+  fi
+done
+unset TERMINFO
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  $PKG/usr/doc/$PKGNAME-$VERSION
+  ANNOUNCE AUTHORS COPYING* INSTALL MANIFEST NEWS PLANS README* TODO TO-DO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p $PKG/install
-cat <<EOF > $PKG/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/c++
+cp -a \
+  c++/NEWS c++/PROBLEMS c++/README-first \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/c++
 
-    |-----handy-ruler------------------------------------------------------|
-ncurses: ncurses
-ncurses:
-ncurses: 
-ncurses:
-ncurses:
-ncurses:
-ncurses:
-ncurses:
-ncurses:
-ncurses:
-ncurses:
-EOF
-
-if [ -d $PKG/usr/info ]
-then
-cat <<EOF > $PKG/install/doinst.sh
-#
-install-info --info-dir=/usr/info /usr/info/ncurses.info.gz
-EOF
+if [ -r $PKG/usr/man/man1/tack.1 ]; then
+  gzip -9 --force $PKG/usr/man/man1/tack.1
 fi
 
-cd $PKG
-su -c "chown -R root.root ${PKG}; makepkg $PKGNAME-$VERSION-$ARCH-$BUILD.tgz; chown -R `whoami`.users $PKG"
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "CRT screen handling and optimization package"
+The ncurses (new curses) library is a free software emulation of
+curses in System V Release 4.0, and more.  It uses terminfo format,
+supports pads and color and multiple highlights and forms characters
+and function-key mapping, and has all the other SYSV-curses
+enhancements over BSD curses.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
