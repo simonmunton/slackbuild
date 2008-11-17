@@ -1,0 +1,82 @@
+--- kboggle-0.4.1/src/game.cpp.orig	2006-01-05 01:01:39.000000000 +0000
++++ kboggle-0.4.1/src/game.cpp	2008-11-16 22:25:21.000000000 +0000
+@@ -161,6 +161,7 @@
+ void Game::slotWordEntered()
+ {
+   mLastWord = mLineEdit->text().stripWhiteSpace();
++
+   if ( mUseDictionary && mSpellChecker )
+   {
+     mSpellChecker->checkWord( mLastWord );
+@@ -169,6 +170,8 @@
+   {
+     slotWordCorrected( QString::null, QString::null, 0 );
+   }
++
++  mGrid->resetCells();
+ }
+ 
+ void Game::slotWordCorrected( const QString &old_word, const QString &, unsigned int )
+@@ -183,7 +186,15 @@
+     if( valid ) // word is valid
+     {
+       mWordList->addWord( lastWordNoAccent );
+-      mScore += mLastWord.length() - 2;
++      switch (mLastWord.length())
++      {
++	case 0: case 1: case 2: break;
++	case 3: case 4:		mScore += 1; break;
++	case 5: 		mScore += 2; break;
++	case 6: 		mScore += 3; break;
++	case 7:			mScore += 5; break;
++	default:		mScore += 11; break;
++      }
+       emit scoreUpdated( mScore );
+     }
+     else if( !inGrid )
+@@ -237,12 +248,19 @@
+   if( mCounter->isActive() )
+   {
+     mLineEdit->setText( mLineEdit->text() + c );
++    if (c == 'q')
++	mLineEdit->setText( mLineEdit->text() + 'u' );
+   }
+ }
+ 
+ void Game::removeChar( const QChar &c )
+ {
+-  if( mLineEdit->text().right( 1 ) == c )
++  if (c == 'q' && mLineEdit->text().right( 2 ) == "qu")
++  {
++    QString text = mLineEdit->text();
++    mLineEdit->setText( text.left( text.length() - 2 ) );
++  }
++  else if( mLineEdit->text().right( 1 ) == c )
+   {
+     QString text = mLineEdit->text();
+     mLineEdit->setText( text.left( text.length() - 1 ) );
+--- kboggle-0.4.1/src/grid.cpp.orig	2006-01-05 01:02:18.000000000 +0000
++++ kboggle-0.4.1/src/grid.cpp	2008-11-16 21:22:22.000000000 +0000
+@@ -225,6 +225,8 @@
+ {
+   QString upperWord = word.upper();
+ 
++  upperWord.replace ("QU", "Q");
++
+   uint count = mCells.count();
+   for( uint i = 0; i < count ; ++i )
+   {
+--- kboggle-0.4.1/src/cell.cpp.orig	2005-12-16 11:48:07.000000000 +0000
++++ kboggle-0.4.1/src/cell.cpp	2008-11-16 21:31:22.000000000 +0000
+@@ -69,7 +69,10 @@
+   if( b )
+   {
+     setEnabled( true );
+-    setText( mChar );
++    if (mChar == 'Q')
++      setText( "Qu" );
++    else
++      setText( mChar );
+     if ( mSelected )
+     {
+       QColor bgcolor = KGlobalSettings::highlightColor().dark(120);
