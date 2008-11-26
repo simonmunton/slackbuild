@@ -1,0 +1,749 @@
+--- javr-2.8/avr_jtag.c.orig	2005-05-16 20:36:48.000000000 +0100
++++ javr-2.8/avr_jtag.c	2006-10-17 16:05:33.000000000 +0100
+@@ -179,11 +179,11 @@
+     timeout--;
+     if(!timeout)
+     {
+-      printf("\r\nProblem Erasing device!!!\r\n");
++      printf("\nProblem Erasing device!!!\n");
+       return;
+     }
+   }while(!tmp);
+-  printf("\r\nDevice Erased\r\n");
++  printf("\nDevice Erased\n");
+ }
+ 
+ 
+@@ -336,7 +336,7 @@
+     timeout--;
+     if(!timeout)
+     {
+-      printf("\r\nProblem Writing Flash Page: %d !!!\r\n",pagenumber);
++      printf("\nProblem Writing Flash Page: %d !!!\n",pagenumber);
+       return(0);
+     }
+   }while(!tmp);
+@@ -502,7 +502,7 @@
+     timeout--;
+     if(!timeout)
+     {
+-      printf("\r\nProblem Writing EEPROM Page: %d !!!\r\n",pagenumber);
++      printf("\nProblem Writing EEPROM Page: %d !!!\n",pagenumber);
+       return(0);
+     }
+   }while(!tmp);
+@@ -595,7 +595,7 @@
+     pagenumber++;
+     fflush(stdout);
+   }
+-  printf("Written EEPROM from 0x%3.3X to 0x%3.3X\r\n",startaddress,startaddress+len);
++  printf("Written EEPROM from 0x%3.3X to 0x%3.3X\n",startaddress,startaddress+len);
+ }
+ 
+ 
+@@ -623,7 +623,7 @@
+       blocksize=128;
+       break;
+   }
+-  printf("Flash Page Size: %d\r\n",blocksize);
++  printf("Flash Page Size: %d\n",blocksize);
+   assert(blocksize<=sizeof(buffer));
+   pagenumber=startaddress/blocksize;
+   index=startaddress%blocksize;
+@@ -650,7 +650,7 @@
+     fflush(stdout);
+     pagenumber++;
+   }
+-  printf("Written Flash from 0x%lX to 0x%lX\r\n",startaddress,startaddress+len);
++  printf("Written Flash from 0x%lX to 0x%lX\n",startaddress,startaddress+len);
+ }
+ 
+ 
+@@ -735,7 +735,7 @@
+   int i,k,error=0;
+   int bsize,bstart;
+ 
+-  printf("Reading from 0x%5.5X (%u), 0x%5.5X (%u) bytes\r\n",startaddress,startaddress,length,length);
++  printf("Reading from 0x%5.5X (%u), 0x%5.5X (%u) bytes\n",startaddress,startaddress,length,length);
+   bsize=GetNearestBlockSize(length/78);
+   if(bsize>2048)
+   {
+@@ -759,7 +759,7 @@
+       {
+         error++;
+         if(error<=MAX_ERROR)
+-          printf("\rVerify failed at 0x%5.5X: Read 0x%2.2X Expected 0x%2.2X\r\n",startaddress+i,buffer[k],*src);
++          printf("\rVerify failed at 0x%5.5X: Read 0x%2.2X Expected 0x%2.2X\n",startaddress+i,buffer[k],*src);
+       }
+       src++;
+       i++;
+--- javr-2.8/command.c.orig	2005-10-17 18:59:20.000000000 +0100
++++ javr-2.8/command.c	2006-10-17 16:04:09.000000000 +0100
+@@ -300,19 +300,19 @@
+ 
+   if(gSourceName)
+   {
+-    printf("Reading Flash Data from %s\r\n",gSourceName);
++    printf("Reading Flash Data from %s\n",gSourceName);
+     BlockFill(gFlashBuffer,FILL_BYTE,gFlashBufferSize);
+     fp=fopen(gSourceName,"rb");
+     if(!fp)
+     {
+-      printf("\r\nError opening file %s\r\n",gSourceName);
++      printf("\nError opening file %s\n",gSourceName);
+     }
+     else
+     {
+        gSourceInfo=ReadData(fp,gFlashBuffer,gFlashBufferSize);
+        fclose(fp);
+        gProgramFlash=1;
+-       printf("Flash Data from 0x%lX to 0x%lX, Length: %ld\r\n"
++       printf("Flash Data from 0x%lX to 0x%lX, Length: %ld\n"
+                ,gSourceInfo.StartAddr,gSourceInfo.EndAddr,gSourceInfo.Bytes_Read);
+     }
+     if(!gFuseName)  /* Use Derived Name if Name not on command Line */
+@@ -349,7 +349,7 @@
+   {
+ 
+     gLockOption=DecodeLockOption(argc,argv);
+-    printf("Reading Fuse Data from %s\r\n",gFuseName);
++    printf("Reading Fuse Data from %s\n",gFuseName);
+     SetATMegaFuseDefault();  /* Any bits not defined in the fuse file will be the default value */
+     if(GetParamInfo())
+     {
+@@ -359,12 +359,12 @@
+   }
+   if(gEepromName)
+   {
+-    printf("Reading EEPROM Data from %s\r\n",gEepromName);
++    printf("Reading EEPROM Data from %s\n",gEepromName);
+     memset(gEEPROMBuffer,FILL_BYTE,MAX_EEPROM_SIZE);
+     fp=fopen(gEepromName,"rb");
+     if(!fp)
+     {
+-      printf("\r\nError opening file %s\r\n",gEepromName);
++      printf("\nError opening file %s\n",gEepromName);
+     }
+     else
+     {
+@@ -373,11 +373,11 @@
+       if(gEepromInfo.Bytes_Read)
+       {
+         gProgramEeprom=1;
+-        printf("Eeprom Data from 0x%lX to 0x%lX, Length: %ld\r\n"
++        printf("Eeprom Data from 0x%lX to 0x%lX, Length: %ld\n"
+                ,gEepromInfo.StartAddr,gEepromInfo.EndAddr,gEepromInfo.Bytes_Read);
+       }
+       else
+-        printf("0 Bytes Eeprom Data\r\n");
++        printf("0 Bytes Eeprom Data\n");
+     }
+   }
+ }
+--- javr-2.8/fuse.c.orig	2005-10-17 19:00:02.000000000 +0100
++++ javr-2.8/fuse.c	2006-10-17 16:03:47.000000000 +0100
+@@ -177,57 +177,57 @@
+   unsigned char tmp;
+   unsigned long tmp1;
+ 
+-  printf("Fuse Bits: 0=\"Programmed\" => True\r\n");
++  printf("Fuse Bits: 0=\"Programmed\" => True\n");
+   if((gDeviceData.Index==ATMEGA128) || (gDeviceData.Index==ATMEGA64) || (gDeviceData.Index==ATMEGA162) ||(gDeviceData.Index==AT90CAN128))
+   {
+     printf("Extended Fuse Byte: 0x%2.2X ",gFuseByte[2]);
+   }
+   printf("High Fuse Byte: 0x%2.2X ",gFuseByte[1]);
+-  printf("Low Fuse Byte: 0x%2.2X\r\n",gFuseByte[0]);
++  printf("Low Fuse Byte: 0x%2.2X\n",gFuseByte[0]);
+   if((gDeviceData.Index==ATMEGA162) || (gDeviceData.Index==AT90CAN128))
+     {
+       tmp=gFuseBitsAll.CKSEL;
+-      printf("CKSEL: %X %s%s\r\n",gFuseBitsAll.CKSEL,gCKSEL_Data1[tmp],
++      printf("CKSEL: %X %s%s\n",gFuseBitsAll.CKSEL,gCKSEL_Data1[tmp],
+ 	     (gFuseBitsAll.CKDIV8)?"":" divided by 8");
+     }
+   else
+     {
+       tmp=gFuseBitsAll.CKSEL;
+       tmp|=(gFuseBitsAll.CKOPT<<4);
+-      printf("CKSEL: %X CKOPT: %d  %s\r\n",gFuseBitsAll.CKSEL,gFuseBitsAll.CKOPT,gCKSEL_Data[tmp]);
++      printf("CKSEL: %X CKOPT: %d  %s\n",gFuseBitsAll.CKSEL,gFuseBitsAll.CKOPT,gCKSEL_Data[tmp]);
+     }
+   printf("SUT: %X   ",gFuseBitsAll.SUT);
+-  DisplayATMegaStartUpTime(); printf("\r\n");
++  DisplayATMegaStartUpTime(); printf("\n");
+   tmp1=gDeviceData.flash;
+   tmp1-=gDeviceBOOTSize.size[gFuseBitsAll.BOOTSIZE];
+-  printf("BOOTSIZE: %X  Size: %d Bytes  Start:0x%5.5lX\r\n",gFuseBitsAll.BOOTSIZE,gDeviceBOOTSize.size[gFuseBitsAll.BOOTSIZE],tmp1);
++  printf("BOOTSIZE: %X  Size: %d Bytes  Start:0x%5.5lX\n",gFuseBitsAll.BOOTSIZE,gDeviceBOOTSize.size[gFuseBitsAll.BOOTSIZE],tmp1);
+   if((gDeviceData.Index==ATMEGA128) || (gDeviceData.Index==ATMEGA64))
+   {
+-    printf("M103C   : %d  (%s)\r\n",gFuseBitsAll.M103C   ,gTF[gFuseBitsAll.M103C]);
+-    printf("WDTON   : %d  (%s)\r\n",gFuseBitsAll.WDTON   ,gTF[gFuseBitsAll.WDTON]);
++    printf("M103C   : %d  (%s)\n",gFuseBitsAll.M103C   ,gTF[gFuseBitsAll.M103C]);
++    printf("WDTON   : %d  (%s)\n",gFuseBitsAll.WDTON   ,gTF[gFuseBitsAll.WDTON]);
+   }
+   if((gDeviceData.Index==ATMEGA162) || (gDeviceData.Index==AT90CAN128))
+   {
+     if (gDeviceData.Index==ATMEGA162)
+-      printf("M161C   : %d  (%s)\r\n",gFuseBitsAll.M161C   ,gTF[gFuseBitsAll.M161C]);
+-    printf("WDTON   : %d  (%s)\r\n",gFuseBitsAll.WDTON   ,gTF[gFuseBitsAll.WDTON]);
+-    printf("CKOUT   : %d  (%s)\r\n",gFuseBitsAll.CKOUT   ,gTF[gFuseBitsAll.CKOUT]);
+-    printf("CKDIV8  : %d  (%s)\r\n",gFuseBitsAll.CKDIV8  ,gTF[gFuseBitsAll.CKDIV8]);
+-  }
+-  printf("OCDEN   : %d  (%s)\r\n",gFuseBitsAll.OCDEN   ,gTF[gFuseBitsAll.OCDEN]);
+-  printf("JTAGEN  : %d  (%s)\r\n",gFuseBitsAll.JTAGEN  ,gTF[gFuseBitsAll.JTAGEN]);
+-  printf("SPIEN   : %d  (%s)\r\n",gFuseBitsAll.SPIEN   ,gTF[gFuseBitsAll.SPIEN]);
+-  printf("EESAVE  : %d  (%s)\r\n",gFuseBitsAll.EESAVE  ,gTF[gFuseBitsAll.EESAVE]);
+-  printf("BOOTRST : %d  (%s)\r\n",gFuseBitsAll.BOOTRST ,gTF[gFuseBitsAll.BOOTRST]);
++      printf("M161C   : %d  (%s)\n",gFuseBitsAll.M161C   ,gTF[gFuseBitsAll.M161C]);
++    printf("WDTON   : %d  (%s)\n",gFuseBitsAll.WDTON   ,gTF[gFuseBitsAll.WDTON]);
++    printf("CKOUT   : %d  (%s)\n",gFuseBitsAll.CKOUT   ,gTF[gFuseBitsAll.CKOUT]);
++    printf("CKDIV8  : %d  (%s)\n",gFuseBitsAll.CKDIV8  ,gTF[gFuseBitsAll.CKDIV8]);
++  }
++  printf("OCDEN   : %d  (%s)\n",gFuseBitsAll.OCDEN   ,gTF[gFuseBitsAll.OCDEN]);
++  printf("JTAGEN  : %d  (%s)\n",gFuseBitsAll.JTAGEN  ,gTF[gFuseBitsAll.JTAGEN]);
++  printf("SPIEN   : %d  (%s)\n",gFuseBitsAll.SPIEN   ,gTF[gFuseBitsAll.SPIEN]);
++  printf("EESAVE  : %d  (%s)\n",gFuseBitsAll.EESAVE  ,gTF[gFuseBitsAll.EESAVE]);
++  printf("BOOTRST : %d  (%s)\n",gFuseBitsAll.BOOTRST ,gTF[gFuseBitsAll.BOOTRST]);
+   printf("BODLEVEL: 0x%X  ",gFuseBitsAll.BODLEVEL);
+ 
+   if((gDeviceData.Index!=ATMEGA162) && (gDeviceData.Index!=AT90CAN128))
+   {
+     if(gFuseBitsAll.BODLEVEL)
+-      printf("(2.7V)\r\n");
++      printf("(2.7V)\n");
+     else
+-      printf("(4V)\r\n");
+-    printf("BODEN   : %d  (%s)\r\n",gFuseBitsAll.BODEN   ,gTF[gFuseBitsAll.BODEN]);
++      printf("(4V)\n");
++    printf("BODEN   : %d  (%s)\n",gFuseBitsAll.BODEN   ,gTF[gFuseBitsAll.BODEN]);
+   }
+   else
+   {
+@@ -252,12 +252,12 @@
+         printf("(Reserved)");
+         break;
+     }
+-    printf("\r\n");
++    printf("\n");
+   }
+-  printf("Lock Byte: 0x%2.2X \r\n",gLockByte);
+-  printf("BLB0     : %d\r\n",gLockBitsAll.BLB0);
+-  printf("BLB1     : %d\r\n",gLockBitsAll.BLB1);
+-  printf("LB       : %d\r\n",gLockBitsAll.LB);
++  printf("Lock Byte: 0x%2.2X \n",gLockByte);
++  printf("BLB0     : %d\n",gLockBitsAll.BLB0);
++  printf("BLB1     : %d\n",gLockBitsAll.BLB1);
++  printf("LB       : %d\n",gLockBitsAll.LB);
+ }
+ 
+ 
+@@ -353,11 +353,11 @@
+       timeout--;
+       if(!timeout)
+       {
+-        printf("\r\nProblem Writing Fuse Extended Byte!!!\r\n");
++        printf("\nProblem Writing Fuse Extended Byte!!!\n");
+         return;
+       }
+     }while(!tmp);
+-    printf("\r\nFuse Extended Byte Written (0x%2.2X)",gFuseByte[2]);
++    printf("\nFuse Extended Byte Written (0x%2.2X)",gFuseByte[2]);
+   }
+ 
+   tmp=0x1300;
+@@ -378,11 +378,11 @@
+     timeout--;
+     if(!timeout)
+     {
+-      printf("\r\nProblem Writing Fuse High Byte!!!\r\n");
++      printf("\nProblem Writing Fuse High Byte!!!\n");
+       return;
+     }
+   }while(!tmp);
+-  printf("\r\nFuse High Byte Written (0x%2.2X)",gFuseByte[1]);
++  printf("\nFuse High Byte Written (0x%2.2X)",gFuseByte[1]);
+ 
+   tmp=0x1300;
+   tmp|=gFuseByte[0];
+@@ -402,16 +402,16 @@
+     timeout--;
+     if(!timeout)
+     {
+-      printf("\r\nProblem Writing Fuse Low Byte!!!\r\n");
++      printf("\nProblem Writing Fuse Low Byte!!!\n");
+       return;
+     }
+   }while(!tmp);
+-  printf("\r\nFuse Low Byte Written (0x%2.2X)\r\n",gFuseByte[0]);
++  printf("\nFuse Low Byte Written (0x%2.2X)\n",gFuseByte[0]);
+ 
+ }
+ 
+ #if 1
+-#define EOLINE  "\r\n"
++#define EOLINE  "\n"
+ #else
+ #define EOLINE  "\n"
+ #endif
+@@ -423,7 +423,7 @@
+    fp=fopen(name,"wb");
+    if(!fp)
+    {
+-     fprintf(stderr,"\r\nCould not write file %s\r\n",name);
++     fprintf(stderr,"\nCould not write file %s\n",name);
+      return;
+    }
+ 
+@@ -500,7 +500,7 @@
+ 
+     tmp=0x13C0;
+     tmp|=gLockByte;
+-    printf("Lockbits: %2.2X\r\n",gLockByte);
++    printf("Lockbits: %2.2X\n",gLockByte);
+     Send_AVR_Prog_Command(tmp);
+ 
+ 
+@@ -517,11 +517,11 @@
+       timeout--;
+       if(!timeout)
+       {
+-        printf("\r\nProblem Writing Lock Bits!!!\r\n");
++        printf("\nProblem Writing Lock Bits!!!\n");
+         return;
+       }
+     }while(!tmp);
+-    printf("\r\nLock Bits Written");
++    printf("\nLock Bits Written");
+   }
+ }
+ 
+--- javr-2.8/javr.c.orig	2006-04-17 11:27:32.000000000 +0100
++++ javr-2.8/javr.c	2006-06-02 15:31:57.000000000 +0100
+@@ -69,12 +69,12 @@
+ \********************************************************************/
+ #ifdef __CYGWIN32__
+ #define USE_IOPERM      1
+-#define BUILD_STR "Cygwin version\r\n"
++#define BUILD_STR "Cygwin version\n"
+ #endif
+ #ifndef __CYGWIN32__
+ #ifdef __unix__
+ #define USE_IOPERM      1
+-#define BUILD_STR "Unix/Linux version\r\n"
++#define BUILD_STR "Unix/Linux version\n"
+ #endif
+ #endif
+ 
+@@ -110,9 +110,9 @@
+ #ifndef USE_IOPERM
+ #if defined (WIN32NATIVE)
+ char *progname="javr";
+-#define BUILD_STR  "Mingw Win32 Native version (Needs giveio.sys)\r\n"
++#define BUILD_STR  "Mingw Win32 Native version (Needs giveio.sys)\n"
+ #else
+-#define BUILD_STR  "Mingw version (Win98 and Win95 only)\r\n"
++#define BUILD_STR  "Mingw version (Win98 and Win95 only)\n"
+ #endif
+ #endif
+ 
+@@ -120,33 +120,33 @@
+ {
+   if(argc==1)
+   {
+-    printf("\r\njavr [<filename>] [-p<port>] [-f<fusefilename>] [-e<eepromfilename>] [-L] [-V]\r\n");
++    printf("\njavr [<filename>] [-p<port>] [-f<fusefilename>] [-e<eepromfilename>] [-L] [-V]\n");
+     gDisplayMenu=1;
+   }
+ 
+   if(DecodeHelpRequest(argc,argv))
+   {
+-    printf("javr Ver %s, (C) AJ Erasmus 2001 - Compiled " __DATE__ " " __TIME__"\r\n",gVersionStr);
+-    printf("Programs Atmel AVR MCUs using the PC Parallel port and\r\n" \
+-           "the JTAG interface of the AVR.\r\n\n" BUILD_STR \
+-           "\nemail:%s@%s.%s\r\n\r\n" \
+-           "This program is free software; you can redistribute it and/or modify\r\n" \
+-           "it under the terms of the GNU General Public License as published by\r\n" \
+-           "the Free Software Foundation; either version 2 of the License, or\r\n" \
+-           "(at your option) any later version.\r\n\r\n" \
+-           "This program is distributed in the hope that it will be useful,\r\n" \
+-           "but WITHOUT ANY WARRANTY; without even the implied warranty of\r\n" \
+-           "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\r\n" \
+-           "GNU General Public License for more details.\r\n","antone","sentechsa","com");
+-    printf("\r\njavr [<filename>] [-p<port>] [-f<fusefilename>] [-e<eepromfilename>] [-L] [-V]\r\n" \
+-           "port: 1-3 (0x378 (default), 0x278, 0x3BC)\r\n" \
+-           "         > 3 -> Port Address to Use in Hex\r\n" \
+-           "e.g. javr -p378 will use port 0x378\r\n" \
+-           "filename: S-Record File to program (Default Extention is .rom)\r\n" \
+-           "fusefilename: Text File describing fuses to program (Default Extention is .fus)\r\n" \
+-           "eepromfilename: S-Record File to program (Default Extention is .eep)\r\n" \
+-           "-L: Program Lockbits if defined in fusefile\r\n" \
+-           "-V: Verify <filename> against flash\r\n\n" \
++    printf("javr Ver %s, (C) AJ Erasmus 2001 - Compiled " __DATE__ " " __TIME__"\n",gVersionStr);
++    printf("Programs Atmel AVR MCUs using the PC Parallel port and\n" \
++           "the JTAG interface of the AVR.\n\n" BUILD_STR \
++           "\nemail:%s@%s.%s\n\n" \
++           "This program is free software; you can redistribute it and/or modify\n" \
++           "it under the terms of the GNU General Public License as published by\n" \
++           "the Free Software Foundation; either version 2 of the License, or\n" \
++           "(at your option) any later version.\n\n" \
++           "This program is distributed in the hope that it will be useful,\n" \
++           "but WITHOUT ANY WARRANTY; without even the implied warranty of\n" \
++           "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n" \
++           "GNU General Public License for more details.\n","antone","sentechsa","com");
++    printf("\njavr [<filename>] [-p<port>] [-f<fusefilename>] [-e<eepromfilename>] [-L] [-V]\n" \
++           "port: 1-3 (0x378 (default), 0x278, 0x3BC)\n" \
++           "         > 3 -> Port Address to Use in Hex\n" \
++           "e.g. javr -p378 will use port 0x378\n" \
++           "filename: S-Record File to program (Default Extention is .rom)\n" \
++           "fusefilename: Text File describing fuses to program (Default Extention is .fus)\n" \
++           "eepromfilename: S-Record File to program (Default Extention is .eep)\n" \
++           "-L: Program Lockbits if defined in fusefile\n" \
++           "-V: Verify <filename> against flash\n\n" \
+            );
+     exit(0);
+   }
+@@ -157,10 +157,10 @@
+   DecodeCommandLine(argc,argv);
+ 
+ #ifdef USE_IOPERM
+-  printf("Using ioperm to gain port access to 0x%3.3X\r\n",gPort);
+-  if(ioperm(gPort,8,1))
++  printf("Using ioperm to gain port access to 0x%3.3X\n",gPort);
++  if(ioperm(gPort,3,1))
+   {
+-    perror("ioperm failed\r\n");
++    perror("ioperm failed\n");
+     exit(1);
+   }
+ #else
+@@ -169,7 +169,7 @@
+     int rc;
+     char *dev;
+ 
+-    printf("Using giveio.sys to gain port access to 0x%3.3X\r\n",gPort);
++    printf("Using giveio.sys to gain port access to 0x%3.3X\n",gPort);
+     switch(gPort)
+     {
+       case 0x378:
+@@ -190,7 +190,7 @@
+   }
+ #else
+   /* Windows ME, 98 and 95 */
+-  printf("Using Port at address 0x%3.3X\r\n",gPort);
++  printf("Using Port at address 0x%3.3X\n",gPort);
+ #endif
+ #endif
+ 
+@@ -219,7 +219,7 @@
+       fprintf(stderr," ,ATMega162");
+       fprintf(stderr," ,ATMega169");
+       fprintf(stderr," ,AT90CAN128");
+-      fprintf(stderr,"\r\n");
++      fprintf(stderr,"\n");
+       exit(-1);
+       break;
+   }
+@@ -232,10 +232,10 @@
+ 
+   AVR_Prog_Enable();
+ 
+-  /* printf(">>>%4.4X<<<\r\n",ReadFlashWord(0x00)); */
++  /* printf(">>>%4.4X<<<\n",ReadFlashWord(0x00)); */
+   if(gProgramFuseBits)
+   {
+-    printf("\r\nProgramming Fuse Bits\r\n");
++    printf("\nProgramming Fuse Bits\n");
+     WriteATMegaFuse();
+   }
+   else
+@@ -246,14 +246,14 @@
+ 
+   if(gProgramFlash && !gVerifyOption)
+   {
+-    printf("\r\nErasing Flash");
++    printf("\nErasing Flash");
+     if(gFuseBitsAll.EESAVE)
+     {
+       printf(" and EEPROM");
+     }
+     AVR_Prog_Enable();
+     ChipErase();
+-    printf("\r\nProgramming Flash\r\n");
++    printf("\nProgramming Flash\n");
+     WriteFlashBlock(gSourceInfo.StartAddr,gSourceInfo.EndAddr-gSourceInfo.StartAddr+1 , gFlashBuffer);
+     AVR_Prog_Disable();
+   }
+@@ -262,9 +262,9 @@
+   {
+     int i;
+ 
+-    printf("\r\nVerifying Flash\r\n");
++    printf("\nVerifying Flash\n");
+     i=VerifyFlashBlock(gSourceInfo.StartAddr,gSourceInfo.EndAddr-gSourceInfo.StartAddr+1 , gFlashBuffer);
+-    printf("\r\nFlash Verified with %d errors\r\n",i);
++    printf("\nFlash Verified with %d errors\n",i);
+   }
+ 
+   if(gProgramEeprom)
+@@ -272,11 +272,11 @@
+ 
+     if(!gProgramFlash || !gFuseBitsAll.EESAVE)
+     {
+-      printf("EEPROM was not erased before programming - EEPROM NOT reprogrammed\r\n");
++      printf("EEPROM was not erased before programming - EEPROM NOT reprogrammed\n");
+     }
+     else
+     {
+-      printf("\r\nProgramming EEPROM\r\n");
++      printf("\nProgramming EEPROM\n");
+       AVR_Prog_Enable();
+       WriteEepromBlock(gEepromInfo.StartAddr,gEepromInfo.EndAddr-gEepromInfo.StartAddr+1 , gEEPROMBuffer);
+       AVR_Prog_Disable();
+@@ -287,7 +287,7 @@
+   {
+     if(gLockOption)  /* Command line option -L must be present */
+     {
+-      printf("\r\nProgramming Lock bits\r\n");
++      printf("\nProgramming Lock bits\n");
+       AVR_Prog_Enable();
+       WriteATMegaLock();  /* Will only program if bits defined in fuse file */
+       AVR_Prog_Disable();
+@@ -409,7 +409,7 @@
+    }
+    if(gOldTAPState!=gTAPState)
+    {
+-     printf("%s\r\n",gTAPStateNames[(int)gTAPState]);
++     printf("%s\n",gTAPStateNames[(int)gTAPState]);
+      gOldTAPState=gTAPState;
+    }
+ }
+@@ -681,10 +681,10 @@
+          }
+        }
+        printf("%s, Rev %c with",gDeviceData.name,gJTAG_ID.version+'A'); /*Bon 041213*/
+-       printf(" %ldK Flash, %u Bytes EEPROM and %u Bytes RAM\r\n",gDeviceData.flash/1024,gDeviceData.eeprom, gDeviceData.ram);
++       printf(" %ldK Flash, %u Bytes EEPROM and %u Bytes RAM\n",gDeviceData.flash/1024,gDeviceData.eeprom, gDeviceData.ram);
+        break;
+      default:
+-       printf("Unknown Manufacturer\r\n");
++       printf("Unknown Manufacturer\n");
+        break;
+    }
+ }
+@@ -711,12 +711,12 @@
+   tmp=(unsigned short)(gFlashBufferSize/1024UL);
+   if(gFlashBuffer)
+   {
+-    printf("Allocated flash buffer of %dK\r\n",tmp);
++    printf("Allocated flash buffer of %dK\n",tmp);
+ 
+   }
+   else
+   {
+-    printf("\r\nCould not allocate flash buffer of %dK\r\n",tmp);
++    printf("\nCould not allocate flash buffer of %dK\n",tmp);
+     exit(-1);
+   }
+ }
+--- javr-2.8/javr.h.orig	2006-04-17 11:27:32.000000000 +0100
++++ javr-2.8/javr.h	2006-06-02 15:13:35.000000000 +0100
+@@ -265,10 +265,10 @@
+ 
+ /* Altera Byteblaster Definitions */
+ #define ENABLE_BIT      1       /* Base + 2, Inverted */
+-#define TCK_BIT         0       /* Base */
++#define TCK_BIT         2       /* Base */
+ #define TMS_BIT         1       /* Base */
+-#define TDI_BIT         6       /* Base */
+-#define RESET_BIT       3       /* Base, Inverted by Open Collector Transistor */
++#define TDI_BIT         3       /* Base */
++#define RESET_BIT       0       /* Base, Inverted by Open Collector Transistor */
+ #define TDO_BIT         7       /* Base + 1, Input */
+ #define LB_IN_BIT       5       /* Base + 1, Input */
+ #define LB_OUT_BIT      7       /* Base */
+--- javr-2.8/menu.c.orig	2005-03-23 21:03:50.000000000 +0000
++++ javr-2.8/menu.c	2006-10-17 16:02:04.000000000 +0100
+@@ -61,14 +61,14 @@
+     default:
+       AVR_Prog_Enable();
+       WriteEepromBlock(0x24, 35, (unsigned char*)"This is a Test of EEPROM Writing. 01234567890QWERTYUIOP");
+-      printf("%s Selected\r\n",ptr->title);
++      printf("%s Selected\n",ptr->title);
+       AVR_Prog_Disable();
+ 
+      {
+        int i;
+       AVR_Prog_Enable();
+-      //printf("Read %d\r\n",ReadEepromBlock(0x23,40,gFlashBuffer));
+-      printf("Flash: %d\r\n",ReadFlashBlock(2, 40,gFlashBuffer));
++      //printf("Read %d\n",ReadEepromBlock(0x23,40,gFlashBuffer));
++      printf("Flash: %d\n",ReadFlashBlock(2, 40,gFlashBuffer));
+       AVR_Prog_Disable();
+ 
+       for(i=0;i<41;i++)
+@@ -111,9 +111,9 @@
+     {
+       if(!gMenuItem[i].title)
+         break;
+-      printf("\t%c)\t%s\r\n",gMenuItem[i].selection,gMenuItem[i].title);
++      printf("\t%c)\t%s\n",gMenuItem[i].selection,gMenuItem[i].title);
+     }
+-    printf("\r\n\t");
++    printf("\n\t");
+     gets(buffer);
+     c=buffer[0];
+ 
+@@ -143,14 +143,14 @@
+   DecodeATMegaFuseBits();
+   DisplayATMegaFuseData();
+ 
+-  printf("\r\nDo you want to write a fuse file ? (Y/N) ");
++  printf("\nDo you want to write a fuse file ? (Y/N) ");
+   gets(buffer);
+   c=buffer[0];
+   switch(c)
+   {
+     case 'y':
+     case 'Y':
+-      printf("\r\nFilename ? ");
++      printf("\nFilename ? ");
+       gets(buffer);
+       WriteATMegaFuseFile(buffer);
+       break;
+@@ -163,7 +163,7 @@
+ 
+   ptr=ptr;
+   SetATMegaFuseDefault();  /* Any bits not defined in the fuse file will be the default value */
+-  printf("\r\nFilename ? ");
++  printf("\nFilename ? ");
+   gets(buffer);
+   switch(buffer[0])
+   {
+@@ -180,7 +180,7 @@
+   }
+   DisplayATMegaFuseData();
+ 
+-  printf("\r\nAre you sure you want to write the above fuse data ? (YES) ");
++  printf("\nAre you sure you want to write the above fuse data ? (YES) ");
+ 
+   gets(buffer);
+   switch(buffer[0])
+@@ -206,8 +206,8 @@
+   char buffer[256];
+ 
+   ptr=ptr;
+-  printf("If EESAVE == 0 then EEPROM will NOT be erased\r\n");
+-  printf("\r\nAre you sure you want to erase the device ? (YES) ");
++  printf("If EESAVE == 0 then EEPROM will NOT be erased\n");
++  printf("\nAre you sure you want to erase the device ? (YES) ");
+ 
+   gets(buffer);
+   switch(buffer[0])
+@@ -238,7 +238,7 @@
+ 
+   AVR_Prog_Enable();
+   ptr=ptr;
+-  printf("\r\nStart Address ? ");
++  printf("\nStart Address ? ");
+   gets(buffer);
+   switch(buffer[0])
+   {
+@@ -280,9 +280,9 @@
+       else
+         putchar('.');
+     }
+-    printf("\r\n");
++    printf("\n");
+   }
+-  printf("\r\n");
++  printf("\n");
+   AVR_Prog_Disable();
+   gets(buffer);
+ }
+@@ -296,7 +296,7 @@
+ 
+   AVR_Prog_Enable();
+   ptr=ptr;
+-  printf("\r\nFile Name [atmega.bin] ? ");
++  printf("\nFile Name [atmega.bin] ? ");
+   gets(buffer);
+   switch(buffer[0])
+   {
+@@ -313,18 +313,18 @@
+   fp=fopen(buffer,"wb");
+   if(!fp)
+   {
+-    printf("\r\nError opening file %s !!!\r\n",buffer);
++    printf("\nError opening file %s !!!\n",buffer);
+     return;
+   }
+ 
+   add=gDeviceData.flash;
+-  printf("Reading %ld bytes from device %s\r\n",add,gDeviceData.name);
++  printf("Reading %ld bytes from device %s\n",add,gDeviceData.name);
+   ReadFlashBlock(0,add,gFlashBuffer);  /* Read whole device */
+-  printf("Writing binary file %s\r\n",buffer);
++  printf("Writing binary file %s\n",buffer);
+   fwrite(gFlashBuffer,add,1,fp);
+   fclose(fp);
+   AVR_Prog_Disable();
+-  printf("\nWritten file\r\n");
++  printf("\nWritten file\n");
+ 
+ }
+ 
+@@ -338,7 +338,7 @@
+ 
+   AVR_Prog_Enable();
+   ptr=ptr;
+-  printf("\r\nStart Address ? ");
++  printf("\nStart Address ? ");
+   gets(buffer);
+   switch(buffer[0])
+   {
+@@ -400,10 +400,10 @@
+       else
+         putchar('.');
+     }
+-    printf("\r\n");
++    printf("\n");
+   }
+ 
+-  printf("\r\n");
++  printf("\n");
+   AVR_Prog_Disable();
+   gets(buffer);
+ }
+--- javr-2.8/parse.c.orig	2005-03-23 21:03:50.000000000 +0000
++++ javr-2.8/parse.c	2006-10-17 16:02:26.000000000 +0100
+@@ -110,7 +110,7 @@
+    gFuseFile=fopen(gFuseName,"rb");
+    if(gFuseFile==NULL)
+    {
+-      printf("\r\nError Opening Fuse File: %s \r\n",gFuseName);
++      printf("\nError Opening Fuse File: %s \n",gFuseName);
+       return(0); /* Failure */
+    }
+ 
+@@ -209,7 +209,7 @@
+               case TokenCKOUT:
+                 break;
+               case TokenNone:
+-                /* printf("%s >>%s<<\r\n",gToken[TokenOld],Buffer); */
++                /* printf("%s >>%s<<\n",gToken[TokenOld],Buffer); */
+                 switch(TokenOld)
+                 {
+                   case TokenM103C:
+--- javr-2.8/srecdec.c.orig	2005-03-23 21:03:50.000000000 +0000
++++ javr-2.8/srecdec.c	2006-10-17 16:05:56.000000000 +0100
+@@ -57,7 +57,7 @@
+ 
+   if(*source!='S')
+   {
+-     printf("\r\n%s\r\n",source);
++     printf("\n%s\n",source);
+      assert(*source=='S');
+   }
+   source++;

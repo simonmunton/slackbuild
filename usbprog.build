@@ -1,0 +1,155 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=usbprog
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/u
+#TAR_EXT=.tar.gz
+VERSION=0.1.7
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+#mkdir -p ${PKG}/etc/hal/fdi/policy/20thirdparty
+#
+#cat >> ${PKG}/etc/hal/fdi/policy/20thirdparty/usbprog.fdi << EOF
+#<?xml version="1.0" encoding="utf-8"?>
+# <deviceinfo version="0.2">
+#  <!-- USBprog in update mode or various demos -->
+#   <device>
+#     <match key="info.subsytem" string="usb_device">
+#       <match key="usb_device.vendor_id" int="0x1781">
+#         <match key="usb_device.product_id" int="0x0c62">
+#           <merge key="resmgr.class" type="string">scanner</merge>
+#         </match>
+#       </match>
+#     </match>
+#   </device>
+#  <!-- Atmel AVR ISP MKII -->
+#   <device>
+#     <match key="info.subsystem" string="usb_device">
+#       <match key="usb_device.vendor_id" int="0x03eb">
+#         <match key="usb_device.product_id" int="0x2104">
+#           <merge key="resmgr.class" type="string">scanner</merge>
+#         </match>
+#       </match>
+#     </match>
+#   </device>
+# </deviceinfo>
+#EOF
+
+mkdir -p ${PKG}/etc/udev/rules.d
+
+cat >> ${PKG}/etc/udev/rules.d/80-usbprog.rules << EOF
+#
+
+ACTION!="add", GOTO="usbprog_rules_end"
+SUBSYSTEM!="usb", GOTO="usbprog_rules_end"
+
+# USBprog in update mode or various demos
+ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c62", MODE="0664", GROUP="scanner"
+# Atmel AVR ISP MKII
+ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2104", MODE="0664", GROUP="scanner"
+
+LABEL="usbprog_rules_end"
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "free USB programming adapter"
+USBprog is a free programming adapter. You can easily install 
+different firmware versions from an 'online pool' over USB. The 
+adapter can be used for programming and debugging AVR and ARM 
+processors, as USB-to-RS232 converter, as JTAG interface or as simple 
+I/O interface (5 lines).
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
