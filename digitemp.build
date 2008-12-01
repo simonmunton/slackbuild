@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=digitemp
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/d
+#TAR_EXT=.tar.gz
+VERSION=3.6.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} ds9097 ds9097u ds2490 || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1}
+cp digitemp_* ${PKG}/usr/bin
+cp digitemp.1 ${PKG}/usr/man/man1
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  DS9097_Schematic.gif dthowto.txt FAQ \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Dallas Semiconductor 1-wire device reading console application"
+DigiTemp is a simple to use console application for reading values 
+from Dallas Semiconductor 1-wire devices. Its main use is for reading 
+temperature sensors, but it also reads counters and understands the 
+1-wire hubs with devices on different branches of the network. 
+DigiTemp now supports the following 1-wire temperature sensors: 
+DS18S20 (and DS1820), DS18B20, DS1822, the DS2438 Smart Battery 
+Monitor, DS2422 and DS2423 Counters, DS2409 MicroLAN Coupler (used 
+in 1-wire hubs) and the AAG TAI-8540 humidity sensor.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
