@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
 VERSION=1.41.3
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -56,16 +56,16 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-	    --sbindir=/sbin \
-	    --libdir=/lib \
-            --sysconfdir=/etc \
-	    --infodir=/usr/info \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
+./configure --prefix= \
+	    --bindir=/usr/bin \
+	    --includedir=/usr/include \
 	    --datadir=/usr/share \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/e2fsprogs-${VERSION} \
 	    --enable-elf-shlibs \
-	    --enable-dynamic-e2fsck
+	    --enable-dynamic-e2fsck \
+	    --disable-uuidd
 
 fi
 
@@ -81,42 +81,89 @@ fi
 
 make install install-libs DESTDIR=${PKG}
 
-( cd ${PKG}
-  rm -f usr/man/man3/uuid_generate_random.3 usr/man/man3/uuid_generate_time.3 \
-        usr/man/man8/fsck.ext2.8 usr/man/man8/fsck.ext3.8 \
-	usr/man/man8/mkfs.ext2.8 usr/man/man8/mkfs.ext3.8
-  ( cd usr/man/man3
-    ln -sf uuid_generate.3 uuid_generate_random.3
-    ln -sf uuid_generate.3 uuid_generate_time.3
-  )
-  ( cd usr/man/man8
-    ln -sf e2fsck.8 fsck.ext2.8
-    ln -sf e2fsck.8 fsck.ext3.8
-    ln -sf mke2fs.8 mkfs.ext2.8
-    ln -sf mke2fs.8 mkfs.ext3.8
-  )
-  mkdir usr/lib
-  mv lib/*.so lib/*.a lib/pkgconfig usr/lib
+# Fix up package:
+mkdir -p ${PKG}/usr/lib
+mv ${PKG}/lib/pkgconfig ${PKG}/lib/*.so ${PKG}/lib/*.a ${PKG}/usr/lib
+( cd ${PKG}/usr/lib
+  for i in *.so ; do 
+    ln -sf /lib/$(readlink $i) $i ; 
+  done
 )
-
-## Anyone care for these?  I don't. [NOTE:  XFS utils link with libuuid.a]
-##rm -f ${PKG}/usr/lib/*.a
 ( cd ${PKG}/sbin
-  rm -f mkfs.ext2 mkfs.ext3 fsck.ext2 fsck.ext3 e2label findfs
+  rm -f \
+    mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.ext4dev \
+    fsck.ext2 fsck.ext3 fsck.ext4dev e2label findfs
   ln -sf mke2fs mkfs.ext2
   ln -sf mke2fs mkfs.ext3
+  ln -sf mke2fs mkfs.ext4
+  ln -sf mke2fs mkfs.ext4dev
   ln -sf tune2fs e2label
   ln -sf tune2fs findfs
   cat << EOF > fsck.ext2
 #!/bin/sh
 exec /sbin/e2fsck -C 0 \$*
 EOF
-  cat << EOF > fsck.ext3
-#!/bin/sh
-exec /sbin/e2fsck -C 0 \$*
-EOF
-  chmod 755 fsck.ext2 fsck.ext3
+  chmod 0755 fsck.ext2
+  # Why won't symlinks work here?  --RW
+  # Because $0 will always be "fsck.ext2" in that case.  --PJV
+  cp -a fsck.ext2 fsck.ext3
+  cp -a fsck.ext2 fsck.ext4
+  cp -a fsck.ext2 fsck.ext4dev
 )
+( cd ${PKG}/usr/man/man3
+  rm -f uuid_generate_random.3 uuid_generate_time.3
+  ln -sf uuid_generate.3 uuid_generate_random.3
+  ln -sf uuid_generate.3 uuid_generate_time.3 
+)
+( cd ${PKG}/usr/man/man8
+  rm -f fsck.ext2.8 fsck.ext3.8 mkfs.ext2.8 mkfs.ext3.8 mkfs.ext4.8 mkfs.ext4dev.8
+  ln -sf e2fsck.8 fsck.ext2.8
+  ln -sf e2fsck.8 fsck.ext3.8
+  ln -sf e2fsck.8 fsck.ext4.8
+  ln -sf e2fsck.8 fsck.ext4dev.8
+  ln -sf mke2fs.8 mkfs.ext2.8
+  ln -sf mke2fs.8 mkfs.ext3.8
+  ln -sf mke2fs.8 mkfs.ext4.8
+  ln -sf mke2fs.8 mkfs.ext4dev.8
+)
+
+
+#( cd ${PKG}
+#  rm -f usr/man/man3/uuid_generate_random.3 usr/man/man3/uuid_generate_time.3 \
+#        usr/man/man8/fsck.ext2.8 usr/man/man8/fsck.ext3.8 \
+#	usr/man/man8/mkfs.ext2.8 usr/man/man8/mkfs.ext3.8
+#  ( cd usr/man/man3
+#    ln -sf uuid_generate.3 uuid_generate_random.3
+#    ln -sf uuid_generate.3 uuid_generate_time.3
+#  )
+#  ( cd usr/man/man8
+#    ln -sf e2fsck.8 fsck.ext2.8
+#    ln -sf e2fsck.8 fsck.ext3.8
+#    ln -sf mke2fs.8 mkfs.ext2.8
+#    ln -sf mke2fs.8 mkfs.ext3.8
+#  )
+#  mkdir usr/lib
+#  mv lib/*.so lib/*.a lib/pkgconfig usr/lib
+#)
+
+## Anyone care for these?  I don't. [NOTE:  XFS utils link with libuuid.a]
+##rm -f ${PKG}/usr/lib/*.a
+#( cd ${PKG}/sbin
+#  rm -f mkfs.ext2 mkfs.ext3 fsck.ext2 fsck.ext3 e2label findfs
+#  ln -sf mke2fs mkfs.ext2
+#  ln -sf mke2fs mkfs.ext3
+#  ln -sf tune2fs e2label
+#  ln -sf tune2fs findfs
+#  cat << EOF > fsck.ext2
+##!/bin/sh
+#exec /sbin/e2fsck -C 0 \$*
+#EOF
+#  cat << EOF > fsck.ext3
+##!/bin/sh
+#exec /sbin/e2fsck -C 0 \$*
+#EOF
+#  chmod 755 fsck.ext2 fsck.ext3
+#)
 
 # I guess Ted would rather not have this included, so we won't.
 # ( cd misc

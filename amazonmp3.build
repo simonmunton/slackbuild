@@ -2,23 +2,26 @@
 #
 . build_funcs
 
-TARNAME=cel
-TARNAMEEXTRA=-src
-TARDIR=~/tmp/new/c/CrystalSpace3D
-#TAR_EXT=.tar.gz
-VERSION=1.2.1
+TARNAME=amazonmp3
+TARNAMEEXTRA=
+TARSEP=""
+TARDIR=~/tmp/new/a/amazon
+TAR_EXT=.rpm
+VERSION=
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-#PKGVERSION=
+PKGVERSION=1.0.4
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -32,8 +35,9 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+mkdir ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+)
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -54,22 +58,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --datarootdir=/usr/share \
-            --datadir=/usr/share \
-	    --enable-optimize-mode-debug-info=no \
-	    --enable-separate-debug-info=no
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-jam ${NUM_JOBS} || exit
+:
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +71,26 @@ then
   exit
 fi
 
-jam -s DESTDIR=${PKG} install
+(cd ${PKG}
+
+rpm2cpio ${FULL_TARNAME} | cpio -i -d
+rpm2cpio ${TARDIR}/openssl-0.9.8g-6.fc9.i686.rpm | cpio -i -d ./lib/*
+rpm2cpio ${TARDIR}/boost-1.34.1-13.fc9.i386.rpm | cpio -i -d ./usr/lib/*
+
+mv lib/* usr/share/amazonmp3
+mv usr/lib/* usr/share/amazonmp3
+mv usr/bin/* usr/share/amazonmp3
+
+rm -rf lib usr/lib
+
+cat > usr/bin/amazonmp3 << EOF
+#!/bin/bash
+
+LD_LIBRARY_PATH=/usr/share/amazonmp3 /usr/share/amazonmp3/amazonmp3 "\$@"
+EOF
+
+chmod +x usr/bin/amazonmp3
+)
 
 #strip_binaries
 
@@ -93,10 +106,14 @@ cp -a \
 
 fix_docs
 
-#-----handy-ruler-for-slack-desc-width------------------------------|
-make_slack_desc <<EOF
-CEL (Crystal Entity Layer) is a companion to Crystal Space, adding
-entity management and thus providing a game engine.
+mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/${TARNAME}
+
+
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Amazon MP3 Downloader"
+Use the Amazon MP3 Downloader to download albums from 
+http://www.amazonmp3.com
 
 EOF
 

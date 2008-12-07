@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=1.6.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,6 +43,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ rm qrender/ffmpeg
 )
 fi
 
@@ -56,7 +57,7 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure -n
+./configure -n --omit-local-ffmpeg --build-qslideshow --wget-buttons-library
 # --build-qslideshow --build-qplayer --with-xine-support --with-mplayer-support
 fi
 
@@ -77,6 +78,7 @@ then
 fi
 
 make install INSTALL_ROOT=${PKG}
+make -C qrender install INSTALL_ROOT=${PKG}
 
 mv ${PKG}/usr/share/qdvdauthor/plugins/menuslide/backround ${PKG}/usr/share/qdvdauthor/plugins/menuslide/background
 
@@ -96,6 +98,8 @@ cp qdvdauthor/plugins/complexdvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugi
 mkdir -p ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
 cp -a qdvdauthor/plugins/plugins/libsimpledvd.so* ${PKG}/usr/share/qdvdauthor/plugins
 cp qdvdauthor/plugins/simpledvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
+
+cp -r buttons ${PKG}/usr/share/qdvdauthor
 
 mkdir -p ${PKG}/usr/share/qdvdauthor/{animated,static,transition,buttons}
 

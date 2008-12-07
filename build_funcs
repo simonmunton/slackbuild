@@ -253,10 +253,20 @@ fi
 if [ -d ${PKG}/usr/man -o -d ${PKG}/usr/X11R6/man ]
 then
   # compress man pages
-  find ${PKG}/usr/man ${PKG}/usr/X11R6/man -type f -exec gzip {} \;
+  MANDIR=
+  if [ -d ${PKG}/usr/man ]
+  then
+    MANDIR=${PKG}/usr/man
+  fi
+  if [ -d ${PKG}/usr/X11R6/man ]
+  then
+    MANDIR="${PKG}/usr/X11R6/man ${MANDIR}"
+  fi
+
+  find ${MANDIR} -type f -exec gzip {} \;
 
   # make links point to right places
-  for f in `find ${PKG}/usr/man ${PKG}/usr/X11R6/man -type l`
+  for f in `find ${MANDIR} -type l`
   do
     if [ "${f: -3}" != ".gz" ]
     then
