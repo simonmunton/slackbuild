@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avahi
+TARNAME=mandvd
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.6.24
-VERSIONEXTRA=
+VERSION=2.5
+VERSIONEXTRA=-4.fc9
 BUILD=1
 
-WEBPAGE="http://www.avahi.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,15 +57,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-compat-howl \
-	    --enable-compat-libdns_sd \
-#            --disable-qt4
+qmake
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,25 +78,11 @@ fi
 
 make install DESTDIR=${PKG}
 
-#make all new config stuff have .new extension
-(cd ${PKG}
- list=`find etc -type f`
- for f in ${list}
- do
-   mv ${f} ${f}.new
-   doinst_config ${f}.new
- done
-)
-
-(cd ${PKG}/usr/lib/pkgconfig
- ln -s avahi-compat-howl.pc howl.pc
- cd ${PKG}/usr/include
- ln -s avahi-compat-libdns_sd/dns_sd.h dns_sd.h
-)
-
-doinst_addusergrp avahi avahi
-
-cat ${CWD}/avahi-doinst.sh >> ${PKG}/install/doinst.sh
+mkdir -p ${PKG}/usr/bin ${PKG}/usr/share/{applications,pixmaps}
+cp mandvd ${PKG}/usr/bin
+cp mandvd.desktop ${PKG}/usr/share/applications
+cp mandvdico.png ${PKG}/usr/share/pixmaps/mandvd.png
+cp mandvdSplash.png ${PKG}/usr/share/pixmaps
 
 #strip_binaries
 
@@ -109,19 +93,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL LICENSE NEWS PLANS README* TODO docs \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "local network service discovery"
-Avahi is a system which facilitates service discovery on a local
-network. This means that you can plug your laptop or computer into a
-network and instantly be able to view other people who you can chat
-with, find printers to print to or find files being shared. This
-kind of technology is already found in Apple MacOS X (branded
-Rendezvous, Bonjour and sometimes Zeroconf) and is very convenient.
+make_slack_desc << EOF "Video DVD creation tool"
+ManDVD is a graphical tool for creating Video DVDs, including menus.
 
 EOF
 
