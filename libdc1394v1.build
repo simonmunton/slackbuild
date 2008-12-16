@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=Imaging
+TARNAME=libdc1394
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.1.6
+VERSION=1.2.2
 VERSIONEXTRA=
-BUILD=2
-
-WEBPAGE=""
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libdc1394-1
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -57,12 +55,17 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-python setup.py build || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,7 +73,7 @@ then
   exit
 fi
 
-python setup.py install --prefix=${PKG}/usr
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -81,17 +84,22 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUILDME CHANGES* CONTENTS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Python Imaging Library"
-The Python Imaging Library (PIL) adds image processing capabilities
-to your Python environment.  This library provides extensive file
-format support, an efficient internal representation, and powerful
-image processing capabilities.
+make_slack_desc <<EOF
+1394-Based Digital Camera Control Library
+
+This library provides functionality to control any camera that 
+conforms to the 1394-Based Digital Camera Specification, which can be 
+found at 
+http://www.1394ta.org/Download/Technology/Specifications/Camera120.pdf
+
+It utilizes the lowlevel functionality provided by libraw1394 to 
+communicate with the camera.
 
 EOF
 

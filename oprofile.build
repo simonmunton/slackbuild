@@ -2,14 +2,14 @@
 #
 . build_funcs
 
-TARNAME=Imaging
+TARNAME=oprofile
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.1.6
+VERSION=0.9.4
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -57,12 +57,18 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-kernel-support
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-python setup.py build || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,7 +76,7 @@ then
   exit
 fi
 
-python setup.py install --prefix=${PKG}/usr
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -81,17 +87,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUILDME CHANGES* CONTENTS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Python Imaging Library"
-The Python Imaging Library (PIL) adds image processing capabilities
-to your Python environment.  This library provides extensive file
-format support, an efficient internal representation, and powerful
-image processing capabilities.
+make_slack_desc << EOF "system profiling tool"
+OProfile is a profiling system for Linux.  Profiling runs
+transparently in the background and profile data can be collected
+at any time.  OProfile makes use of the hardware performance
+counters provided on Intel, AMD, and other processors, and uses a
+timer-interrupt based mechanism on CPUs without counters.
+OProfile can profile the whole system in high detail.
 
 EOF
 

@@ -530,6 +530,21 @@ if find ${PKG} | grep site_perl 1> /dev/null ; then
   echo "WARNING --- site_perl directory detected (this is fine for a local package build)"
 fi
 
+##############################################################
+# warn if vendor_perl modules exist as core modules on this sytem
+#
+if [ -d ${PKG}/usr/lib/perl5 ]
+then
+  for f in `(cd ${PKG}/usr/lib/perl5; find . | grep -E "/(site|vendor)_perl/" | sed -e 's@/\(site\|vendor\)_perl/@/@')`
+  do
+    if [ -f /usr/lib/perl5/$f ]
+    then
+      echo "WARNING --- files in site_perl/vendor_perl also in core on this system"
+      break
+    fi
+  done
+fi
+
 }
 
 
