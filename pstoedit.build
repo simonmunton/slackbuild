@@ -36,13 +36,14 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/pstoedit-3.45.diff
+ sed -i -e 's/-pedantic//' configure
 )
 fi
 
@@ -78,6 +79,8 @@ make install DESTDIR=${PKG}
 
 mkdir -p ${PKG}/usr/man/man1
 cp doc/pstoedit.1 ${PKG}/usr/man/man1
+
+sanitise_la_files ${PKG}/usr/lib
 
 #strip_binaries
 
