@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=mc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m
+#TAR_EXT=.tar.gz
+VERSION=4.6.3
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --enable-charset \
+	    --with-gpm-mouse \
+	    --with-ext2undel \
+	    --with-x=yes \
+	    --with-vfs \
+	    --with-samba \
+	    --with-configdir=/etc/samba \
+	    --with-codepagedir=/etc/codepages
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/etc/profile.d
+cat ${PKG}/usr/share/mc/bin/mc.csh > ${PKG}/etc/profile.d/mc.csh
+cat ${PKG}/usr/share/mc/bin/mc.sh > ${PKG}/etc/profile.d/mc.sh
+chmod 755 ${PKG}/etc/profile.d/*
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  ABOUT-NLS AUTHORS COPYING FAQ HACKING INSTALL INSTALL.FAST MAINTAINERS NEWS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Midnight Commander file manager"
+The Midnight Commander is a Norton Commander clone, a program that
+manipulates and manages files and directories.  Useful, fast, and has
+color displays on the Linux console.  Mouse support is provided
+through the gpm mouse server.  This is a lightweight compilation of
+mc for use on the text console or in an xterm.
+
+mc was written by Miguel de Icaza and Mauricio Plaza.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
