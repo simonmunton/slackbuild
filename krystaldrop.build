@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gammu
-TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/g
+TARNAME=krystaldrop
+TARNAMEEXTRA=_src
+TARSEP="_"
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.22.0
+VERSION=0.7.2
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -20,6 +22,7 @@ BUILD=1
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_DATATARNAME=${TARDIR}/${TARNAME}_art${TARSEP}${VERSION}${VERSIONEXTRA}.tgz
 
 pre_unpack
 
@@ -34,7 +37,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +46,10 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ unpack ${FULL_DATATARNAME}
+ patch -p1 < ${CWD}/krystaldrop-0.7.2-deps.patch
+ patch -p1 < ${CWD}/krystaldrop-0.7.2-gcc41.patch
+ patch -p1 < ${CWD}/krystaldrop-0.7.2.diff
 )
 fi
 
@@ -55,16 +61,15 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-rm -rf build
-mkdir build
+:
+make dep
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd build
- cmake .. -DENABLE_SHARED=ON -DCMAKE_INSTALL_PREFIX="/usr"
- make ${NUM_JOBS} || exit
-)
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,9 +77,19 @@ then
   exit
 fi
 
-(cd build
- make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL_PREFIX=${PKG}
+
+(cd ${PKG}/usr/share/games/krystaldrop
+ mv survival.sco survival.sco.new
+ touch music.raw
+ chmod 666 survival.sco.new music.raw
+ doinst_config usr/share/games/krystaldrop/survival.sco.new
 )
+
+mkdir -p ${PKG}/usr/share/pixmaps
+cp art/drop.png ${PKG}/usr/share/pixmaps/kdrop.png
+
+create_desktop_entry krystaldrop "KrystalDrop" "KrystalDrop" "" "kdrop" "/usr/share/pixmaps/kdrop.png" "Game;ArcadeGame"
 
 #strip_binaries
 
@@ -91,13 +106,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Mobile phone management utility"
-Gammu is command line utility and library to work with mobile phones
-from many vendors. Support for different models differs, but basic
-functions should work with majority of them. Program can work with
-contacts, messages (SMS, EMS and MMS), calendar, todos, filesystem,
-integrated radio, camera, etc. It also supports daemon mode to send
-and receive SMSes.
+make_slack_desc << EOF "Krystal Drop is a GPL-clone of NeoGeo's 'Magical Drop'"
+Krystal Drop is a GPL-clone of NeoGeo's 'Magical Drop'
 
 EOF
 

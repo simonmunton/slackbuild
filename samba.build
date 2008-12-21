@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=samba
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=3.2.6
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+(cd source
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --enable-cups \
+	    --enable-static=no \
+	    --enable-shared=yes \
+	    --with-fhs \
+	    --with-acl-support=yes \
+	    --with-automount \
+	    --with-lockdir=/var/cache/samba \
+	    --with-configdir=/etc/samba \
+	    --with-privatedir=/etc/samba/private \
+	    --with-swatdir=/usr/share/swat \
+	    --with-smbmount \
+	    --with-quotas \
+	    --with-syslog \
+	    --with-utmp \
+	    --with-libsmbclient \
+	    --with-winbind \
+	    --with-ldap 
+
+# --bindir=/usr/bin \
+# --sbindir=/usr/sbin \
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/var/spool/samba ${PKG}/var/log/samba
+
+make install-everything DESTDIR=${PKG}
+
+# Install libnss_win* libraries:
+mkdir -p ${PKG}/lib
+cp -a nsswitch/libnss_winbind.so ${PKG}/lib/libnss_winbind.so.2
+cp -a nsswitch/libnss_wins.so ${PKG}/lib/libnss_wins.so.2
+( cd ${PKG}/lib
+  ln -sf libnss_winbind.so.2 libnss_winbind.so
+  ln -sf libnss_wins.so.2 libnss_wins.so
+)
+
+# Add some (u)mount links:
+mkdir -p ${PKG}/sbin
+
+# SMBFS is obsolete in the kernel now -- use mount.cifs
+#rm -f mount.smbfs ; ln -sf /usr/bin/smbmount mount.smbfs
+# Add a wrapper script from Debian that's included in the upstream Samba
+# sources to help out people (like me ;-) who don't read every speck of
+# documentation:
+cat ../examples/scripts/mount/mount.smbfs > ${PKG}/sbin/mount.smbfs
+chmod 755 ${PKG}/sbin/mount.smbfs
+
+# I suppose this wouldn't be the worst idea in the world, either:
+ln -sf /sbin/mount.smbfs ${PKG}/usr/bin/smbmount
+
+rm -f ${PKG}/sbin/mount.cifs
+ln -sf /usr/sbin/mount.cifs ${PKG}/sbin/mount.cifs
+
+# smbumount was giving me problems so it seems wise to play it safe
+#rm -f umount.smbfs ; ln -sf /usr/bin/smbumount umount.smbfs
+#rm -f umount.cifs ; ln -sf /usr/sbin/umount.cifs umount.cifs
+
+# Add a sample config file:
+cat ${CWD}/samba-smb.conf.default > ${PKG}/etc/samba/smb.conf-sample
+
+if [ ! -r ${PKG}/usr/bin/smbget ]; then
+  rm -f ${PKG}/usr/share/man/man1/smbget.1
+  rm -f ${PKG}/usr/share/swat/help/smbget.1.html
+fi
+
+# We'll add rc.samba to the init directory, but chmod 644 so that it doesn't
+# start by default:
+mkdir -p ${PKG}/etc/rc.d
+cat ${CWD}/samba-rc.samba > ${PKG}/etc/rc.d/rc.samba.new
+chmod 644 ${PKG}/etc/rc.d/rc.samba.new
+)
+
+doinst_config etc/rc.d/rc.samba.new
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  MAINTAINERS Manifest PFIF.txt Read-Manifest-Now Roadmap WHATSNEW.txt docs examples \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+# These are installed elsewhere:
+rm -rf ${PKG}/usr/doc/samba-$VERSION/docs/htmldocs \
+       ${PKG}/usr/doc/samba-$VERSION/docs/manpages
+mkdir -p ${PKG}/usr/doc/samba-$VERSION/docs
+( cd ${PKG}/usr/doc/samba-$VERSION/docs
+  ln -sf /usr/share/swat/help htmldocs
+  ln -sf /usr/share/swat/using_samba using_samba
+)
+# I'm sorry, but when all this info is included in HTML, adding 7MB worth of
+# PDF files just to have extra artwork is more fluff than I'll agree to.
+rm -f ${PKG}/usr/doc/samba-$VERSION/docs/*.pdf
+# Also redundant also:
+rm -rf ${PKG}/usr/doc/samba-$VERSION/docs/docbook
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "SMB file and print server"
+Samba is an SMB file and print server for SMB and CIFS clients.  It
+allows you to make file space or printers on a Samba host available to
+any PCs running SMB clients (such as PCs running Windows).
+
+If you have any SMB servers (such as Windows NT/2K Server), you may be
+able to replace them by or supplement them with Samba. One of Samba's
+big strengths is integration, so you can use it to tie together your
+Linux hosts and Windows PC clients.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 700 etc/samba/private ; \
+chmod 1777 var/spool/samba ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

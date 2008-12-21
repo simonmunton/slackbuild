@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gammu
+TARNAME=billiards
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=1.22.0
+VERSION=0.2
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://www.nongnu.org/billiards/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -44,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i -e 's/luac\]/luac/' configure
 )
 fi
 
@@ -55,16 +58,17 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-rm -rf build
-mkdir build
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd build
- cmake .. -DENABLE_SHARED=ON -DCMAKE_INSTALL_PREFIX="/usr"
- make ${NUM_JOBS} || exit
-)
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,9 +76,7 @@ then
   exit
 fi
 
-(cd build
- make install DESTDIR=${PKG}
-)
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -91,13 +93,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Mobile phone management utility"
-Gammu is command line utility and library to work with mobile phones
-from many vendors. Support for different models differs, but basic
-functions should work with majority of them. Program can work with
-contacts, messages (SMS, EMS and MMS), calendar, todos, filesystem,
-integrated radio, camera, etc. It also supports daemon mode to send
-and receive SMSes.
+make_slack_desc << EOF "billiards simulator"
+Billiards is a free simulator for the game of billiards.  It can be
+used to practice straight rail, balkline and cushion billiards on your
+own or against your friends. It is also designed to be customizable
+enough to allow one to tailor the simulator to his needs (to implement
+new games for instance or to study the physics of the game by fiddling
+with the physical properties of the equipment, setting up shots or
+plotting ball trajectories, velocities and spin).
 
 EOF
 
