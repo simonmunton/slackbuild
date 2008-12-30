@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=latex2html
+TARNAME=tex4ht
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=2008
+VERSION=1.0.2008_12_03_0917
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,7 +34,7 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/latex2html-2008.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,19 +57,17 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --libdir=/usr/share/latex2html \
-            --shlibdir=/usr/share/latex2html
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+
+(cd src
+ gcc -o tex4ht tex4ht.c -DENVFILE='"~/tex4ht.dir/texmf/tex4ht/base/unix/tex4ht.env"' -DHAVE_DIRENT_H
+ gcc -o t4ht t4ht.c -DENVFILE='"~/tex4ht.dir/texmf/tex4ht/base/unix/tex4ht.env"'
+ )
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,19 +75,24 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/man/man1
+mkdir -p ${PKG}/usr/bin
+cp -pr bin/unix/* ${PKG}/usr/bin
 
-for f in ${PKG}/usr/bin/{latex2html,pstoimg}
-do
-  pod2man ${f} > ${PKG}/usr/man/man1/`basename ${f}`.1
-done
+mkdir -p ${PKG}/usr/share/texmf/tex/generic/tex4ht
+cp -pr texmf/tex/generic/tex4ht/* ${PKG}/usr/share/texmf/tex/generic/tex4ht
 
-for f in cweb2html/cweb2html cweb2html/makemake.pl makeseg/makeseg # makemap
-do
-  perl -pi -e "s,/usr/local/bin/perl,/usr/bin/perl," ${PKG}/usr/share/latex2html/${f}
-done
+mkdir -p ${PKG}/usr/share/texmf/tex4ht/ht-fonts
+cp -pr texmf/tex4ht/ht-fonts/* ${PKG}/usr/share/texmf/tex4ht/ht-fonts
+
+mkdir -p ${PKG}/usr/share/texmf/tex4ht/bin
+cp -pr texmf/tex4ht/bin/* ${PKG}/usr/share/texmf/tex4ht/bin
+
+mkdir -p ${PKG}/usr/share/texmf/tex4ht/xtpipes
+cp -pr texmf/tex4ht/xtpipes/* ${PKG}/usr/share/texmf/tex4ht/xtpipes
+
+#cp -p texmf/tex4ht/base/unix/tex4ht.env 
 
 cat >> ${PKG}/install/doinst.sh << EOF
 #
@@ -99,7 +102,6 @@ then
 fi
 
 EOF
-
 
 #strip_binaries
 
@@ -116,11 +118,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "LaTeX to HTML convertor"
-LATEX2HTML is a convertor written in Perl that converts LATEX 
-documents to HTML. This way e.g. scientific papers - primarily typeset 
-for printing - can be put on the Web for online viewing.
-
+make_slack_desc << EOF
 EOF
 
 post_install

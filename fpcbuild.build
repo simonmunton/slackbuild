@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=latex2html
+TARNAME=fpcbuild
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=2008
+VERSION=2.2.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=fpc
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,17 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/latex2html-2008.diff
+ #patch -p1 < ${CWD}/
+
+ sed -i -e 's/-link 2/-link 2 /' fpcdocs/Makefile.l2h
+
+ mkdir bin
+ (cd bin
+  tar xOf ${TARDIR}/fpc-${VERSION}.i386-linux.tar binary.i386-linux.tar | tar xOf - base.i386-linux.tar.gz | tar xzf -
+
+  mv bin/fpc .
+  mv lib/fpc/${VERSION}/ppc386 .
+ )
 )
 fi
 
@@ -55,21 +65,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PATH=`pwd`/bin:${PATH}
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --libdir=/usr/share/latex2html \
-            --shlibdir=/usr/share/latex2html
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} NOGDB=1 all INSTALL_PREFIX=/usr INSTALL_DOCDIR=/usr/doc/${TARNAME}-${VERSION} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,29 +82,17 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install NOGDB=1 INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
+#(cd fpcdocs
+# make l2h htmlinstall NOGDB=1 INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
+#)
 
-mkdir -p ${PKG}/usr/man/man1
+# generate config file
+mkdir -p ${PKG}/etc
+${PKG}/usr/lib/fpc/${VERSION}/samplecfg /usr/lib/fpc/${VERSION} ${PKG}/etc
 
-for f in ${PKG}/usr/bin/{latex2html,pstoimg}
-do
-  pod2man ${f} > ${PKG}/usr/man/man1/`basename ${f}`.1
-done
-
-for f in cweb2html/cweb2html cweb2html/makemake.pl makeseg/makeseg # makemap
-do
-  perl -pi -e "s,/usr/local/bin/perl,/usr/bin/perl," ${PKG}/usr/share/latex2html/${f}
-done
-
-cat >> ${PKG}/install/doinst.sh << EOF
-#
-if [ -x usr/share/texmf/bin/mktexlsr ]
-then
-  usr/share/texmf/bin/mktexlsr
-fi
-
-EOF
-
+# link ppc386 to usr/bin
+ln -s /usr/lib/fpc/${VERSION}/ppc386 ${PKG}/usr/bin
 
 #strip_binaries
 
@@ -116,10 +109,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "LaTeX to HTML convertor"
-LATEX2HTML is a convertor written in Perl that converts LATEX 
-documents to HTML. This way e.g. scientific papers - primarily typeset 
-for printing - can be put on the Web for online viewing.
+make_slack_desc << EOF "Free Pascal compiler"
+Free Pascal compiler is a 32 and 64 bit Turbo Pascal and Delphi 
+compatible Pascal compiler for DOS, Linux, Win32, OS/2, FreeBSD, 
+AmigaOS, Mac OS X, Mac OS classic and several other platforms
 
 EOF
 
@@ -128,5 +121,6 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod 4755 usr/bin/grab_vcsa ; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

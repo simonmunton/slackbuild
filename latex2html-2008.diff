@@ -1,0 +1,143 @@
+--- latex2html-2008/latex2html.pin.orig	2004-01-08 06:15:01.000000000 +0000
++++ latex2html-2008/latex2html.pin	2008-12-30 14:20:01.000000000 +0000
+@@ -6436,6 +6436,42 @@
+     ($next, $pat);
+ }
+ 
++sub get_next_optional_argument_m {
++    local($next, $pat);
++    s/$optional_arg_rx/$next=$1;$pat=$&;''/eom
++	if (/\s*[[]/m && (! $`)); # if the first character is a [
++    #remove trailing spaces and/or comments
++    s/^($comment_mark(\d+\n?)?|$EOL)//gosm;
++
++    # if  nested inside {}s  we need to get more tokens  
++    if ($pat) {
++	# check for \item, indicating something has gone wrong
++	if ($pat =~ /\\item\b/ ) {
++	    print "\n*** optional argument badly formed:\n" . $pat . "\n\n";
++	    $_ = $pat . $_;
++	    return('','');
++	}
++	# check for being nested inside {}s
++	local($found) = $pat;
++	while ($found =~ s/$O(\d+)$C[\s\S]*$O\1$C//gm) {
++	    if ($found =~ /$O(\d+)$C/m) {
++		local($br_id) = $1;
++		if (s/$O$br_id$C//m) {
++		    $found .= $`.$&;
++		    $pat .= "]".$`.$&;
++		    $next .= "]".$`.$&;
++		    $_ = $';
++		    s/^([^]]*)\]/$next.=$1;$pat.=$&;''/em;
++		    $found .= $&;
++		} else { last } # give up if no closing brace
++	    }
++	}
++    } else {
++	s/^\s*\[\]/$pat=$&;''/em; # This is not picked by $optional_arg_rx
++    }
++    ($next, $pat);
++}
++
+ #JCL(jcl-del) - use new form of $single_cmd_rx.
+ sub get_next_tex_cmd {
+     local($next, $pat);
+@@ -10618,19 +10654,19 @@
+ sub do_cmd_parbox {
+     local($_) = @_;
+     local($args, $contents, $dum, $pat);
+-    $* = 1;			# Multiline matching ON
+-    ($dum,$pat) = &get_next_optional_argument; # discard this
+-    ($dum,$pat) = &get_next_optional_argument; # discard this
+-    ($dum,$pat) = &get_next_optional_argument; # discard this
++    #$* = 1;			# Multiline matching ON
++    ($dum,$pat) = &get_next_optional_argument_m; # discard this
++    ($dum,$pat) = &get_next_optional_argument_m; # discard this
++    ($dum,$pat) = &get_next_optional_argument_m; # discard this
+     $args .= $pat if ($pat);
+-    $pat = &missing_braces unless (
+-	(s/$next_pair_pr_rx/$pat=$2;''/eo)
+-	||(s/$next_pair_rx/$pat=$2;''/eo));
++    $pat = &missing_braces_m unless (
++	(s/$next_pair_pr_rx/$pat=$2;''/eom)
++	||(s/$next_pair_rx/$pat=$2;''/eom));
+     $args .= "{".$`.$pat."}";
+-    $contents = &missing_braces unless (
+-	(s/$next_pair_pr_rx/$contents=$2;''/eo)
+-	||(s/$next_pair_rx/$contents=$2;''/eo));
+-    $* = 0;			# Multiline matching OFF
++    $contents = &missing_braces_m unless (
++	(s/$next_pair_pr_rx/$contents=$2;''/eom)
++	||(s/$next_pair_rx/$contents=$2;''/eom));
++    #$* = 0;			# Multiline matching OFF
+     $args .= "{".$`.$contents."}";
+     if ($NO_PARBOX_IMAGES) {
+ 	$contents = join ('', &do_cmd_par(), $contents, '</P>' );
+@@ -11445,8 +11481,8 @@
+ #    $/ = $savedRS; 
+ #
+ 
+-    $* = 1;			# Multiline matching ON
+-    if (($tag =~ /DL/)&&$labels) {
++    #$* = 1;			# Multiline matching ON
++    if (($tag =~ /DL/m)&&$labels) {
+ 	local($label,$aft,$br_id);
+ 	s/\\item\b[\s\r]*([^\[])/do {
+ 		$label = $labels; $aft = $1;
+@@ -11454,9 +11490,9 @@
+ 		$label = &translate_environments(
+ 			"$O$br_id$C$label$O$br_id$C");
+ 		join('',"\\item\[" , $label, "\]$aft" );
+-	    }/eg;
++	    }/egm;
+     }
+-    $* = 0;			# Multiline matching OFF
++    #$* = 0;			# Multiline matching OFF
+ 
+     # This deals with \item[xxx] ...
+     if ($tag =~ /DL/) {
+@@ -13173,9 +13209,9 @@
+ 	my $padding = ($after =~ /^[a-zA-Z]/s)? ($cmd =~ /\W$/ ? '':' '):'';
+ 
+ 	if ($raw_arg_cmds{$cmd} && defined &$wrapper) {
+-            $* = 1;
++            #$* = 1;
+ 	    ($wrap, $_) = &$wrapper("\\$cmd$star", $padding . $after);
+-            $* = 0;
++            #$* = 0;
+ 	    # ...but don't leave an unwanted space at the beginning
+ 	    $_ =~ s/^ //s if($padding && $wrap !~ /\w$/m
+ 	    	&& (length($_) == length($after)+1) );
+@@ -15044,6 +15080,31 @@
+     $next;
+ }
+ 
++sub missing_braces_m {
++#    local($cmd) = @_;
++    local($next, $revert, $thisline);
++    local($this_cmd) = $cmd;
++    $this_cmd =~ s/^\\//m unless ($cmd eq "\\");
++    &write_warnings("\n? brace missing for \\$this_cmd");
++    if (/^[\s%]*([^\n]*)\n/m ) {
++	$thisline = &revert_to_raw_tex($1)
++    } else { 
++	$thisline = &revert_to_raw_tex($_); 
++    }
++    print "\n\n*** no brace for \\$this_cmd , before:\n$thisline";
++    s/^\s*//m;
++    if ($_ =~ s/$next_token_rx//m) { $next = $& };
++    $next =~ s/$comment_mark(\d+\n?)?//gm;
++#    $next = &translate_commands($next) if ($next =~ /^\\/);
++    if ($next =~ /^\\(\W|\d|[a-zA-z]*\b)/m) {
++	$revert = $next = "\\".$1;
++    } elsif ($next =~ /\W/) {
++	$revert = &revert_to_raw_tex($next);
++    } else { $revert = $next };
++    print "\n*** using \"$revert\" as the argument instead; is this correct?  ***\n\n";
++    $next;
++}
++
+ #RRM:
+ #     &styled_text_chunk  provides an interface for pieces of styled text,
+ # within a single paragraph. The visual markup can be obtained through either

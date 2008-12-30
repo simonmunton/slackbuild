@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=latex2html
+TARNAME=lazarus
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2008
-VERSIONEXTRA=
+VERSION=0.9.26
+VERSIONEXTRA=-0
 BUILD=1
 
 WEBPAGE=""
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/latex2html-2008.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,14 +57,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --libdir=/usr/share/latex2html \
-            --shlibdir=/usr/share/latex2html
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,31 +70,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p ${PKG}/usr/man/man1
+rm -rf ${PKG}/usr/share/man
+(cd install/man
+ make installman INSTALL_PREFIX=${PKG}/usr
+)
 
-for f in ${PKG}/usr/bin/{latex2html,pstoimg}
-do
-  pod2man ${f} > ${PKG}/usr/man/man1/`basename ${f}`.1
-done
-
-for f in cweb2html/cweb2html cweb2html/makemake.pl makeseg/makeseg # makemap
-do
-  perl -pi -e "s,/usr/local/bin/perl,/usr/bin/perl," ${PKG}/usr/share/latex2html/${f}
-done
-
-cat >> ${PKG}/install/doinst.sh << EOF
-#
-if [ -x usr/share/texmf/bin/mktexlsr ]
-then
-  usr/share/texmf/bin/mktexlsr
-fi
-
-EOF
-
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -116,10 +92,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "LaTeX to HTML convertor"
-LATEX2HTML is a convertor written in Perl that converts LATEX 
-documents to HTML. This way e.g. scientific papers - primarily typeset 
-for printing - can be put on the Web for online viewing.
+make_slack_desc << EOF "Rapid Application Development Tool for FreePascal"
+Lazarus is a Rapid Application Development Tool for FreePascal.
+It comes with the LCL - Lazarus component library, which contains 
+platform independent visual components like buttons, windows, 
+checkbox, treeview and many, many more. The LCL is platform 
+independent, so you can write an application once and then compile 
+for various platforms without changing code.
 
 EOF
 
