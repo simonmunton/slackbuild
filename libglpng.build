@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=winff
+TARNAME=libglpng
 TARNAMEEXTRA=
-TARSEP=""
-TARDIR=~/tmp/new/w
+TARSEP="-"
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.45
-VERSIONEXTRA=-source
+VERSION=1.45
+VERSIONEXTRA=
 BUILD=1
 
 WEBPAGE=""
@@ -35,10 +35,7 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-mkdir ${TARNAME}-${VERSION}
-(cd ${TARNAME}-${VERSION}
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-)
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
@@ -48,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/libglpng-1.45.diff
 )
 fi
 
@@ -65,8 +62,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
-lazbuild winff.lpi
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,18 +70,11 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/bin ${PKG}/usr/share/winff ${PKG}/usr/man/man1
-cp winff ${PKG}/usr/bin
-cp winff.1 ${PKG}/usr/man/man1
-cp presets.xml ${PKG}/usr/share/winff
+make install DESTDIR=${PKG}/usr
 
-mkdir -p ${PKG}/usr/share/pixmaps
-cp winff-icons/winff.xpm ${PKG}/usr/share/pixmaps
+#mkdir -p ${PKG}/usr/{include/GL,lib}
 
-create_desktop_entry winff WinFF "GUI for ffmpeg" "GUI for ffmpeg" winff winff.xpm "Application;AudioVideo;Audio;Video"
-
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -94,16 +83,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO WinFF.pdf \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GUI for ffmpeg"
-WinFF is a graphical user interface for the command line video 
-converter ffmpeg. It runs ffmpeg from the command line. So, you just
-pick your files and it does the rest.
+make_slack_desc << EOF "OpengL png toolkit"
+glpng is a small toolkit to make loading PNG image files as an OpenGL 
+texture as easy as possible.
 
 EOF
 
