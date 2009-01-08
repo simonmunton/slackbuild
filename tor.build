@@ -1,0 +1,201 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=tor
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/t
+#TAR_EXT=.tar.gz
+VERSION=0.2.0.32
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://www.torproject.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+toruser=_tor
+torgroup=_tor
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --with-tor-user=${toruser} \
+	    --with-tor-group=${torgroup}
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cp ${PKG}/etc/tor/torrc.sample ${PKG}/etc/tor/torrc.new
+doinst_config etc/tor/torrc.new
+
+mkdir -p ${PKG}/etc/logrotate.d
+cp contrib/tor.logrotate ${PKG}/etc/logrotate.d/tor
+sed -i -e 's@/etc/init.d/tor@/etc/rc.d/rc.tor@' ${PKG}/etc/logrotate.d/tor
+
+install -p -m 755 contrib/torctl ${PKG}/usr/bin
+
+mkdir -p ${PKG}/etc/rc.d
+cp contrib/tor.sh ${PKG}/etc/rc.d/rc.tor.new
+chmod +x ${PKG}/etc/rc.d/rc.tor.new
+
+doinst_same_perm etc/rc.d/rc.tor
+doinst_config etc/rc.d/rc.tor.new
+
+mkdir -p ${PKG}/var/{log,run,lib,tmp}/tor
+
+doinst_addusergrp ${toruser} ${torgroup} noshell
+
+cat >> ${PKG}/install/doinst.sh << EOF
+
+chown -R ${toruser}.${torgroup} var/{lib,log,run}/tor
+
+EOF
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+        chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=\`grep "/etc/rc.d/rc.tor" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start tor" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.tor ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.tor start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+
+        echo "" >> etc/rc.d/rc.local_shutdown
+        echo "# stop tor" >> etc/rc.d/rc.local_shutdown
+        echo "if [ -x /etc/rc.d/rc.tor ]; then" >> etc/rc.d/rc.local_shutdown
+        echo "  /etc/rc.d/rc.tor stop" >> etc/rc.d/rc.local_shutdown
+        echo "fi" >> etc/rc.d/rc.local_shutdown
+fi
+EOF
+
+strip_binaries
+
+#
+# need to add following line to privoxy config
+#
+# forward-socks4a / 127.0.0.1:9050 .
+#
+# Privoxy keeps a log file of everything passed through it. In order to stop this you
+# will need to comment out three lines by inserting a # before the line.
+# The three lines are:
+#	logfile logfile
+# and the line
+#	jarfile jarfile
+# and (on some systems) the line
+#	debug 1 # show each GET/POST/CONNECT request
+#
+#Depending on which default config file you have for Privoxy, you may also need to turn
+# off enable-remote-toggle, enable-remote-http-toggle, and enable-edit-actions. 
+#
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Anonymizing overlay network for TCP (The onion router)"
+Tor is a connection-based low-latency anonymous communication system.
+
+This package provides the "tor" program, which serves as both a client 
+and a relay node. Scripts will automatically create a "%{toruser}" 
+user and a "%{torgroup}" group, and set tor up to run as a daemon when 
+the system is rebooted.
+
+Applications connect to the local Tor proxy using the SOCKS protocol. 
+The local proxy chooses a path through a set of relays, in which each 
+relay knows its predecessor and successor, but no others. Traffic 
+flowing down the circuit is unwrapped by a symmetric key at each 
+relay, which reveals the downstream relay.
+
+Warnings: Tor does no protocol cleaning. That means there is a danger
+that application protocols and associated programs can be induced to
+reveal information about the initiator. Tor depends on Privoxy and
+similar protocol cleaners to solve this problem. This is alpha code,
+and is even more likely than released code to have anonymity-spoiling
+bugs. The present network is very small -- this further reduces the
+strength of the anonymity provided. Tor is not presently suitable
+for high-stakes anonymity.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 700 var/{lib,tmp}/tor; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

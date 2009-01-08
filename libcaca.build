@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=easytag
+TARNAME=libcaca
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/e
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.1.6
+VERSION=0.99.beta16
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -60,7 +62,11 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-imlib2 \
+	    --enable-slang \
+	    --enable-ncurses \
+	    --enable-x11
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,7 +81,12 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+mv ${PKG}/usr/share/doc/libcaca-dev/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir ${PKG}/usr/share/doc/libcaca-dev
+rm ${PKG}/usr/share/doc/libcucul-dev
+rmdir ${PKG}/usr/share/doc
+
+strip_binaries
 
 fix_links
 
@@ -90,11 +101,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "utility for viewing and editing audio file tags"
-EasyTAG is an utility for viewing and editing tags for MP3, MP2, FLAC, 
-Ogg Vorbis, MP4/AAC, MusePack, Monkey's Audio and WavPack files. Its 
-simple and nice GTK2 interface makes tagging easier under GNU/Linux 
-or Windows.
+make_slack_desc << EOF "Colour AsCii Art library"
+The libcaca library is a graphics library that outputs text instead
+of pixels, so that it can work on older video cards or text terminals.
+It is not unlike the famous AAlib library.
+
+Sam Hocevar is the main author of libcaca.
 
 EOF
 

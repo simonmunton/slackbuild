@@ -614,6 +614,12 @@ then
   return
 fi
 
+if [ "x$3" != "x" ]
+then
+  no_shell='-s /bin/false'
+  rm_home="usermod -d \"\" $1"
+fi
+
 cat << EOF >> ${PKG}/install/doinst.sh
 ###
 # Create $1 user in $2 group if they don't exist.
@@ -624,7 +630,8 @@ if [[ "\${group_exists}" == "" ]]; then
 fi
 user_exists=\`grep ^$1 etc/passwd\`
 if [[ "\${user_exists}" == "" ]]; then
-        useradd $1 -g $2
+        useradd $1 -g $2 ${no_shell}
+	${rm_home}
 fi
 
 EOF
