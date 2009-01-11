@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
 VERSION=5.10.1
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -46,6 +46,14 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/Csound-5.10.1.diff
+
+ cd Opcodes/Loris
+ tar xf ~/tmp/new/l/loris-1.5.2.tar.gz
+ mv loris-1.5.2/* .
+
+ cd ../stk
+ tar xf ~/tmp/new/s/stk-4.3.1.tar.gz
+ mv stk-4.3.1/* .
 )
 fi
 
@@ -56,13 +64,14 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 OPCODEDIR=/usr/lib/csound/plugins
+OPCODEDIR64=/usr/lib/csound/plugins64
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
 fi
 
-SCONS_OPTS="buildRelease=1 buildCsound5GUI=1 buildPythonOpcodes=1 useOSC=1 prefix=/usr"
+SCONS_OPTS="buildNewParser=1 dynamicCsoundLibrary=1 buildCsoundAC=1 useDouble=1 buildRelease=1 buildCsound5GUI=1 buildPythonOpcodes=1 buildStkOpcodes=1 buildCSEditor=1 buildInterfaces=1 buildVirtual=1 buildInterfaces=1 useOSC=1 prefix=/usr"
 
 if [ ${DO_MAKE} == "yes" ]
 then
