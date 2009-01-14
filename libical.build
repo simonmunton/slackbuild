@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=automoc4
+TARNAME=libical
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=20090114
+VERSION=0.43
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://freeassociation.sourceforge.net"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,12 +55,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX=/usr .
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-shared
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,9 +93,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "helper tool for building KDE4"
-This is a helper tool needed to build KDE4. It automatically 
-generates moc-files.
+make_slack_desc << EOF "an implementation of iCalendar protocols and data formats"
+libical is an Open Source (MPL/LGPL) implementation of the IETF's 
+iCalendar Calendaring and Scheduling protocols. (RFC 2445, 2446, and 
+2447). It parses iCal components and provides C/C++/Python/Java APIs 
+for manipulating the component properties, parameters, and 
+subcomponents. 
 
 EOF
 

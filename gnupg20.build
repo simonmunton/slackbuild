@@ -4,21 +4,24 @@
 
 TARNAME=gnupg
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.0.4
+VERSION=2.0.10
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://www.gnupg.org/"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gnupg20
+PKGNAME=gnupg2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -34,8 +37,15 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
 (cd ${TARNAME}-${VERSION}
-#patch -p1 < ${CWD}/.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -45,18 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --enable-gpgsm \
-            --disable-scdaemon \
-            --disable-gpg
+	    --infodir=/usr/info \
+	    --mandir=/usr/man
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
+make -C doc install-html DESTDIR=${PKG}
+
+(cd ${PKG}/usr/share/doc/${TARNAME}
+ mv gnupg.html html
+)
 
 #strip_binaries
 
@@ -68,31 +91,26 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS THANKS VERSION \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/${TARNAME}2-${VERSION}
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "The GNU Privacy Guard version 2.x"
+GnuPG is GNU's tool for secure communication and data storage.  It can
+be used to encrypt data and to create digital signatures.  It includes
+an advanced key management facility and is compliant with the proposed
+OpenPGP Internet standard as described in RFC2440 and the S/MIME
+standard as described by several RFCs.
+
+GnuPG 2.0 is the stable version of GnuPG integrating support for
+OpenPGP and S/MIME.  It does not conflict with an installed 1.4.x
+OpenPGP-only version.
+
 EOF
 
 post_install

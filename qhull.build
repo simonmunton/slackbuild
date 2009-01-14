@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=automoc4
+TARNAME=qhull
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=20090114
+VERSION=2003.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,12 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX=/usr .
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,9 +92,18 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "helper tool for building KDE4"
-This is a helper tool needed to build KDE4. It automatically 
-generates moc-files.
+make_slack_desc << EOF "Convex hull, Delaunay triangulation, Voronoi diagrams, Halfspace intersection library"
+Qhull computes the convex hull, Delaunay triangulation, Voronoi 
+diagram, halfspace intersection about a point, furthest-site Delaunay 
+triangulation, and furthest-site Voronoi diagram. The software runs 
+in 2-d, 3-d, 4-d, and higher dimensions. Qhull implements the 
+Quickhull algorithm for computing the convex hull. It handles roundoff 
+errors from floating point arithmetic. Qhull also computes volumes, 
+surface areas, and approximations to the convex hull.
+
+Qhull does not support constrained Delaunay triangulations, 
+triangulation of non-convex surfaces, mesh generation of non-convex 
+objects, or medium-sized inputs in 9-D and higher. 
 
 EOF
 
