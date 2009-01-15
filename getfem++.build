@@ -63,7 +63,16 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --enable-shared
+	    --enable-shared \
+	    --disable-static
+
+(cd superlu
+ sed -i -e 's/-lgfortranbegin//' Makefile
+)
+(cd src
+ sed -i -e 's/-lgfortranbegin//' Makefile
+)
+ sed -i -e 's/-lgfortranbegin//' getfem-config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,6 +86,9 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+rm -rf ${PKG}/usr/getfem_toolbox
+#rm -f ${PKG}/usr/lib/*.a
 
 #strip_binaries
 
