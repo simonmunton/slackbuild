@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=getfem++
+TARNAME=numarray
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=3.1
+VERSION=1.5.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://numpy.scipy.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/numpy-1.0.3.diff
 )
 fi
 
@@ -57,29 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared \
-	    --disable-static \
-	    --enable-python \
-	    --enable-boost
-
-(cd superlu
- sed -i -e 's/-lgfortranbegin//' Makefile
-)
-(cd src
- sed -i -e 's/-lgfortranbegin//' Makefile
-)
- sed -i -e 's/-lgfortranbegin//' getfem-config
+  true
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py config build --gencode || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,10 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-rm -rf ${PKG}/usr/getfem_toolbox
-#rm -f ${PKG}/usr/lib/*.a
+python setup.py install --prefix=${PKG}/usr
 
 #strip_binaries
 
@@ -107,12 +87,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "C++ library for finite element methods"
-A generic and efficient C++ library for finite element methods. The 
-goal is to provide a library allowing the computation of any 
-elementary matrix (even for mixed finite element methods) on the 
-largest class of methods and elements, and for arbitrary dimension 
-(i.e. not only 2D and 3D problems). 
+make_slack_desc << EOF "numarray: array processing for numbers, strings, records and objects"
+Numarray is an array processing package designed to efficiently
+manipulate large multi-dimensional arrays. Numarray is modelled after
+Numeric and features c-code generated from python template scripts,
+the capacity to operate directly on arrays in files, and improved type
+promotions. Numarray provides support for manipulating arrays
+consisting of numbers, strings, records, or objects using the same
+basic infrastructure and syntax.
 
 EOF
 
