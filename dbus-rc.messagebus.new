@@ -10,7 +10,7 @@
 
 # This is a modified version of the rc.messagebus script distributed with the
 # dbus sources.  Thanks to Don Tanner of the GWare <http://gware.org> Project
-# for most of the work involved      --Robby Workman <http://rlworkman.net>
+# for most of the work involved      --Robby Workman <rworkman@slackware.com>
 
 
 PIDFILE=/var/run/dbus/dbus.pid
@@ -47,6 +47,14 @@ reload() {
   fi
 }
 
+status() {
+  if ps axc | grep -wq dbus-daemon 2>/dev/null ; then
+    echo "dbus-daemon is running."
+  else
+    echo "dbus is stopped."
+  fi
+}
+
 # See how we were called.
 case "$1" in
   start)
@@ -62,8 +70,11 @@ case "$1" in
   reload)
     reload
     ;;
+  status)
+    status
+    ;;
   *)
-    echo $"Usage: $0 {start|stop|restart|reload}"
+    echo $"Usage: $0 {start|stop|restart|reload|status}"
     ;;
 esac
 
