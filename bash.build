@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=monodevelop
+TARNAME=bash
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m/mono
+TARDIR=~/tmp/gnu/bash
 #TAR_EXT=.tar.gz
-VERSION=1.9.1
+VERSION=3.2.48
 VERSIONEXTRA=
 BUILD=1
 
@@ -77,6 +77,42 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/bin
+mv ${PKG}/usr/bin/bash ${PKG}/bin/bash2.new
+strip --strip-unneeded ${PKG}/bin/bash2.new
+
+rm -rf ${PKG}/usr/bin ${PKG}/usr/man/man1/bashbug.1
+
+(cd doc
+ groff -ms -Tascii article.ms > ${PKG}/usr/doc/${TARNAME}-${VERSION}/article.txt
+ # bash.1 is already installed by "make install"
+ for page in builtins.1 rbash.1 ; do
+   cp ${page} ${PKG}/usr/man/man1/${page}
+ done
+)
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ -r bin/bash ]; then
+  mv bin/bash bin/bash.old
+fi
+mv bin/bash2.new bin/bash
+if [ -f bin/bash.old ]; then
+  rm -f bin/bash.old
+fi
+if [ ! -r etc/shells ]; then
+  touch etc/shells
+  chmod 644 etc/shells
+fi
+if fgrep "/bin/bash" etc/shells 1> /dev/null 2> /dev/null ; then
+  true
+else
+  echo "/bin/bash" >> etc/shells
+fi
+( cd usr/bin ; rm -rf bash )
+( cd usr/bin ; ln -sf /bin/bash bash )
+
+EOF
+
 #strip_binaries
 
 fix_links
@@ -87,17 +123,21 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  CHANGES COMPAT MANIFEST NOTES Y2K doc/FAQ doc/INTRO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "IDE for mono and Gtk#"
-MonoDevelop which is intended to be a full-featured integrated
-development environment (IDE) for mono and Gtk#.  It was
-originally a port of SharpDevelop 0.98.
+make_slack_desc << EOF "sh-compatible shell"
+The GNU Bourne-Again SHell.  Bash is a sh-compatible command
+interpreter that executes commands read from the standard input or
+from a file.  Bash also incorporates useful features from the Korn
+and C shells (ksh and csh).  Bash is ultimately intended to be a
+conformant implementation of the IEEE Posix Shell and Tools
+specification (IEEE Working Group 1003.2).
 
-  See http://monodevelop.com/ for more info.
+Bash must be present for the system to boot properly.
 
 EOF
 
