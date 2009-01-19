@@ -1,0 +1,63 @@
+--- holotz-castle-1.3.13-src/src/Makefile.orig	2008-11-27 23:30:01.000000000 +0000
++++ holotz-castle-1.3.13-src/src/Makefile	2009-01-19 22:23:57.000000000 +0000
+@@ -25,7 +25,7 @@
+ HC_BASE = /usr/share/games/holotz-castle/
+ HC_DATA = $(HC_BASE)game/
+ HCED_DATA = $(HC_BASE)editor/
+-HC_BIN_DIR = /usr/local/bin/
++HC_BIN_DIR = /usr/bin/
+ endif
+ 
+ DEFINES = -DHC_DATA_DIR=\"$(HC_DATA)\" -DHCED_DATA_DIR=\"$(HCED_DATA)\"
+@@ -62,14 +62,14 @@
+ 	mv HCed ../holotz-castle-editor
+ 
+ install:
+-	mkdir -p $(HC_DATA);\
+-  mkdir -p $(HCED_DATA);\
+-	chmod -R a+rx $(HC_DATA) $(HCED_DATA);\
+-  mkdir -p $(HC_BIN_DIR);\
+-	cp -r ../res/[^H]* $(HC_DATA) && cp -r ../HCedHome/res/* $(HCED_DATA);\
++	mkdir -p $(DESTDIR)$(HC_DATA);\
++  mkdir -p $(DESTDIR)$(HCED_DATA);\
++	chmod -R a+rx $(DESTDIR)$(HC_DATA) $(DESTDIR)$(HCED_DATA);\
++  mkdir -p $(DESTDIR)$(HC_BIN_DIR);\
++	cp -r ../res/[^H]* $(DESTDIR)$(HC_DATA) && cp -r ../HCedHome/res/* $(DESTDIR)$(HCED_DATA);\
+ 	chmod -R a+x ../holotz-castle ../holotz-castle-editor;\
+-	cp ../holotz-castle ../holotz-castle-editor $(HC_BIN_DIR);\
+-	chmod -R a+r $(HC_DATA) $(HCED_DATA);
++	cp ../holotz-castle ../holotz-castle-editor $(DESTDIR)$(HC_BIN_DIR);\
++	chmod -R a+r $(DESTDIR)$(HC_DATA) $(DESTDIR)$(HCED_DATA);
+ 
+ uninstall:
+ 	rm -rf $(HC_BASE);\
+--- holotz-castle-1.3.13-src/JLib/Makefile.orig	2008-11-27 23:29:57.000000000 +0000
++++ holotz-castle-1.3.13-src/JLib/Makefile	2009-01-19 22:24:29.000000000 +0000
+@@ -28,20 +28,21 @@
+ 
+ # JLib
+ libJLib: $(JLIB_OBJS)
+-	g++-4.1 -shared -L/usr/lib -fPIC -o $@.so $? \
++	g++ -shared -L/usr/lib -fPIC -o $@.so $? \
+ 	&& ar rvus $@.a $? \
+ 
+ $(GRAPHICS)/%.o: $(GRAPHICS)/%.cpp
+-	g++-4.1 $(CFLAGS) -c -o $@ $<
++	g++ $(CFLAGS) -c -o $@ $<
+ $(UTIL)/%.o: $(UTIL)/%.cpp
+-	g++-4.1 $(CFLAGS) -c -o $@ $<
++	g++ $(CFLAGS) -c -o $@ $<
+ $(MATH)/%.o: $(MATH)/%.cpp
+-	g++-4.1 $(CFLAGS) -c -o $@ $<
++	g++ $(CFLAGS) -c -o $@ $<
+ 
+ .PHONY: install
+ install:
+-	cp libJLib* /usr/local/lib/.; \
+-	find . -name *.h -exec 'cp' '--parents' '{}' '/usr/local/include/' ';' ; \
++	mkdir -p $(DESTDIR)/usr/lib
++	cp libJLib* $(DESTDIR)/usr/lib/.; \
++	find . -name *.h -exec 'cp' '--parents' '{}' '$(DESTDIR)/usr/include/' ';' ; \
+ 	ldconfig;
+ 
+ .PHONY: clean
