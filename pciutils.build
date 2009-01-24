@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libgcrypt
+TARNAME=pciutils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=1.4.4
+VERSION=3.1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.gnupg.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,18 +57,14 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --infodir=/usr/info \
-	    --mandir=/usr/man
+:
 fi
+
+MAKE_FLAGS="PREFIX=/usr SBINDIR=/sbin ZLIB=no"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ${MAKE_FLAGS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -76,9 +72,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install install-lib DESTDIR=${PKG} ${MAKE_FLAGS}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,15 +83,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUGS COPYING* INSTALL NEWS README* THANKS TODO VERSION \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ChangeLog \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "General purpose crypto library"
-Libgcrypt is a general purpose crypto library based on the code
-used in GnuPG.
+make_slack_desc << EOF "PCI utilities"
+lspci displays detailed information about all PCI buses and devices
+in the system, replacing the original /proc/pci interface.
+
+setpci allows reading from and writing to PCI device configuration
+registers.  For example, you can adjust the latency timers with it.
+
+See the manual pages for more details.
 
 EOF
 

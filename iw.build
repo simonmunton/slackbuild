@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libgcrypt
+TARNAME=iw
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=1.4.4
+VERSION=0.9.8
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.gnupg.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,13 +57,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --infodir=/usr/info \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} MANDIR=/usr/man
 
 #strip_binaries
 
@@ -87,15 +81,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUGS COPYING* INSTALL NEWS README* THANKS TODO VERSION \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "General purpose crypto library"
-Libgcrypt is a general purpose crypto library based on the code
-used in GnuPG.
+make_slack_desc << EOF "wireless device manipulation tool"
+Tool to show / manipulate wireless devices and their configuration.
 
 EOF
 
