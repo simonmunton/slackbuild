@@ -6,7 +6,7 @@ TARNAME=smb4k
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.9.8
+VERSION=0.10.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,11 +54,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib
+cmake . -DCMAKE_INSTALL_PREFIX=/usr
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,14 +69,9 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/lib/kde3
- for f in *.la
- do
-   sed -i -e "s@-L${CWD}[^ ]*@@g" ${f}
- done
-)
+sanitise_la_files ${PKG}/usr/lib
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
