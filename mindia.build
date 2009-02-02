@@ -1,0 +1,119 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=mindia
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m
+#TAR_EXT=.tar.gz
+VERSION=0.97.3
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://mindia.sourceforge.net/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 -b -z .orig < ${CWD}/mindia-0.97.3.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PATH=/opt/kde3/lib/qt3/bin:${PATH}
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/{bin,lib,share}
+make -i install DESTDIR=${PKG} ac_install_prefix=${PKG}/usr
+
+(cd ${PKG}/usr/lib
+ ln -sf libgendev.so.1.0.0 libgendev.so.1
+ ln -sf libgendev.so.1.0.0 libgendev.so
+ ln -sf libmindiapyc.so.1.0.0 libmindiapyc.so.1
+ ln -sf libmindiapyc.so.1.0.0 libmindiapyc.so
+ ln -sf libminsrv.so.1.0.0 libminsrv.so.1
+ ln -sf libminsrv.so.1.0.0 libminsrv.so
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "slide show creator"
+MinDia can be used to create, modify and run multimedia slide shows 
+on a computer.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
