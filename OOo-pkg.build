@@ -2,30 +2,24 @@
 #
 
 # Set initial variables:
-CWD=`pwd`
 PKG=/tmp/package-ooo
 
-# Change to the version of OOo you are using this script with
-VERSION=3.0.0
+VERSION=3.0.1
 
-# 2.0 hack - directory versions don't match package name versions
-S_VERSION=3
-
-# Most of the packages are i586. Edit this only if that changes
 ARCH=${ARCH:-i586}
 
-# Most OOo packages are build 1 - edit this if that changes
-BUILD=9358
+BUILD=9379
 
 # As of 2.0.2 the menus have a different build revision
-BUILD_MENU=9354
+#BUILD_MENU=9376
+
+# 2.0 hack - directory versions don't match package name versions
+#S_VERSION=3
+
 
 # Change to the name of the file you downloaded from OOo
 # Usually in the form of: OOo_$VERSION_LinuxIntel_install.tar.gz
 INPUT=~/tmp/new/o/OpenOffice/OOo_${VERSION}_LinuxIntel_install_en-US.tar.gz
-
-# Destination of outputted files
-DESTINATION=/tmp
 
 if [ ! -r $INPUT ]; then
 echo "Cannot find $INPUT Terminating..."
@@ -42,7 +36,7 @@ function extractPackage
       RPM=$1
 
       rpm2cpio $RPM | cpio -imd -R 0:0 2> /dev/null
-      rm $RPM
+#      rm $RPM
 
       # Fix directory permissions problem
       find . -type d -perm 700 -exec chmod 755 {} \;
@@ -50,104 +44,100 @@ function extractPackage
 
 
 rm -rf $PKG
-mkdir -p $PKG/package/usr/{bin,share}
-cd $PKG
+mkdir -p $PKG/usr/{bin,share}
+
+mkdir ooo
+cd ooo
 tar xzvf $INPUT
 
 # If we can't find the RPMS directory, find it and put it somewhere
 # that it can be accessed
 if [ ! -r RPMS ]; then
-  find . -name "RPMS" | xargs -i'{}' mv '{}' $PKG
+  find . -name "RPMS" | xargs -i'{}' mv '{}' .
 fi
 
 # Add desktop integration RPMS to the other RPMS
-mv $PKG/RPMS/desktop-integration/* $PKG/RPMS
+mv ./RPMS/desktop-integration/* ./RPMS
 
 # Delete the RedHat, Mandrake/ Mandriva and Free Desktop menus
 # Do *not* add SuSE here - that package is needed later
-rm $PKG/RPMS/openoffice.org*-redhat*
-rm $PKG/RPMS/openoffice.org*-mandr*
-rm $PKG/RPMS/openoffice.org*-freedesktop*
-rm $PKG/RPMS/openoffice.org*-debian*
+rm ./RPMS/openoffice.org*-redhat*
+rm ./RPMS/openoffice.org*-mandr*
+rm ./RPMS/openoffice.org*-freedesktop*
+rm ./RPMS/openoffice.org*-debian*
 
 # Add any other packages you don't want here in the form
 # rm $PKG/RPMS/openofficeorg-$PACKAGENAME*
 
-mv $PKG/RPMS/*.rpm $PKG
-rm -rf $PKG/RPMS
+mv ./RPMS/*.rpm .
+rm -rf ./RPMS
 
 # Build Slackware menus for KDE & Gnome/ XFCE/ Free Desktop compliant
 
-mkdir -p $PKG/package/usr/doc/openoffice.org-$VERSION
+mkdir -p $PKG/usr/doc/openoffice.org-$VERSION
 
-find $PKG/O* -name "LICENSE*" -exec cp {} $PKG/package/usr/doc/openoffice.org-$VERSION \;
-find $PKG/O* -name "README*" -exec cp {} $PKG/package/usr/doc/openoffice.org-$VERSION \;
+find ./O* -name "LICENSE*" -exec cp {} $PKG/usr/doc/openoffice.org-$VERSION \;
+find ./O* -name "README*" -exec cp {} $PKG/usr/doc/openoffice.org-$VERSION \;
 
-chmod -x $PKG/package/usr/doc/openoffice.org-$VERSION/*
+chmod -x $PKG/usr/doc/openoffice.org-$VERSION/*
 
-cd $PKG/package
+CWD=`pwd`
 
-# Dirty hack until I can find a nice way to fix the multiple build revisions problem
-(  
-  RPM=openoffice.org*-suse-menus-${S_VERSION}-${BUILD_MENU}.noarch.rpm
-  rpm2cpio $PKG/$RPM | cpio -imd -R 0:0 2> /dev/null
-  rm $PKG/$RPM
+cd $PKG
 
-  # Fix directory permissions problem
-  find . -type d -perm 700 -exec chmod 755 {} \;
-)
+for file in $CWD/*.rpm
+do
+    extractPackage $file
+done
 
-mv $PKG/package/opt/gnome/share/* $PKG/package/usr/share
-rm -rf $PKG/package/opt/gnome
-cp -pr $PKG/package/opt/kde3/* $PKG/package/usr
-rm -rf $PKG/package/opt/kde3
+mv $PKG/opt/gnome/share/* $PKG/usr/share
+rm -rf $PKG/opt/gnome
+cp -pr $PKG/opt/kde3/* $PKG/usr
+rm -rf $PKG/opt/kde3
 
-# Backwards compatibility with older beta candidates
-#rm -rf $PKG/package/opt/kde/share/applnk
-
-cd $PKG/package/usr/share/applications
+#cd $PKG/usr/share/applications
 
 # Remove all the incorrect symlinks
-rm $PKG/package/usr/share/applications/*
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/printeradmin.desktop openoffice.org-${S_VERSION}-printeradmin.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/base.desktop openoffice.org-${S_VERSION}-base.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/calc.desktop openoffice.org-${S_VERSION}-calc.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/draw.desktop openoffice.org-${S_VERSION}-draw.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/math.desktop openoffice.org-${S_VERSION}-math.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/impress.desktop openoffice.org-${S_VERSION}-impress.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/writer.desktop openoffice.org-${S_VERSION}-writer.desktop
-ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/qstart.desktop openoffice.org-${S_VERSION}-qstart.desktop
+#rm $PKG/usr/share/applications/*
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/printeradmin.desktop openoffice.org-${S_VERSION}-printeradmin.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/base.desktop openoffice.org-${S_VERSION}-base.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/calc.desktop openoffice.org-${S_VERSION}-calc.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/draw.desktop openoffice.org-${S_VERSION}-draw.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/math.desktop openoffice.org-${S_VERSION}-math.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/impress.desktop openoffice.org-${S_VERSION}-impress.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/writer.desktop openoffice.org-${S_VERSION}-writer.desktop
+#ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/qstart.desktop openoffice.org-${S_VERSION}-qstart.desktop
 # ln -sf /opt/openoffice.org${S_VERSION}/share/xdg/printer.desktop openoffice.org-${S_VERSION}-printer.desktop
 
 # Replace the binaries in /usr/bin - correct link to file
-cd $PKG/package
-rm $PKG/package/usr/bin/*
+#cd $PKG
+#rm $PKG/usr/bin/*
 
-cat << _EOF_ > $PKG/package/usr/bin/openoffice.org${S_VERSION}
-#!/bin/sh
-exec /opt/openoffice.org${S_VERSION}/program/soffice "\$@"
-_EOF_
+#cat << _EOF_ > $PKG/usr/bin/openoffice.org${S_VERSION}
+##!/bin/sh
+#exec /opt/openoffice.org${S_VERSION}/program/soffice "\$@"
+#_EOF_
 
-(cd $PKG/package/usr/bin
- ln -s openoffice.org${S_VERSION} openoffice.org
+(cd $PKG/usr/bin
+ ln -s openoffice.org3 openoffice.org
 )
 
-cat << _EOF_ > $PKG/package/usr/bin/openoffice.org${S_VERSION}-printeradmin
-#!/bin/sh
-exec /opt/openoffice.org${S_VERSION}/program/spadmin
-_EOF_
+#cat << _EOF_ > $PKG/usr/bin/openoffice.org${S_VERSION}-printeradmin
+##!/bin/sh
+#exec /opt/openoffice.org${S_VERSION}/program/spadmin
+#_EOF_
 
-(cd $PKG/package/usr/bin
- ln -s openoffice.org${S_VERSION}-printeradmin openoffice.org-printeradmin
+(cd $PKG/usr/bin
+ ln -s openoffice.org3-printeradmin openoffice.org-printeradmin
 )
 
 
 # GNOME concession - if I'm missing anything else here, please let me know
-mkdir -p $PKG/package/install
+mkdir -p $PKG/install
 
-icons=`find $PKG/package/usr/share/icons -type d -maxdepth 1 | grep -v "^$PKG/package/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
+icons=`find $PKG/usr/share/icons -type d -maxdepth 1 | grep -v "^$PKG/usr/share/icons$" | sed -e 's@/.*/usr/share/icons/@@' | tr '\012' ' '`
 
-cat << _EOF_ > $PKG/package/install/doinst.sh
+cat << _EOF_ > $PKG/install/doinst.sh
 if which update-mime-database; then update-mime-database /usr/share/mime; fi
 if which update-desktop-database; then update-desktop-database; fi
 for n in $icons
@@ -156,20 +146,11 @@ do
 done
 _EOF_
 
-chmod a+x $PKG/package/install/doinst.sh
-chmod -R 755 $PKG/package/usr/bin
-
-for file in $PKG/o*.rpm
-do
-    extractPackage $file
-done
-
-cp -pr $PKG/package/opt/gnome/* $PKG/package/usr
-cp -pr $PKG/package/opt/kde3/* $PKG/package/usr
-rm -rf $PKG/package/opt/gnome $PKG/package/opt/kde3
+chmod a+x $PKG/install/doinst.sh
+chmod -R 755 $PKG/usr/bin
 
 #    buildPackage 
-cat > $PKG/package/install/slack-desc << EOF
+cat > $PKG/install/slack-desc << EOF
 openoffice.org: openoffice.org (OpenOffice.org Office Suite)
 openoffice.org:
 openoffice.org: OpenOffice.org the product is a multi-platform office productivity
@@ -186,10 +167,8 @@ EOF
 USERNAME=`id -un`
 GROUP=`id -gn`
 
+cd $PKG
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n $PKG/openoffice.org-$VERSION-$ARCH-$BUILD.tgz; \
 chown -R $USERNAME.$GROUP $PKG"
-
-cd $PKG
-rm -rf $PKG/package

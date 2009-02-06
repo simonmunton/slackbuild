@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=digikam
+TARNAME=arachne
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=0.10.0-rc1
+VERSION=1.1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.digikam.org"
+WEBPAGE="http://seam-carver.sourceforge.net"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,9 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX=/usr \
-        -DMAN_INSTALL_DIR=/usr/man \
-        -DSYSCONF_INSTALL_DIR=/etc/kde
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,12 +77,8 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/lib
- for f in *.la kde3/*.la
- do
-   sed -i -e "s@-L${CWD}[^ ]*@@g" ${f}
- done
-)
+# seamstress library in other package
+rm -rf ${PKG}/usr/{include,lib}
 
 #strip_binaries
 
@@ -96,13 +95,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "digital photo management"
-digiKam is an easy to use and powerful digital photo management
-application, which makes importing, organizing and manipulating
-digital photos a "snap".  An easy to use interface is provided
-to connect to your digital camera, preview the images and download
-and/or delete them.
+make_slack_desc << EOF
+Arachne is an open source GTK+ application written to showcase the 
+best features of the Seamstress seam carving library. 
+This package contains the Arachne program and three command line tools 
+that demonstrate use of the library (removeseams, retarget and 
+mapseams).  
 
+See http://seam-carver.sourceforge.net for more information.  
+
+Seamstress was written by Hayden Walles (hgwalles@gmail.com).
 
 EOF
 
