@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=soundtouch
+TARNAME=koffice
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.4.0
+VERSION=1.9.98.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.koffice.org"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/koffice-1.9.98.6.diff
 )
 fi
 
@@ -55,16 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared \
-	    --disable-static
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,10 +79,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-(cd ${PKG}/usr/lib/pkgconfig
- ln -s soundtouch-1.4.pc soundtouch-1.0.pc
-)
 
 strip_binaries
 
@@ -98,17 +95,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SoundTouch audio processing library"
-SoundTouch is an open-source audio processing library that allows 
-changing the sound tempo, pitch and playback rate parameters 
-independently from each other, i.e.:
-  * Sound tempo can be increased or decreased while maintaining the
-    original pitch
-  * Sound pitch can be increased or decreased while maintaining the
-    original tempo
-  * Change playback rate that affects both tempo and pitch at the 
-    same time
-  * Choose any combination of tempo/pitch/rate
+make_slack_desc << EOF "KDE office productivity suite"
+KOffice office productivity applications.  Included are a word
+processor, spreadsheet, presentation program, chart and graph creator,
+vector graphics tool, database report creator, flowcharting program,
+integrated data management program, a pixel graphics editor,
+a mathematical formula editor, and KOffice Workspace
+(a combination of all of the above).
 
 EOF
 

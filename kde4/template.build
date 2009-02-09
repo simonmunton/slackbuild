@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=soundtouch
+TARNAME=TEMPLATE
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/k/kde-3.5.10
 #TAR_EXT=.tar.gz
-VERSION=1.4.0
+VERSION=3.5.10
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,16 +55,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i686 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
+            --sysconfdir=/etc/kde \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --enable-shared \
-	    --disable-static
+	    --with-xinerama \
+	    --disable-debug
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,10 +82,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-(cd ${PKG}/usr/lib/pkgconfig
- ln -s soundtouch-1.4.pc soundtouch-1.0.pc
-)
 
 strip_binaries
 
@@ -98,18 +98,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SoundTouch audio processing library"
-SoundTouch is an open-source audio processing library that allows 
-changing the sound tempo, pitch and playback rate parameters 
-independently from each other, i.e.:
-  * Sound tempo can be increased or decreased while maintaining the
-    original pitch
-  * Sound pitch can be increased or decreased while maintaining the
-    original tempo
-  * Change playback rate that affects both tempo and pitch at the 
-    same time
-  * Choose any combination of tempo/pitch/rate
-
+make_slack_desc << EOF
 EOF
 
 post_install

@@ -6,7 +6,7 @@ TARNAME=ghostscript
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=8.63
+VERSION=8.64
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/ghostscript-8.64.gs_res.ps.diff
 )
 fi
 
@@ -87,10 +87,24 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make so ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 (cd ijs
  make ${NUM_JOBS} || exit
 )
+fi
+
+if [ ${DO_INSTALL} == "yes" ]
+then
+make install DESTDIR=${PKG}
+(cd ijs
+ make install DESTDIR=${PKG}
+)
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make clean
+make so ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -98,19 +112,12 @@ then
   exit
 fi
 
-make soinstall install-shared install-cups DESTDIR=${PKG}
-(cd ijs
- make install DESTDIR=${PKG}
-)
+make soinstall DESTDIR=${PKG}
 
-ln -s gsc ${PKG}/usr/bin/gs
-ln -s gsc ${PKG}/usr/bin/gs-no-x11
+#ln -s gsc ${PKG}/usr/bin/gs
+#ln -s gsc ${PKG}/usr/bin/gs-no-x11
 
-mv ${PKG}/usr/share/ghostscript/${VERSION}/doc/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-mv ${PKG}/usr/share/ghostscript/${VERSION}/examples ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir ${PKG}/usr/share/ghostscript/${VERSION}/doc
-ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/share/ghostscript/${VERSION}/doc
-ln -s ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples ${PKG}/usr/share/ghostscript/${VERSION}/examples
+ln -s /usr/share/ghostscript/${VERSION}/doc ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc
 
 # Replace the default cidfmap with one containing additional
 # support for CJK printing:
@@ -131,20 +138,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/COPYING doc/README \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width------------------------------|
-make_slack_desc <<EOF
-Ghostscript is an interpreter of Adobe Systems' PostScript(tm) and 
-Portable Document Format (PDF) languages.  Ghostscript is an 
+make_slack_desc << EOF "GPL Ghostscript"
+GPL Ghostscript is an interpreter of Adobe Systems' PostScript(tm) 
+and Portable Document Format (PDF) languages.  Ghostscript is an 
 essential part of the printing subsystem, taking PostScript output 
 from applications and converting it into an appropriate printer or 
 display format. Ghostscript supports many printers directly, and more 
-are supported through gimp-print and HPIJS, which are add-on packages 
-that work with Ghostscript's IJS driver.
+are supported through add-on packages.
 
 EOF
 
