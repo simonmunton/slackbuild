@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=OpenSceneGraph
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/o
+#TAR_EXT=.tar.gz
+VERSION=2.8.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "3D graphics.toolkit"
+The OpenSceneGraph is an open source high performance 3D graphics 
+toolkit, used by application developers in fields such as visual 
+simulation, games, virtual reality, scientific visualization and 
+modelling. Written entirely in Standard C++ and OpenGL it runs on all 
+Windows platforms, OSX, GNU/Linux, IRIX, Solaris, HP-Ux, AIX and 
+FreeBSD operating systems. The OpenSceneGraph is now well established 
+as the world leading scene graph technology, used widely in the 
+vis-sim, space, scientific, oil-gas, games and virtual reality 
+industries.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
