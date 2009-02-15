@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=wine
+TARNAME=httpripper
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=1.1.15
+VERSION=1.0.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,17 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +70,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+python setup.py install --root=${PKG} 
 
 #strip_binaries
 
@@ -90,13 +87,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "implementation of the Windows API"
-Wine is a program which allows running Microsoft Windows programs
-(including DOS, Windows 3.x and Win32 executables) on Unix.  It
-consists of a program loader which loads and executes a Microsoft
-Windows binary, and a library (called Winelib) that implements Windows
-API calls using their Unix or X11 equivalents.  The library may also
-be used for porting Win32 code into native Unix executables.
+make_slack_desc << EOF "HTTP Ripper is a generic ripper for the web"
+HTTP Ripper is a generic ripper for the web
 
 EOF
 

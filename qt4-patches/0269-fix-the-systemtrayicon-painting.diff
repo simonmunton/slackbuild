@@ -1,0 +1,63 @@
+QtSoftware Task ID: 232829
+Author: Alexis Menard <alexis.menard@trolltech.com>
+Applied : No
+Details: Instead of grabbing a back-pixmap to get a transparency
+ 	 effect, we just clear the exposed area and draw our icon on
+ 	 top of it. We also need to modify the clip rect since the
+ 	 exposed area that we clear is always rectangular, however the
+ 	 clip area is a QRegion that might be smaller, so we need to
+ 	 expand it to the clip bounding rect.
+
+In Qt 4.5.0
+
+--- src/gui/util/qsystemtrayicon_x11.cpp
++++ src/gui/util/qsystemtrayicon_x11.cpp
+@@ -20,6 +20,7 @@
+ #include "qmenu.h"
+ #include "qtimer.h"
+ #include "qsystemtrayicon_p.h"
++#include "qpaintengine.h"
+ 
+ #ifndef QT_NO_SYSTEMTRAYICON
+ QT_BEGIN_NAMESPACE
+@@ -88,6 +89,7 @@ QSystemTrayIconSys::QSystemTrayIconSys(QSystemTrayIcon *q)
+     setAttribute(Qt::WA_AlwaysShowToolTips);
+     setAttribute(Qt::WA_QuitOnClose, false);
+     setAttribute(Qt::WA_NoSystemBackground, true);
++    setAttribute(Qt::WA_PaintOnScreen);
+     static bool eventFilterAdded = false;
+     Display *display = QX11Info::display();
+     if (!eventFilterAdded) {
+@@ -161,11 +163,17 @@ void QSystemTrayIconSys::resizeEvent(QResizeEvent *re)
+      updateIcon();
+ }
+ 
+-void QSystemTrayIconSys::paintEvent(QPaintEvent *)
++void QSystemTrayIconSys::paintEvent(QPaintEvent *e)
+ {
+     QPainter p(this);
+-    p.drawPixmap(0, 0, background);
++    const QRegion oldSystemClip = p.paintEngine()->systemClip();
++    const QRect clearedRect = oldSystemClip.boundingRect();
++    XClearArea(QX11Info::display(), winId(), clearedRect.x(), clearedRect.y(),
++               clearedRect.width(), clearedRect.height(), False);
++    QPaintEngine *pe = p.paintEngine();
++    pe->setSystemClip(clearedRect);
+     q->icon().paint(&p, rect());
++    pe->setSystemClip(oldSystemClip);
+ }
+ 
+ void QSystemTrayIconSys::mousePressEvent(QMouseEvent *ev)
+@@ -210,12 +218,6 @@ bool QSystemTrayIconSys::x11Event(XEvent *event)
+ {
+     if (event->type == ReparentNotify)
+         show();
+-    else if (event->type == ConfigureNotify || event->type == Expose) {
+-        XClearArea(QX11Info::display(), winId(), 0, 0, width(), height(), False);
+-        qApp->syncX();
+-        background = QPixmap::grabWindow(winId());
+-        update();
+-    }
+     return QWidget::x11Event(event);
+ }
+

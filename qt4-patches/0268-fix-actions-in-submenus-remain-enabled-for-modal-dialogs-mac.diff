@@ -1,0 +1,58 @@
+Trolltech task ID : 239646
+KDE : 
+applied: no
+os: mac
+author: Till Adam <adam@kde.org>
+
+On OSX, the main menubar is global and needs to be disabled (and thus its
+actions) when a modal dialog is shown. Without this patch, that only
+happens for top level actions. Symptom is that non-top level keybaord
+shortcuts of actions get triggered by key evens on modal dialogs
+(such as the folder selector in KMail). Patch submitted to Trenton
+at NQS, and approved by him. Cocoa-enabled fix will be in 4.5.
+
+Included in 4.5
+
+Index: src/gui/widgets/qmenu_mac.cpp
+===================================================================
+--- src/gui/widgets/qmenu_mac.cpp	(revision 916654)
++++ src/gui/widgets/qmenu_mac.cpp	(working copy)
+@@ -229,16 +229,14 @@
+     }
+ }
+ 
+-//toggling of modal state
+-void qt_mac_set_modal_state(MenuRef menu, bool on)
++// helper that recurses into a menu structure and en/dis-ables them
++void qt_mac_set_modal_state_helper_recursive(MenuRef menu, MenuRef merge, bool on)
+ {
+-    MenuRef merge = 0;
+-    GetMenuItemProperty(menu, 0, kMenuCreatorQt, kMenuPropertyMergeMenu,
+-                        sizeof(merge), 0, &merge);
+-
+     for(int i = 0; i < CountMenuItems(menu); i++) {
+         MenuRef submenu;
+         GetMenuItemHierarchicalMenu(menu, i+1, &submenu);
++        // process sub menus recursively
++        qt_mac_set_modal_state_helper_recursive(submenu, merge, on);
+         if(submenu != merge) {
+             if (on)
+                 DisableMenuItem(submenu, 0);
+@@ -246,7 +244,17 @@
+                 EnableMenuItem(submenu, 0);
+         }
+     }
++}
+ 
++//toggling of modal state
++void qt_mac_set_modal_state(MenuRef menu, bool on)
++{
++    MenuRef merge = 0;
++    GetMenuItemProperty(menu, 0, kMenuCreatorQt, kMenuPropertyMergeMenu,
++                        sizeof(merge), 0, &merge);
++
++    qt_mac_set_modal_state_helper_recursive(menu, merge, on);
++
+     UInt32 commands[] = { kHICommandQuit, kHICommandPreferences, kHICommandAbout, kHICommandAboutQt, 0 };
+     for(int c = 0; commands[c]; c++) {
+         bool enabled = !on;

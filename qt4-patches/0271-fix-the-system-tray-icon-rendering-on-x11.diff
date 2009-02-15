@@ -1,0 +1,52 @@
+QtSoftware Task ID: 232829
+Author: Alexis Menard <alexis.menard@trolltech.com>
+Applied : No
+Subject: Fixed the system tray icon rendering on x11 in non-32bpp modes.
+Details: Use the PaintOnScreen attribute on a systray icon window -
+ 	 since the window was created manually with a custom visual
+ 	 which might not match the application default visual and
+ 	 depth, we need to either make sure that the backingstore will
+ 	 use the pixmap with the same depth/visual (and there is no
+ 	 way to do it now), or disable backing store completely. This
+ 	 patch implementes the latter - we set the PaintOnScreen
+ 	 attribute and clear the window background manually.
+
+Included in Qt 4.5.0
+
+--- src/gui/util/qsystemtrayicon_x11.cpp
++++ src/gui/util/qsystemtrayicon_x11.cpp
+@@ -139,6 +139,7 @@ QSystemTrayIconSys::QSystemTrayIconSys(QSystemTrayIcon *q)
+     setAttribute(Qt::WA_AlwaysShowToolTips);
+     setAttribute(Qt::WA_QuitOnClose, false);
+     setAttribute(Qt::WA_NoSystemBackground, true);
++    setAttribute(Qt::WA_PaintOnScreen);
+ 
+     static bool eventFilterAdded = false;
+     Display *display = QX11Info::display();
+@@ -189,7 +190,6 @@ void QSystemTrayIconSys::addToTray()
+ 
+     XVisualInfo *vi = getSysTrayVisualInfo();
+     if (vi && vi->visual) {
+-        setAttribute(Qt::WA_TranslucentBackground);
+         Window root = RootWindow(display, vi->screen);
+         Window p = root;
+         if (QWidget *pw = parentWidget())
+@@ -205,7 +205,6 @@ void QSystemTrayIconSys::addToTray()
+                                    CWBackPixmap|CWBackPixel|CWBorderPixel|CWColormap, &wsa);
+         create(wid);
+     } else {
+-        setAttribute(Qt::WA_PaintOnScreen);
+         XSetWindowBackgroundPixmap(display, winId(), ParentRelative);
+     }
+ 
+@@ -247,6 +246,9 @@ void QSystemTrayIconSys::paintEvent(QPaintEvent*)
+         q->icon().paint(&p, rect());
+         pe->setSystemClip(oldSystemClip);
+     } else {
++        p.setCompositionMode(QPainter::CompositionMode_Source);
++        p.fillRect(rect(), Qt::transparent);
++        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+         q->icon().paint(&p, rect());
+     }
+ }
+
