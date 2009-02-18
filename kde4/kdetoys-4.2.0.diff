@@ -1,0 +1,32 @@
+--- kdetoys-4.2.0/kweather/weatherlib.cpp.orig	2008-12-10 16:12:53.000000000 +0000
++++ kdetoys-4.2.0/kweather/weatherlib.cpp	2009-02-18 08:04:39.000000000 +0000
+@@ -113,7 +113,9 @@
+ 			if( !job->error() )
+ 			{
+ 				kDebug( 12006) << "Reading: " << d->target->fileName();
+-				QTextStream *t = new QTextStream( d->target );
++				QFile data(d->target->fileName());
++				data.open(QIODevice::ReadOnly);
++				QTextStream *t = new QTextStream( &data );
+ 				if( t )
+ 				{
+ 					QString s;
+@@ -148,6 +150,7 @@
+ 				i18n("Could not read the temp file %1.", d->target->fileName()), (QWidget*)NULL);
+ 					d->updated = false;
+ 				}
++				data.close();
+ 				delete d->target;
+ 				d->target = 0L;
+ 				d->job = 0L;
+--- kdetoys-4.2.0/kweather/reportview.cpp.orig	2009-02-18 07:57:49.000000000 +0000
++++ kdetoys-4.2.0/kweather/reportview.cpp	2009-02-18 07:57:16.000000000 +0000
+@@ -51,7 +51,7 @@
+ 
+     centerOnScreen( this );
+ 
+-    m_weatherService = new OrgKdeKweatherServiceInterface( "org.kde.kweather", "/Service", QDBusConnection::sessionBus() ); 
++    m_weatherService = new OrgKdeKweatherServiceInterface( "org.kde.KWeatherService", "/Service", QDBusConnection::sessionBus() ); 
+     QByteArray iconB = m_weatherService->icon( m_locationCode );
+     QPixmap icon;
+     icon.loadFromData(iconB);

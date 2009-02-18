@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=supertuxkart
+TARNAME=ktorrent
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.6.1
-VERSIONEXTRA=-src
+VERSION=3.2
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://supertuxkart.sourceforge.net"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -55,15 +55,21 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-debug
+cmake -DCMAKE_C_FLAGS:STRING="$PKGCFLAGS" \
+      -DCMAKE_CXX_FLAGS:STRING="$PKGCFLAGS" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,7 +84,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -93,9 +99,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "kart racing game"
-SuperTuxKart is a free kart racing game. It is focusing on fun and
-not on realistic kart physics.
+make_slack_desc << EOF "BitTorrent program for KDE"
+KTorrent is a BitTorrent program for KDE with many features:
+Download torrent files (of course :-), upload and download speed
+capping, Internet searching, UDP trackers, port forwarding with UPnP,
+IP blocking, importing of partially or fully downloaded files,
+support for distributed hash tables, protocol encryption,
+bandwidth scheduling, and much more.
+
+KTorrent's developers are Joris Guisson and Ivan Vasic.
+KTorrent is released under the GPL.
 
 EOF
 
