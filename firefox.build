@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m/mozilla/firefox
 #TAR_EXT=.tar.gz
-VERSION=2.0.0.17
+VERSION=3.0.6
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/firefox-2.0.0.17.diff
+ #patch -p1 < ${CWD}/firefox-2.0.0.17.diff
 )
 fi
 
@@ -53,25 +53,67 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
-cp ${CWD}/firefox-mozconfig .mozconfig
+#. \$topsrcdir/browser/config/mozconfig
+#mk_add_options MOZ_BUILD_PROJECTS="xulrunner browser"
+#mk_add_options MOZ_CO_PROJECT="xulrunner browser"
+#ac_add_app_options browser --enable-application=browser
+#ac_add_app_options xulrunner --enable-application=xulrunner
+
+cat > .mozconfig << EOF
+
+export BUILD_OFFICIAL=1
+export MOZILLA_OFFICIAL=1
+mk_add_options BUILD_OFFICIAL=1
+mk_add_options MOZILLA_OFFICIAL=1
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-@CONFIG_GUESS@
+
+mk_add_options MOZ_BUILD_PROJECTS="browser"
+ac_add_options --enable-application=browser
+
+ac_add_options --prefix=/usr
+ac_add_options --sysconfdir=/etc
+ac_add_options --localstatedir=/var/lib
+ac_add_options --mandir=/usr/man
+ac_add_options --with-x
+ac_add_options --enable-libxul
+ac_add_options --without-system-nspr
+ac_add_options --with-system-zlib
+ac_add_options --with-system-jpeg
+ac_add_options --with-pthreads
+ac_add_options --enable-xinerama
+ac_add_options --enable-pango
+ac_add_options --enable-official-branding
+ac_add_options --enable-svg
+ac_add_options --enable-system-cairo
+ac_add_options --enable-system-lcms
+ac_add_options --enable-canvas
+ac_add_options --disable-xprint
+ac_add_options --disable-strip
+ac_add_options --disable-installer
+ac_add_options --disable-tests
+ac_add_options --disable-debug
+EOF
 
 fix_perms
+
+mkdir obj-firefox
+cd obj-firefox
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-x
+../configure 
+
 fi
 
-MAKE_FLAGS=mozappdir=/usr/lib/firefox_devel includedir=/usr/include/firefox idldir=/usr/share/idl/firefox
+MAKE_FLAGS=
+#mozappdir=/usr/lib/firefox_devel includedir=/usr/include/firefox idldir=/usr/share/idl/firefox
 
 if [ ${DO_MAKE} == "yes" ]
 then
+#make -f client.mk build
 make ${NUM_JOBS} ${MAKE_FLAGS} || exit
 fi
 
@@ -81,6 +123,8 @@ then
 fi
 
 make ${MAKE_FLAGS} install DESTDIR=${PKG}
+
+exit
 
 mv ${PKG}/usr/include/firefox ${PKG}/usr/include/firefox-${VERSION}
 ln -s /usr/include/firefox-${VERSION} ${PKG}/usr/include/firefox
@@ -106,6 +150,8 @@ ln -sf /usr/lib/pkgconfig/firefox-nss.pc   ${PKG}/usr/lib/pkgconfig/nss.pc
 ln -sf /usr/lib/pkgconfig/firefox-nspr.pc  ${PKG}/usr/lib/pkgconfig/nspr.pc
 
 #strip_binaries
+
+cd ..
 
 fix_links
 
