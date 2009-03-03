@@ -1,0 +1,167 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=xulrunner
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m/mozilla/xulrunner
+#TAR_EXT=.tar.gz
+VERSION=1.9.0.6
+VERSIONEXTRA=-source
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=xulrunner
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv mozilla ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/firefox-2.0.0.17.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+#. \$topsrcdir/browser/config/mozconfig
+#mk_add_options MOZ_BUILD_PROJECTS="xulrunner browser"
+#mk_add_options MOZ_CO_PROJECT="xulrunner browser"
+#ac_add_app_options browser --enable-application=browser
+#ac_add_app_options xulrunner --enable-application=xulrunner
+
+cat > .mozconfig << EOF
+
+mk_add_options MOZ_BUILD_PROJECTS="xulrunner"
+ac_add_options --enable-application=xulrunner
+
+ac_add_options --prefix=/usr
+ac_add_options --sysconfdir=/etc
+ac_add_options --localstatedir=/var/lib
+ac_add_options --mandir=/usr/man
+ac_add_options --with-x
+ac_add_options --enable-libxul
+ac_add_options --without-system-nspr
+ac_add_options --with-system-zlib
+ac_add_options --with-system-jpeg
+ac_add_options --with-pthreads
+ac_add_options --enable-xinerama
+ac_add_options --enable-pango
+ac_add_options --enable-svg
+ac_add_options --enable-system-cairo
+ac_add_options --enable-system-lcms
+ac_add_options --enable-canvas
+ac_add_options --disable-xprint
+ac_add_options --disable-strip
+ac_add_options --disable-installer
+ac_add_options --disable-tests
+ac_add_options --disable-debug
+EOF
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure 
+
+fi
+
+MAKE_FLAGS=
+#mozappdir=/usr/lib/firefox_devel includedir=/usr/include/firefox idldir=/usr/share/idl/firefox
+
+if [ ${DO_MAKE} == "yes" ]
+then
+#make -f client.mk build
+make ${NUM_JOBS} ${MAKE_FLAGS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make ${MAKE_FLAGS} install DESTDIR=${PKG}
+
+ln -s /usr/include/xulrunner-${VERSION} ${PKG}/usr/include/xulrunner
+
+#mkdir -p ${PKG}/usr/include/xulrunner-${VERSION}/nss
+#cp -f dist/public/nss/*.h ${PKG}/usr/include/xulrunner-${VERSION}/nss/
+
+ln -s /usr/lib/xulrunner-${VERSION} ${PKG}/usr/lib/xulrunner
+ln -s /usr/lib/xulrunner-devel-${VERSION} ${PKG}/usr/lib/xulrunner-devel
+
+LIB_LIST="libnspr4.so libnss3.so libnssckbi.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
+for file in ${LIB_LIST}
+do
+  ln -sf /usr/lib/xulrunner/${file} ${PKG}/usr/lib
+done
+
+ln -s /usr/share/idl/xulrunner-${VERSION} ${PKG}/usr/share/idl/xulrunner
+
+# "Creating pkg-config links: nss.pc & nspr.pc ..."
+ln -sf /usr/lib/pkgconfig/mozilla-nss.pc   ${PKG}/usr/lib/pkgconfig/nss.pc
+ln -sf /usr/lib/pkgconfig/mozilla-nspr.pc  ${PKG}/usr/lib/pkgconfig/nspr.pc
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Mozilla runtime package"
+XULRunner is a Mozilla runtime package that can be used to bootstrap 
+XUL+XPCOM applications that are as rich as Firefox and Thunderbird. 
+It will provide mechanisms for installing, upgrading, and uninstalling 
+these applications. XULRunner will also provide libxul, a solution 
+which allows the embedding of Mozilla technologies in other projects 
+and products.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
