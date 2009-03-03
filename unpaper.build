@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mkvtoolnix
-TARNAMEEXTRA=
+TARNAME=unpaper
+TARNAMEEXTRA=-bin
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=2.5.2
+VERSION=0.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://unpaper.berlios.de/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,17 +57,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./make.sh || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,9 +71,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
-#strip_binaries
+mkdir -p ${PKG}/usr/bin
+cp unpaper ${PKG}/usr/bin
+
+strip_binaries
 
 fix_links
 
@@ -84,16 +85,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "tools for Matroska files"
-MKVToolnix is a set of tools to create, alter and inspect Matroska 
-files under Linux, other Unices and Windows. They do for Matroska 
-what the OGMtools do for the OGM format and then some.
+make_slack_desc << EOF "scan post-processing tool"
+unpaper is a post-processing tool for scanned sheets of paper, 
+especially for book pages that have been scanned from previously 
+created photocopies. The main purpose is to make scanned book pages 
+better readable on screen after conversion to PDF. Additionally, 
+unpaper might be useful to enhance the quality of scanned pages before 
+performing optical character recognition (OCR).
 
 EOF
 

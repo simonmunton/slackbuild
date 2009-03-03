@@ -6,7 +6,7 @@ TARNAME=valgrind
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=3.4.0
+VERSION=3.4.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,17 +45,29 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
+fi
 
-make || exit
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
