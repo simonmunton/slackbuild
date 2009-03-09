@@ -1,0 +1,105 @@
+--- libfishsound-0.9.1/src/libfishsound/flac.c.orig	2008-04-06 21:30:54.000000000 +0100
++++ libfishsound-0.9.1/src/libfishsound/flac.c	2009-03-07 22:57:35.000000000 +0000
+@@ -252,13 +252,16 @@
+     return NULL;
+   }
+ 
+-  FLAC__stream_decoder_set_read_callback(fi->fsd, fs_flac_read_callback);
+-  FLAC__stream_decoder_set_write_callback(fi->fsd, fs_flac_write_callback);
+-  FLAC__stream_decoder_set_metadata_callback(fi->fsd, fs_flac_meta_callback);
+-  FLAC__stream_decoder_set_error_callback(fi->fsd, fs_flac_error_callback);
+-  FLAC__stream_decoder_set_client_data(fi->fsd, fsound);
+-
+-  if (FLAC__stream_decoder_init(fi->fsd) != FLAC__STREAM_DECODER_SEARCH_FOR_METADATA)
++  if (FLAC__stream_decoder_init_stream(fi->fsd,
++				       fs_flac_read_callback,
++				       NULL,
++				       NULL,
++				       NULL,
++				       NULL,
++				       fs_flac_write_callback,
++				       fs_flac_meta_callback,
++				       fs_flac_error_callback,
++				       fsound) != FLAC__STREAM_DECODER_INIT_STATUS_OK)
+     return NULL;
+ 
+   return fi->fsd;
+@@ -539,16 +542,18 @@
+   FLAC__stream_encoder_set_channels(fi->fse, fsound->info.channels);
+   FLAC__stream_encoder_set_sample_rate(fi->fse, fsound->info.samplerate);
+   FLAC__stream_encoder_set_bits_per_sample(fi->fse, BITS_PER_SAMPLE);
+-  FLAC__stream_encoder_set_write_callback(fi->fse, fs_flac_enc_write_callback);
+-  FLAC__stream_encoder_set_metadata_callback(fi->fse, fs_flac_enc_meta_callback);
+-  FLAC__stream_encoder_set_client_data(fi->fse, fsound);
+ 
+   metadata = fs_flac_encode_vorbiscomments (fsound);
+   if (metadata != NULL)
+     FLAC__stream_encoder_set_metadata (fi->fse, &metadata, 1);
+ 
+   /* FLAC__stream_encoder_set_total_samples_estimate(fi->fse, ...);*/
+-  if (FLAC__stream_encoder_init(fi->fse) != FLAC__STREAM_ENCODER_OK)
++  if (FLAC__stream_encoder_init_stream(fi->fse,
++				       fs_flac_enc_write_callback,
++				       NULL,
++				       NULL,
++				       fs_flac_enc_meta_callback,
++				       fsound) != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
+     return NULL;
+ 
+   return fsound;
+--- libfishsound-0.9.1/configure.orig	2008-04-06 22:02:11.000000000 +0100
++++ libfishsound-0.9.1/configure	2009-03-07 22:44:03.000000000 +0000
+@@ -21185,9 +21185,9 @@
+ 
+ 
+ if test "x${ac_enable_flac}" = xyes ; then
+-   { echo "$as_me:$LINENO: checking for FLAC__stream_decoder_init in -lFLAC" >&5
+-echo $ECHO_N "checking for FLAC__stream_decoder_init in -lFLAC... $ECHO_C" >&6; }
+-if test "${ac_cv_lib_FLAC_FLAC__stream_decoder_init+set}" = set; then
++   { echo "$as_me:$LINENO: checking for FLAC__stream_decoder_init_stream in -lFLAC" >&5
++echo $ECHO_N "checking for FLAC__stream_decoder_init_stream in -lFLAC... $ECHO_C" >&6; }
++if test "${ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+@@ -21205,11 +21205,11 @@
+ #ifdef __cplusplus
+ extern "C"
+ #endif
+-char FLAC__stream_decoder_init ();
++char FLAC__stream_decoder_init_stream ();
+ int
+ main ()
+ {
+-return FLAC__stream_decoder_init ();
++return FLAC__stream_decoder_init_stream ();
+   ;
+   return 0;
+ }
+@@ -21232,21 +21232,21 @@
+ 	 test ! -s conftest.err
+        } && test -s conftest$ac_exeext &&
+        $as_test_x conftest$ac_exeext; then
+-  ac_cv_lib_FLAC_FLAC__stream_decoder_init=yes
++  ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream=yes
+ else
+   echo "$as_me: failed program was:" >&5
+ sed 's/^/| /' conftest.$ac_ext >&5
+ 
+-	ac_cv_lib_FLAC_FLAC__stream_decoder_init=no
++	ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream=no
+ fi
+ 
+ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+       conftest$ac_exeext conftest.$ac_ext
+ LIBS=$ac_check_lib_save_LIBS
+ fi
+-{ echo "$as_me:$LINENO: result: $ac_cv_lib_FLAC_FLAC__stream_decoder_init" >&5
+-echo "${ECHO_T}$ac_cv_lib_FLAC_FLAC__stream_decoder_init" >&6; }
+-if test $ac_cv_lib_FLAC_FLAC__stream_decoder_init = yes; then
++{ echo "$as_me:$LINENO: result: $ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream" >&5
++echo "${ECHO_T}$ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream" >&6; }
++if test $ac_cv_lib_FLAC_FLAC__stream_decoder_init_stream = yes; then
+   HAVE_FLAC="maybe"
+ fi
+ 

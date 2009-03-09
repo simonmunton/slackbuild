@@ -6,7 +6,7 @@ TARNAME=lmms
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.3.0
+VERSION=0.4.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -52,14 +52,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DWANT_VST:BOOL=FALSE \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +78,15 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+cat > ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/lmms
+fi
+
+EOF
+
+strip_binaries
 
 fix_links
 
@@ -89,7 +101,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "Linux multimedia studio"
 LMMS aims to be a free alternative to popular (but commercial and 
 closed- source) programs like FruityLoops/FL Studio, Cubase and Logic 
 allowing you to produce music with your computer. This includes 
