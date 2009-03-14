@@ -83,6 +83,14 @@ make install DESTDIR=${PKG}
  done
 )
 
+cat > ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/pulseaudio
+fi
+
+EOF
+
 #strip_binaries
 
 fix_links

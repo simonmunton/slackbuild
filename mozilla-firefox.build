@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=firefox
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m/mozilla/firefox/en-GB
+#TAR_EXT=.tar.gz
+VERSION=3.0.7
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=mozilla-firefox
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+mkdir -p ${PKG}/usr/lib
+( cd ${PKG}/usr/lib
+  tar xf ${FULL_TARNAME} || exit 1
+  mv firefox firefox-${VERSION}-GB
+  ln -sf firefox-${VERSION}-GB firefox
+  cd firefox-${VERSION}-GB
+
+  sed -i -e 's@/usr/local/lib@/usr/lib@g' firefox
+
+#  zcat ${CWD}/mozilla-firefox-mimeTypes-fix.diff.gz | patch -p1 --verbose --suffix=.orig || exit 1
+#  if [ ! $? = 0 ]; then
+#    exit 1
+#  fi
+  cat ${CWD}/mozilla-firefox.moz_plugin_path.diff | patch -p1 --verbose --suffix=.orig || exit 1
+  if [ ! $? = 0 ]; then
+    exit 1
+  fi
+  rm -f defaults/pref/firefox.js.orig
+)
+if [ ! $? = 0 ]; then
+  exit 1
+fi
+mkdir -p ${PKG}/usr/bin
+( cd ${PKG}/usr/bin
+  ln -sf /usr/lib/firefox/firefox .
+)
+mkdir -p ${PKG}/usr/lib/mozilla/plugins
+mkdir -p ${PKG}/usr/share/applications
+cat ${CWD}/mozilla-firefox.desktop > ${PKG}/usr/share/applications/mozilla-firefox.desktop
+mkdir -p ${PKG}/usr/share/pixmaps
+cat ${CWD}/mozilla-firefox.png > ${PKG}/usr/share/pixmaps/firefox.png
+
+# These files/directories are usually created if Firefox is run as root, which on many
+# systems might (and possibly should) be never.  Therefore, if we don't see them we'll
+# put stubs in place to prevent startup errors.
+( cd ${PKG}/usr/lib/firefox-${VERSION}-GB
+  if [ -d extensions/talkback\@mozilla.org ]; then
+    if [ ! -r extensions/talkback\@mozilla.org/chrome.manifest ]; then
+      echo > extensions/talkback\@mozilla.org/chrome.manifest
+    fi
+  fi
+  if [ ! -d updates ]; then
+    mkdir -p updates/0
+  fi
+)
+
+
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Mozilla Firefox Web browser"
+This project is a redesign of the Mozilla browser component written
+using the XUL user interface language.  Firefox empowers you to
+browse faster, more safely and more efficiently than with any other
+browser.
+
+Visit the Mozilla Firefox project online:
+  http://www.mozilla.org/projects/firefox/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

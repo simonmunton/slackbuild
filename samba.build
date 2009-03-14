@@ -55,16 +55,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-(cd source
+cd source
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
+	    --bindir=/usr/bin \
+	    --sbindir=/usr/sbin \
 	    --enable-cups \
 	    --enable-static=no \
 	    --enable-shared=yes \
@@ -81,10 +83,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --with-utmp \
 	    --with-libsmbclient \
 	    --with-winbind \
-	    --with-ldap 
-
-# --bindir=/usr/bin \
-# --sbindir=/usr/sbin \
+	    --with-ldap
 
 fi
 
@@ -145,7 +144,8 @@ fi
 mkdir -p ${PKG}/etc/rc.d
 cat ${CWD}/samba-rc.samba > ${PKG}/etc/rc.d/rc.samba.new
 chmod 644 ${PKG}/etc/rc.d/rc.samba.new
-)
+
+cd ..
 
 doinst_config etc/rc.d/rc.samba.new
 

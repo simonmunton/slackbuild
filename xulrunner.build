@@ -113,25 +113,31 @@ fi
 
 make ${MAKE_FLAGS} install DESTDIR=${PKG}
 
-ln -s /usr/include/xulrunner-${VERSION} ${PKG}/usr/include/xulrunner
+ln -s xulrunner-${VERSION} ${PKG}/usr/include/xulrunner
 
 #mkdir -p ${PKG}/usr/include/xulrunner-${VERSION}/nss
 #cp -f dist/public/nss/*.h ${PKG}/usr/include/xulrunner-${VERSION}/nss/
 
-ln -s /usr/lib/xulrunner-${VERSION} ${PKG}/usr/lib/xulrunner
-ln -s /usr/lib/xulrunner-devel-${VERSION} ${PKG}/usr/lib/xulrunner-devel
+ln -s xulrunner-${VERSION} ${PKG}/usr/lib/xulrunner
+ln -s xulrunner-devel-${VERSION} ${PKG}/usr/lib/xulrunner-devel
 
-LIB_LIST="libnspr4.so libnss3.so libnssckbi.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
-for file in ${LIB_LIST}
-do
-  ln -sf /usr/lib/xulrunner/${file} ${PKG}/usr/lib
-done
+#LIB_LIST="libnspr4.so libnss3.so libnssckbi.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
+#for file in ${LIB_LIST}
+#do
+#  ln -sf /usr/lib/xulrunner/${file} ${PKG}/usr/lib
+#done
 
-ln -s /usr/share/idl/xulrunner-${VERSION} ${PKG}/usr/share/idl/xulrunner
+ln -s xulrunner-${VERSION} ${PKG}/usr/share/idl/xulrunner
 
 # "Creating pkg-config links: nss.pc & nspr.pc ..."
-ln -sf /usr/lib/pkgconfig/mozilla-nss.pc   ${PKG}/usr/lib/pkgconfig/nss.pc
-ln -sf /usr/lib/pkgconfig/mozilla-nspr.pc  ${PKG}/usr/lib/pkgconfig/nspr.pc
+#ln -sf /usr/lib/pkgconfig/mozilla-nss.pc   ${PKG}/usr/lib/pkgconfig/nss.pc
+#ln -sf /usr/lib/pkgconfig/mozilla-nspr.pc  ${PKG}/usr/lib/pkgconfig/nspr.pc
+
+(cd ${PKG}/usr/lib/pkgconfig
+ NSS_VERSION=`grep NSS_VERSION ${PKG}/usr/include/xulrunner/stable/nss.h | cut -d\" -f2 `
+ NSS_VERSION=${NSS_VERSION%.*}
+ sed -i -e "/^Version/ s/${VERSION}/${NSS_VERSION}/" mozilla-nss.pc
+)
 
 #strip_binaries
 

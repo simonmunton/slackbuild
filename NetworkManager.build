@@ -6,7 +6,7 @@ TARNAME=NetworkManager
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.6.5.99
+VERSION=0.7.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -58,9 +58,9 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
-	    --with-dhcdbd=/usr/bin/true
+	    --with-dhcp-client=dhcpcd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +76,7 @@ fi
 make install DESTDIR=${PKG}
 
 (cd ${PKG}
- for f in etc/rc.d/rc.networkmanager etc/rc.d/rc.networkmanager-dispatcher
+ for f in etc/rc.d/rc.networkmanager # etc/rc.d/rc.networkmanager-dispatcher
  do
    mv ${f} ${f}.new
    doinst_same_perm ${f}
@@ -104,10 +104,6 @@ if [[ "\${run}" == "" ]]; then
         echo "# start NetworkManager daemon" >> etc/rc.d/rc.local
         echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local
         echo "  sh /etc/rc.d/rc.networkmanager start" >> etc/rc.d/rc.local
-        echo "fi" >> etc/rc.d/rc.local
-	echo "" >> etc/rc.d/rc.local
-        echo "if [ -x /etc/rc.d/rc.networkmanager-dispatcher ]; then" >> etc/rc.d/rc.local
-        echo "  sh /etc/rc.d/rc.networkmanager-dispatcher start" >> etc/rc.d/rc.local
         echo "fi" >> etc/rc.d/rc.local
 fi
 
