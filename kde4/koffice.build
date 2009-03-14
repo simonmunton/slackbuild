@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.9.98.6
+VERSION=1.9.98.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/koffice-1.9.98.6.diff
+# patch -p1 < ${CWD}/koffice-1.9.98.6.diff
 )
 fi
 
@@ -61,14 +61,18 @@ export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="$PKGCFLAGS" \
-      -DCMAKE_CXX_FLAGS:STRING="$PKGCFLAGS" \
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -82,6 +86,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 

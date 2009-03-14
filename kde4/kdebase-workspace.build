@@ -2,12 +2,12 @@
 #
 . ../build_funcs
 
-TARNAME=ktorrent
+TARNAME=kdebase-workspace
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/k/kde-4.2.1
 #TAR_EXT=.tar.gz
-VERSION=3.2
+VERSION=4.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -61,6 +61,9 @@ export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
@@ -69,7 +72,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc/kde \
-      . \
+      .. \
       2>&1 | tee ${TARNAME}.config
 fi
 
@@ -84,6 +87,35 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+mkdir -p ${PKG}/etc/X11/xinit
+cat ${CWD}/kdebase-workspace/xinit/xinitrc.kde > ${PKG}/etc/X11/xinit/xinitrc.kde
+chmod 0755 ${PKG}/etc/X11/xinit/xinitrc.kde
+
+# Setup config files for KDM:
+${PKG}/usr/bin/genkdmconf --no-old --no-old-scripts --no-backup --in ${PKG}/usr/share/config/kdm
+
+# Not allowing root to login at the console is just plain silly.  If they
+# have physical access to the machine, what's the point of trying to stop
+# this?  Even the kdmrc file says this is supposed to be the default.
+sed -i 's/AllowRootLogin=false/AllowRootLogin=true/' \
+  ${PKG}/usr/share/config/kdm/kdmrc
+mv ${PKG}/usr/share/config/kdm/kdmrc ${PKG}/usr/share/config/kdm/kdmrc.new
+
+cp -a ${PKG}/usr/share/config/kdm/Xsession ${PKG}/usr/share/config/kdm/Xsession.orig
+cat ${CWD}/kdebase-workspace/config/Xsession | sed -e "s#/lib#/lib#" \
+  > ${PKG}/usr/share/config/kdm/Xsession
+mv ${PKG}/usr/share/config/kdm/backgroundrc ${PKG}/usr/share/config/kdm/backgroundrc.new
+
+# Move the KDM files someplace FHS compliant:
+mkdir -p ${PKG}/etc/kde
+mv ${PKG}/usr/share/config/kdm ${PKG}/etc/kde
+( cd ${PKG}/usr/share/config ; ln -sf ../../../etc/kde/kdm . )
+
+doinst_config etc/kde/kdm/backgroundrc.new
+doinst_config etc/kde/kdm/kdmrc.new
 
 strip_binaries
 
@@ -100,16 +132,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "BitTorrent program for KDE"
-KTorrent is a BitTorrent program for KDE with many features:
-Download torrent files (of course :-), upload and download speed
-capping, Internet searching, UDP trackers, port forwarding with UPnP,
-IP blocking, importing of partially or fully downloaded files,
-support for distributed hash tables, protocol encryption,
-bandwidth scheduling, and much more.
-
-KTorrent's developers are Joris Guisson and Ivan Vasic.
-KTorrent is released under the GPL.
+make_slack_desc << EOF "the KDE Workspace"
+The KDE Workspace (kdebase-workspace) package consists of what is
+essentially the KDE workspace presented to the user
 
 EOF
 

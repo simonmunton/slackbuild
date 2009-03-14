@@ -2,12 +2,12 @@
 #
 . ../build_funcs
 
-TARNAME=ktorrent
+TARNAME=kdebase
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/k/kde-4.2.1
 #TAR_EXT=.tar.gz
-VERSION=3.2
+VERSION=4.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -61,6 +61,9 @@ export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
@@ -69,7 +72,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc/kde \
-      . \
+      .. \
       2>&1 | tee ${TARNAME}.config
 fi
 
@@ -84,6 +87,28 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+# Add profile scripts
+mkdir -p ${PKG}/etc/profile.d
+cat ${CWD}/kdebase/profile.d/kde.sh | sed -e "s#/lib/#/lib/#" \
+  > ${PKG}/etc/profile.d/kde.sh
+cat ${CWD}/kdebase/profile.d/kde.csh | sed -e "s#/lib/#/lib/#" \
+  > ${PKG}/etc/profile.d/kde.csh
+chmod 0755 ${PKG}/etc/profile.d/*
+
+# "konsole -ls" is no longer valid syntax for konsole, even though it's
+# still documented in the help manual.  Here's a way to get the same
+# thing, and it works here, but I honestly don't know how it will act
+# everywhere with every shell.  I just know it works with bash and ksh
+sed -i 's/Exec=konsole/Exec=konsole -e $SHELL -l/' \
+  ${PKG}/usr/share/applications/kde4/konsole.desktop
+
+## I find this a little bit too bright...  <change by pjv>
+## Change the konsole defaults to look like the real Linux console:
+#sed -i 's/ColorScheme=Linux/ColorScheme=WhiteOnBlack/' \
+#  ${PKG}/usr/share/apps/konsole/Shell.profile
 
 strip_binaries
 
@@ -100,16 +125,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "BitTorrent program for KDE"
-KTorrent is a BitTorrent program for KDE with many features:
-Download torrent files (of course :-), upload and download speed
-capping, Internet searching, UDP trackers, port forwarding with UPnP,
-IP blocking, importing of partially or fully downloaded files,
-support for distributed hash tables, protocol encryption,
-bandwidth scheduling, and much more.
-
-KTorrent's developers are Joris Guisson and Ivan Vasic.
-KTorrent is released under the GPL.
+make_slack_desc << EOF "KDE base package"
+kdebase is the second mandatory package (besides kdelibs) for the
+K Desktop Environment.  Here we have various applications and
+infrastructure files and libraries.
 
 EOF
 

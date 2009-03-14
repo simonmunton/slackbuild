@@ -2,12 +2,12 @@
 #
 . ../build_funcs
 
-TARNAME=ktorrent
+TARNAME=kdelibs
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/k/kde-4.2.1
 #TAR_EXT=.tar.gz
-VERSION=3.2
+VERSION=4.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,6 +59,9 @@ fix_perms
 QTDIR=/usr/lib/qt
 export QTDIR
 
+mkdir build
+cd build
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
@@ -69,7 +72,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc/kde \
-      . \
+      .. \
       2>&1 | tee ${TARNAME}.config
 fi
 
@@ -84,6 +87,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 
@@ -100,16 +105,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "BitTorrent program for KDE"
-KTorrent is a BitTorrent program for KDE with many features:
-Download torrent files (of course :-), upload and download speed
-capping, Internet searching, UDP trackers, port forwarding with UPnP,
-IP blocking, importing of partially or fully downloaded files,
-support for distributed hash tables, protocol encryption,
-bandwidth scheduling, and much more.
-
-KTorrent's developers are Joris Guisson and Ivan Vasic.
-KTorrent is released under the GPL.
+make_slack_desc << EOF "KDE libraries"
+System libraries and other resources required by KDE.
 
 EOF
 
