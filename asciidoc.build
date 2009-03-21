@@ -6,7 +6,7 @@ TARNAME=asciidoc
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=8.2.4
+VERSION=8.3.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,7 +43,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- sed -i -e "s@/usr/local@${PKG}/usr@" -e "s@/etc/vim@${PKG}/usr/share/vim/vim70@" -e "s@/etc/asciidoc@${PKG}/etc/asciidoc@" install.sh
+ #sed -i -e "s@/usr/local@${PKG}/usr@" -e "s@/etc/vim@${PKG}/usr/share/vim/vim70@" -e "s@/etc/asciidoc@${PKG}/etc/asciidoc@" install.sh
 )
 fi
 
@@ -55,12 +55,16 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 true
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,11 +72,12 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/bin ${PKG}/usr/share/vim/vim70
+make install DESTDIR=${PKG}
+#mkdir -p ${PKG}/usr/bin ${PKG}/usr/share/vim/vim70
 
-install.sh
+#install.sh
 
-#strip_binaries
+#trip_binaries
 
 fix_links
 
