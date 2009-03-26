@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=swig
+TARNAME=llvm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.3.39
+VERSION=2.5
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.swig.org"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,29 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-pic \
+	    --with-pic \
+	    --enable-optimized \
+	    --enable-assertions
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +92,15 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+sanitise_la_files ${PKG}/usr/lib
+
+mv ${PKG}/usr/docs/llvm/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rmdir -p ${PKG}/usr/docs/llvm
+
+rm ${PKG}/usr/lib/LLVMHello*
+
+strip_binaries
 
 fix_links
 
@@ -91,19 +114,18 @@ cp -a \
 
 fix_docs
 
+rmdir -p ${PKG}/usr/share
+
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Simplified Wrapper and Interface Generator"
-SWIG is a software development tool that connects programs written in 
-C and C++ with a variety of high-level programming languages. SWIG is 
-primarily used with common scripting languages such as Perl, Python, 
-Tcl/Tk, and Ruby, however the list of supported languages also 
-includes non-scripting languages such as Java, OCAML and C#. Also 
-several interpreted and compiled Scheme implementations (Guile, 
-MzScheme, Chicken) are supported. SWIG is most commonly used to create
-high-level interpreted or compiled programming environments, user 
-interfaces, and as a tool for testing and prototyping C/C++ software. 
-SWIG can also export its parse tree in the form of XML and Lisp 
-s-expressions.
+make_slack_desc << EOF "The Low Level Virtual Machine (An Optimizing Compiler Infrastructure)"
+LLVM is a compiler infrastructure designed for compile-time, link-
+time, runtime, and idle-time optimization of programs from arbitrary 
+programming languages. LLVM is written in C++ and has been developed 
+since 2000 at the University of Illinois and Apple. It currently 
+supports compilation of C and C++ programs, using front-ends derived 
+from GCC 4.0.1. A new front-end for the C family of languages is in 
+development. The compiler infrastructure includes mirror sets of 
+programming tools as well as libraries with equivalent functionality.
 
 EOF
 

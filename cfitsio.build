@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=swig
+TARNAME=cfitsio
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/s
+TARSEP=""
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.3.39
+VERSION=3140
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.swig.org"
+WEBPAGE="http://heasarc.gsfc.nasa.gov/fitsio/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -46,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i -e "s/grep -c '2/grep -c '^2/" configure
 )
 fi
 
@@ -55,19 +56,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make shared all fpack funpack fitscopy imcopy listhead ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +89,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+mkdir -p ${PKG}/usr/bin
+cp fpack funpack fitscopy imcopy listhead ${PKG}/usr/bin
+
+strip_binaries
 
 fix_links
 
@@ -87,23 +102,19 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  cfitsio.doc cfitsio.ps cfortran.doc fitsio.doc fitsio.ps fpackguide.pdf quick.ps \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Simplified Wrapper and Interface Generator"
-SWIG is a software development tool that connects programs written in 
-C and C++ with a variety of high-level programming languages. SWIG is 
-primarily used with common scripting languages such as Perl, Python, 
-Tcl/Tk, and Ruby, however the list of supported languages also 
-includes non-scripting languages such as Java, OCAML and C#. Also 
-several interpreted and compiled Scheme implementations (Guile, 
-MzScheme, Chicken) are supported. SWIG is most commonly used to create
-high-level interpreted or compiled programming environments, user 
-interfaces, and as a tool for testing and prototyping C/C++ software. 
-SWIG can also export its parse tree in the form of XML and Lisp 
-s-expressions.
+make_slack_desc << EOF "A FITS File Subroutine Library"
+CFITSIO is a library of C and Fortran subroutines for reading and 
+writing data files in FITS (Flexible Image Transport System) data 
+format. CFITSIO provides simple high-level routines for reading and 
+writing FITS files that insulate the programmer from the internal 
+complexities of the FITS format. CFITSIO also provides many advanced 
+features for manipulating and filtering the information in FITS files. 
 
 EOF
 
