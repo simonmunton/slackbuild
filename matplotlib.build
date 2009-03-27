@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=telepathy-qt
+TARNAME=matplotlib
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=20090326
+VERSION=0.98.5.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/tapioca-voip"
+WEBPAGE="http://matplotlib.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,19 +59,12 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,7 +72,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -96,10 +90,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library for qt based telepathy"
-telepathy-qt is a Qt4 package containing base classes for use in 
-connection managers, and proxy classes for use in clients. It's used 
-in at least TapiocaQt. 
+make_slack_desc << EOF "python 2D plotting library"
+matplotlib is a python 2D plotting library which produces publication 
+quality figures in a variety of hardcopy formats and interactive 
+environments across platforms. matplotlib can be used in python 
+scripts, the python and ipython shell (ala matlab or mathematica), 
+web application servers, and six graphical user interface toolkits.
+
+matplotlib tries to make easy things easy and hard things possible. 
+You can generate plots, histograms, power spectra, bar charts, 
+errorcharts, scatterplots, etc, with just a few lines of code.
 
 EOF
 

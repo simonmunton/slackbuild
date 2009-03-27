@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=telepathy-qt
+TARNAME=reinteract
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=20090326
+VERSION=0.5.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/tapioca-voip"
+WEBPAGE="http://www.reinteract.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,13 +59,20 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -96,10 +103,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library for qt based telepathy"
-telepathy-qt is a Qt4 package containing base classes for use in 
-connection managers, and proxy classes for use in clients. It's used 
-in at least TapiocaQt. 
+make_slack_desc << EOF "interactive shell for Python"
+Reinteract is a interactive shell for Python that allows changing 
+history, not just repeating it. You can go back to early statements, 
+edit them, and the changes flow through the rest of the subsequent 
+code. You might think of it as a Python 'worksheet'.
 
 EOF
 
