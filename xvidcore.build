@@ -6,7 +6,7 @@ TARNAME=xvidcore
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=1.2.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -78,7 +78,22 @@ fi
 make install DESTDIR=${PKG}
 )
 
-#strip_binaries
+strip_binaries
+
+mkdir -p ${PKG}/usr/lib/pkgconfig
+cat >> ${PKG}/usr/lib/pkgconfig/xvid.pc << EOF
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=/usr/lib
+includedir=\${prefix}/include
+
+Name: XviD
+Description: MPEG-4 video encoder and decoder library
+Version: ${VERSION}
+
+Libs: -L\${libdir} -lxvidcore -lpthread
+Cflags: -I\${includedir}
+EOF
 
 fix_links
 
