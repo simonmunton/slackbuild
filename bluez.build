@@ -1,0 +1,198 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=bluez
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/b
+#TAR_EXT=.tar.gz
+VERSION=4.34
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.bluez.org"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --enable-gstreamer \
+	    --enable-alsa \
+	    --enable-usb \
+	    --enable-netlink \
+	    --enable-tools \
+	    --enable-bccmd \
+	    --enable-hid2hci \
+	    --enable-dfutool \
+	    --enable-hidd \
+	    --enable-pand \
+	    --enable-dund \
+	    --enable-cups \
+	    --enable-manpages \
+	    --enable-configfiles \
+	    --enable-pcmciarules
+
+#	    --enable-initscripts \
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+# -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+# -DCMAKE_BUILD_TYPE=Release \
+# -DCMAKE_INSTALL_PREFIX=/usr \
+# -DMAN_INSTALL_DIR=/usr/man \
+# -DSYSCONF_INSTALL_DIR=/etc \
+# .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+ exit
+fi
+
+make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/lib/udev/rules.d
+mv ${PKG}/etc/udev/bluetooth.rules ${PKG}/lib/udev/rules.d/60-bluetooth.rules
+rm -rf ${PKG}/etc/udev
+
+mv ${PKG}/usr/libexec/udev/bluetooth_serial ${PKG}/lib/udev
+rm -rf ${PKG}/usr/libexec
+
+# Install Debian's add-passkey program:
+mkdir -p $PKG/etc/bluetooth/passkeys
+# Is there any reason for a non-root user to be able to see these?
+chmod 700 $PKG/etc/bluetooth/passkeys
+# Default PIN (wow, does this seem insecure!)
+#echo "1234" > $PKG/etc/bluetooth/passkeys/default
+touch $PKG/etc/bluetooth/passkeys/default
+
+gcc $(pkg-config --libs --cflags dbus-1) -DDBUS_API_SUBJECT_TO_CHANGE \
+    $CWD/bluez-add-passkey.c -o $PKG/usr/lib/bluetooth/add-passkey || exit 1
+cp $CWD/bluez-register-passkeys $PKG/usr/lib/bluetooth/register-passkeys
+chmod a+x $PKG/usr/lib/bluetooth/*
+
+# Arrange init scripts and config files:
+mkdir -p $PKG/etc/rc.d
+cp $CWD/bluez-rc.bluetooth $PKG/etc/rc.d/rc.bluetooth
+cp -a $CWD/bluez-rc.bluetooth.conf $PKG/etc/rc.d/rc.bluetooth.conf
+sed -i "s:\(HIDD_ENABLE=\).*:\1false:" $PKG/etc/rc.d/rc.bluetooth.conf || exit 1
+sed -i "s:\(HID2HCI_ENABLE=\).*:\1false:" $PKG/etc/rc.d/rc.bluetooth.conf || exit 1
+
+cp -a audio/audio.conf $PKG/etc/bluetooth
+cp -a audio/asound.conf $PKG/etc/bluetooth
+cp -a input/input.conf $PKG/etc/bluetooth
+cp -a network/network.conf $PKG/etc/bluetooth
+cp -a rfcomm/rfcomm.conf $PKG/etc/bluetooth
+chmod 644 $PKG/etc/bluetooth/*.conf
+
+# Do not overwrite configuration
+# Well, let the dbus file be overwritten, as it is not usually user-edited.
+doinst_same_perm etc/rc.d/rc.bluetooth
+
+( cd $PKG
+  for file in \
+    etc/bluetooth/audio.conf \
+    etc/bluetooth/asound.conf \
+    etc/bluetooth/input.conf \
+    etc/bluetooth/network.conf \
+    etc/bluetooth/rfcomm.conf \
+    etc/bluetooth/passkeys/default \
+    etc/rc.d/rc.bluetooth \
+    etc/rc.d/rc.bluetooth.conf
+  do
+      mv ${file} ${file}.new
+      doinst_config ${file}.new
+  done
+)
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/asound.conf ]; then
+  ( cd etc ; ln -sf bluetooth/asound.conf . )
+fi
+
+EOF
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+ AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+ ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp ${CWD}/bluez-utils-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Bluetooth protocol stack for Linux"
+Bluetooth protocol stack for Linux
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 700 etc/bluetooth/passkeys; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

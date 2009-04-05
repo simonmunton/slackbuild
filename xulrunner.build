@@ -137,9 +137,14 @@ ln -s xulrunner-${VERSION} ${PKG}/usr/share/idl/xulrunner
  NSS_VERSION=`grep NSS_VERSION ${PKG}/usr/include/xulrunner/stable/nss.h | cut -d\" -f2 `
  NSS_VERSION=${NSS_VERSION%.*}
  sed -i -e "/^Version/ s/${VERSION}/${NSS_VERSION}/" mozilla-nss.pc
- sed -i -e "s@ -lnss@-L/usr/lib/xulrunner-${VERSION} -lnss@" mozilla-nss.pc
+ sed -i -e "s@ -lnss@ -L/usr/lib/xulrunner -lnss@" mozilla-nss.pc
 
- sed -i -e "/^includedir/ a libdir=/usr/lib/xulrunner-${VERSION}" mozilla-gtkmozembed.pc
+ sed -i -e "/^includedir/ a libdir=/usr/lib/xulrunner" mozilla-gtkmozembed.pc
+
+ for f in *pc
+ do
+  sed -i -e "s@xulrunner-${VERSION}@xulrunner@g" -e "s@xulrunner-devel-${VERSION}@xulrunner-devel@g" $f
+ done
 )
 
 (cd ${PKG}/usr/include

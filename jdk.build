@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=jdk
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/j/java/Sun
+TAR_EXT=.bin
+VERSION=6u13
+VERSIONEXTRA=-linux-i586
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+ARCH=i586
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+(cd ${PKG}
+ mkdir -p usr/lib
+ cd usr/lib
+ echo yes | sh ${FULL_TARNAME} -noregister >& /dev/null
+
+ f=`echo jdk*`
+ mv $f java
+ ln -sf java $f
+
+ cd ../..
+ mkdir -p etc/profile.d
+ cp -a ${CWD}/jdk.{sh,csh} etc/profile.d
+ chmod 755 etc/profile.d/*
+
+ mkdir -p usr/lib/mozilla/plugins
+
+ ( cd usr/lib/mozilla/plugins
+   ln -sf /usr/lib/java/jre/plugin/i386/ns7/libjavaplugin_oji.so libjavaplugin_oji.so
+ )
+)
+
+cat > ${PKG}/install/doinst.sh << EOF
+# Clean up a potential upgrade mess caused by changing the
+# installation directory to /usr/lib/java/:
+if [ -L usr/lib/java ]; then
+  rm -rf usr/lib/java
+  mkdir -p usr/lib/java/man
+  mkdir -p usr/lib/java/jre/lib/i386/server
+  mkdir -p usr/lib/java/jre/javaws
+  mkdir -p usr/lib/java/jre/bin
+  mkdir -p usr/lib/java/bin
+  mkdir -p usr/lib/java/jre/lib/i386/client
+  mkdir -p usr/lib/mozilla/plugins
+fi
+if [ -L ControlPanel ]; then
+  rm -f ControlPanel
+fi
+if [ -L ja ]; then
+  rm -f ja
+fi
+if [ -L javaws ]; then
+  rm -f javaws
+fi
+if [ -L libjsig.so ]; then
+  rm -f libjsig.so
+fi
+# End cleanup.
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+ln -s /usr/lib/java/{README*,register*,COPYRIGHT,LICENSE} ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Java(TM) 2 Platform Standard Edition Development Kit 6.0"
+The Java 2 SDK software includes tools for developing, testing, and
+running programs written in the Java programming language.  This
+package contains everything you need to run Java(TM).
+
+For additional information, refer to this Sun Microsystems web page:
+  http://java.sun.com/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
