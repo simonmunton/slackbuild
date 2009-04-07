@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=evolution
+TARNAME=libpst
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.26.0
+VERSION=0.6.27
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.five-ten-sg.com/libpst/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,19 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --with-openldap=yes \
-            --enable-pilot-conduits=yes \
-            --enable-exchange=yes \
-            --with-krb5=/usr \
-            --enable-nss
+	    --enable-libpst-shared \
+	    --enable-dii
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -82,15 +90,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-if [ ! -d ${PKG}/usr/include/evolution-2.10/composer ]
-then
-  mkdir -p ${PKG}/usr/include/evolution-2.10/composer
-  cp composer/*.h ${PKG}/usr/include/evolution-2.10/composer
-else
-  echo "${PKG}/usr/include/evolution-2.10/composer exists"
-fi
+# extra includes
+#cp src/{define.h,vbuf.h} ${PKG}/usr/include/libpst
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -105,9 +108,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME mail application"
-Evolution provides integrated mail, addressbook and calendaring
-functionality to users of the GNOME desktop
+make_slack_desc << EOF "Utilities to convert Outlook .pst files to other formats"
+The Libpst utilities include readpst which can convert email messages
+to both mbox and MH mailbox formats, pst2ldif which can convert the
+contacts to .ldif format for import into ldap databases, and pst2dii
+which can convert email messages to the DII load file format used by
+Summation.
 
 EOF
 
