@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=vlc
+TARNAME=iulib
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/v/videolan
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=0.9.9a
+VERSION=0.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://code.google.com/p/iulib/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/vlc-0.9.4.diff
-# autoreconf
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -54,36 +55,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --enable-v4l \
-            --enable-faad \
-            --enable-real \
-            --enable-realrtsp \
-            --enable-flac \
-            --enable-theora \
-            --enable-svg \
-            --enable-snapshot \
-            --enable-jack \
-            --enable-xosd \
-            --enable-goom \
-            --enable-lirc \
-            --enable-loader \
-            --with-wx-config=wx-config-2.6-unicode
+	    --mandir=/usr/man
 
-#            --enable-dv \
-#	    --enable-dc1394 \
-#	    --enable-debug \
-#           --with-wx-config-path=/usr/lib/wx/config \
-#           --enable-dirac \
-#           --enable-quicktime \
-#           --enable-mozilla \
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -99,7 +88,9 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+chmod -R -x,+X ${PKG}/usr/include
+
+strip_binaries
 
 fix_links
 
@@ -114,10 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "The VideoLAN client, also a very good standalone video player"
-VideoLAN Client (VLC) is a highly portable multimedia player for
-various audio and video formats (MPEG-1, MPEG-2, MPEG-4, DivX, mp3,
-ogg, ...) as well as DVDs, VCDs, and various streaming protocols.
+make_slack_desc << EOF "image understanding-related algorithms"
+A library of image understanding-related algorithms. Provides basic 
+image processing, mathematical morphology, and machine learning 
+algorithms.
 
 EOF
 

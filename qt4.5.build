@@ -1,0 +1,227 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qt-x11-opensource-src
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=4.5.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qt
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+PKG1=/tmp/package-${PKGNAME}-debug
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
+
+patch -p0 < ${CWD}/qt4.5-patches/0118-qtcopy-define.diff
+patch -p0 < ${CWD}/qt4.5-patches/0180-window-role.diff
+patch -p0 < ${CWD}/qt4.5-patches/0195-compositing-properties.diff
+patch -p0 < ${CWD}/qt4.5-patches/0209-prevent-qt-mixing.diff
+patch -p0 < ${CWD}/qt4.5-patches/0216-allow-isystem-for-headers.diff
+patch -p0 < ${CWD}/qt4.5-patches/0225-invalidate-tabbar-geometry-on-refresh.patch
+patch -p0 < ${CWD}/qt4.5-patches/0234-fix-mysql-threaded.diff
+patch -p0 < ${CWD}/qt4.5-patches/0245-fix-randr-changes-detecting.diff
+#patch -p0 < ${CWD}/qt4.5-patches/0250-out_of_source_build.diff
+patch -p0 < ${CWD}/qt4.5-patches/0253-qmake_correct_path_separators.diff
+patch -p0 < ${CWD}/qt4.5-patches/0255-qtreeview-selection-columns-hidden.diff
+#patch -p0 < ${CWD}/qt4.5-patches/0259-restart-select-on-EINTR.diff
+patch -p0 < ${CWD}/qt4.5-patches/0273-odbc-64bit-compile.diff
+patch -p0 < ${CWD}/qt4.5-patches/0274-shm-native-image-fix.diff
+patch -p0 < ${CWD}/qt4.5-patches/0275-qtconcurrent-threadcount.diff
+patch -p0 < ${CWD}/qt4.5-patches/0276-webkit-pedantic.diff
+patch -p0 < ${CWD}/qt4.5-patches/0278-X11-Use-legacy-LCD-filtering-if-specified-in-font-c.diff
+
+
+ # set correct X11 prefix
+ perl -pi -e "s,QMAKE_LIBDIR_X11.*,QMAKE_LIBDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_X11.*,QMAKE_INCDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+echo yes |
+CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+./configure -prefix /usr/lib/qt \
+	    -release \
+            -system-zlib \
+            -system-libpng \
+            -system-libmng \
+            -system-libjpeg \
+	    -no-phonon
+	    -system-sqlite \
+            -qt-gif \
+            -stl \
+	    -dbus \
+            -plugin-sql-mysql \
+            -plugin-sql-odbc \
+            -plugin-sql-psql \
+            -plugin-sql-sqlite \
+            -I /usr/include/mysql -L/usr/lib/mysql -R/usr/lib/mysql \
+	    -webkit \
+	    -nomake examples \
+	    -nomake demos \
+            -v
+
+#            -no-g++-exceptions \
+#           -release \
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install INSTALL_ROOT=$PKG
+
+( cd $PKG/usr/lib
+#mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
+ln -s qt $PKG/usr/lib/qt-$VERSION
+)
+
+# Link the shared libraries into /usr/lib:
+( cd $PKG/usr/lib
+  for file in qt-$VERSION/lib/*.so* ; do
+    ln -sf $file .
+  done
+)
+
+# Add profile scripts
+mkdir -p ${PKG}/etc/profile.d
+cat ${CWD}/qt4.sh > ${PKG}/etc/profile.d/qt4.sh
+cat ${CWD}/qt4.csh > ${PKG}/etc/profile.d/qt4.csh
+chmod 755 ${PKG}/etc/profile.d/*
+
+# Put a ton of links to more "normal" places.  I'd just use a prefix of /usr, but it
+# creates a ton of new (and ambiguously named) /usr directories...
+mkdir -p $PKG/usr/bin
+( cd $PKG/usr/bin
+  for file in \
+    assistant designer linguist lrelease lupdate moc pixeltool qdbus \
+    qdbuscpp2xml qdbusviewer qdbusxml2cpp qmake qt3to4 qtconfig rcc uic uic3 ;
+  do
+    ln -sf /usr/lib/qt-$VERSION/bin/$file .
+  done
+)
+
+#mkdir -p $PKG/usr/lib/pkgconfig
+#( cd $PKG/usr/lib/pkgconfig
+#  for file in Qt3Support.pc QtAssistantClient.pc QtCore.pc \
+#    QtDBus.pc QtGui.pc QtNetwork.pc QtOpenGL.pc QtScript.pc \
+#    QtSql.pc QtSvg.pc QtTest.pc QtUiTools.pc QtXml.pc ;
+#  do
+#    ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$file . ;
+#  done
+#)
+
+mkdir -p $PKG/usr/lib/pkgconfig
+(cd $PKG/usr/lib/qt/lib/pkgconfig
+ for n in *
+ do
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
+  ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$n $PKG/usr/lib/pkgconfig/$n
+ done
+
+cd $PKG/usr/lib/qt/lib
+ for n in *.la *.prl
+ do
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
+ done
+)
+
+
+# split out the debug stuff
+rm -rf ${PKG1}
+mkdir -p ${PKG1}
+(cd ${PKG}
+ for f in `find . -name "*.debug"`
+ do
+   mkdir -p ${PKG1}/`dirname $f`
+   mv $f ${PKG1}/`dirname $f`
+ done
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  GPL_EXCEPTION.TXT GPL_EXCEPTION_ADDENDUM.TXT INSTALL LICENSE.GPL \
+  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-$VERSION \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd $PKG/usr/doc/$TARNAME-$VERSION
+  ln -sf /usr/lib/qt/doc/html .
+)
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a multi-platform C++ graphical user interface toolkit"
+Qt is a complete and well-developed object-oriented framework for
+developing graphical user interface (GUI) applications using C++.
+
+This release is free only for development of free software for the X
+Window System.  If you use Qt for developing commercial or other
+non-free software, you must have a professional license.  Please see
+http://www.trolltech.com/purchase.html for information on how to
+obtain a professional license.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+cd ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-debug-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG1}"

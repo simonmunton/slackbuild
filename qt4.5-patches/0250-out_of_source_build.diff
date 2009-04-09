@@ -1,0 +1,73 @@
+qt-bugs@ issue : N227213
+Trolltech task ID : none yet
+applied: no
+author: Christian Ehrlicher <ch.ehrlicher@gmx.de>
+        Ralf Habacker <ralf.habacker@freenet.de>
+
+Fix configure.exe to do an out-of-source build on windows
+
+
+Index: tools/configure/configureapp.cpp
+===================================================================
+--- tools/configure/configureapp.cpp	(revision 862665)
++++ tools/configure/configureapp.cpp	(working copy)
+@@ -2932,7 +2956,7 @@
+         args += buildPath + "/bin/syncqt.bat";
+         QStringList env;
+         env += QString("QTDIR=" + sourcePath);
+-        //env += QString("PATH=" + buildPath + "/bin/;%PATH%");
++        env += QString("PATH=" + buildPath + "/bin/;" + qgetenv("PATH"));
+         Environment::execute(args, env, QStringList());
+     }
+ }
+Index: bin/syncqt
+===================================================================
+--- bin/syncqt	(revision 863314)
++++ bin/syncqt	(working copy)
+@@ -342,9 +342,13 @@
+         $match_dir = $tmp;
+         $i = $slash;
+     }
++    my $cnt_ofs = 0;
++    if($match_dir =~ /^[a-zA-Z]:$/) {
++      $cnt_ofs = 1;
++    }
+     if($match_dir) {
+         my $after = substr($dir, length($match_dir));
+-        my $count = ($after =~ tr,/,,);
++        my $count = ($after =~ tr,/,,) - $cnt_ofs;
+         my $dots = "";
+         for(my $i = 0; $i < $count; $i++) {
+             $dots .= "../";
+Index: projects.pro
+===================================================================
+--- projects.pro	(revision 872221)
++++ projects.pro	(working copy)
+@@ -128,6 +128,9 @@
+    DEFAULT_QMAKESPEC ~= s,^.*mkspecs/,,g
+    mkspecs.commands += $(DEL_FILE) $(INSTALL_ROOT)$$mkspecs.path/default; $(SYMLINK) $$DEFAULT_QMAKESPEC $(INSTALL_ROOT)$$mkspecs.path/default
+ }
++win32 {
++   mkspecs.files += $$QT_BUILD_TREE/mkspecs/default
++}
+ INSTALLS += mkspecs
+ 
+ false:macx { #mac install location
+Index: src/tools/moc/main.cpp
+===================================================================
+--- src/tools/moc/main.cpp	(revision 864463)
++++ src/tools/moc/main.cpp	(working copy)
+@@ -96,7 +96,13 @@
+         inSplitted.prepend(QLatin1String(".."));
+     }
+     inSplitted.append(inFileInfo.fileName());
++#ifdef Q_WS_WIN
++    const QString rel = inSplitted.join(QLatin1String("/"));
++    const QString abs = inFileInfo.absoluteFilePath();
++    return QFile::encodeName(rel.length() < abs.length() ? rel : abs);
++#else
+     return QFile::encodeName(inSplitted.join(QLatin1String("/")));
++#endif
+ }
+ 
+ 
