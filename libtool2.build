@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=paprefs
+TARNAME=libtool
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p/pulseaudio
+TARDIR=~/tmp/gnu/libtool
 #TAR_EXT=.tar.gz
-VERSION=0.9.8
+VERSION=2.2.6a
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libtool2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-2.2.6 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -53,14 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/${TARNAME}-${VERSION}
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -90,13 +105,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "configuration tool for PulseAudio"
-PulseAudio Preferences (paprefs) is a simple GTK based configuration
-dialog for the PulseAudio sound server.
+make_slack_desc << EOF "a generic library support script"
+This is GNU Libtool, a generic library support script. Libtool hides
+the complexity of using shared libraries behind a consistent, portable
+interface.  To use libtool, add the new generic library building
+commands to your Makefile, Makefile.in, or Makefile.am.  See the
+documentation for details.
 
-Please note that this program can only configure local servers, and
-requires that a special module module-gconf is loaded in the sound
-server. (Since PulseAudio 0.9.5 this modules is loaded by default.)
+You must install the "m4" package to be able to use libtool.
 
 EOF
 
