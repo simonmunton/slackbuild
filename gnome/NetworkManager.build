@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=NetworkManager
+TARNAMEEXTRA=
+TARDIR=~/tmp/gnome
+#TAR_EXT=.tar.gz
+VERSION=0.7.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --with-dhcp-client=dhcpcd
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+(cd ${PKG}
+ for f in etc/rc.d/rc.networkmanager # etc/rc.d/rc.networkmanager-dispatcher
+ do
+   mv ${f} ${f}.new
+   doinst_same_perm ${f}
+   doinst_config ${f}.new
+ done
+
+ for f in etc/dbus-1/system.d/NetworkManager.conf
+ do
+   mv ${f} ${f}.new
+   doinst_config ${f}.new
+ done
+)
+
+cat >> ${PKG}/install/doinst.sh << EOF
+###
+# Use rc.local to start NetworkManager at boot.
+###
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+run=\$(grep "sh /etc/rc.d/rc.networkmanager" etc/rc.d/rc.local)
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start NetworkManager daemon" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local
+        echo "  sh /etc/rc.d/rc.networkmanager start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+fi
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "network connection manager"
+NetworkManager attempts to keep an active network connection available 
+at all times. The point of NetworkManager is to make networking 
+configuration and setup as painless and automatic as possible. If 
+using DHCP, NetworkManager is _intended_ to replace default routes, 
+obtain IP addresses from a DHCP server, and change nameservers 
+whenever it sees fit. In effect, the goal of NetworkManager is to 
+make networking Just Work. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 700 var/lib/run/NetworkManager; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

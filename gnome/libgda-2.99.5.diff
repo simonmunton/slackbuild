@@ -1,0 +1,41 @@
+--- libgda/tools/gda-author-dict-file.c	(revision 2825)
++++ libgda/tools/gda-author-dict-file.c	(working copy)
+@@ -28,7 +28,7 @@
+ };
+ 
+ static void
+-update_progress_cb (GdaDict *dict, gchar * msg, guint now, guint total)
++update_progress_cb (GdaDict *dict, gchar *msg, guint now, guint total, gpointer data)
+ {
+ 	static gboolean first = TRUE;
+ 	if (msg) {
+--- libgda/libgda/gda-dict.c	(revision 2825)
++++ libgda/libgda/gda-dict.c	(working copy)
+@@ -1,6 +1,6 @@
+ /* gda-dict.c
+  *
+- * Copyright (C) 2003 - 2006 Vivien Malerba
++ * Copyright (C) 2003 - 2007 Vivien Malerba
+  *
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License as
+@@ -206,7 +206,7 @@
+                               G_STRUCT_OFFSET (GdaDictClass, update_progress),
+                               NULL, NULL,
+                               gda_marshal_VOID__OBJECT_UINT_UINT,
+-                              G_TYPE_NONE, 3, GDA_TYPE_OBJECT, G_TYPE_UINT, G_TYPE_UINT);
++                              G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT);
+         gda_dict_signals[DATA_UPDATE_FINISHED] =
+                 g_signal_new ("data_update_finished",
+                               G_TYPE_FROM_CLASS (object_class),
+--- libgda/libgda/gda-dict.h	(revision 2825)
++++ libgda/libgda/gda-dict.h	(working copy)
+@@ -78,7 +78,7 @@
+ 	void    (*object_act_changed)   (GdaDict *dict, GdaObject *obj);
+ 
+         void    (*data_update_started)  (GdaDict *dict);
+-        void    (*update_progress)      (GdaDict *dict, gchar * msg, guint now, guint total);
++        void    (*update_progress)      (GdaDict *dict, gchar *msg, guint now, guint total);
+         void    (*data_update_finished) (GdaDict *dict);
+ 
+ 	/* signal that a change in the whole dictionary has occurred */

@@ -1,0 +1,123 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gnome-panel
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnome
+#TAR_EXT=.tar.gz
+VERSION=2.26.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "The GNOME panel"
+This package contains the GNOME panel which is the area on your
+desktop from which you can run applications and applets, and perform
+other tasks.
+
+The libpanel-applet library is also in this package. This library
+allows one to develop small applications which may be embedded in the
+panel. These are called applets.
+
+Several applets are also supplied - the Workspace Switcher, the Window
+List, the Window Selector, the Notification Area, the Clock and the
+infamous 'Wanda the Fish'.
+
+EOF
+
+post_install
+
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+usr/bin/gconftool-2 --direct --config-source=xml:merged:/etc/gconf/gconf.xml.defaults --load etc/gconf/schemas/panel-default-setup.entries
+usr/bin/gconftool-2 --direct --config-source=xml:merged:/etc/gconf/gconf.xml.defaults --load etc/gconf/schemas/panel-default-setup.entries /apps/panel
+
+EOF
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=gnome-games
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnome
+#TAR_EXT=.tar.gz
+VERSION=2.26.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --disable-schemas-install
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+(cd ${PKG}/var/lib/games
+ LIST=`ls  | tr '\012' ' '`
+ for f in *
+ do
+   mv $f $f.new
+ done
+ cat << EOF >> ${PKG}/install/doinst.sh
+#
+for f in ${LIST}
+do
+  if [ -f var/lib/games/\${f} ]
+  then
+    rm var/lib/games/\${f}.new
+  else
+    mv var/lib/games/\${f}.new var/lib/games/\${f}
+  fi
+done
+EOF
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "GNOME games"
+Gnome-games is a collection of simple, but addictive, games from the
+GNOME desktop project. They represent many of the popular games and
+include card games, puzzle games and arcade games. They are meant to
+be the sort of game that can be played in five minutes or so. They
+are also meant to be fun enough that you will play them again and
+again.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chown games.games var/lib/games/*; \
+chgrp games usr/bin/{glines,gnibbles,gnobots2,gnometris,gnomine,gnotravex,gnotski,gtali,iagno,mahjongg,same-gnome} ; \
+chmod g+s usr/bin/{glines,gnibbles,gnobots2,gnometris,gnomine,gnotravex,gnotski,gtali,iagno,mahjongg,same-gnome} ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

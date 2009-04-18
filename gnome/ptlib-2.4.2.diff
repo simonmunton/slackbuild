@@ -1,0 +1,40 @@
+--- ptlib-2.4.2/include/ptclib/podbc.h.orig	2008-09-22 13:06:58.000000000 +0100
++++ ptlib-2.4.2/include/ptclib/podbc.h	2008-12-15 22:38:38.000000000 +0000
+@@ -100,6 +100,8 @@
+ 
+ #if defined(P_ODBC) && !defined(_WIN32_WCE)
+ 
++#define BOOL                            int
++
+ #include <sql.h> 
+ #include <sqlext.h>
+ #include <odbcinst.h>
+--- ptlib-2.4.2/src/ptclib/podbc.cxx.orig	2008-09-15 09:26:42.000000000 +0100
++++ ptlib-2.4.2/src/ptclib/podbc.cxx	2008-12-15 22:21:01.000000000 +0000
+@@ -1524,7 +1524,7 @@
+ PBoolean PODBCRecord::IsColumnUpdatable(PINDEX Column )
+ {
+ 
+-   SWORD colUpdate=0;
++   SQLLEN colUpdate=0;
+    SQLColAttribute(m_hStmt,     // StatementHandle
+         (SQLSMALLINT)(Column),  // ColumnNumber
+         SQL_DESC_UPDATABLE,	// FieldIdentifier
+@@ -1538,7 +1538,7 @@
+ PBoolean PODBCRecord::IsColumnAutoIndex(PINDEX Column )
+ {
+ 
+-   SWORD colIndex=0;
++   SQLLEN colIndex=0;
+    SQLColAttribute(m_hStmt,	// StatementHandle
+         (SQLSMALLINT)(Column),  // ColumnNumber
+         SQL_DESC_AUTO_UNIQUE_VALUE,  // FieldIdentifier
+@@ -1551,7 +1551,7 @@
+ 
+ unsigned int PODBCRecord::ColumnPrecision(PINDEX Column )
+ {
+-   SWORD coldigits=0;
++   SQLLEN coldigits=0;
+    SQLColAttribute(m_hStmt,      // StatementHandle
+         (SQLSMALLINT)(Column),   // ColumnNumber
+         SQL_DESC_PRECISION,      // FieldIdentifier
