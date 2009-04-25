@@ -6,7 +6,7 @@ TARNAME=NetworkManager
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.7.0
+VERSION=0.7.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -60,7 +60,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
-	    --with-dhcp-client=dhcpcd
+
+#	    --with-dhcp-client=dhcpcd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,6 +75,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/var/lib/dhclient
 
 (cd ${PKG}
  for f in etc/rc.d/rc.networkmanager # etc/rc.d/rc.networkmanager-dispatcher
@@ -90,6 +93,18 @@ make install DESTDIR=${PKG}
  done
 )
 
+cat  >> ${PKG}/etc/NetworkManager/nm-system-settings.conf.new << EOF
+[main]
+plugins=keyfile
+#no-auto-default=mac_addr
+
+[keyfile]
+#hostname=
+
+EOF
+
+doinst_config etc/NetworkManager/nm-system-settings.conf.new
+
 cat >> ${PKG}/install/doinst.sh << EOF
 ###
 # Use rc.local to start NetworkManager at boot.
@@ -105,6 +120,22 @@ if [[ "\${run}" == "" ]]; then
         echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local
         echo "  sh /etc/rc.d/rc.networkmanager start" >> etc/rc.d/rc.local
         echo "fi" >> etc/rc.d/rc.local
+fi
+
+###
+# Use rc.local_shutdown to stop NetworkManager.
+###
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+        chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=\$(grep "sh /etc/rc.d/rc.networkmanager" etc/rc.d/rc.local_shutdown)
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local_shutdown
+        echo "# stop NetworkManager daemon" >> etc/rc.d/rc.local_shutdown
+        echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local_shutdown
+        echo "  sh /etc/rc.d/rc.networkmanager stop" >> etc/rc.d/rc.local_shutdown
+        echo "fi" >> etc/rc.d/rc.local_shutdown
 fi
 
 EOF

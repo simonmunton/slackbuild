@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=vala
+TARNAME=openvpn
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=0.7.1
+VERSION=2.1_rc15
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,19 +55,36 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+(cd plugin/down-root
+ make ${NUM_JOBS} || exit
+)
+(cd plugin/auth-pam
+ make ${NUM_JOBS} || exit
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +94,22 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+mkdir -p ${PKG}/etc/rc.d
+
+mkdir -p ${PKG}/etc/openvpn
+
+mkdir -p ${PKG}/usr/share/openvpn/plugin/lib
+for pi in auth-pam down-root
+do
+  cp plugin/$pi/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.$pi
+  if [ -e plugin/$pi/openvpn-$pi.so ]; then
+    cp plugin/$pi/openvpn-$pi.so ${PKG}/usr/share/openvpn/plugin/lib/openvpn-$pi.so
+  fi
+done
+
+cp plugin/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.plugins
+
+strip_binaries
 
 fix_links
 
@@ -87,16 +119,18 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  contrib easy-rsa management sample-* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a new programming language"
-Vala is a new programming language that aims to bring modern 
-programming language features to GNOME developers without imposing 
-any additional runtime requirements and without using a different ABI 
-compared to applications and libraries written in C.
+make_slack_desc << EOF "OpenVPN is a robust and highly flexible VPN daemon by James Yonan."
+OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
+OpenVPN supports SSL/TLS security, ethernet bridging, TCP or UDP 
+tunnel transport through proxies or NAT, support for dynamic IP 
+addresses and DHCP, scalability to hundreds or thousands of users,
+and portability to most major OS platforms.
 
 EOF
 

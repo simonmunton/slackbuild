@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.6.2
+VERSION=1.6.2.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -65,9 +65,11 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --mandir=/usr/man
 fi
 
+MAKEFLAGS="ASCIIDOC=asciidoc --unsafe"
+
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all doc || exit
+make ${NUM_JOBS} all doc "${MAKEFLAGS}" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +77,7 @@ then
   exit
 fi
 
-make install install-doc DESTDIR=${PKG} INSTALLDIRS=vendor
+make install install-doc "${MAKEFLAGS}" DESTDIR=${PKG} INSTALLDIRS=vendor
 
 # Switch a hard link with a soft link:
 ( cd ${PKG}/usr/bin

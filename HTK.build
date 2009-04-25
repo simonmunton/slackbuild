@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=vala
+TARNAME=HTK
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=0.7.1
+VERSION=3.4.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://htk.eng.cam.ac.uk/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv htk ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,14 +55,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+
+#	    --enable-htkbook
+#	    --enable-hdecode
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,9 +89,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} prefix=${PKG}/usr
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,11 +106,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a new programming language"
-Vala is a new programming language that aims to bring modern 
-programming language features to GNOME developers without imposing 
-any additional runtime requirements and without using a different ABI 
-compared to applications and libraries written in C.
+make_slack_desc << EOF "The Hidden Markov Model Toolkit"
+The Hidden Markov Model Toolkit (HTK) is a portable toolkit for 
+building and manipulating hidden Markov models. HTK is primarily used 
+for speech recognition research although it has been used for numerous 
+other applications including research into speech synthesis, character 
+recognition and DNA sequencing. HTK is in use at hundreds of sites 
+worldwide.
 
 EOF
 

@@ -1,0 +1,143 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=dhcpcd
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/d
+#TAR_EXT=.tar.gz
+VERSION=4.0.13
+VERSIONEXTRA=
+BUILD=1
+
+#WEBPAGE="http://developer.berlios.de/projects/dhcpcd/"
+WEBPAGE="http://roy.marples.name/projects/dhcpcd"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+	    --sbindir=/sbin \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --enable-debug=no \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+MAKEFLAGS="PREFIX=/usr BINDIR=/sbin SYSCONFDIR=/etc"
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} ${MAKEFLAGS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG} ${MAKEFLAGS}
+
+# This script has been installed non-executable for several dhcpcd
+# releases leading me to believe this is intentional on the part of
+# the developers.  Indeed, the script is called a "sample" in the
+# included comments, and there's been at least one security issue
+# related to its use in the past, so it's probably a safer bet to
+# not install it so that it works "out of the box".  However, making
+# it non-executable is not the best solution for this as it leads
+# to error messages in the system logs which I hear about from time
+# to time.  Instead, we'll make it executable, but will give it a
+# suffix of -sample so that dhcpcd won't attempt to run it.
+#
+# As far as I can tell it does nothing more than add some extra
+# verbosity to the logs anyway, and rc.inet1 already does that.
+# There's really no need that I can see to enable the script.
+#mv ${PKG}/etc/dhcpc/dhcpcd.exe ${PKG}/etc/dhcpc/dhcpcd.exe-sample
+#chmod 755 ${PKG}/etc/dhcpc/dhcpcd.exe-sample
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ChangeLog \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "DHCP client daemon"
+The DHCP client program dhcpcd is used to connect to a network by
+contacting a DHCP server.  dhcpcd gets an IP address and other
+information from a corresponding DHCP server, configures the network
+interface automatically, and tries to renew the lease time according
+to RFC2131 or RFC1541 depending on the command line option.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
