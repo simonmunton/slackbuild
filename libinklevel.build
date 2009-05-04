@@ -6,7 +6,7 @@ TARNAME=libinklevel
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.7.3
+VERSION=0.8.0rc2
 VERSIONEXTRA=
 BUILD=1
 
@@ -47,11 +47,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${DO_CONFIGURE} == "yes" ]
+then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-make || exit
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
+fi
 
-make install DESTDIR=${PKG} PREFIX=/usr
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
 
 #strip_binaries
 

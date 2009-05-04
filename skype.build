@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mjpegtools
+TARNAME=skype
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m/mjpegtools
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.9.0
+VERSION=2.0.0.72
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://mjpeg.sourceforge.net/"
+WEBPAGE="http://www.skype.com"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/mjpegtools-1.8.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,21 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-dv-yv12
-#            --with-jpeg-mmx=$CWD/jpeg-mmx-0.1.5
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,11 +73,24 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
-cp mpeg2enc/mpeg2syntaxcodes.h ${PKG}/usr/include/mjpegtools/mpeg2enc
+mkdir -p ${PKG}/usr/bin
+mkdir -p ${PKG}/usr/share/skype
+mkdir -p ${PKG}/usr/share/applications
+mkdir -p ${PKG}/etc/dbus-1/system.d
 
-#strip_binaries
+cp skype ${PKG}/usr/bin
+cp -r avatars lang sounds ${PKG}/usr/share/skype
+cp -r icons ${PKG}/usr/share
+cp skype.desktop ${PKG}/usr/share/applications
+cp skype.conf ${PKG}/etc/dbus-1/system.d
+
+(cd ${PKG}/usr/share
+ ln -s SkypeBlue_48x48.png skype.png
+)
+
+strip_binaries
 
 fix_links
 
@@ -91,18 +100,14 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  LICENSE* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Tools for working with and mpeg-encoding video under linux"
-The MJPEG-tools are a basic set of utilities for recording, editing,
-playing back and encoding (to mpeg) video under linux. Recording can
-be done with zoran-based MJPEG-boards (LML33, Iomega Buz, Pinnacle
-DC10(+), Marvel G200/G400), these can also playback video using the
-hardware. With the rest of the tools, this video can be edited and
-encoded into mpeg1/2 or divx video.
+make_slack_desc << EOF "Skype VOIP package"
+Skype VOIP package
 
 EOF
 
