@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdeartwork
+TARNAME=foremost
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.2.3
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=4.2.3
+VERSION=1.5.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -46,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i -e 's@/usr/local/etc/@/etc/@g' config.c
 )
 fi
 
@@ -55,30 +56,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
+
+MAKEFLGS="BIN=/usr/bin MAN=/usr/man/man8 CONF=/etc"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ${MAKEFLGS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,9 +90,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+MAKEFLGS="BIN=${PKG}/usr/bin MAN=${PKG}/usr/man/man8 CONF=${PKG}/etc"
 
-cd ..
+mkdir -p ${PKG}/usr/bin ${PKG}/usr/man/man8 ${PKG}/etc
+
+make install DESTDIR=${PKG} ${MAKEFLGS}
 
 strip_binaries
 
@@ -105,9 +111,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Additional artwork for KDE"
-Additional themes, screensavers, sounds, wallpapers, and window
-styles.
+make_slack_desc << EOF "file recovery program"
+Foremost is a Linux program to recover files based on their headers 
+and footers. Foremost can work on image files, such as those generated 
+by dd, Safeback, Encase, etc, or directly on a drive. The headers and 
+footers are specified by a configuration file, so you can pick and 
+choose which headers you want to look for.
 
 EOF
 
