@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avogadro
+TARNAME=librsync
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.9.4
+VERSION=0.9.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://librsync.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/avogadro-0.9.0.diff
+ patch -p1 < ${CWD}/librsync-0.9.7.diff
 )
 fi
 
@@ -55,22 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-mkdir build
-(cd build
-cmake .. -DCMAKE_INSTALL_PREFIX:STRING="/usr" -DCMAKE_INSTALL_RPATH:STRING="/usr/lib/qt4/lib"
-)
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-shared
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd build
 make ${NUM_JOBS} || exit
-)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,9 +87,7 @@ then
   exit
 fi
 
-(cd build
 make install DESTDIR=${PKG}
-)
 
 strip_binaries
 
@@ -97,10 +104,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "advanced molecular editor and viewer"
-Avogadro is intended to be an advanced molecular editor and viewer for
-computational chemistry, molecular modeling, materials science, 
-bioinformatics and related areas.
+make_slack_desc << EOF "Rsync libraries"
+librsync implements the "rsync" algorithm, which allows remote
+differencing of binary files.  librsync computes a delta relative to a
+file's checksum, so the two files need not both be present to generate
+a delta.
+
+This library was previously known as libhsync up to version 0.9.0.
+
+The current version of this package does not implement the rsync
+network protocol and uses a delta format slightly more efficient than
+and incompatible with rsync 2.4.6.
 
 EOF
 

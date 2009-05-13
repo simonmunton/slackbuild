@@ -1,0 +1,74 @@
+--- librsync-0.9.7/doc/rdiff.1.orig	2004-02-07 23:17:57.000000000 +0000
++++ librsync-0.9.7/doc/rdiff.1	2009-05-12 21:46:37.000000000 +0100
+@@ -29,10 +29,17 @@
+ .PP
+ \fBrdiff\fP [\fIoptions\fP] \fBpatch\fP \fIbasis-file delta-file new-file\fP
+ .fi
++.SH USAGE
++You can use \fBrdiff\fP to update files, much like \fBrsync\fP does.
++However, unlike \fBrsync\fP, \fBrdiff\fP puts you in control.  There
++are three steps to updating a file: \fBsignature\fP, \fBdelta\fP, and
++\fBpatch\fP.
+ .SH DESCRIPTION
+ In every case where a filename must be specified, \- may be used
+ instead to mean either standard input or standard output as
+-appropriate.
++appropriate.  Be aware that if you do this, you'll need to terminate your
++\fIoptions\fP with \-\- or \fBrdiff\fP will think you are passing it
++an empty option.
+ .SH "RETURN VALUE"
+ 0 for successful completion, 1 for environmental problems (file not
+ found, invalid options, IO error, etc), 2 for a corrupt file and 3 for
+--- librsync-0.9.7/doc/librsync.3.orig	2004-02-07 23:17:57.000000000 +0000
++++ librsync-0.9.7/doc/librsync.3	2009-05-12 21:46:37.000000000 +0100
+@@ -53,7 +53,7 @@
+ .PP
+ .I rdiff and librsync Manual
+ .PP
+-\fIhttp://rproxy.sourceforge.net/\fP or \fIhttp://linuxcare.com.au/rproxy/\fP.
++\fIhttp://rproxy.sourceforge.net/\fP.
+ .PP
+ \fIdraft-pool-rsync\fP
+ .SH BUGS
+--- librsync-0.9.7/mdfour.h.orig	2004-02-07 23:17:57.000000000 +0000
++++ librsync-0.9.7/mdfour.h	2009-05-12 21:46:43.000000000 +0100
+@@ -24,7 +24,7 @@
+ #include "types.h"
+ 
+ struct rs_mdfour {
+-    int                 A, B, C, D;
++    unsigned int        A, B, C, D;
+ #if HAVE_UINT64
+     uint64_t            totalN;
+ #else
+--- librsync-0.9.7/patch.c.orig	2004-09-17 22:35:50.000000000 +0100
++++ librsync-0.9.7/patch.c	2009-05-12 21:46:44.000000000 +0100
+@@ -214,12 +214,12 @@
+     void            *buf, *ptr;
+     rs_buffers_t    *buffs = job->stream;
+ 
+-    len = job->basis_len;
+-    
+     /* copy only as much as will fit in the output buffer, so that we
+      * don't have to block or store the input. */
+-    if (len > buffs->avail_out)
++    if (job->basis_len > buffs->avail_out)
+         len = buffs->avail_out;
++    else
++        len = job->basis_len;
+ 
+     if (!len)
+         return RS_BLOCKED;
+--- librsync-0.9.7/rdiff.c.orig	2004-09-17 22:35:50.000000000 +0100
++++ librsync-0.9.7/rdiff.c	2009-05-12 21:46:49.000000000 +0100
+@@ -97,8 +97,8 @@
+     { "sum-size",    'S', POPT_ARG_INT,  &strong_len },
+     { "statistics",  's', POPT_ARG_NONE, &show_stats },
+     { "stats",        0,  POPT_ARG_NONE, &show_stats },
+-    { "gzip",         0,  POPT_ARG_NONE, 0,             OPT_GZIP },
+-    { "bzip2",        0,  POPT_ARG_NONE, 0,             OPT_BZIP2 },
++    { "gzip",        'z', POPT_ARG_NONE, 0,             OPT_GZIP },
++    { "bzip2",       'i', POPT_ARG_NONE, 0,             OPT_BZIP2 },
+     { "paranoia",     0,  POPT_ARG_NONE, &rs_roll_paranoia },
+     { 0 }
+ };
