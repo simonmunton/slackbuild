@@ -6,9 +6,9 @@ TARNAME=udev
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=141
+VERSION=142
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,8 +42,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/udev-rule_generator.patch
- patch -p1 < ${CWD}/udev.dialout.to.uucp.diff
+ patch -p1 -b -z .orig < ${CWD}/udev-rule_generator.patch
+ patch -p1 -b -z .orig < ${CWD}/udev.dialout.to.uucp.diff
 )
 fi
 
@@ -78,10 +78,10 @@ fi
 
 make install DESTDIR=${PKG} EXTRAS="${EXTRAS}"
 
-(cd ${PKG}/usr/lib
- SONAME=`readlink libvolume_id.so`
- ln -sf /lib/${SONAME##*/} libvolume_id.so
-)
+#(cd ${PKG}/usr/lib
+# SONAME=`readlink libvolume_id.so`
+# ln -sf /lib/${SONAME##*/} libvolume_id.so
+#)
 
 #udevinfo needed by hal
 mkdir -p ${PKG}/usr/bin
@@ -96,9 +96,9 @@ mkdir -p ${PKG}/sbin
 )
 
 #vol_id is needed by multipath, too
-( cd ${PKG}
-  ln -s /lib/udev/vol_id sbin/vol_id
-)
+#( cd ${PKG}
+#  ln -s /lib/udev/vol_id sbin/vol_id
+#)
 
 #mv ${PKG}/usr/share/man ${PKG}/usr
 #rmdir ${PKG}/usr/share
