@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=audacious
+TARNAME=videoporama
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=2.0.1
+VERSION=0.7.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/videoporama-0.7.3.diff
 )
 fi
 
@@ -53,23 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+chmod -R -x,+X .
+chmod +x videoporama
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-ipv6 \
-	    --enable-chardet \
-	    --enable-samplerate
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,9 +91,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -94,15 +109,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a media player"
-Audacious is a media player, based on Beep Media Player, which is in
-turn based on the X Multimedia System (XMMS).  It is used to play
-audio and other kinds of media files.  By default Audacious can play
-MPEG audio, Ogg Vorbis, RIFF wav, most module formats, and a few
-other formats.  Audacious can be extended through plugins to play a
-number of other audio and video formats.
-
-The webpage for Audacious is: http://www.audacious-media-player.org.
+make_slack_desc << EOF "image slideshow creator"
+Videoporama is a software designed to make image slideshow, export to 
+video file. It's given under the GPL V2 or above licence and it's 
+given without any warranty. 
 
 EOF
 
