@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gambas2
+TARNAME=Zope
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/z
 #TAR_EXT=.tar.gz
-VERSION=2.13.1
+VERSION=3.4.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://gambas.sourceforge.net"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,19 +55,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/opt/kde3/lib/qt3/
-PATH=/opt/kde3/lib/qt3/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-	    --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-            --mandir=/usr/man \
-	    --with-qt-includes=/opt/kde3/lib/qt3/include \
-	    --with-qt-libraries=/opt/kde3/lib/qt3/lib
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -82,7 +85,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -97,10 +100,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "BASIC based graphical development environment"
-GAMBAS is a free implementation of a graphical development
-environment based on a BASIC interpreter. It is very
-inspired by Visual Basic and Java.
+make_slack_desc << EOF "web application server"
+Zope is an open-source web application server.
 
 EOF
 

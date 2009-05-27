@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gambas2
+TARNAME=v4l2ucp
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=2.13.1
+VERSION=1.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://gambas.sourceforge.net"
+WEBPAGE="http://v4l2ucp.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/v4l2ucp-1.3-default-dev.patch
+ patch -p1 < ${CWD}/v4l2ucp-1.3-libv4l.patch
+ patch -p1 < ${CWD}/v4l2ucp-1.3-v4l2ctrl-nextflag.patch
 )
 fi
 
@@ -55,19 +57,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/opt/kde3/lib/qt3/
-PATH=/opt/kde3/lib/qt3/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
-	    --sysconfdir=/etc \
+            --sysconfdir=/etc \
             --localstatedir=/var/lib \
-            --mandir=/usr/man \
-	    --with-qt-includes=/opt/kde3/lib/qt3/include \
-	    --with-qt-libraries=/opt/kde3/lib/qt3/lib
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -82,7 +90,13 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+mkdir -p ${PKG}/usr/share/applications
+cp ${CWD}/v4l2ucp.desktop ${PKG}/usr/share/applications
+
+mkdir -p ${PKG}/usr/share/icons/hicolor/24x24/apps
+cp ${CWD}/v4l2ucp.png ${PKG}/usr/share/icons/hicolor/24x24/apps
+
+strip_binaries
 
 fix_links
 
@@ -97,10 +111,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "BASIC based graphical development environment"
-GAMBAS is a free implementation of a graphical development
-environment based on a BASIC interpreter. It is very
-inspired by Visual Basic and Java.
+make_slack_desc << EOF "Video for Linux 2 Universal Control Panel"
+v4l2 is a control panel for video4linux2 devices, it reads a 
+description of the controls that the V4L2 device supports from the 
+device, and presents the user with a graphical means for adjusting 
+those controls. It allows for controlling multiple devices. Controls 
+can be updated with the device status either manually, or periodically 
+and there is an easy way to reset one or all the controls to their 
+default state.
 
 EOF
 
