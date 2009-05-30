@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=glib
+TARNAME=moserial
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.20.3
+VERSION=2.26.2
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=glib2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -53,16 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --mandir=/usr/man \
             --localstatedir=/var/lib \
-            --enable-debug=minimal \
-            --enable-static
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,17 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-# Install profile scripts:
-mkdir -p ${PKG}/etc/profile.d/
-cp -a ${CWD}/glib2.sh ${PKG}/etc/profile.d/libglib2.sh.new
-cp -a ${CWD}/glib2.csh ${PKG}/etc/profile.d/libglib2.csh.new
-chmod 755 ${PKG}/etc/profile.d/*
-
-doinst_same_perm etc/profile.d/libglib2.sh
-doinst_same_perm etc/profile.d/libglib2.csh
-doinst_config etc/profile.d/libglib2.sh.new etc/profile.d/libglib2.csh.new
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -102,9 +103,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library of C routines"
-GLib is a library which includes support routines for C such as lists,
-trees, hashes, memory allocation, and many other things.
+make_slack_desc << EOF "GNOME serial terminal"
+moserial is a serial terminal for the GNOME desktop, optimized for 
+logging and file capture. &app; is primarily intended for technical 
+users who need to communicate with embedded systems, consoles, and 
+electronic test equipment.
 
 EOF
 

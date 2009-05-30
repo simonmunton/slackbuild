@@ -1,22 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=glib
+TARNAME=koffice-l10n-en_GB
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=2.20.3
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://www.koffice.org"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=glib2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -53,16 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --mandir=/usr/man \
-            --localstatedir=/var/lib \
-            --enable-debug=minimal \
-            --enable-static
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,17 +88,9 @@ fi
 
 make install DESTDIR=${PKG}
 
-# Install profile scripts:
-mkdir -p ${PKG}/etc/profile.d/
-cp -a ${CWD}/glib2.sh ${PKG}/etc/profile.d/libglib2.sh.new
-cp -a ${CWD}/glib2.csh ${PKG}/etc/profile.d/libglib2.csh.new
-chmod 755 ${PKG}/etc/profile.d/*
+cd ..
 
-doinst_same_perm etc/profile.d/libglib2.sh
-doinst_same_perm etc/profile.d/libglib2.csh
-doinst_config etc/profile.d/libglib2.sh.new etc/profile.d/libglib2.csh.new
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -102,9 +105,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library of C routines"
-GLib is a library which includes support routines for C such as lists,
-trees, hashes, memory allocation, and many other things.
+make_slack_desc << EOF "KOffice localisation"
+English (UK) language support for KOffice.
 
 EOF
 
