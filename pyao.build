@@ -2,15 +2,15 @@
 #
 . build_funcs
 
-TARNAME=feedparser
+TARNAME=pyao
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.1
+VERSION=0.82
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://www.feedparser.org/"
+WEBPAGE="http://ekyo.nerim.net/software/pyogg/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,11 +34,8 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-(mkdir ${TARNAME}-${VERSION}
- cd ${TARNAME}-${VERSION}
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-)
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,12 +56,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+python config_unix.py
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-true
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,18 +80,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python module for downloading and parsing syndicated feeds"
-Universal Feed Parser is a Python module for downloading and parsing
-syndicated feeds. It can handle RSS 0.90, Netscape RSS 0.91, Userland
-RSS 0.91, RSS 0.92, RSS 0.93, RSS 0.94, RSS 1.0, RSS 2.0, Atom 0.3,
-Atom 1.0, and CDF feeds. It also parses several popular extension
-modules, including Dublin Core and Apple's iTunes extensions.
+make_slack_desc << EOF "Python wrapper for ao"
+a Python wrapper for the ao libraries
 
 EOF
 

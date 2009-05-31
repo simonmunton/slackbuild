@@ -6,9 +6,13 @@ TARNAME=cracklib
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=2.8.9
+VERSION=2.8.13
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://sourceforge.net/projects/cracklib"
+
+WORDSVERSION=-20080507
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +47,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- cp ${TARDIR}/cracklib-words.gz dicts
+ cp ${TARDIR}/cracklib-words${WORDSVERSION}.gz dicts
 )
 fi
 
@@ -72,8 +76,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-util/cracklib-format dicts/cracklib* | util/cracklib-packer ${PKG}/usr/share/cracklib/pw_dict
+chmod +x util/cracklib-format
+
+make install dict-local DESTDIR=${PKG}
+
+#util/cracklib-format dicts/cracklib* | util/cracklib-packer ${PKG}/usr/share/cracklib/pw_dict
 
 #strip_binaries
 
@@ -89,27 +96,24 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A password strength-checking library"
+CrackLib tests passwords to determine whether they match certain
+security-oriented characteristics. You can use CrackLib to stop
+users from choosing passwords which would be easy to guess. CrackLib
+performs certain tests:
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: This package is an updated/modernized distribution of CrackLib as
-${PKGNAME}: previously release by Alec Muffett. Pretty much all of the files have
-${PKGNAME}: been modified in some way to allow for this modernization and to
-${PKGNAME}: apply numerous bug fixes and patches.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+* It tries to generate words from a username and gecos entry and
+  checks those words against the password;
+* It checks for simplistic patterns in passwords;
+* It checks for the password in a dictionary.
+
+CrackLib is actually a library containing a particular
+C function which is used to check the password, as well as
+other C functions. CrackLib is not a replacement for a passwd
+program; it must be used in conjunction with an existing passwd
+program.
+
 EOF
 
 post_install
