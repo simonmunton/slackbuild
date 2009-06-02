@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=planner
+TARNAME=beecrypt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.14.4
+VERSION=4.1.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://beecrypt.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/beecrypt-4.1.2.diff
 )
 fi
 
@@ -55,16 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-            --disable-update-mimedb \
-            --disable-update-desktop-database
+	    --enable-shared=yes \
+	    --enable-static=yes \
+	    --with-cpu=i686 \
+	    --with-arch=i486 \
+	    --with-pic
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,7 +93,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -89,17 +103,15 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  BENCHMARK BUGS CONTRIBUTORS \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "project managment tool for Gnome"
-Planner is a project managment tool for the Gnome desktop, for
-planning, scheduling and tracking projects.
-
-Planner was originally developed and maintained by the guys at
-Imendio, but is now maintained by the Planner community.
+make_slack_desc << EOF "encryption libraries"
+beecrypt is an encryption library by Virtual Unlimited B.V.
+released under the LGPL license.
 
 EOF
 
