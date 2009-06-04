@@ -2,21 +2,23 @@
 #
 . build_funcs
 
-TARNAME=QScintilla-gpl
+TARNAME=getmail
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.3.2
+VERSION=4.9.1
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://pyropus.ca/software/getmail/"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=QScintilla
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -53,30 +55,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-(cd Qt4
-  qmake -unix -o Makefile qscintilla.pro
-)
-(cd designer-Qt4
-  qmake -unix -o Makefile designer.pro
-)
-(cd Python
-  python configure.py -p 4
-)
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd Qt4
-  make ${NUM_JOBS} || exit
-)
-(cd designer-Qt4
-  make ${NUM_JOBS} || exit
-)
-(cd Python
-  make ${NUM_JOBS} || exit
-)
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,18 +72,10 @@ then
   exit
 fi
 
-(cd Qt4
-  make install INSTALL_ROOT=${PKG}
-  # Yes, we'll spam the dev environment so we can build the other parts.
-#  make install
-)
+python setup.py install --root=${PKG}
 
-(cd designer-Qt4
-  make install INSTALL_ROOT=${PKG}
-)
-
-(cd Python
-  make install DESTDIR=${PKG}
+( cd ${PKG}/usr/share
+  mv man ..
 )
 
 strip_binaries
@@ -108,21 +88,20 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  *GPL* OPENSOURCE-NOTICE.TXT doc/html-Qt4 doc/Scintilla \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
+rmdir ${PKG}/usr/share
+
+
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "Qt port of the Scintilla C++ editor control"
-QScintilla includes features especially useful when editing and
-debugging source code.  These include support for syntax styling,
-error indicators, code completion, and call tips.  The selection
-margin can contain markers like those used in debuggers to
-indicate breakpoints and the current line.  Styling choices are
-more open than with many editors, allowing the use of
-proportional fonts, bold and italics, multiple foreground and
-background colours, and multiple fonts.
+make_slack_desc << EOF "POP3 mail retriever"
+getmail is a POP3 mail retriever, with support for both ordinary and
+domain (or multidrop) POP3 mailboxes.  It is written in Python, and
+licensed under the GNU General Public License version 2.
+
+getmail was written by Charles Cazabon.
 
 EOF
 

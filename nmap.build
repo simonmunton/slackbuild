@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=hplip
+TARNAME=nmap
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/h
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=3.9.4b
+VERSION=4.85BETA9
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://hplipopensource.com/"
+WEBPAGE="http://nmap.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -63,18 +63,9 @@ CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var \
+            --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --docdir=/usr/doc/hplip-$VERSION \
-	    --with-docdir=/usr/doc/hplip-$VERSION \
-	    --disable-xml-install \
-	    --enable-foomatic-ppd-install \
-	    --with-hpppddir=/usr/share/cups/model/HP \
-	    --enable-foomatic-drv-install \
-	    --with-drvdir=/usr/share/cups/drv/hp \
-	    --enable-foomatic-rip-hplip-install \
-	    --enable-network-build=yes
-
+	    --docdir=/usr/doc/${TARNAME}-${VERSION}
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -98,18 +89,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-# Move udev rules to /lib/udev/rules.d
-mkdir -p ${PKG}/lib
-mv ${PKG}/etc/udev ${PKG}/lib
-# Fix udev rules for current versions of udev:
-sed -i 's/SYSFS/ATTR/g' ${PKG}/lib/udev/rules.d/55-hpmud.rules
-# Fix permissions in udev rules file
-# Ownership is already root:lp
-sed -i 's/MODE="0666"/MODE="0660"/g' ${PKG}/lib/udev/rules.d/55-hpmud.rules
-
-# No thanks, we don't replace/add files which are part of other packages
-rm -rf ${PKG}/etc/sane.d
-
 strip_binaries
 
 fix_links
@@ -119,18 +98,22 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO HACKING \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "HP print/scan/fax support"
-HPLIP is an HP developed solution for printing, scanning, and faxing
-with HP inkjet and laser based printers in Linux.  The HPLIP project
-provides printing support for more than 1400 HP printer models,
-including Deskjet, Officejet, Photosmart, PSC (Print Scan Copy),
-Business Inkjet, LaserJet, and LaserJet MFP.
+make_slack_desc << EOF "network scanner"
+Nmap ("Network Mapper") is an open source utility for network
+exploration or security auditing.  It was designed to rapidly scan
+large networks, although it works fine against single hosts.  Nmap
+uses raw IP packets in novel ways to determine what hosts are
+available on the network, what services (ports) they are offering,
+what operating system (and OS version) they are running, what type of
+packet filters/firewalls are in use, and dozens of other
+characteristics.  Nmap runs on most types of computers, and both
+console and graphical versions are available.
 
 EOF
 
