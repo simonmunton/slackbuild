@@ -1,28 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-#
-# watch out for getting avogadro's installed headers instead of local ones
-#
-
-TARNAME=kdeedu
+TARNAME=pyPdf
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.2.4
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.2.4
+VERSION=1.12
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://pybrary.net/pyPdf/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -49,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/kdeedu-avogadro.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,30 +55,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,9 +72,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-cd ..
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -109,8 +89,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Educational applications for KDE"
-Educational applications for KDE.
+make_slack_desc << EOF "PDF toolkit"
+A Pure-Python library built as a PDF toolkit.  It is capable of:
+
+        - extracting document information (title, author, ...),
+        - splitting documents page by page,
+        - merging documents page by page,
+        - cropping pages,
+        - merging multiple pages into a single page,
+        - encrypting and decrypting PDF files.
 
 EOF
 

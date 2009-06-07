@@ -2,7 +2,7 @@
 #
 . build_funcs
 
-TARNAME=boodler
+TARNAME=Boodler
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b/boodler
 #TAR_EXT=.tar.gz
@@ -14,7 +14,7 @@ WEBPAGE="http://boodler.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=boodler
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,7 +35,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -56,12 +56,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-python configure.py
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -69,59 +69,86 @@ then
   exit
 fi
 
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+python setup.py install --root=${PKG}
 
-#make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages/boodle
-mkdir -p ${PKG}/usr/share/boodle/effects
-#mkdir -p ${PKG}/usr/share/boodle/boodler-snd
-mkdir -p ${PKG}/usr/bin
+mkdir -p ${PKG}/usr/share/boodler/Collection
 
-
-cp boodle/* ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages/boodle
-cp effects/* ${PKG}/usr/share/boodle/effects
-cp boodler.py boomsg.py ${TARDIR}/leash.py ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages
-chmod -R +r ${PKG}/usr/lib/python$PYTHON_VERSION/site-packages ${PKG}/usr/share/boodle/effects
-
-(cd ${PKG}/usr/share/boodle
- tar xf ${TARDIR}/boodler-snd-021902.tar.gz
- tar xf ${TARDIR}/demons.tar.gz --strip-components=1
- tar xf ${TARDIR}/noise.tar.gz --strip-components=1
- tar xf ${TARDIR}/secrets.tar.gz --strip-components=1
- mv *.py effects
+(cd ${PKG}/usr/share/boodler/Collection
+ for f in ${TARDIR}/boodler.org/lib/*.boop
+ do
+    d=${f##*/}
+    d=${d%.boop}
+    vmin=${d##*.}
+    d=${d%.*}
+    vmaj=${d##*.}
+    d=${d%.*}
+    mkdir -p $d/$vmaj.$vmin
+    (cd $d/$vmaj.$vmin
+     unzip $f
+     cd ..
+     cat > Versions << EOF
+# Package: $d
+$vmaj.$vmin
+EOF
+    )
+ done
 )
 
-cat << EOF > ${PKG}/usr/bin/boodler
-#!/bin/bash
+#exit
+
+#PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+
+##make install DESTDIR=${PKG}
+#mkdir -p ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages/boodle
+#mkdir -p ${PKG}/usr/share/boodle/effects
+##mkdir -p ${PKG}/usr/share/boodle/boodler-snd
+#mkdir -p ${PKG}/usr/bin
+
+
+#cp boodle/* ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages/boodle
+#cp effects/* ${PKG}/usr/share/boodle/effects
+#cp boodler.py boomsg.py ${TARDIR}/leash.py ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages
+#chmod -R +r ${PKG}/usr/lib/python$PYTHON_VERSION/site-packages ${PKG}/usr/share/boodle/effects
+
+#(cd ${PKG}/usr/share/boodle
+# tar xf ${TARDIR}/boodler-snd-021902.tar.gz
+# tar xf ${TARDIR}/demons.tar.gz --strip-components=1
+# tar xf ${TARDIR}/noise.tar.gz --strip-components=1
+# tar xf ${TARDIR}/secrets.tar.gz --strip-components=1
+# mv *.py effects
+#)
+
+#cat << EOF > ${PKG}/usr/bin/boodler
+##!/bin/bash
+##
+#export BOODLER_SOUND_PATH=/usr/share/boodle/boodler-snd
+#export BOODLER_EFFECTS_PATH=/usr/share/boodle/effects
 #
-export BOODLER_SOUND_PATH=/usr/share/boodle/boodler-snd
-export BOODLER_EFFECTS_PATH=/usr/share/boodle/effects
-
-python /usr/lib/python$PYTHON_VERSION/site-packages/boodler.py \$*
-
-EOF
-
-cat << EOF > ${PKG}/usr/bin/boodler-leash
-#!/bin/bash
+#python /usr/lib/python$PYTHON_VERSION/site-packages/boodler.py \$*
 #
-export BOODLER_SOUND_PATH=/usr/share/boodle/boodler-snd
-export BOODLER_EFFECTS_PATH=/usr/share/boodle/effects
+#EOF
 
-python /usr/lib/python$PYTHON_VERSION/site-packages/boodler.py --listen listen.Leash &
-BOODLER_PID=\$!
+#cat << EOF > ${PKG}/usr/bin/boodler-leash
+##!/bin/bash
+##
+#export BOODLER_SOUND_PATH=/usr/share/boodle/boodler-snd
+#export BOODLER_EFFECTS_PATH=/usr/share/boodle/effects
+#
+#python /usr/lib/python$PYTHON_VERSION/site-packages/boodler.py --listen listen.Leash &
+#BOODLER_PID=\$!
+#
+#sleep 1
+#
+#python /usr/lib/python$PYTHON_VERSION/site-packages/leash.py \$*
+#
+#kill \$BOODLER_PID
+#
+#EOF
+#
+#chmod +x ${PKG}/usr/bin/*
+#
 
-sleep 1
-
-python /usr/lib/python$PYTHON_VERSION/site-packages/leash.py \$*
-
-kill \$BOODLER_PID
-
-EOF
-
-chmod +x ${PKG}/usr/bin/*
-
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -135,27 +162,19 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A programmable soundscape tool"
+Boodler is a tool for creating soundscapes -- continuous, infinitely
+varying streams of sound. Boodler is designed to run in the background
+on a computer, maintaining whatever sound environment you desire.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+Boodler is extensible, customizable, and modular. Each soundscape is a
+small piece of Python code -- typically less than a page. A soundscape
+can incorporate other soundscapes; it can combine other soundscapes,
+switch between them, fade them in and out. This package comes with
+many example soundscapes. You can use these, modify them, combine them
+to arbitrary levels of complexity, or write your own.
+
 EOF
 
 post_install
