@@ -1,0 +1,133 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qtscriptgenerator-src
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=0.1.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://code.google.com/p/qtscriptgenerator/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qtscriptgenerator
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/qtscriptgenerator-include-everything.patch
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+(cd generator
+  qmake
+)
+(cd qtbindings
+  sed -i "s|CONFIG += debug_and_release|CONFIG += release|" qtbindingsbase.pri
+  qmake
+)
+(cd tools/qsexec/src
+  qmake
+)
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+(cd generator
+  make ${NUM_JOBS} || exit
+  ./generator --include-paths=/usr/lib${LIBDIRSUFFIX}/qt/include:/usr/include
+)
+(cd qtbindings
+  make qmake_all ${NUM_JOBS} || exit
+  sed -i "s|-I/usr/lib${LIBDIRSUFFIX}/qt/include/phonon|-I/usr/include/phonon|" qtscript_phonon/Makefile
+  make all ${NUM_JOBS} || exit
+)
+(cd tools/qsexec/src
+  make ${NUM_JOBS} || exit
+)
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/{bin,plugins/script}
+
+install -m 755 tools/qsexec/qsexec ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/bin/qsexec
+install -m 755 generator/generator ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/bin/generator
+cp -a plugins/script/libqtscript* ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/plugins/script/
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a tools/qsexec/README.TXT \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.qsexec
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Qt API Bindings for QtScript"
+Qt Script Generator is a tool that generates Qt bindings
+for Qt Script. With the generated bindings you get access
+to substantial portions of the Qt API from within Qt
+Script.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

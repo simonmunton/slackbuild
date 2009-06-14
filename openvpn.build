@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.1_rc17
+VERSION=2.1_rc18
 VERSIONEXTRA=
 BUILD=1
 
@@ -79,12 +79,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-(cd plugin/down-root
- make ${NUM_JOBS} || exit
-)
-(cd plugin/auth-pam
- make ${NUM_JOBS} || exit
-)
+make -C plugin/down-root ${NUM_JOBS} || exit
+make -C plugin/auth-pam ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,19 +91,50 @@ fi
 make install DESTDIR=${PKG}
 
 mkdir -p ${PKG}/etc/rc.d
+cp -a ${CWD}/openvpn.init ${PKG}/etc/rc.d/rc.openvpn.new
+doinst_config etc/rc.d/rc.openvpn.new
 
-mkdir -p ${PKG}/etc/openvpn
+# Install a reasonably generic sample config file:
+mkdir -p ${PKG}/etc/openvpn/{certs,keys}
+cp -a ${CWD}/openvpn.conf.sample ${PKG}/etc/openvpn/openvpn.conf.sample
+chmod 644 ${PKG}/etc/openvpn/openvpn.conf.sample
 
 mkdir -p ${PKG}/usr/share/openvpn/plugin/lib
 for pi in auth-pam down-root
 do
-  cp plugin/$pi/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.$pi
-  if [ -e plugin/$pi/openvpn-$pi.so ]; then
-    cp plugin/$pi/openvpn-$pi.so ${PKG}/usr/share/openvpn/plugin/lib/openvpn-$pi.so
+  cp plugin/${pi}/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.${pi}
+  if [ -e plugin/${pi}/openvpn-${pi}.so ]; then
+    cp plugin/${pi}/openvpn-${pi}.so ${PKG}/usr/share/openvpn/plugin/lib/openvpn-${pi}.so
   fi
 done
 
 cp plugin/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.plugins
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+        chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=\`grep "/etc/rc.d/rc.openvpn" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start openvpn" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.openvpn ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.openvpn start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+
+        echo "" >> etc/rc.d/rc.local_shutdown
+        echo "# stop openvpn" >> etc/rc.d/rc.local_shutdown
+        echo "if [ -x /etc/rc.d/rc.openvpn ]; then" >> etc/rc.d/rc.local_shutdown
+        echo "  /etc/rc.d/rc.openvpn stop" >> etc/rc.d/rc.local_shutdown
+        echo "fi" >> etc/rc.d/rc.local_shutdown
+fi
+EOF
+
 
 strip_binaries
 
@@ -138,5 +165,7 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chown root:nobody etc/openvpn/{certs,keys}; \
+chmod 750 etc/openvpn/{certs,keys}; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
