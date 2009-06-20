@@ -1,0 +1,30 @@
+--- ./src/xcb_xlib.c.orig	2008-09-17 21:27:30.000000000 -0500
++++ ./src/xcb_xlib.c	2008-09-17 21:34:33.000000000 -0500
+@@ -70,18 +70,20 @@
+ void xcb_xlib_lock(xcb_connection_t *c)
+ {
+     _xcb_lock_io(c);
+-    xcb_assert(c, !c->xlib.lock);
+-    c->xlib.lock = 1;
+-    c->xlib.thread = pthread_self();
++     if (!c->xlib.lock) {
++         c->xlib.lock = 1;
++         c->xlib.thread = pthread_self();
++     }
+     _xcb_unlock_io(c);
+ }
+ 
+ void xcb_xlib_unlock(xcb_connection_t *c)
+ {
+     _xcb_lock_io(c);
+-    xcb_assert(c, c->xlib.lock);
+-    xcb_assert(c, pthread_equal(c->xlib.thread, pthread_self()));
+-    c->xlib.lock = 0;
+-    pthread_cond_broadcast(&c->xlib.cond);
++    if (c->xlib.lock) {
++        assert(pthread_equal(c->xlib.thread, pthread_self()));
++        c->xlib.lock = 0;
++        pthread_cond_broadcast(&c->xlib.cond);
++    }
+     _xcb_unlock_io(c);
+ }
