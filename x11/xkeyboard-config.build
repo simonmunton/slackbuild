@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
 TARNAME=xkeyboard-config
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/x/xorg/X11R7/data
 #TAR_EXT=.tar.gz
-VERSION=1.3
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://freedesktop.org/wiki/Software/XKeyboardConfig"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,20 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var \
-	    --infodir=/usr/info \
 	    --mandir=/usr/man \
+	    --infodir=/usr/info \
 	    --disable-static \
 	    --enable-xkbcomp-symlink \
 	    --enable-compat-rules \
 	    --with-xkb-base=/etc/X11/xkb \
 	    --with-xkb-rules-symlink=xfree86,xorg
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -83,19 +95,28 @@ fi
 
 make install DESTDIR=${PKG}
 
+# Move things into /etc/X11 that are supposed to be there:
+#mkdir -p ${PKG}/etc/X11
+#rm -rf ${PKG}/etc/X11/xkb
+#mv ${PKG}/usr/share/X11/xkb ${PKG}/etc/X11
 mkdir -p ${PKG}/usr/share/X11
-(cd ${PKG}/usr/share/X11 
- ln -sf ../../../etc/X11/xkb .
-)
+( cd ${PKG}/usr/share/X11 ; ln -sf ../../../etc/X11/xkb . )
+#( cd ${PKG}/etc/X11/xkb/rules
+#  ln -sf base.lst xorg.lst
+#  ln -sf base.xml xorg.xml
+#  ln -sf base xorg
+#)
 
-cat >> ${PKG}/install/doinst.sh << EOF
+cat << EOF >> ${PKG}/install/doinst.sh
+
 # This has to assume the use of upgradepkg to work.
 # Ever wondered why we install new packages twice?
 # Here's an example:
 if [ -d etc/X11/xkb/symbols/pc ]; then
-  mv etc/X11/xkb etc/X11/xkb.old.bak.\$\$
+  mv etc/X11/xkb etc/X11/xkb.old.bak.$$
   mkdir -p etc/X11/xkb/rules etc/X11/xkb
 fi
+
 EOF
 
 strip_binaries
@@ -113,12 +134,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "X Keyboard Configuration Database"
-The non-arch keyboard configuration database for X Window. The goal 
-is to provide the consistent, well-structured, frequently released 
-open source of X keyboard configuration data for X Window System 
-implementations (free, open source and commercial). The project is 
-targeted to XKB-based systems. 
+make_slack_desc << EOF
+xkeyboard-config is part of X11.
+
+For more information about the X.Org Foundation (the providers of the
+X.Org implementation of the X Window System), see their website:
+
+http://www.x.org
+
+
 
 EOF
 

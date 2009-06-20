@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 #TARDIR=~/tmp/new/x/xorg
 #TARDIR=~/tmp/new/x/xorg/individual/xserver
-TARDIR=~/tmp/new/x/xorg/X11R7.3-post/xserver
+#TARDIR=~/tmp/new/x/xorg/X11R7.3-post/xserver
+TARDIR=~/tmp/new/x/xorg/X11R7/xserver
 #TAR_EXT=.tar.gz
-VERSION=1.4.2
+VERSION=1.6.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -24,8 +25,9 @@ BUILD=2
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 BUILD_SERVERS="--enable-xorg --enable-xvfb --enable-xnest --enable-kdrive --enable-xephyr"
-SKIP_SERVERS="--disable-xprint --disable-xdmx"
-MESA_VERSION=${MESA_VERSION:-7.0.4}
+#SKIP_SERVERS="--disable-xprint --disable-xdmx"
+SKIP_SERVERS=""
+MESA_VERSION=${MESA_VERSION:-7.4.2}
 MESA_TARDIR=~/tmp/new/m/Mesa3D
 MESA_TAR1=MesaLib
 MESA_TAR2=MesaGLUT
@@ -61,20 +63,20 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/xorg-server-x11.startwithblackscreen.diff
- patch -p1 < ${CWD}/xorg-server-xorgconfig.diff
+# patch -p1 < ${CWD}/xorg-server-xorgconfig.diff
 # patch -p1 < ${CWD}/xorg-server.dpi.diff
 # patch -p1 < ${CWD}/xorg-xserver-1.2-multiple-overflows-v2.diff
  #patch -p1 < ${CWD}/
 )
 fi
 
-if [ ! -d ${MESA_DIR} ]
-then
-tar xvf ${MESA_TARDIR}/${MESA_TAR1}-${MESA_VERSION}.tar.bz2
-tar xvf ${MESA_TARDIR}/${MESA_TAR2}-${MESA_VERSION}.tar.bz2
-tar xvf ${MESA_TARDIR}/${MESA_TAR3}-${MESA_VERSION}.tar.bz2
-tar xvf ${MESA_TARDIR}/${MESA_TAR_GIT}-${MESA_VERSION}.tar.gz
-fi
+#if [ ! -d ${MESA_DIR} ]
+#then
+#tar xvf ${MESA_TARDIR}/${MESA_TAR1}-${MESA_VERSION}.tar.bz2
+#tar xvf ${MESA_TARDIR}/${MESA_TAR2}-${MESA_VERSION}.tar.bz2
+#tar xvf ${MESA_TARDIR}/${MESA_TAR3}-${MESA_VERSION}.tar.bz2
+#tar xvf ${MESA_TARDIR}/${MESA_TAR_GIT}-${MESA_VERSION}.tar.gz
+#fi
 
 pre_configure
 
@@ -101,12 +103,15 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
   --with-dri-driver-path=/usr/lib/xorg/modules/dri \
   --with-os-name="Slackware 12.1" \
   --with-os-vendor="Slackware Linux Project" \
-  --with-mesa-source=${MESA_DIR} \
   --with-xkb-path=/etc/X11/xkb \
   --with-xkb-output=/var/lib/xkb \
+  --enable-config-dbus \
   ${BUILD_SERVERS} \
   ${SKIP_SERVERS} \
   --build=${ARCH}-slackware-linux
+
+#  --with-mesa-source=${MESA_DIR} \
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -233,6 +238,7 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG} ${PKG_XNEST} ${PKG_XVFB} ${PKG_XEPHYR}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/Xorg; \
 makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 cd ${PKG_XNEST} ; \
 find . -type d -exec chmod 755 {} \; ; \
