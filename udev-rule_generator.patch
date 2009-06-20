@@ -1,6 +1,5 @@
-diff -Naur udev-114/extras/rule_generator/write_cd_rules udev-114slk/extras/rule_generator/write_cd_rules
---- udev-114/extras/rule_generator/write_cd_rules	2007-08-05 09:08:47.000000000 -0300
-+++ udev-114slk/extras/rule_generator/write_cd_rules	2007-08-22 20:17:24.000000000 -0300
+--- udev-143/extras/rule_generator/write_cd_rules.orig	2009-05-14 11:56:39.000000000 +0100
++++ udev-143/extras/rule_generator/write_cd_rules	2009-06-20 16:51:49.000000000 +0100
 @@ -3,7 +3,8 @@
  # This script is run if an optical drive lacks a rule for persistent naming.
  #
@@ -11,16 +10,16 @@ diff -Naur udev-114/extras/rule_generator/write_cd_rules udev-114slk/extras/rule
  #
  # (C) 2006 Marco d'Itri <md@Linux.IT>
  #
-@@ -97,18 +98,59 @@
+@@ -96,18 +97,79 @@
  choose_rules_file
  
  link_num=$(find_next_available 'cdrom[0-9]*')
 +[ "$link_num" = "" ] && link_num=0
  
- match="ENV{ID_CDROM}==\"?*\", $RULE"
+ match="SUBSYSTEM==\"block\", ENV{ID_CDROM}==\"?*\", $RULE"
  
  comment="$ID_MODEL ($ID_PATH)"
--
+ 
  	write_rule "$match" "cdrom$link_num" "$comment"
 -[ "$ID_CDROM_CD_R" -o "$ID_CDROM_CD_RW" ] && \
 -	write_rule "$match" "cdrw$link_num"
@@ -33,7 +32,7 @@ diff -Naur udev-114/extras/rule_generator/write_cd_rules udev-114slk/extras/rule
 +	fi
 +
 +	if [ "$ID_CDROM_CD_R" ]; then
-+	       	write_rule "$match" "cdr$link_num"
++		write_rule "$match" "cdr$link_num"
 +		if [ "$(find_all_rules 'SYMLINK+=' cdr)" = "" ]; then
 +			write_rule "$match" "cdr"
 +		fi
@@ -74,7 +73,26 @@ diff -Naur udev-114/extras/rule_generator/write_cd_rules udev-114slk/extras/rule
 +		fi
 +	fi
 +
++	if [  "$ID_CDROM_DVD" ]; then
++		write_rule "$match" "dvd$link_num"
++		if [ "$(find_all_rules 'SYMLINK+=' dvd)" = "" ]; then
++			write_rule "$match" "dvd"
++		fi
 +
++		if [ "$ID_CDROM_DVD_R" -o "$ID_CDROM_DVD_RW" -o "$ID_CDROM_DVD_RAM" ]; then
++			write_rule "$match" "dvdrw$link_num"
++			if [ "$(find_all_rules 'SYMLINK+=' dvdrw)" = "" ]; then
++				write_rule "$match" "dvdrw"
++			fi
++
++			write_rule "$match" "dvdwriter$link_num"
++			if [ "$(find_all_rules 'SYMLINK+=' dvdwriter)" = "" ]; then
++				write_rule "$match" "dvdwriter"
++			fi
++		fi
++	fi
++
++
+ echo >> $RULES_FILE
  
  unlock_rules_file
- 

@@ -475,6 +475,34 @@ EOF
 fi
 
 ##############################################################
+# if usr/share/fonts exists, run
+# mkfontscale and mkfontdir
+#
+if [ -d ${PKG}/usr/share/fonts ]
+then
+  fonts=`find ${PKG}/usr/share/fonts -type d -maxdepth 1 | grep -v "^${PKG}/usr/share/fonts$" | sed -e 's@/.*/usr/share/fonts/@@' | tr '\012' ' '`
+  if [ -n "${fonts}" ]
+  then
+    cat << EOF >> ${PKG}/install/doinst.sh
+#
+if [ -x /usr/bin/mkfontdir -o -x /usr/X11R6/bin/mkfontdir ]; then
+for n in $fonts
+do
+  ( cd /usr/share/fonts/\${n}
+    mkfontscale .
+    mkfontdir -e /usr/share/fonts/encodings -e /usr/share/fonts/encodings/large .
+  )
+done
+fi
+if [ -x /usr/bin/fc-cache ]; then
+  /usr/bin/fc-cache -f
+fi
+
+EOF
+  fi
+fi
+
+##############################################################
 # warn if usr/local or other dirs exist
 #
 for d in usr/local  tmp home var/lib/cache var/lib/lib var/lib/log var/lib/run usr/locale
