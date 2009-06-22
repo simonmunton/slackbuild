@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=anjuta
+TARNAME=findutils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/gnu/findutils
 #TAR_EXT=.tar.gz
-VERSION=2.26.2.2
+VERSION=4.4.2
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/findutils.nolocate.diff
+ patch -p1 < ${CWD}/findutils.no.default.options.warnings.diff
 )
 fi
 
@@ -53,14 +56,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --disable-locate
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,13 +91,16 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/share/gnome/help
- mv anjuta-faqs anjuta
- mv anjuta-manual/C/* anjuta/C
- rm -rf anjuta-manual
+(cd ${PKG}
+ rm usr/bin/{locate,updatedb}
+ rm usr/libexec/{bigram,code,frcode}
+ rmdir usr/libexec
+ rm usr/man/man1/{locate,updatedb}*
+ rm usr/man/man5/locatedb*
+ rmdir usr/man/man5
 )
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,14 +115,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "IDE on GNOME"
-Anjuta DevStudio is a versatile Integrated Development Environment
-(IDE) on GNOME Desktop Environment and features a number of advanced
-programming facilities. These include project management, application
-and class wizards, an on-board interactive debugger, powerful source
-editor, syntax highlighting, intellisense autocompletions, symbol
-navigation, version controls, integrated GUI designing and other
-tools.
+make_slack_desc << EOF "utilities to locate files"
+This package contains the GNU find and xargs programs.  The find and
+xargs implementations comply with POSIX 1003.2.  They also support
+some additional options, some borrowed from Unix and some unique to
+GNU.
 
 EOF
 
