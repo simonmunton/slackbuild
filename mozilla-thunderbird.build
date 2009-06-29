@@ -1,0 +1,112 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=thunderbird
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m/mozilla/thunderbird/en-GB
+#TAR_EXT=.tar.gz
+VERSION=2.0.0.22
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=mozilla-thunderbird
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+mkdir -p ${PKG}/usr/lib
+( cd ${PKG}/usr/lib
+  tar xf ${FULL_TARNAME} || exit 1
+  mv thunderbird thunderbird-${VERSION}-GB
+  ln -sf thunderbird-${VERSION}-GB thunderbird
+  cd thunderbird-${VERSION}-GB
+
+  sed -i -e 's@/usr/local/lib@/usr/lib@g' thunderbird
+
+  cat $CWD/mozilla-thunderbird-firefox.diff | patch -p1 --verbose --backup --suffix=.orig || exit 1
+  if [ ! $? = 0 ]; then
+    exit 1
+  fi
+  rm -f defaults/pref/all-thunderbird.js.orig
+)
+if [ ! $? = 0 ]; then
+  exit 1
+fi
+mkdir -p ${PKG}/usr/bin
+( cd ${PKG}/usr/bin
+  ln -sf /usr/lib/thunderbird/thunderbird .
+)
+mkdir -p ${PKG}/usr/share/applications
+cat ${CWD}/mozilla-thunderbird.desktop > ${PKG}/usr/share/applications/mozilla-thunderbird.desktop
+mkdir -p ${PKG}/usr/share/pixmaps
+cat ${CWD}/mozilla-thunderbird.png > ${PKG}/usr/share/pixmaps/thunderbird.png
+
+# These files/directories are usually created if Thunderbird is run as root, which on many
+# systems might (and possibly should) be never.  Therefore, if we don't see them we'll
+# put stubs in place to prevent startup errors.
+( cd ${PKG}/usr/lib/thunderbird-${VERSION}-GB
+  if [ -d chrome ]; then
+    if [ ! -r chrome/app-chrome.manifest ]; then
+      echo > chrome/app-chrome.manifest
+    fi
+  fi
+  if [ ! -d updates ]; then
+    mkdir -p updates/0
+  fi
+)
+
+
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Mozilla Thunderbird mail application"
+Mozilla Thunderbird is a redesign of the Mozilla mail component
+written using the XUL user interface language.  Thunderbird makes
+emailing safer, faster, and easier than ever before with the
+industry's best implementations of features such as intelligent spam
+filters, built-in RSS reader, quick search, and much more.
+
+Visit the Mozilla Thunderbird project online:
+  http://www.mozilla.org/projects/thunderbird/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
