@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=file-roller
+TARNAME=libmapi
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.26.3
+VERSION=0.8.2-ROMULUS
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/file-roller-2.26.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,13 +103,18 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME archive manager"
-File Roller is an archive manager for the GNOME environment. This
-means that you can : create and modify archives; view the content of
-an archive; view a file contained in the archive; extract files from
-the archive.
-File Roller is only a front-end (a graphical interface) to archiving
-programs like tar and zip.
+make_slack_desc << EOF "OpenChange MAPI library
+The OpenChange MAPI library aims to provide interoperability with an 
+Open Source implementation of Microsoft Exchange protocols under 
+UNIX/Linux. The current implementation offers a client-side library 
+which can be used in existing messaging clients and offer native 
+compatibility with Exchange Servers up to 2007.
+
+MAPI stands for Messaging Application Programming Interface and is 
+used in the Microsoft Exchange Server groupware server. This solution 
+works with Outlook and provides collaborative features such as a 
+messaging server, shared calendars, contact databases, public folders 
+and tasks. 
 
 EOF
 
