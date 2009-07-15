@@ -1,0 +1,44 @@
+--- kdepim-4.2.4/kmail/kmacctlocal.cpp.orig	2008-05-07 10:05:56.000000000 +0100
++++ kdepim-4.2.4/kmail/kmacctlocal.cpp	2009-07-12 19:07:10.000000000 +0100
+@@ -27,7 +27,7 @@
+ //-----------------------------------------------------------------------------
+ KMAcctLocal::KMAcctLocal(AccountManager* aOwner, const QString& aAccountName, uint id):
+   KMAccount(aOwner, aAccountName, id), mHasNewMail( false ),
+-  mProcessingNewMail( false ), mAddedOk( true ), mNumMsgs( 0 ),
++  mAddedOk( true ), mNumMsgs( 0 ),
+   mMsgsFetched( 0 ), mMailFolder( 0 )
+ {
+   mLock = procmail_lockfile;
+@@ -62,14 +62,9 @@
+ //-----------------------------------------------------------------------------
+ void KMAcctLocal::processNewMail(bool)
+ {
+-  if ( mProcessingNewMail )
+-    return;
+-
+   mHasNewMail = false;
+-  mProcessingNewMail = true;
+ 
+   if ( !preProcess() ) {
+-    mProcessingNewMail = false;
+     return;
+   }
+ 
+@@ -88,7 +83,6 @@
+   }
+ 
+   postProcess();
+-  mProcessingNewMail = false;
+ }
+ 
+ 
+--- kdepim-4.2.4/kmail/kmacctlocal.h.orig	2008-01-15 01:57:56.000000000 +0000
++++ kdepim-4.2.4/kmail/kmacctlocal.h	2009-07-12 19:07:30.000000000 +0100
+@@ -45,7 +45,6 @@
+   QString mLocation;
+   QString mProcmailLockFileName;
+   bool mHasNewMail;
+-  bool mProcessingNewMail;
+   bool mAddedOk;
+   LockType mLock;
+   int mNumMsgs;
