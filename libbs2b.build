@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=audacious-plugins
+TARNAME=libbs2b
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.1
+VERSION=3.1.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://bs2b.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,18 +55,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-chardet \
-	    --enable-amidiplug \
-	    --enable-timidity \
-	    --disable-sse2
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -80,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,11 +103,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "plugins for Audacious"
-This is a collection of plugins for Audacious to support additional
-media formats.
-
-The webpage for Audacious is: http://www.audacious-media-player.org.
+make_slack_desc << EOF "Bauer stereophonic-to-binaural DSP"
+The Bauer stereophonic-to-binaural DSP (bs2b) is designed
+to improve headphone listening of stereo audio records.
 
 EOF
 

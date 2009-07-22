@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=audacious-plugins
+TARNAME=libprojectM
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/p/projectM
 #TAR_EXT=.tar.gz
-VERSION=2.1
+VERSION=1.2.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://projectm.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/libprojectM-1.2.0.diff
 )
 fi
 
@@ -53,18 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-chardet \
-	    --enable-amidiplug \
-	    --enable-timidity \
-	    --disable-sse2
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 
 fi
 
@@ -80,7 +81,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,11 +96,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "plugins for Audacious"
-This is a collection of plugins for Audacious to support additional
-media formats.
-
-The webpage for Audacious is: http://www.audacious-media-player.org.
+make_slack_desc << EOF "OpenGL based advanced music visualization"
+projectM is an OpenGL based advanced music visualization program for 
+Linux, Mac OSX, and Windows. It is backward compatible with all the 
+features of Milkdrop 1.x, but has many new toys and enhancements.
 
 EOF
 

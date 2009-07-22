@@ -1,0 +1,43 @@
+--- libprojectM-1.2.0/Renderer.hpp.orig	2008-06-12 04:39:28.000000000 +0100
++++ libprojectM-1.2.0/Renderer.hpp	2009-07-22 06:59:00.000000000 +0100
+@@ -24,9 +24,7 @@
+ #include <FTGLPixmapFont.h>
+ #include <FTGLExtrdFont.h>
+ #else
+-#include <FTGL/FTGL.h>
+-#include <FTGL/FTGLPixmapFont.h>
+-#include <FTGL/FTGLExtrdFont.h>
++#include <FTGL/ftgl.h>
+ #endif
+ #endif /** USE_FTGL */
+ 
+--- libprojectM-1.2.0/FBO.cpp.orig	2008-06-12 04:39:28.000000000 +0100
++++ libprojectM-1.2.0/FBO.cpp	2009-07-22 21:19:15.000000000 +0100
+@@ -98,9 +98,6 @@
+     this->texsize = texsize;
+ 
+ #ifdef USE_FBO
+-    this->useFBO = true;
+-   if(this->useFBO)
+-    { 
+       glewInit();
+       
+       if(glewIsSupported("GL_EXT_framebuffer_object"))
+@@ -145,15 +142,12 @@
+ 	  
+ 	  GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+ 	  if (status == GL_FRAMEBUFFER_COMPLETE_EXT) {
++	    this->useFBO = true;
+ 	    return;
+ 	  }	
+ 	}
+-      
+-    }
+-
+-#else
+-   this->useFBO=false;
+ #endif
++
+     /** Fallback pbuf;fer creation via teximage hack */
+     /** Check the texture size against the viewport size */
+     /** If the viewport is smaller, then we'll need to scale the texture size down */
