@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=cpufrequtils
+TARNAME=laptop-mode-tools
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/c
+TARSEP="_"
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=005
+VERSION=1.50
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.kernel.org/pub/linux/utils/kernel/cpufreq/cpufrequtils.html"
+WEBPAGE="http://samwel.tk/laptop_mode/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -79,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,7 +88,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL=install
+
+mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
+mv ${PKG}/etc/rc.d/laptop-mode ${PKG}/etc/rc.d/rc.laptop-mode
 
 strip_binaries
 
@@ -104,14 +108,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "cpufreq utils"
-To make access to the Linux kernel cpufreq subsystem easier for users
-and cpufreq userspace tools, a cpufrequtils package was created. It
-contains a library used by other programs (libcpufreq), command line
-tools to determine current CPUfreq settings and to modify them
-(cpufreq-info and cpufreq-set), and debug tools.
-
-It is licensed under the GPLv2.
+make_slack_desc << EOF "laptop power saving package"
+Laptop Mode Tools is a laptop power saving package for Linux systems.
+It allows you to extend the battery life of your laptop, in several
+ways. It is the primary way to enable the Laptop Mode feature of the
+Linux kernel, which lets your hard drive spin down. In addition, it
+allows you to tweak a number of other power-related settings using a
+simple configuration file.
 
 EOF
 

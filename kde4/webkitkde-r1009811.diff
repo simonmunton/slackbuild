@@ -1,0 +1,28 @@
+--- webkitkde-r1009811/part/webkitpart.cpp.orig	2009-08-09 17:53:28.000000000 +0100
++++ webkitkde-r1009811/part/webkitpart.cpp	2009-08-16 07:29:35.000000000 +0100
+@@ -359,8 +359,8 @@
+     KParts::OpenUrlArguments args (arguments());
+ 
+     KIO::MetaData metaData (args.metaData());
+-    setSslInfo(metaData.toVariant(), url);
+-    args.metaData().insert("ssl_was_in_use", (d->sslInfo.isValid() ? "TRUE" : "FALSE"));
++//    setSslInfo(metaData.toVariant(), url);
++//    args.metaData().insert("ssl_was_in_use", (d->sslInfo.isValid() ? "TRUE" : "FALSE"));
+ 
+     setUrl(url); //We can't wait that urlChanged is calling otherwise some plugins as babelfish can't be enabled
+     d->webView->loadUrl(url, args, browserExtension()->browserArguments());
+--- webkitkde-r1009811/kdewebkit/kwebpage.cpp.orig	2009-08-07 14:58:37.000000000 +0100
++++ webkitkde-r1009811/kdewebkit/kwebpage.cpp	2009-08-11 22:24:21.000000000 +0100
+@@ -470,10 +470,12 @@
+         const QString destUrl = KFileDialog::getSaveFileName(url.fileName(), QString(), view());
+         if (destUrl.isEmpty()) return;
+         KIO::Job *job = KIO::file_copy(url, KUrl(destUrl), -1, KIO::Overwrite);
++#if KDE_IS_VERSION(4, 3, 01)
+         KIO::MetaData metaData = request.attribute(QNetworkRequest::User).toMap();
+         job->setMetaData(metaData);
+         job->addMetaData("MaxCacheSize", "0"); // Don't store in http cache.
+         job->addMetaData("cache", "cache"); // Use entry from cache if available.
++#endif
+         job->uiDelegate()->setAutoErrorHandlingEnabled(true);
+     }
+ }
