@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=goffice
+TARNAME=dvb-apps
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=0.7.11
+VERSION=20090902
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.linuxtv.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/dvb-apps-20090902.diff
 )
 fi
 
@@ -55,19 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} V=1 || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +89,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +104,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "document centric objects for glib/gtk"
-GOffice -- A glib/gtk set of document centric objects and utilities
+make_slack_desc << EOF "Television with Linux - apps"
+The LinuxTV project develops and maintains the DVB driver subsystem
+which is included in the Linux 2.6.x kernel. The Linux kernel and the
+LinuxTV CVS include a fair number of drivers for commonly available
+PCI cards and USB devices, but the DVB subsystem core is also targeted
+towards Linux based set-top-boxes.
 
 EOF
 
@@ -102,5 +118,5 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+makepkg -l y -c n ../${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

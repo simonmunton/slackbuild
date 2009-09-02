@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=TEMPLATE
+TARNAME=v4l-dvb
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=
+VERSION=20090902
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.linuxtv.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -56,15 +56,17 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+KERNELRELEASE=`(cd /usr/src/linux; make kernelrelease)`
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -86,7 +88,15 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} FW_DIR=${PKG}/lib/firmware
+
+rm ${PKG}/lib/modules/${KERNELRELEASE}/modules.*
+
+cat > ${PKG}/install/doinst.sh << EOF
+#
+/sbin/depmod ${KERNELRELEASE}
+
+EOF
 
 strip_binaries
 
@@ -103,7 +113,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "Television with Linux"
+The LinuxTV project develops and maintains the DVB driver subsystem 
+which is included in the Linux 2.6.x kernel. The Linux kernel and the 
+LinuxTV CVS include a fair number of drivers for commonly available 
+PCI cards and USB devices, but the DVB subsystem core is also targeted 
+towards Linux based set-top-boxes.
+
 EOF
 
 post_install
@@ -111,5 +127,5 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ../${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+makepkg -l y -c n ../${PKGNAME}-${PKGVERSION}_${KERNELRELEASE//-/_}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

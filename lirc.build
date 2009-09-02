@@ -29,6 +29,7 @@ PKG=/tmp/package-${PKGNAME}
 PKG_MODULE=/tmp/package-${PKGNAME}-module
 
 rm -rf ${PKG_MODULE}
+mkdir -p ${PKG_MODULE}/install
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -68,7 +69,7 @@ CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --with-driver=all #imon_lcd
 
@@ -100,6 +101,19 @@ fi
 
 make -i install DESTDIR=${PKG}
 
+mv ${PKG}/lib ${PKG_MODULE}
+rm -rf ${PKG}/dev
+
+#/dev/lircd
+#/dev/lircm
+
+cat > ${PKG_MODULE}/install/doinst.sh << EOF
+#
+/sbin/depmod ${KERNELRELEASE}
+
+EOF
+
+
 strip_binaries
 
 fix_links
@@ -114,8 +128,6 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG_MODULE}/install
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 PKGNAME=${PKGNAME}-module \
 make_slack_desc << EOF "LIRC kernel modules"
@@ -124,9 +136,6 @@ LIRC kernel modules
 EOF
 
 mv ${PKG}/install/slack-desc ${PKG_MODULE}/install
-mv ${PKG}/lib ${PKG_MODULE}
-rm ${PKG}/dev
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "LIRC - linux infrared remote control"
 EOF
