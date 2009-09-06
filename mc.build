@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=20090606
+VERSION=4.7.0-pre2
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,8 +46,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/mc-4.6.3.diff
- ./autogen.sh
+ patch -p1 < ${CWD}/mc-4.7.0-pre2.diff
+# ./autogen.sh
 )
 fi
 
@@ -64,6 +64,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var \
+	    --docdir=/usr/doc/mc-${VERSION} \
 	    --mandir=/usr/man \
 	    --enable-extcharset \
 	    --enable-netcode \
@@ -78,6 +79,7 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --with-codepagedir=/etc/codepages
 fi
 
+
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
@@ -90,9 +92,11 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/usr/share/mc/bin
+cp -a ${CWD}/mc-wrapper.{sh,csh} ${PKG}/usr/share/mc/bin
+chmod 755 ${PKG}/usr/share/mc/bin/*
 mkdir -p ${PKG}/etc/profile.d
-cat ${PKG}/usr/share/mc/bin/mc.csh > ${PKG}/etc/profile.d/mc.csh
-cat ${PKG}/usr/share/mc/bin/mc.sh > ${PKG}/etc/profile.d/mc.sh
+cp -a ${CWD}/mc.{sh,csh} ${PKG}/etc/profile.d
 chmod 755 ${PKG}/etc/profile.d/*
 
 strip_binaries
@@ -105,6 +109,7 @@ compress_info
 
 cp -a \
   ABOUT-NLS AUTHORS COPYING FAQ HACKING INSTALL INSTALL.FAST MAINTAINERS NEWS README* TODO \
+  doc/COPYING* doc/FAQ doc/HACKING doc/INSTALL doc/MAINTAINERS doc/NEWS doc/README* doc/TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

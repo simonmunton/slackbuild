@@ -1,0 +1,19 @@
+--- mc-4.7.0-pre2/src/util.c.orig	2009-08-24 22:12:17.000000000 +0100
++++ mc-4.7.0-pre2/src/util.c	2009-09-04 10:49:39.000000000 +0100
+@@ -906,7 +906,7 @@
+     /* Support for LZMA (only utils format with magic in header).
+      * This is the default format of LZMA utils 4.32.1 and later. */
+ 
+-    if (mc_read(fd, (char *) magic+4, 1) == 1)
++    if (mc_read(fd, (char *) magic+4, 2) == 2)
+     {
+         /* LZMA utils format */
+         if
+@@ -919,6 +919,7 @@
+         )
+             return COMPRESSION_LZMA;
+     }
++    mc_lseek (fd, 4, SEEK_SET); /* seek back to let following test work */
+ 
+     /* XZ compression magic */
+     if (magic[0] == 0xFD
