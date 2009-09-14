@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=neon
+TARNAME=input-utils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/n
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=0.29.0
+VERSION=0.0.20051128
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.webdav.org/neon/"
+WEBPAGE="http://packages.debian.org/input-utils"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/input-utils-0.0.20051128.diff
 )
 fi
 
@@ -55,17 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared \
-            --disable-static \
-            --with-ssl=openssl
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,9 +86,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} prefix=/usr mandir=${PKG}/usr/man
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,12 +103,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "HTTP and WebDAV client library"
-neon is an HTTP and WebDAV client library, with a C language API.
-Bindings for other languages may also be available, see the web site
-for more details:  http://www.webdav.org/neon/
-
-The neon library is used by projects such as subversion.
+make_slack_desc << EOF "input layer utilities"
+This is a small collection of input layer utilities, written mainly 
+for testing and debugging.
 
 EOF
 
