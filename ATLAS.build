@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP=""
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.8.2
+VERSION=3.8.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://math-atlas.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -70,18 +70,18 @@ fi
 
 ../configure --prefix=/usr \
 	    ${LAPACK} \
-	    -Fa alg -fPIC
+	    -Fa alg '-mpreferred-stack-boundary=2 -fPIC'
 )
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd build
- make ${NUM_JOBS} || exit
- (cd lib
-  make shared ptshared
- )
-)
+cd build
+make ${NUM_JOBS} || exit
+cd lib
+make shared ptshared || exit
+cd ..
+cd ..
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -97,6 +97,11 @@ fi
   L='*.so'
   for f in ${L}
   do
+    if [ "$f" == '*.so' ]
+    then
+      echo no so files
+      exit
+    fi
     mv ${f} ${f}.${VERSION}
     ln -s ${f}.${VERSION} ${f}.${VERSION%%.*}
     ln -s ${f}.${VERSION} ${f}
