@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p/pulseaudio
 #TAR_EXT=.tar.gz
-VERSION=0.9.15
+VERSION=0.9.18
 VERSIONEXTRA=
 BUILD=1
 
@@ -76,12 +76,15 @@ fi
 make install DESTDIR=${PKG}
 
 (cd ${PKG}/etc/pulse
- for f in client.conf  daemon.conf  default.pa
+ for f in client.conf  daemon.conf  default.pa system.pa
  do
   mv ${f} ${f}.new
   doinst_config etc/pulse/${f}.new
  done
 )
+
+doinst_addusergrp pulse pulse
+doinst_addgrp pulse-access
 
 cat > ${PKG}/install/doinst.sh << EOF
 if which setcap >& /dev/null
