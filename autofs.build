@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=autofs
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/a
+#TAR_EXT=.tar.gz
+VERSION=5.0.5
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+patch -p1 < ${TARDIR}/autofs-5.0.5-fix-included-map-read-fail-handling.patch
+patch -p1 < ${TARDIR}/autofs-5.0.5-refactor-ldap-sasl-bind.patch
+patch -p1 < ${TARDIR}/autofs-5.0.4-add-mount-wait-parameter.patch
+patch -p1 < ${TARDIR}/autofs-5.0.5-special-case-cifs-escapes.patch
+patch -p1 < ${TARDIR}/autofs-5.0.5-fix-libxml2-workaround-configure.patch
+patch -p1 < ${TARDIR}/autofs-5.0.5-more-code-analysis-corrections.patch
+patch -p1 < ${TARDIR}/autofs-5.0.5-fix-backwards-ifndef-INET6.patch
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+(cd ${PKG}/etc
+ mv auto.master auto.master.new
+ mv auto.misc auto.misc.new
+ mv autofs_ldap_auth.conf autofs_ldap_auth.conf.new
+ mv sysconfig/autofs sysconfig/autofs.new
+ mv init.d rc.d
+ mv rc.d/autofs rc.d/rc.autofs.new
+
+ doinst_config etc/auto.master.new
+ doinst_config etc/auto.misc.new
+ doinst_config etc/autofs_ldap_auth.conf.new
+ doinst_config etc/sysconfig/autofs.new
+ doinst_config etc/rc.d/rc.autofs.new
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO samples \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "kernel-based automounter"
+autofs is a kernel-based automounter for Linux.  It performs a job
+similar to amd(8) but relies on a small stub of kernel code instead of
+pretending to be an NFS server.  The result is simpler code, better
+reliability, and much faster operation in the common case (everything
+already mounted.)
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
