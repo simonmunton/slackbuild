@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=tellico
+TARNAME=exempi
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=1.3.4
+VERSION=2.1.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://www.periapsis.org/tellico/"
+WEBPAGE="http://libopenraw.freedesktop.org/wiki/Exempi"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,13 +103,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a collection manager for KDE"
-tellico keeps track of the items in a collection, and offers an easy
-way to enter data for each entry. It provides several field types,
-and allows for an unlimited number of user-defined fields. The
-entries in a collection may be grouped by any field for easy
-organization, and customizable views show as much or as little
-information as you like.
+make_slack_desc << EOF "Exempi is an implementation of XMP"
+Exempi is an implementation of XMP. Version 2.x is based on Adobe XMP 
+SDK 4.1.1 and released under a BSD-style license like Adobe's. The 3 
+clause BSD (aka New-BSD) license is compatible with GPL. The licensing 
+is kept identical in order to allow two-way merging of the code (ie 
+sending our change to the XMP SDK to Adobe for integration).
+
+The API is C based and means to be used from any language and be 
+easier to maintain ABI stability.
 
 EOF
 
