@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=inkscape
+TARNAME=jpegsrc
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/i
+TARSEP="."
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=0.47
+VERSION=v7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://ijg.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libjpeg
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv jpeg-7 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,16 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-python \
-	    --with-perl
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -88,15 +97,21 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO *.txt *.doc\
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Vector Drawing Application"
-Inkscape is an SVG-based generic vector-drawing program for 
-Linux/Unix/Windows/Mac.
+make_slack_desc << EOF "Independent JPEG Group's JPEG software"
+Software to implement JPEG image compression and decompression.  JPEG
+(pronounced 'jay-peg') is a standardized compression method for
+full-color and gray-scale images.  JPEG is intended for compressing
+'real-world' scenes; cartoons and other non-realistic images are not
+its strong suit.  JPEG is lossy, however, on typical images of
+real-world scenes, very good compression levels can be obtained with
+no visible change, and amazingly high compression levels are possible
+if you can tolerate a low-quality image.
 
 EOF
 

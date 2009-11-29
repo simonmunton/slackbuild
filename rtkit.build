@@ -89,6 +89,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+./rtkit-daemon --introspect > org.freedesktop.RealtimeKit1.xml
+install -D org.freedesktop.RealtimeKit1.xml ${PKG}/usr/share/dbus-1/interfaces/org.freedesktop.RealtimeKit1.xml
+
 doinst_addusergrp rtkit rtkit no
 
 strip_binaries
@@ -98,6 +101,15 @@ fix_links
 compress_manpages
 
 compress_info
+
+#cat > ${PKG}/install/doinst.sh << EOF
+#if which setcap >& /dev/null
+#then
+#  setcap cap_sys_nice,cap_ipc_lock+pe usr/libexec/rtkit-daemon
+#fi
+
+EOF
+
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \

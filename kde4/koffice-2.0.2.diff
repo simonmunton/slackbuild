@@ -1,0 +1,41 @@
+--- koffice-2.0.2/filters/kword/msword-odf/conversion.cpp.orig	2009-08-06 10:12:00.000000000 +0100
++++ koffice-2.0.2/filters/kword/msword-odf/conversion.cpp	2009-11-29 20:40:29.000000000 +0000
+@@ -321,7 +321,7 @@
+     // We ignore brc.dptSpace (spacing), brc.fShadow (shadow), and brc.fFrame (?)
+     
+     //set up color
+-    color = Conversion::color( brc.ico, -1 );
++    color = Conversion::color( brc.cv, -1 );
+ 
+     QString value( width );
+     value.append( " " );
+--- koffice-2.0.2/filters/kword/msword-odf/texthandler.cpp.orig	2009-08-06 10:12:00.000000000 +0100
++++ koffice-2.0.2/filters/kword/msword-odf/texthandler.cpp	2009-11-29 20:44:48.000000000 +0000
+@@ -487,9 +487,9 @@
+     }
+ 
+     //ico = color of text
+-    if ( !refChp || refChp->ico != chp->ico )
++    if ( !refChp || refChp->icoObsolete != chp->icoObsolete )
+     {
+-        QString color = Conversion::color( chp->ico, -1 );
++        QString color = Conversion::color( chp->icoObsolete, -1 );
+ 	textStyle->addProperty(QString("fo:color"), color, KoGenStyle::TextType);
+     }
+ 
+--- koffice-2.0.2/filters/kword/msword-odf/tablehandler.cpp.orig	2009-08-06 10:12:00.000000000 +0100
++++ koffice-2.0.2/filters/kword/msword-odf/tablehandler.cpp	2009-11-29 20:45:29.000000000 +0000
+@@ -229,11 +229,11 @@
+     const wvWare::Word97::BRC& brcTop = tc.brcTop;
+     const wvWare::Word97::BRC& brcBottom = tc.brcBottom;
+     const wvWare::Word97::BRC& brcLeft =
+-     ( tc.brcLeft.ico == 255 && tc.brcLeft.dptLineWidth == 255 && m_column > 0 ) ?
++     ( tc.brcLeft.cv == 255 && tc.brcLeft.dptLineWidth == 255 && m_column > 0 ) ?
+         m_tap->rgtc[ m_column - 1 ].brcRight
+         : tc.brcLeft;
+     const wvWare::Word97::BRC& brcRight =
+-      ( tc.brcRight.ico == 255 && tc.brcRight.dptLineWidth == 255 && m_column < nbCells - 1 ) ?
++      ( tc.brcRight.cv == 255 && tc.brcRight.dptLineWidth == 255 && m_column < nbCells - 1 ) ?
+         m_tap->rgtc[ m_column + 1 ].brcLeft
+         : tc.brcRight;
+ 
