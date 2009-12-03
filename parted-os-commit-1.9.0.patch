@@ -1,0 +1,65 @@
+From ad25892bb995f61b0ddf801ed1f74e0b1e7390ce Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Thu, 27 Aug 2009 20:16:09 +0200
+Subject: [PATCH] parted: avoid unnecessary open/close on commit, and thus udev activity
+
+* libparted/disk.c (ped_disk_commit): Open/close the underlying file
+descriptor in this function, so that callees, ped_disk_commit_to_dev
+and ped_disk_commit_to_os do not each perform open/close syscalls.
+This saves an open/close pair, and thus avoids unneeded udev
+activity on Linux.
+
+Before this change, when calling commit() on a ped_disk, the
+following would happen:
+
+open /dev/sda
+write partition table
+close /dev/sda
+open /dev/sda
+ioctl (BLKRRPART)
+close /dev/sda
+
+This is rather inefficient, and causes 2 udev change events to be fired
+for /dev/sda (+ the change events from the BLKRRPART), causing all kind
+of scanning (blkid & friends) twice.
+
+This patch fixes things to only open the device once.
+---
+ libparted/disk.c |   20 ++++++++++++++++++--
+ 1 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/libparted/disk.c b/libparted/disk.c
+index 72a3299..8c5a9e3 100644
+--- a/libparted/disk.c
++++ b/libparted/disk.c
+@@ -499,9 +499,25 @@ error:
+ int
+ ped_disk_commit (PedDisk* disk)
+ {
++        /* Open the device here, so that the underlying fd is not closed
++           between commit_to_dev and commit_to_os (closing causes unwanted
++           udev events to be sent under Linux). */
++	if (!ped_device_open (disk->dev))
++		goto error;
++
+ 	if (!ped_disk_commit_to_dev (disk))
+-		return 0;
+-	return ped_disk_commit_to_os (disk);
++		goto error_close_dev;
++
++	if (!ped_disk_commit_to_os (disk))
++		goto error_close_dev;
++
++	ped_device_close (disk->dev);
++	return 1;
++
++error_close_dev:
++	ped_device_close (disk->dev);
++error:
++	return 0;
+ }
+ 
+ /**
+-- 
+1.6.3.3
+
