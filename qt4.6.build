@@ -1,0 +1,220 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qt-everywhere-opensource-src
+#TARNAME=qt
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=4.6.0
+#-patched-20091007
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qt
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+PKG1=/tmp/package-${PKGNAME}-debug
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv qt-kde-qt ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
+
+patch -p1 < ${CWD}/qt4.6-patches/0180-c119289d63c7357c515c9ecf8f79393c806364b2.patch
+patch -p1 < ${CWD}/qt4.6-patches/0195-f89482f9bf1cdc8d6ded43ede7c9c0070d43ff8e.patch
+patch -p1 < ${CWD}/qt4.6-patches/0209-44899291f7a82d2ffae6aaf4019dcfad823ec889.patch
+patch -p1 < ${CWD}/qt4.6-patches/0216-fa7f6e0ee0547341967c2da559ce731c756ece30.patch
+patch -p1 < ${CWD}/qt4.6-patches/0225-88300b961bec2d4a5063f6221dbeee4f77a72150.patch
+patch -p1 < ${CWD}/qt4.6-patches/0250-77e7acc841d412eff7d2693e7445f12ab7956b29.patch
+patch -p1 < ${CWD}/qt4.6-patches/0253-93e9a494c1720aa64e70d11a465028e09eccd201.patch
+patch -p1 < ${CWD}/qt4.6-patches/0289-d358af21cdaf6333f5f235cf680244d15c9c6082.patch
+
+ # set correct X11 prefix
+ perl -pi -e "s,QMAKE_LIBDIR_X11.*,QMAKE_LIBDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_X11.*,QMAKE_INCDIR_X11\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
+ perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+echo yes |
+CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+./configure -prefix /usr/lib/qt \
+	    -release \
+            -system-zlib \
+            -system-libpng \
+            -system-libmng \
+            -system-libjpeg \
+	    -no-phonon \
+	    -system-sqlite \
+            -qt-gif \
+            -stl \
+	    -dbus \
+            -plugin-sql-mysql \
+            -plugin-sql-odbc \
+            -plugin-sql-psql \
+            -plugin-sql-sqlite \
+            -I /usr/include/mysql -L/usr/lib/mysql -R/usr/lib/mysql \
+	    -webkit \
+	    -nomake examples \
+	    -nomake demos \
+            -v \
+	    --opensource
+
+#            -no-g++-exceptions \
+#           -release \
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install INSTALL_ROOT=$PKG
+
+( cd $PKG/usr/lib
+#mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
+ln -s qt $PKG/usr/lib/qt-$VERSION
+)
+
+# Link the shared libraries into /usr/lib:
+( cd $PKG/usr/lib
+  for file in qt-$VERSION/lib/*.so* ; do
+    ln -sf $file .
+  done
+)
+
+# Add profile scripts
+mkdir -p ${PKG}/etc/profile.d
+cat ${CWD}/qt4.sh > ${PKG}/etc/profile.d/qt4.sh
+cat ${CWD}/qt4.csh > ${PKG}/etc/profile.d/qt4.csh
+chmod 755 ${PKG}/etc/profile.d/*
+
+# Put a ton of links to more "normal" places.  I'd just use a prefix of /usr, but it
+# creates a ton of new (and ambiguously named) /usr directories...
+mkdir -p $PKG/usr/bin
+( cd $PKG/usr/bin
+  for file in \
+    assistant designer linguist lrelease lupdate moc pixeltool qdbus \
+    qdbuscpp2xml qdbusviewer qdbusxml2cpp qmake qt3to4 qtconfig rcc uic uic3 ;
+  do
+    ln -sf /usr/lib/qt-$VERSION/bin/$file .
+  done
+)
+
+#mkdir -p $PKG/usr/lib/pkgconfig
+#( cd $PKG/usr/lib/pkgconfig
+#  for file in Qt3Support.pc QtAssistantClient.pc QtCore.pc \
+#    QtDBus.pc QtGui.pc QtNetwork.pc QtOpenGL.pc QtScript.pc \
+#    QtSql.pc QtSvg.pc QtTest.pc QtUiTools.pc QtXml.pc ;
+#  do
+#    ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$file . ;
+#  done
+#)
+
+mkdir -p $PKG/usr/lib/pkgconfig
+(cd $PKG/usr/lib/qt/lib/pkgconfig
+ for n in *
+ do
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
+  ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$n $PKG/usr/lib/pkgconfig/$n
+ done
+
+cd $PKG/usr/lib/qt/lib
+ for n in *.la *.prl
+ do
+  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
+ done
+)
+
+
+# split out the debug stuff
+rm -rf ${PKG1}
+mkdir -p ${PKG1}
+(cd ${PKG}
+ for f in `find . -name "*.debug"`
+ do
+   mkdir -p ${PKG1}/`dirname $f`
+   mv $f ${PKG1}/`dirname $f`
+ done
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  GPL_EXCEPTION.TXT GPL_EXCEPTION_ADDENDUM.TXT INSTALL LICENSE.GPL \
+  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-$VERSION \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd $PKG/usr/doc/$TARNAME-$VERSION
+  ln -sf /usr/lib/qt/doc/html .
+)
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a multi-platform C++ graphical user interface toolkit"
+Qt is a complete and well-developed object-oriented framework for
+developing graphical user interface (GUI) applications using C++.
+
+This release is free only for development of free software for the X
+Window System.  If you use Qt for developing commercial or other
+non-free software, you must have a professional license.  Please see
+http://www.trolltech.com/purchase.html for information on how to
+obtain a professional license.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+cd ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-debug-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG1}"

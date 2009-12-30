@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=google-chrome
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/g
+TAR_EXT=.rpm
+VERSION=beta-4.0.249.43-34537
+VERSIONEXTRA=.i386
+BUILD=1
+
+WEBPAGE="http://www.google.com/chrome"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+
+cd ${PKG}
+
+rpm2cpio ${FULL_TARNAME} | cpio -i -m -d
+
+fix_perms
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+
+NSS_FILES="libnspr4.so.0d libplds4.so.0d libplc4.so.0d libssl3.so.1d \
+    libnss3.so.1d libsmime3.so.1d libnssutil3.so.1d"
+LIBDIR=lib
+
+for f in $NSS_FILES
+do
+    target=$(echo $f | sed 's/\.[01]d$//')
+    if [ -f "/usr/$LIBDIR/firefox/$target" ]; then
+      ln -snf "/usr/$LIBDIR/firefox/$target" "./opt/google/chrome/$f"
+    elif [ -f "/usr/$LIBDIR/$target" ]; then
+      ln -snf "/usr/$LIBDIR/$target" "./opt/google/chrome/$f"
+    else
+      echo $f not found.
+      exit 1
+    fi
+done
+
+rm -rf etc/cron.daily
+rmdir etc
+
+for n in 16 32 48 256
+do
+  mkdir -p usr/share/icons/hicolor/${n}x${n}/apps
+  ln -s /opt/google/chrome/product_logo_${n}.png usr/share/icons/hicolor/${n}x${n}/apps/google-chrome.png
+done
+
+mkdir -p usr/share/applications
+ln -s /opt/google/chrome/google-chrome.desktop usr/share/applications
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+#cp -a \
+#  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+#  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Google Chrome web browser"
+Google Chrome is a web browser that runs web pages and applications 
+with lightning speed.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 4755 opt/google/chrome/chrome-sandbox ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
