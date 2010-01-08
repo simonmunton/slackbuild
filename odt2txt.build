@@ -2,19 +2,20 @@
 #
 . build_funcs
 
-#TARNAME=frei0r-plugins
-TARNAME=frei0r
+TARNAME=odt2txt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=20100107
+VERSION=0.4
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://stosberg.net/odt2txt/"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=frei0r-plugins
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- ./autogen.sh
 )
 fi
 
@@ -55,19 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PREFIX=/usr MANDIR=/usr/man || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,12 +86,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install PREFIX=/usr MANDIR=/usr/man DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/doc/frei0r* ${PKG}/usr/doc
-rmdir ${PKG}/usr/share/doc
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,13 +103,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "minimalistic plugin API for video effects"
-frei0r - a minimalistic plugin API for video effects
+make_slack_desc << EOF "tool to extract text from OpenDocument text files"
+odt2txt is a command-line tool which extracts the text out of 
+OpenDocument Texts produced by OpenOffice.org, StarOffice, KOffice 
+and others.
 
-A minimalistic plugin API for video sources and filters. The behaviour 
-of the effects can be controlled from the host by simple parameters. 
-The intent is to solve the recurring reimplementation or adaptation 
-issue of standard effects.
+odt2txt can also extract text from some file formats similar to 
+OpenDocument Text, such as OpenOffice.org XML (*.sxw), which was used 
+by OpenOffice.org version 1.x and older StarOffice versions. To a 
+lesser extent, odt2txt may be useful to extract content from 
+OpenDocument spreadsheets (*.ods) and OpenDocument presentations 
+(*.odp). 
 
 EOF
 

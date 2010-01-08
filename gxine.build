@@ -2,19 +2,20 @@
 #
 . build_funcs
 
-#TARNAME=frei0r-plugins
-TARNAME=frei0r
+TARNAME=gxine
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=20100107
+VERSION=0.5.905
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://www.xine-project.org/home"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=frei0r-plugins
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- ./autogen.sh
 )
 fi
 
@@ -55,14 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686 -I/usr/include/xulrunner/unstable"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-static \
+	    --with-browser-plugin
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/doc/frei0r* ${PKG}/usr/doc
-rmdir ${PKG}/usr/share/doc
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,13 +105,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "minimalistic plugin API for video effects"
-frei0r - a minimalistic plugin API for video effects
+make_slack_desc << EOF "GTK+ media player based on Xine"
+Xine is a free multimedia player.  It plays back CDs, DVDs, and VCDs,
+multimedia files, and multimedia streamed over a network.
 
-A minimalistic plugin API for video sources and filters. The behaviour 
-of the effects can be controlled from the host by simple parameters. 
-The intent is to solve the recurring reimplementation or adaptation 
-issue of standard effects.
+The gxine package contains a GTK+ graphical user interface for the
+Xine multimedia player.
 
 EOF
 
