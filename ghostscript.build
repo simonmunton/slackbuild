@@ -6,9 +6,9 @@ TARNAME=ghostscript
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=8.64
+VERSION=8.70
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,12 +42,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/ghostscript-8.64.gs_res.ps.diff
- patch -p1 < ${CWD}/ghostscript-CVE-2009-0196.patch
- patch -p1 < ${CWD}/ghostscript-CVE-2009-0583,0584.patch
- patch -p1 < ${CWD}/ghostscript-CVE-2009-0792.patch
- patch -p1 < ${CWD}/ghostscript-jbig2dec-nullderef.patch
- patch -p1 < ${CWD}/ghostscript-bitcmyk.patch
+# patch -p1 < ${CWD}/ghostscript-8.64.gs_res.ps.diff
+# patch -p1 < ${CWD}/ghostscript-CVE-2009-0196.patch
+# patch -p1 < ${CWD}/ghostscript-CVE-2009-0583,0584.patch
+# patch -p1 < ${CWD}/ghostscript-CVE-2009-0792.patch
+# patch -p1 < ${CWD}/ghostscript-jbig2dec-nullderef.patch
+# patch -p1 < ${CWD}/ghostscript-bitcmyk.patch
 )
 fi
 
@@ -128,13 +128,16 @@ ln -s /usr/share/ghostscript/${VERSION}/doc ${PKG}/usr/doc/${TARNAME}-${VERSION}
 # support for CJK printing:
 
 if [ -r ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ]; then
-  mv ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.default.ghostscript-${VERSION}
+  mv ${PKG}/usr/share/ghostscript/${VERSION}/Resource/Init/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/Resource/Init/cidfmap.default.ghostscript-${VERSION}
+#  mv ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.default.ghostscript-${VERSION}
   cp ${CWD}/ghostscript-cidfmap > ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.new
 
   doinst_config usr/share/ghostscript/${VERSION}/lib/cidfmap.new
 fi
 
-#strip_binaries
+cp -a examples/cjk ${PKG}/usr/share/ghostscript/${VERSION}/examples/
+
+strip_binaries
 
 fix_links
 
@@ -143,7 +146,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/COPYING doc/README \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/COPYING doc/README LICENSE \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

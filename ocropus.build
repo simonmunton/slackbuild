@@ -6,9 +6,11 @@ TARNAME=ocropus
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=0.3.1
+VERSION=0.4.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://code.google.com/p/ocropus/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,9 +44,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/ocropus-0.4.3.diff
 
- sed -i -e 's@/usr/local/@/usr/@' ocroscript/ocrotoplevel.cc
+ #sed -i -e 's@/usr/local/@/usr/@' ocroscript/ocrotoplevel.cc
 )
 fi
 
@@ -75,7 +77,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+scons prefix=/usr || exit
 #jam || exit
 fi
 
@@ -84,7 +87,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+scons prefix=${PKG}/usr install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 #mkdir -p ${PKG}/usr/bin
 #cp ocropus-cmd/ocropus ${PKG}/usr/bin
 

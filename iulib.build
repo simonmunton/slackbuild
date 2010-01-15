@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=0.3
+VERSION=0.4.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,12 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -78,7 +79,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+scons prefix=/usr ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,7 +87,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+scons prefix=${PKG}/usr install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
 chmod -R -x,+X ${PKG}/usr/include
 
