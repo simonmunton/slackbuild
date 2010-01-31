@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdepim-runtime
+TARNAME=netpbm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.3.5
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=4.3.5
+VERSION=10.35.72
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://netpbm.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,11 +35,8 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-cd /bigdisk/simon-src/kde4
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-cd ${CWD}
-ln -s /bigdisk/simon-src/kde4/${TARNAME}-${VERSION} .
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -48,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -58,25 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+cp ${CWD}/netpbm-Makefile.config Makefile.config
+
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,9 +88,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make package PKGDIR=${PKG}-1
+mv ${PKG}-1/* ${PKG}/usr
+rmdir ${PKG}-1
 
-cd ..
+# Put things in proper directories:
+( cd ${PKG}/usr
+  mv VERSION bin/doc.url doc/netpbm-${VERSION}
+  ( cd lib ; ln -sf libnetpbm.so.10 libnetpbm.so )
+  rm -rf README config_template link misc pkginfo man/man1/manweb.1 man/web
+)
 
 strip_binaries
 
@@ -99,22 +105,25 @@ fix_links
 
 compress_manpages
 
+# Even out-of-date manpages are better than nothing.  IMHO.
+( cd ${PKG}/usr
+  tar xjf ${CWD}/netpbm-manpages.tar.bz2
+)
+
 compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  COPYRIGHT.PATENT GPL_LICENSE.txt HISTORY Netpbm.programming \
+  USERDOC copyright_summary lgpl_v21.txt \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE PIM"
-The KDE-PIM project aims to bring together those who wish to help
-design, implement, test, etc. anything that's to do with personal
-information management.
-
-This rather broad scope encompasses mail clients, addressbooks,
-usenet news, scheduling, and even sticky notes.
+make_slack_desc << EOF "graphics conversion utilities"
+The netpbm package contains a library and tools for converting between
+many different graphics formats.
 
 EOF
 

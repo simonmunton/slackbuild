@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdepim-runtime
+TARNAME=xpaint
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.3.5
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=4.3.5
+VERSION=2.8.10
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://sf-xpaint.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,11 +35,8 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-cd /bigdisk/simon-src/kde4
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-cd ${CWD}
-ln -s /bigdisk/simon-src/kde4/${TARNAME}-${VERSION} .
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -48,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/xpaint-2.8.10-buggy-xaw3d.patch
 )
 fi
 
@@ -58,25 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,8 +87,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-cd ..
 
 strip_binaries
 
@@ -108,13 +103,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE PIM"
-The KDE-PIM project aims to bring together those who wish to help
-design, implement, test, etc. anything that's to do with personal
-information management.
+make_slack_desc << EOF "simple X paint program"
+XPaint is a versatile bitmap/pixmap editing tool with a feature set
+similar to MacPaint.
 
-This rather broad scope encompasses mail clients, addressbooks,
-usenet news, scheduling, and even sticky notes.
+The short features list:
+  Brushes, Spray paint, Pencil, Lines, Arcs, Pattern Fill, Text,
+  Boxes, Circles, Polygons.
+Works on multiple images simultaneously. Cut/Copy/Paste between all
+active images. Fatbits/Zoom on the image windows.
 
 EOF
 

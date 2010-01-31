@@ -1,0 +1,48 @@
+diff -rc xpaint-2.8.10/fileBrowser.c xpaint-2.8.10.1/fileBrowser.c
+*** xpaint-2.8.10/fileBrowser.c	2010-01-10 12:28:51.000000000 +0100
+--- xpaint-2.8.10.1/fileBrowser.c	2010-01-11 17:16:04.000000000 +0100
+***************
+*** 385,392 ****
+      XtResizeWidget(l->name, width1-2, 20, 1);
+      XtResizeWidget(l->form, width1 + 10, height, 0);
+      XtVaGetValues(l->list, XtNlongest, &i, NULL);
+!     XtVaSetValues(l->list, XtNwidth, 
+! 		  ((i>width1-30)?i+10:width1-20), NULL);
+      XtResizeWidget(l->vport, width1, height1, 1);     
+      XtVaSetValues(l->vport, XtNwidth, width1, XtNheight, height1, NULL);
+      XtVaGetValues(l->ok, XtNx, &x, XtNy, &y, NULL);
+--- 385,396 ----
+      XtResizeWidget(l->name, width1-2, 20, 1);
+      XtResizeWidget(l->form, width1 + 10, height, 0);
+      XtVaGetValues(l->list, XtNlongest, &i, NULL);
+!     /* the next 4 lines avoid a crash with certain buggy Xaw3d versions */
+!     XtVaGetValues(l->list, XtNwidth, &width2, NULL);
+!     if (width2 > i+25) {
+!         width2 = i+25;
+!         XtVaSetValues(l->list, XtNwidth, width2, NULL);
+!     }
+      XtResizeWidget(l->vport, width1, height1, 1);     
+      XtVaSetValues(l->vport, XtNwidth, width1, XtNheight, height1, NULL);
+      XtVaGetValues(l->ok, XtNx, &x, XtNy, &y, NULL);
+*** xpaint-2.8.10/menu.c	2010-01-10 17:20:52.000000000 +0100
+--- xpaint-2.8.10.1/menu.c	2010-01-11 18:50:09.000000000 +0100
+***************
+*** 285,291 ****
+      XtVaGetValues(w, XtNmenuwidgets, &wlist, NULL);
+      if (!wlist || !wlist[0]) goto mainpopup;
+      XtVaGetValues(w, XtNzoom, &zoom, NULL);
+!     XtTranslateCoords(w, zoom*event->xbutton.x, zoom*event->xbutton.y, &x, &y);
+      editmenu = GetShell(wlist[w_edit_paste]);
+      XtVaGetValues(editmenu, XtNwidth, &width, NULL);
+      XtPopup(editmenu, XtGrabNone);
+--- 285,294 ----
+      XtVaGetValues(w, XtNmenuwidgets, &wlist, NULL);
+      if (!wlist || !wlist[0]) goto mainpopup;
+      XtVaGetValues(w, XtNzoom, &zoom, NULL);
+!     if (zoom>0)
+!         XtTranslateCoords(w, zoom*event->xbutton.x, zoom*event->xbutton.y, &x, &y);
+!     else
+!         XtTranslateCoords(w, event->xbutton.x/(-zoom), event->xbutton.y/(-zoom), &x, &y);
+      editmenu = GetShell(wlist[w_edit_paste]);
+      XtVaGetValues(editmenu, XtNwidth, &width, NULL);
+      XtPopup(editmenu, XtGrabNone);

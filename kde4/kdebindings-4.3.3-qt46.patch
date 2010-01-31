@@ -1,0 +1,42 @@
+diff -ur kdebindings-4.3.3/kalyptus/kalyptus kdebindings-4.3.3-qt46/kalyptus/kalyptus
+--- kdebindings-4.3.3/kalyptus/kalyptus	2009-06-09 18:07:13.000000000 +0200
++++ kdebindings-4.3.3-qt46/kalyptus/kalyptus	2009-11-06 02:50:36.000000000 +0100
+@@ -494,7 +494,7 @@
+ 		$p =~ s/#ifdef QT_GUI_LIB//;
+ 		$p =~ s/Q_CLASSINFO\(.*\)//;
+ 		$p =~ s/Q_DISABLE_COPY\s*\(\s*(\w+)\s*\)/$1(const $1 &);\n$1 &operator=(const $1 &);/;
+-		$p =~ s/Q_DECLARE_INTERFACE\s*\(\s*(\w+)\s*\)//;
++		$p =~ s/Q_DECLARE_INTERFACE[^\)]*\)//;
+ 		$p =~ s/Q_INTERFACES\s*\(\s*([\w:]+)\s*\)//;
+ 		$p =~ s/KDEV_DECLARE_EXTENSION_INTERFACE_NS\s*\(\s*(\w+)\s*\)//;
+ 		$p =~ s/APPENDED_LISTS_STUB\s*\(\s*(\w+)\s*\)//;
+@@ -593,6 +593,7 @@
+ 				     ($p =~ m/^#\s*if\s+defined\(Q_INCOMPATIBLE_3_0_ADDONS/ and $qt_embedded) or
+ 				     $p =~ m/^#\s*ifndef\s+QT_NO_STL/ or
+ 				     $p =~ m/^#\s*if\s+defined\s*\(Q_OS_/ or
++				     $p =~ m/^#\s*elif\s+defined\s*\(Q_OS_/ or
+ 				     $p =~ m/^#\s*if\s+defined\(Q_CC_/ or
+ 				     $p =~ m/^#\s*if\s+defined\(QT_THREAD_SUPPORT/ or
+ 				     $p =~ m/^#\s*if\s+QT_VERSION\s+>=\s+0x040600/ or
+diff -ur kdebindings-4.3.3/kalyptus/kalyptusCxxToSmoke.pm kdebindings-4.3.3-qt46/kalyptus/kalyptusCxxToSmoke.pm
+--- kdebindings-4.3.3/kalyptus/kalyptusCxxToSmoke.pm	2009-05-27 21:53:02.000000000 +0200
++++ kdebindings-4.3.3-qt46/kalyptus/kalyptusCxxToSmoke.pm	2009-11-06 02:28:45.000000000 +0100
+@@ -612,6 +612,9 @@
+ 			|| $name eq 'qFindStringBoyerMoore'
+             # qHash() gives problems with building the Qwt lib
+ 			|| $name eq 'qHash' 
++			|| ($classNode->{astNodeName} eq 'QGraphicsLayoutItem' and $name eq 'QGraphicsLayoutItem' and $#{$m->{ParamList}} == 0 and $m->{ParamList}[0]->{ArgType} =~ /const QGraphicsLayoutItem *\&/)
++			|| ($classNode->{astNodeName} =~ /QGraphicsScene.*Event/ and $name =~ /QGraphicsScene.*Event/ and $#{$m->{ParamList}} == 0 and $m->{ParamList}[0]->{ArgType} =~ /const QGraphicsScene.*Event *\&/)
++			|| ($classNode->{astNodeName} eq 'QPainterPathStroker' and $name eq 'QPainterPathStroker' and $#{$m->{ParamList}} == 0 and $m->{ParamList}[0]->{ArgType} =~ /const QPainterPathStroker *\&/)
+ 			|| ($classNode->{astNodeName} eq 'QwtData' and $name eq 'operator=')
+ 			|| ($classNode->{astNodeName} eq 'QwtPlot' and $name eq 'printCanvas')
+ 			|| ($classNode->{astNodeName} eq 'QwtPlot' and $name eq 'drawItems')
+@@ -976,7 +979,7 @@
+ 
+ 	# Hack for QAsyncIO. We don't implement the "if a class has no explicit copy ctor,
+ 	# then all of its member variables must be copiable, otherwise the class isn't copiable".
+-	$hasPrivateCopyConstructor = 1 if ( $className eq 'QAsyncIO' );
++	$hasPrivateCopyConstructor = 1 if ( $className eq 'QAsyncIO' or $className eq 'QGraphicsLayoutItem' or $className =~ /QGraphicsScene.*Event/ or $className eq 'QPainterPathStroker' );
+ 
+ 	# Remember if this class can't be copied - it means all its descendants can't either
+ 	$classNode->AddProp( "CanBeCopied", !$hasPrivateCopyConstructor );
