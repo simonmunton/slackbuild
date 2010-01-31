@@ -162,6 +162,31 @@ find . -perm 711 -exec chmod 755 {} \;
 find . -perm 555 -exec chmod 755 {} \;
 }
 
+
+create_debug_file ()
+{
+sdir=`dirname $1`
+sfile=`basename $1`
+( cd ${sdir}
+  objcopy --only-keep-debug "${sfile}" "${sfile}.debug"
+  strip --strip-debug --strip-unneeded "${sfile}"
+  objcopy --add-gnu-debuglink="${sfile}.debug" "${sfile}"
+  chmod -x "${sfile}.debug"
+)
+}
+
+
+make_debug_files ()
+{
+( cd ${PKG}
+  find . -print0 | xargs -0 file | grep -E "(executable|shared object|current ar archive)" | grep ELF | cut -f 1 -d : | while read name
+  do
+    create_debug_file "$name"
+  done
+)
+}
+
+
 strip_binaries ()
 {
 ( cd ${PKG}
