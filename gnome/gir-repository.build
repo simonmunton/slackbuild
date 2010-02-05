@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libchamplain
+TARNAME=gir-repository
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.2.9
+VERSION=0.6.5
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://blog.pierlux.com/projects/libchamplain/en/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gir-repository-0.6.5.diff
 )
 fi
 
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,11 +103,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "rasterised map display widget"
-Libchamplain is a C library aimed to provide a Gtk+ widget to display 
-rasterized maps. In these screenshots of the demo app, you can see 
-Gtk+ buttons controlling the map widget, which displays the 
-OpenSteetMap Mapnik tiles. Some screenshot have markers on them.
+make_slack_desc << EOF "Gir-repository"
+Gir-repository is a package containing gir files used by the 
+gobject-introspection project for a bunch of projects.
+
+The point of it is to make it easier for language bindings and 
+projects using gobject-introspection to get girs and typelibs 
+installed.
 
 EOF
 
