@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=libunique
+TARNAME=gmime
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=1.1.6
+VERSION=2.4.15
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gmime2.4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +34,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv unique-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,25 +53,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -88,7 +75,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -103,11 +90,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "single instance application library"
-LibUnique is a library for writing single instance applications, that 
-is applications that are run once and every further call to the same 
-binary either exits immediately or sends a command to the running 
-instance.
+make_slack_desc << EOF "MIME utilities"
+GMime is a set of utilities for parsing and creating messages using
+the Multipurpose Internet Mail Extension (MIME)
 
 EOF
 
