@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution-mapi
+TARNAME=libepc
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.28.2
+VERSION=0.3.10
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +103,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "MAPI support for evolution"
-MAPI support for Evolution.
+make_slack_desc << EOF "Easy Publish and Consume library"
+The Easy Publish and Consume library provides an easy method to:
+
+    * publish data per HTTPS
+    * announce that information via DNS-SD
+    * find that information
+    * and finally consume it
+
+You can use this library as key/value store published to the network,
+using encryption, authentication and service discovery.
 
 EOF
 

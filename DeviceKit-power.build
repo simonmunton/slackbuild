@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=evolution-mapi
+TARNAME=DeviceKit-power
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=0.28.2
+VERSION=014
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://freedesktop.org/wiki/Software/DeviceKit"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -46,6 +46,13 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ for f in `find doc -name Makefile.in`
+ do
+   if grep -q gtkdoc-fixxref $f
+   then
+     sed -i -e 's/gtkdoc-fixxref /gtkdoc-fixxref --module=$(DOC_MODULE) /' $f
+   fi
+ done
 )
 fi
 
@@ -55,14 +62,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +95,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +110,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "MAPI support for evolution"
-MAPI support for Evolution.
+make_slack_desc << EOF "DeviceKit-power"
+DeviceKit-power is an abstraction for enumerating power devices,
+listening to device events and querying history and statistics.
+Any application or service on the system can access the
+org.freedesktop.DeviceKit.Power service via the system message bus.
 
 EOF
 

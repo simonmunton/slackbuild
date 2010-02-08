@@ -42,7 +42,15 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/libgnomeui-2.24.2.diff
+ #patch -p1 < ${CWD}/libgnomeui-2.24.2.diff
+ for f in `find doc -name Makefile.in`
+ do
+   if grep -q gtkdoc-fixxref $f
+   then
+     sed -i -e 's/gtkdoc-fixxref /gtkdoc-fixxref --module=$(DOC_MODULE) /' $f
+   fi
+ done
+
 )
 fi
 

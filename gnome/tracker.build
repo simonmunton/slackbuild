@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution-mapi
+TARNAME=tracker
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.28.2
+VERSION=0.6.96
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +103,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "MAPI support for evolution"
-MAPI support for Evolution.
+make_slack_desc << EOF "search tool and indexer"
+Tracker is a powerful desktop-neutral first class object database, 
+tag/metadata database, search tool and indexer.
+
+Tracker is also extremely fast and very memory-efficient when compared 
+with some other competing frameworks and has by far the fastest and 
+most memory-efficient Nautilus search and Deskbar backends currently 
+available.
 
 EOF
 
