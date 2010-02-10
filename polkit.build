@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gdl
+TARNAME=polkit
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.28.2
+VERSION=0.96
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://hal.freedesktop.org/releases/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -44,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ ./autogen.sh
 )
 fi
 
@@ -59,7 +62,7 @@ CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man
 fi
 
@@ -90,17 +93,20 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "components and libraries for GNOME development tools"
-This package contains components and libraries that are intended to
-be shared between GNOME development tools, including gnome-build and
-anjuta2.
+make_slack_desc << EOF "framework for defining system-wide policy"
+polkit is a framework for defining policy for system-wide 
+components and for desktop pieces to configure it.
 
 EOF
 
 post_install
 
+#doinst_addusergrp polkituser polkituser
+
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod 700 var/lib/polkit-1 etc/polkit-1/localauthority ; \
+chmod 4755 usr/libexec/polkit-agent-helper-1 usr/bin/pkexec ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

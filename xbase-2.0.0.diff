@@ -1,0 +1,3264 @@
+--- xbase-2.0.0/xbase/dbf.cpp.orig	2001-02-20 17:54:15.000000000 +0000
++++ xbase-2.0.0/xbase/dbf.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -73,9 +73,9 @@
+ #endif
+ #include <errno.h>
+ 
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
+ 
+ #include <xbase/xbexcept.h>
+ 
+@@ -802,31 +802,31 @@
+    if( DbfStatus == XB_CLOSED )
+      xb_error(XB_NOT_OPEN);
+ 
+-   cout << "\nDatabase file " << DatabaseName << endl << endl;
++   std::cout << "\nDatabase file " << DatabaseName << std::endl << std::endl;
+ 
+    if( Option != 2 )
+    {
+-      cout << "File header data:" << endl;
++      std::cout << "File header data:" << std::endl;
+       if( Version == 3 )
+-         cout << "Dbase III file" << endl;
++         std::cout << "Dbase III file" << std::endl;
+       else if ( Version == 83 )
+-         cout << "Dbase III file with memo fields" << endl << endl;
++         std::cout << "Dbase III file with memo fields" << std::endl << std::endl;
+    
+-      cout << "Last update date = " 
+-          << (int) UpdateMM << "/" << (int) UpdateDD << "/" << (int) UpdateYY % 100 << endl;  
++      std::cout << "Last update date = " 
++          << (int) UpdateMM << "/" << (int) UpdateDD << "/" << (int) UpdateYY % 100 << std::endl;  
+ 
+-      cout << "Header length    = " << HeaderLen << endl;
+-      cout << "Record length    = " << RecordLen << endl;
+-      cout << "Records in file  = " << NoOfRecs << endl << endl;
++      std::cout << "Header length    = " << HeaderLen << std::endl;
++      std::cout << "Record length    = " << RecordLen << std::endl;
++      std::cout << "Records in file  = " << NoOfRecs << std::endl << std::endl;
+ #ifdef XB_REAL_DELETE
+-      cout << "First Free Rec   = " << FirstFreeRec << endl << endl;
++      std::cout << "First Free Rec   = " << FirstFreeRec << std::endl << std::endl;
+ #endif      
+    }
+    if( Option != 1 )
+    {
+ 
+-      cout << "Field Name   Type  Length  Decimals" << endl;
+-      cout << "----------   ----  ------  --------" << endl;
++      std::cout << "Field Name   Type  Length  Decimals" << std::endl;
++      std::cout << "----------   ----  ------  --------" << std::endl;
+       for( i = 0; i <NoOfFields; i++ )
+       {
+          if( SchemaPtr[i].Type == 'C' && SchemaPtr[i].NoOfDecs > 0 )
+@@ -837,7 +837,7 @@
+                   SchemaPtr[i].Type, SchemaPtr[i].FieldLen, SchemaPtr[i].NoOfDecs );
+       }
+    }
+-   cout << endl;
++   std::cout << std::endl;
+    return XB_NO_ERROR;
+ }
+ #endif
+@@ -1575,17 +1575,17 @@
+    if( i != XB_NO_ERROR )
+       return i;
+ 
+-   cout << "\nREC NUMBER " << RecNo << "\n";
++   std::cout << "\nREC NUMBER " << RecNo << "\n";
+ 
+    if( RecordDeleted() ) 
+-      cout << "\nRecord deleted...\n";
++      std::cout << "\nRecord deleted...\n";
+ 
+    for( i = 0; i < NoOfFields; i++ )
+    {
+       GetField( i, buf );
+-      cout << SchemaPtr[i].FieldName << " = '" << buf << "'\n";
++      std::cout << SchemaPtr[i].FieldName << " = '" << buf << "'\n";
+    }
+-   cout << "\n";
++   std::cout << "\n";
+    return XB_NO_ERROR;
+ }
+ /************************************************************************/
+--- xbase-2.0.0/xbase/xbase.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/xbase.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -58,7 +58,7 @@
+ 
+ #include <xbase/xbase.h>
+ #include <ctype.h>
+-#include <string.h>
++#include <cstring>
+ 
+ #include <xbase/xbexcept.h>
+ 
+@@ -535,57 +535,57 @@
+ {
+ #if 0 // replaced following code to remove duplicate strings (9/27/2000 DTB)
+   switch( ErrorNo ) {
+-    case    0: cout << "No Error" << endl;                     break;
+-    case -100: cout << "End Of File" << endl;                  break;
+-//  case -101: cout << "Beginning Of File" << endl;            break;
+-    case -102: cout << "No Memory" << endl;                    break;
+-    case -103: cout << "File Already Exists" << endl;          break;
+-    case -104: cout << "Database or Index Open Error" << endl; break;
+-    case -105: cout << "Error writing to disk drive" << endl;  break;
+-    case -106: cout << "Unknown Field Type" << endl;           break;
+-    case -107: cout << "Database already open" << endl;        break;
+-    case -108: cout << "Not an Xbase type database" << endl;   break;
+-    case -109: cout << "Invalid Record Number" << endl;        break;
+-    case -110: cout << "Invalid Option" << endl;               break;
+-    case -111: cout << "Database not open" << endl;            break;
+-    case -112: cout << "Disk Drive Seek Error" << endl;        break;
+-    case -113: cout << "Disk Drive Read Error" << endl;        break;
+-    case -114: cout << "Search Key Not Found" << endl;         break;
+-    case -115: cout << "Search Key Found" << endl;             break;
+-    case -116: cout << "Invalid Key" << endl;                  break;
+-    case -117: cout << "Invalid Node Link" << endl;            break;
+-    case -118: cout << "Key Not Unique" << endl;               break;
+-    case -119: cout << "Invalid Key Expression" << endl;       break;
+-//  case -120: cout << "DBF File Not Open" << endl;            break;
+-    case -121: cout << "Invalid Key Type" << endl;             break;
+-    case -122: cout << "Invalid Node No" << endl;              break;
+-    case -123: cout << "Node Full" << endl;                    break;
+-    case -124: cout << "Invalid Field Number" << endl;         break;
+-    case -125: cout << "Invalid Data" << endl;                 break;
+-    case -126: cout << "Not a leaf node" << endl;              break;
+-    case -127: cout << "Lock Failed" << endl;                  break;
+-    case -128: cout << "Close Error" << endl;                  break;
+-    case -129: cout << "Invalid Schema" << endl;               break;
+-    case -130: cout << "Invalid Name" << endl;                 break;
+-    case -131: cout << "Invalid Block Size" << endl;           break;
+-    case -132: cout << "Invalid Block Number" << endl;         break;
+-    case -133: cout << "Not a Memo field" << endl;             break;
+-    case -134: cout << "No Memo Data" << endl;                 break;
+-    case -135: cout << "Expression syntax error" << endl;      break;
+-    case -136: cout << "Parse Error" << endl;                  break;
+-    case -137: cout << "No Data" << endl;                      break;
+-//  case -138: cout << "Unknown Token Type" << endl;           break;
+-
+-    case -140: cout << "Invalid Field" << endl;                break;
+-    case -141: cout << "Insufficient Parms" << endl;           break;
+-    case -142: cout << "Invalid Function" << endl;             break;
+-    case -143: cout << "Invalid Field Length" << endl;         break;
+-    case -144: cout << "Harvest Node Error" << endl;           break;
+-    case -145: cout << "Invalid Date" << endl;                 break;
+-    default:   cout << "Unknown error code" << endl;           break;
++    case    0: std::cout << "No Error" << std::endl;                     break;
++    case -100: std::cout << "End Of File" << std::endl;                  break;
++//  case -101: std::cout << "Beginning Of File" << std::endl;            break;
++    case -102: std::cout << "No Memory" << std::endl;                    break;
++    case -103: std::cout << "File Already Exists" << std::endl;          break;
++    case -104: std::cout << "Database or Index Open Error" << std::endl; break;
++    case -105: std::cout << "Error writing to disk drive" << std::endl;  break;
++    case -106: std::cout << "Unknown Field Type" << std::endl;           break;
++    case -107: std::cout << "Database already open" << std::endl;        break;
++    case -108: std::cout << "Not an Xbase type database" << std::endl;   break;
++    case -109: std::cout << "Invalid Record Number" << std::endl;        break;
++    case -110: std::cout << "Invalid Option" << std::endl;               break;
++    case -111: std::cout << "Database not open" << std::endl;            break;
++    case -112: std::cout << "Disk Drive Seek Error" << std::endl;        break;
++    case -113: std::cout << "Disk Drive Read Error" << std::endl;        break;
++    case -114: std::cout << "Search Key Not Found" << std::endl;         break;
++    case -115: std::cout << "Search Key Found" << std::endl;             break;
++    case -116: std::cout << "Invalid Key" << std::endl;                  break;
++    case -117: std::cout << "Invalid Node Link" << std::endl;            break;
++    case -118: std::cout << "Key Not Unique" << std::endl;               break;
++    case -119: std::cout << "Invalid Key Expression" << std::endl;       break;
++//  case -120: std::cout << "DBF File Not Open" << std::endl;            break;
++    case -121: std::cout << "Invalid Key Type" << std::endl;             break;
++    case -122: std::cout << "Invalid Node No" << std::endl;              break;
++    case -123: std::cout << "Node Full" << std::endl;                    break;
++    case -124: std::cout << "Invalid Field Number" << std::endl;         break;
++    case -125: std::cout << "Invalid Data" << std::endl;                 break;
++    case -126: std::cout << "Not a leaf node" << std::endl;              break;
++    case -127: std::cout << "Lock Failed" << std::endl;                  break;
++    case -128: std::cout << "Close Error" << std::endl;                  break;
++    case -129: std::cout << "Invalid Schema" << std::endl;               break;
++    case -130: std::cout << "Invalid Name" << std::endl;                 break;
++    case -131: std::cout << "Invalid Block Size" << std::endl;           break;
++    case -132: std::cout << "Invalid Block Number" << std::endl;         break;
++    case -133: std::cout << "Not a Memo field" << std::endl;             break;
++    case -134: std::cout << "No Memo Data" << std::endl;                 break;
++    case -135: std::cout << "Expression syntax error" << std::endl;      break;
++    case -136: std::cout << "Parse Error" << std::endl;                  break;
++    case -137: std::cout << "No Data" << std::endl;                      break;
++//  case -138: std::cout << "Unknown Token Type" << std::endl;           break;
++
++    case -140: std::cout << "Invalid Field" << std::endl;                break;
++    case -141: std::cout << "Insufficient Parms" << std::endl;           break;
++    case -142: std::cout << "Invalid Function" << std::endl;             break;
++    case -143: std::cout << "Invalid Field Length" << std::endl;         break;
++    case -144: std::cout << "Harvest Node Error" << std::endl;           break;
++    case -145: std::cout << "Invalid Date" << std::endl;                 break;
++    default:   std::cout << "Unknown error code" << std::endl;           break;
+   }
+ #else
+-  cout << GetErrorMessage(ErrorNo) << endl;
++  std::cout << GetErrorMessage(ErrorNo) << std::endl;
+ #endif
+ }
+ 
+--- xbase-2.0.0/xbase/xbstring.cpp.orig	2001-02-20 17:53:26.000000000 +0000
++++ xbase-2.0.0/xbase/xbstring.cpp	2010-02-10 22:01:45.000000000 +0000
+@@ -55,8 +55,8 @@
+ 
+ #include <xbase/xbase.h>
+ 
+-#include <stdlib.h>
+-#include <stdio.h>
++#include <cstdlib>
++#include <cstdio>
+ 
+ #ifdef HAVE_STRING_H
+ #include <string.h>
+@@ -582,7 +582,7 @@
+ //! Short description.
+ /*!
+ */
+-XBDLLEXPORT ostream& operator << ( ostream& os, const xbString& xbs ) {
++XBDLLEXPORT std::ostream& operator << ( std::ostream& os, const xbString& xbs ) {
+   return os << xbs.data;
+ }
+ 
+--- xbase-2.0.0/xbase/index.h.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/index.h	2010-02-10 22:01:45.000000000 +0000
+@@ -47,10 +47,6 @@
+ #ifndef __XB_INDEX_H__
+ #define __XB_INDEX_H__
+ 
+-#ifdef __GNUG__
+-#pragma interface
+-#endif
+-
+ #include <xbase/xbase.h>
+ #include <string.h>
+ 
+--- xbase-2.0.0/xbase/xbfilter.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/xbfilter.cpp	2010-02-10 22:01:45.000000000 +0000
+@@ -107,7 +107,7 @@
+     if(( rc = d->xbase->ProcessExpression( e )) != XB_NO_ERROR )
+       xb_error( rc );
+ 
+-  cout << "xbfilter fixme" << endl;
++  std::cout << "xbfilter fixme" << std::endl;
+ //    if( d->xbase->GetInt()){
+       CurFilterRecNo = d->GetCurRecNo();
+       return XB_NO_ERROR;
+@@ -139,7 +139,7 @@
+     if(( rc = d->xbase->ProcessExpression( e )) != XB_NO_ERROR )
+       xb_error( rc );
+ 
+-cout << "xbfilter fixme" << endl;
++std::cout << "xbfilter fixme" << std::endl;
+ //    if( d->xbase->GetInt()){
+       CurFilterRecNo = d->GetCurRecNo();
+       return XB_NO_ERROR;
+@@ -175,7 +175,7 @@
+     if(( rc = d->xbase->ProcessExpression( e )) != XB_NO_ERROR )
+       xb_error( rc );
+ 
+-    cout << "xbfilter fix me" << endl;
++    std::cout << "xbfilter fix me" << std::endl;
+ //    if( d->xbase->GetInt()){
+       CurFilterRecNo = d->GetCurRecNo();
+       return XB_NO_ERROR;
+@@ -210,7 +210,7 @@
+   while( rc == XB_NO_ERROR ){
+     if(( rc = d->xbase->ProcessExpression( e )) != XB_NO_ERROR )
+       xb_error( rc );
+-   cout << "xbfilter fix me" << endl;
++   std::cout << "xbfilter fix me" << std::endl;
+   //  if( d->xbase->GetInt()){
+       CurFilterRecNo = d->GetCurRecNo();
+       return XB_NO_ERROR;
+--- xbase-2.0.0/xbase/dbf.h.orig	2001-01-13 20:20:53.000000000 +0000
++++ xbase-2.0.0/xbase/dbf.h	2010-02-10 22:01:45.000000000 +0000
+@@ -65,7 +65,7 @@
+ #include <xbase/xtypes.h>
+ #include <xbase/xdate.h>
+ 
+-#include <iostream.h>
++#include <iostream>
+ #include <stdio.h>
+ 
+ /*! \file dbf.h
+--- xbase-2.0.0/xbase/expfunc.cpp.orig	2000-11-07 20:31:20.000000000 +0000
++++ xbase-2.0.0/xbase/expfunc.cpp	2010-02-10 22:01:45.000000000 +0000
+@@ -58,8 +58,8 @@
+ 
+ #include <ctype.h>
+ #include <math.h>
+-#include <stdlib.h>
+-#include <string.h>
++#include <cstdlib>
++#include <cstring>
+ 
+ #include <xbase/exp.h>
+ #include <xbase/xbexcept.h>
+@@ -327,7 +327,7 @@
+       break;
+ 
+       default:
+-      cout << "\nInternal error. " << ptype;
++      std::cout << "\nInternal error. " << ptype;
+       break;
+    }
+    Push( (void *) WorkNode );
+--- xbase-2.0.0/xbase/ntx.h.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/ntx.h	2010-02-10 22:01:45.000000000 +0000
+@@ -218,7 +218,7 @@
+    xbShort  KeyExists( char * Key ) { return FindKey( Key, strlen( Key ), 0 ); }
+    xbShort  KeyExists( xbDouble );
+ 
+-   xbShort xbNtx::AllocKeyBufs(void);
++   xbShort  AllocKeyBufs(void);
+ 
+    virtual void GetExpression(char *buf, int len);
+ };
+--- xbase-2.0.0/xbase/html.h.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/html.h	2010-02-10 22:01:45.000000000 +0000
+@@ -61,8 +61,8 @@
+ #include <xbase/xbconfig.h>
+ #endif
+ 
+-#include <stdlib.h>
+-#include <string.h>
++#include <cstdlib>
++#include <cstring>
+ 
+ #include <xbase/xtypes.h>
+ 
+@@ -92,28 +92,28 @@
+    //! Short description.
+    /*!
+    */
+-   void   BoldOff( void ) { cout << "</b>\n"; };
++   void   BoldOff( void ) { std::cout << "</b>\n"; };
+    //! Short description.
+    /*!
+    */
+-   void   BoldOn( void ) { cout << "<b>"; };
++   void   BoldOn( void ) { std::cout << "<b>"; };
+    //! Short description.
+    /*!
+    */
+-   void   Bullet( void ) { cout << "<li>"; };
++   void   Bullet( void ) { std::cout << "<li>"; };
+    void   DumpArray( void );
+    //! Short description.
+    /*!
+    */
+-   void   EmphasizeOff( void ) { cout << "</em>\n"; };
++   void   EmphasizeOff( void ) { std::cout << "</em>\n"; };
+    //! Short description.
+    /*!
+    */
+-   void   EmphasizeOn( void ) { cout << "<em>"; };
++   void   EmphasizeOn( void ) { std::cout << "<em>"; };
+    //! Short description.
+    /*!
+    */
+-   void   EndHtmlPage( void ) { cout << "</BODY>\n</HTML>\n"; }
++   void   EndHtmlPage( void ) { std::cout << "</BODY>\n</HTML>\n"; }
+    xbShort  GenFormFields(xbDbf *d, xbShort Option,const char * Title,xbFieldList *fl);
+    xbShort  GetArrayNo( const char * FieldName );
+    const  char * GetCookie( const char *CookieName );
+@@ -124,47 +124,47 @@
+    //! Short description.
+    /*!
+    */
+-   void   HeaderOff( xbShort i ){ cout << "</h" << i << ">\n"; };
++   void   HeaderOff( xbShort i ){ std::cout << "</h" << i << ">\n"; };
+    //! Short description.
+    /*!
+    */
+-   void   HeaderOn( xbShort i ){ cout << "<h" << i << ">\n"; };
++   void   HeaderOn( xbShort i ){ std::cout << "<h" << i << ">\n"; };
+    //! Short description.
+    /*!
+    */
+-   void   ItalicOff( void ) { cout << "</i>\n"; };
++   void   ItalicOff( void ) { std::cout << "</i>\n"; };
+    //! Short description.
+    /*!
+    */
+-   void   ItalicOn( void ) { cout << "<i>"; };
++   void   ItalicOn( void ) { std::cout << "<i>"; };
+    //! Short description.
+    /*!
+    */
+-   void   NewLine( void ) { cout << "<br>"; }
++   void   NewLine( void ) { std::cout << "<br>"; }
+    xbShort  PostMethod( void );
+    void   PrintEncodedChar( char );
+    void   PrintEncodedString( const char *s );
+    //! Short description.
+    /*!
+    */
+-   void   PrintHtml( char * s ) { cout << s; };
++   void   PrintHtml( char * s ) { std::cout << s; };
+    //! Short description.
+    /*!
+    */
+-   void   PrintHtml( xbLong l ) { cout << l; };
++   void   PrintHtml( xbLong l ) { std::cout << l; };
+    //! Short description.
+    /*!
+    */
+-   void   PrintHtml( xbShort i ) { cout << i; };
++   void   PrintHtml( xbShort i ) { std::cout << i; };
+    //! Short description.
+    /*!
+    */
+-   void   PrintHtml( int i ) { cout << i; };
++   void   PrintHtml( int i ) { std::cout << i; };
+    void   StartHtmlPage( const char *Title );
+    //! Short description.
+    /*!
+    */
+-   void   StartTextPage( void ) { cout << "Content-type: text/plain\n\n"; }
++   void   StartTextPage( void ) { std::cout << "Content-type: text/plain\n\n"; }
+    void   TextOut( const char *String );
+    xbLong   Tally( const char *FileName );
+    xbShort  SetCookie(const char *Name, const char *Value, const char *ExpDate,
+--- xbase-2.0.0/xbase/ndx.cpp.orig	2001-03-21 00:28:53.000000000 +0000
++++ xbase-2.0.0/xbase/ndx.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -66,7 +66,7 @@
+ #endif
+ 
+ #include <xbase/xbase.h>
+-#include <iostream.h>
++#include <iostream>
+ 
+ #ifdef XB_INDEX_NDX
+ 
+@@ -74,9 +74,9 @@
+ #include <io.h>
+ #endif
+ 
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
+ 
+ #include <xbase/xbexcept.h>
+ 
+@@ -148,26 +148,26 @@
+ void xbNdx::DumpNodeChain()
+ {
+    xbNdxNodeLink  *n;
+-   cout << "\n*************************\n";
+-   cout <<   "xbNodeLinkCtr = " << xbNodeLinkCtr;
+-   cout << "\nReused      = " << ReusedxbNodeLinks << "\n";
++   std::cout << "\n*************************\n";
++   std::cout <<   "xbNodeLinkCtr = " << xbNodeLinkCtr;
++   std::cout << "\nReused      = " << ReusedxbNodeLinks << "\n";
+ 
+    n = NodeChain;
+    while(n)
+    {
+-      cout << "xbNodeLink Chain" << n->NodeNo << "\n";
++      std::cout << "xbNodeLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+    n = FreeNodeChain;
+    while(n)
+    {
+-      cout << "FreexbNodeLink Chain" << n->NodeNo << "\n";
++      std::cout << "FreexbNodeLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+    n = DeleteChain;
+    while(n)
+    {
+-      cout << "DeleteLink Chain" << n->NodeNo << "\n";
++      std::cout << "DeleteLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+ }
+@@ -226,20 +226,20 @@
+ #ifdef XBASE_DEBUG
+ void xbNdx::DumpHdrNode()
+ {
+-   cout << "\nStart node    = " << HeadNode.StartNode;
+-   cout << "\nTotal nodes   = " << HeadNode.TotalNodes;
+-   cout << "\nNo of keys    = " << HeadNode.NoOfKeys;
+-   cout << "\nKey Length    = " << HeadNode.KeyLen;
+-   cout << "\nKeys Per Node = " << HeadNode.KeysPerNode;
+-   cout << "\nKey type      = " << HeadNode.KeyType;
+-   cout << "\nKey size      = " << HeadNode.KeySize;
+-   cout << "\nUnknown 2     = " << HeadNode.Unknown2;
+-   cout << "\nUnique        = " << HeadNode.Unique;
+-   cout << "\nKeyExpression = " << HeadNode.KeyExpression;
++   std::cout << "\nStart node    = " << HeadNode.StartNode;
++   std::cout << "\nTotal nodes   = " << HeadNode.TotalNodes;
++   std::cout << "\nNo of keys    = " << HeadNode.NoOfKeys;
++   std::cout << "\nKey Length    = " << HeadNode.KeyLen;
++   std::cout << "\nKeys Per Node = " << HeadNode.KeysPerNode;
++   std::cout << "\nKey type      = " << HeadNode.KeyType;
++   std::cout << "\nKey size      = " << HeadNode.KeySize;
++   std::cout << "\nUnknown 2     = " << HeadNode.Unknown2;
++   std::cout << "\nUnique        = " << HeadNode.Unique;
++   std::cout << "\nKeyExpression = " << HeadNode.KeyExpression;
+ #ifdef XB_VAR_NODESIZE
+-   cout << "\nNodeSize      = " << NodeSize;
++   std::cout << "\nNodeSize      = " << NodeSize;
+ #endif // XB_VAR_NODESIZE
+-   cout << "\n";
++   std::cout << "\n";
+ 
+ #if 0
+    FILE * log;
+@@ -1930,7 +1930,7 @@
+    /* if not at the end of the node shift everthing to the right */
+    if( n1->CurKeyNo+1 < HeadNode.KeysPerNode )   /* this clause appears to work */
+    {
+-      if( CurNode->NodeNo == HeadNode.StartNode ) cout << "\nHead node ";
++      if( CurNode->NodeNo == HeadNode.StartNode ) std::cout << "\nHead node ";
+    
+       for( j = 0,i = n1->CurKeyNo+1; i < n1->Leaf.NoOfKeysThisNode; i++,j++ ) 
+       {
+@@ -2632,7 +2632,7 @@
+    else
+    {
+       /* this should never be true-but could be if 100 byte limit is ignored*/
+-      cout << "Fatal index error\n";
++      std::cout << "Fatal index error\n";
+       exit(0);
+    }
+    return XB_NO_ERROR;   
+@@ -2716,7 +2716,7 @@
+    while( ctr < dbf->NoOfRecords() )
+    {
+       ctr++;
+-      if( option ) cout << "\nChecking Record " << ctr;
++      if( option ) std::cout << "\nChecking Record " << ctr;
+       if(!dbf->RecordDeleted())      
+       {
+          CreateKey( 0, 0 );
+@@ -2725,8 +2725,8 @@
+          {
+             if( option )
+             {
+-               cout << "\nRecord number " << dbf->GetCurRecNo() <<  " Not Found\n";
+-               cout << "Key = " << KeyBuf << "\n";
++               std::cout << "\nRecord number " << dbf->GetCurRecNo() <<  " Not Found\n";
++               std::cout << "Key = " << KeyBuf << "\n";
+             }
+             return rc;
+          }
+@@ -2735,8 +2735,8 @@
+          return rc;
+    }
+    if( option ){
+-      cout << "\nTotal records checked = " << ctr << "\n";
+-      cout << "Exiting with rc = " << rc << "\n";
++      std::cout << "\nTotal records checked = " << ctr << "\n";
++      std::cout << "Exiting with rc = " << rc << "\n";
+    }
+ 
+    return XB_NO_ERROR;
+--- xbase-2.0.0/xbase/memo.cpp.orig	2000-11-07 20:31:20.000000000 +0000
++++ xbase-2.0.0/xbase/memo.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -56,7 +56,7 @@
+ #include <xbase/xbase.h>
+ #ifdef XB_MEMO_FIELDS
+ 
+-#include <stdio.h>
++#include <cstdio>
+ #include <xbase/xbexcept.h>
+ 
+ /*! \file memo.cpp
+@@ -1028,16 +1028,16 @@
+ void xbDbf::DumpMemoHeader( void ) const
+ {
+    xbShort i;
+-   cout << "\n*********************************";
+-   cout << "\nMemo header data...";
+-   cout << "\nNext Block " << MemoHeader.NextBlock;
++   std::cout << "\n*********************************";
++   std::cout << "\nMemo header data...";
++   std::cout << "\nNext Block " << MemoHeader.NextBlock;
+    if( IsType4Dbt() )
+    {
+-      cout << "\nFilename   ";
++      std::cout << "\nFilename   ";
+       for( i = 0; i < 8; i++ )
+-         cout << MemoHeader.FileName[i];
++         std::cout << MemoHeader.FileName[i];
+    }
+-   cout << "\nBlocksize  " << MemoHeader.BlockSize;
++   std::cout << "\nBlocksize  " << MemoHeader.BlockSize;
+    return;
+ }
+ /***********************************************************************/
+@@ -1053,16 +1053,16 @@
+       return rc;
+    LastDataBlock = CalcLastDataBlock();
+    CurBlock = MemoHeader.NextBlock;
+-   cout << "\nTotal blocks in file = " << LastDataBlock;
+-   cout << "\nHead Next Block = " << CurBlock;
++   std::cout << "\nTotal blocks in file = " << LastDataBlock;
++   std::cout << "\nHead Next Block = " << CurBlock;
+    while( CurBlock < LastDataBlock )
+    {
+       if(( rc = ReadMemoBlock( CurBlock, 2 )) != XB_NO_ERROR )
+          return rc;
+-      cout << "\n**********************************";
+-      cout << "\nThis Block = " << CurBlock;
+-      cout << "\nNext Block = " << NextFreeBlock;
+-      cout << "\nNo Of Blocks = " << FreeBlockCnt << "\n";
++      std::cout << "\n**********************************";
++      std::cout << "\nThis Block = " << CurBlock;
++      std::cout << "\nNext Block = " << NextFreeBlock;
++      std::cout << "\nNo Of Blocks = " << FreeBlockCnt << "\n";
+       CurBlock = NextFreeBlock;
+    }
+    return XB_NO_ERROR;
+@@ -1079,17 +1079,17 @@
+    if( IsType3Dbt() )
+    {
+       for( i = 0; i < 512; i++ )
+-         cout << *p++;
++         std::cout << *p++;
+    }
+    else
+    {
+-      cout << "\nField1     => " << mfield1;
+-      cout << "\nStart Pos  => " << MStartPos;
+-      cout << "\nField Len  => " << MFieldLen;
+-      cout << "\nBlock data => ";
++      std::cout << "\nField1     => " << mfield1;
++      std::cout << "\nStart Pos  => " << MStartPos;
++      std::cout << "\nField Len  => " << MFieldLen;
++      std::cout << "\nBlock data => ";
+       p += 8;
+       for( i = 8; i < MemoHeader.BlockSize; i++ )
+-         cout << *p++;
++         std::cout << *p++;
+    }
+    return;
+ }
+--- xbase-2.0.0/xbase/exp.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/exp.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -60,7 +60,7 @@
+ #include <xbase/xbase.h>
+ #ifdef XB_EXPRESSIONS
+ #include <ctype.h>
+-#include <string.h>
++#include <cstring>
+ 
+ #include <xbase/xbexcept.h>
+ 
+@@ -1027,23 +1027,23 @@
+ /*!
+ */
+ void xbExpn::DumpExpNode(xbExpNode *e) {
+-   cout << "\n\n****** Exp Node ******";
+-   cout << "\nExp Node Address " << e;
+-   cout << "  Node Text = "  << e->NodeText;
+-   cout << "\nType = "       << e->Type;
+-   cout << " Len = "         << e->Len;
+-   cout << " InTree = "      << e->InTree;
+-   cout << "\nParent = "     << e->Node;
+-   cout << "\nField No = "   << e->FieldNo;
+-   cout << "\nExpressionType = " << e->ExpressionType;
+-   cout << "\nStringResult = "     << e->StringResult;
+-   cout << " DoubResult = "  << e->DoubResult;
+-   cout << " IntResult = "   << e->IntResult;
+-   cout << " ResultLen = "   << e->ResultLen;
+-   cout << " DataLen = "     << e->DataLen;
+-   cout << " Sibling 1 = "   << e->Sibling1;
+-   cout << " Sibling 2 = "   << e->Sibling2;
+-   if( e->Sibling3 ) cout << " Sibling3 = " << e->Sibling3;
++   std::cout << "\n\n****** Exp Node ******";
++   std::cout << "\nExp Node Address " << e;
++   std::cout << "  Node Text = "  << e->NodeText;
++   std::cout << "\nType = "       << e->Type;
++   std::cout << " Len = "         << e->Len;
++   std::cout << " InTree = "      << e->InTree;
++   std::cout << "\nParent = "     << e->Node;
++   std::cout << "\nField No = "   << e->FieldNo;
++   std::cout << "\nExpressionType = " << e->ExpressionType;
++   std::cout << "\nStringResult = "     << e->StringResult;
++   std::cout << " DoubResult = "  << e->DoubResult;
++   std::cout << " IntResult = "   << e->IntResult;
++   std::cout << " ResultLen = "   << e->ResultLen;
++   std::cout << " DataLen = "     << e->DataLen;
++   std::cout << " Sibling 1 = "   << e->Sibling1;
++   std::cout << " Sibling 2 = "   << e->Sibling2;
++   if( e->Sibling3 ) std::cout << " Sibling3 = " << e->Sibling3;
+    return;
+ }
+ 
+--- xbase-2.0.0/xbase/html.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/html.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -61,9 +61,9 @@
+ 
+ #include <ctype.h>
+ #include <fcntl.h>
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
+ #include <sys/types.h>             /* BSDI BSD/OS 3.1 */
+ 
+ #include <xbase/xbexcept.h>
+@@ -78,7 +78,7 @@
+ */
+ void xbHtml::TextOut( const char * String )
+ {
+-   cout << String;
++   std::cout << String;
+ }
+ /************************************************************************/
+ //! Short description
+@@ -111,18 +111,18 @@
+ 
+    xbShort i;
+    if( NoOfDataFields == 0 )
+-      cout << "No Input Data From Form\n";
++      std::cout << "No Input Data From Form\n";
+    else
+    {
+-      cout << "There are " << NoOfDataFields << " fields";
+-      cout << "<BR>" << NoOfDataFields << " Field Name / Data Values received\n";
+-      cout << "<BR>-----------------------------------\n";
++      std::cout << "There are " << NoOfDataFields << " fields";
++      std::cout << "<BR>" << NoOfDataFields << " Field Name / Data Values received\n";
++      std::cout << "<BR>-----------------------------------\n";
+       for( i = 0; i < NoOfDataFields; i++ )
+       {
+-         cout << "<br>" << FieldNameArray[i] << " => ";
++         std::cout << "<br>" << FieldNameArray[i] << " => ";
+ //       PrintEncodedString( DataValueArray[i] );
+          if( DataValueArray[i] )
+-            cout << DataValueArray[i];
++            std::cout << DataValueArray[i];
+       }
+    }
+ }
+@@ -368,42 +368,42 @@
+    xbShort i;
+    char  buf[255];
+ 
+-   cout << "\n<TABLE>";
++   std::cout << "\n<TABLE>";
+    if( Title )
+-      cout << "\n<CAPTION ALIGN=\"TOP\">" << Title << "</CAPTION><BR>";
++      std::cout << "\n<CAPTION ALIGN=\"TOP\">" << Title << "</CAPTION><BR>";
+    
+    i = 0;
+    while( fl[i].FieldLen != 0 )
+    {
+-      cout << "\n<BR><TR><TH ALIGN=\"LEFT\">" << fl[i].Label;
++      std::cout << "\n<BR><TR><TH ALIGN=\"LEFT\">" << fl[i].Label;
+       if( fl[i].Option == 2 )
+       {
+          if( !d )
+                 xb_error(XB_NOT_OPEN);
+          d->GetField( fl[i].FieldNo, buf );
+-         cout << "<TD>" << buf;
++         std::cout << "<TD>" << buf;
+       }
+       else
+       {
+-         cout << "<TD><INPUT TEXT NAME = \"" << fl[i].FieldName << "\"";
+-         cout << " size = " << fl[i].FieldLen;
++         std::cout << "<TD><INPUT TEXT NAME = \"" << fl[i].FieldName << "\"";
++         std::cout << " size = " << fl[i].FieldLen;
+      
+          if( fl[i].Option == 1 )
+-            cout << " TYPE=\"password\" ";
++            std::cout << " TYPE=\"password\" ";
+ 
+-         cout << " value = ";
++         std::cout << " value = ";
+          if( Option == 1 )
+          {
+        if( !d )
+           xb_error(XB_NOT_OPEN);
+             d->GetField( fl[i].FieldNo, buf );
+-            cout << "\"" << buf << "\"";
++            std::cout << "\"" << buf << "\"";
+          }
+-         cout << ">";
++         std::cout << ">";
+       }  
+       i++;
+    }
+-   cout << "\n</TABLE>";
++   std::cout << "\n</TABLE>";
+    return XB_NO_ERROR;
+ }
+ /************************************************************************/
+@@ -413,8 +413,8 @@
+ */
+ void xbHtml::StartHtmlPage( const char * Title )
+ {
+-   cout << "Content-type: text/html\n\n";
+-   cout << "\n<HTML><HEAD><TITLE>" << Title << "</TITLE></HEAD><BODY>";
++   std::cout << "Content-type: text/html\n\n";
++   std::cout << "\n<HTML><HEAD><TITLE>" << Title << "</TITLE></HEAD><BODY>";
+ }
+ /************************************************************************/
+ //! Short description
+@@ -425,11 +425,11 @@
+ {
+    switch( c )
+    {
+-      case '<':  cout << "&lt;"; break;
+-      case '>':  cout << "&gt;"; break;
+-      case '&':  cout << "&amp;"; break;
+-      case '"':  cout << "&quot;"; break;
+-      default: cout << c; break;  
++      case '<':  std::cout << "&lt;"; break;
++      case '>':  std::cout << "&gt;"; break;
++      case '&':  std::cout << "&amp;"; break;
++      case '"':  std::cout << "&quot;"; break;
++      default: std::cout << c; break;  
+    }
+    return;
+ }
+@@ -467,23 +467,23 @@
+      )
+       xb_error(XB_INVALID_OPTION);
+ 
+-   cout << "\nSet-Cookie: " << Name << "=" << Value << ";";
++   std::cout << "\nSet-Cookie: " << Name << "=" << Value << ";";
+    if( ExpDate )
+    {
+-      cout << ExpDate << ";";
++      std::cout << ExpDate << ";";
+       if( ExpTime )
+-         cout << ExpTime;
++         std::cout << ExpTime;
+       else
+-         cout << "00:00:00";
+-      cout << TimeZone << ";";
++         std::cout << "00:00:00";
++      std::cout << TimeZone << ";";
+    }
+    if( Path )
+-      cout << "\nPath=" << Path << ";";
++      std::cout << "\nPath=" << Path << ";";
+    if( Domain )
+-      cout << "domain=" << Domain << ";";
++      std::cout << "domain=" << Domain << ";";
+    if( Secure )
+-      cout << "Secure";
+-   cout << "\n";
++      std::cout << "Secure";
++   std::cout << "\n";
+    return XB_NO_ERROR;
+ }
+ /************************************************************************/
+@@ -515,7 +515,7 @@
+ */
+ void xbHtml::SendRedirect( char * url ) const
+ {  
+-   cout << "Location: " << url << endl << endl; 
++   std::cout << "Location: " << url << std::endl << std::endl; 
+ }
+ /************************************************************************/
+ //! Short description
+--- xbase-2.0.0/xbase/ndx.h.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/ndx.h	2010-02-10 22:01:46.000000000 +0000
+@@ -52,10 +52,6 @@
+ #ifndef __XB_NDX_H__
+ #define __XB_NDX_H__
+ 
+-#ifdef __GNUG__
+-#pragma interface
+-#endif
+-
+ #include <xbase/xbase.h>
+ #include <string.h>
+ 
+--- xbase-2.0.0/xbase/ntx.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/ntx.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -147,26 +147,26 @@
+ void xbNtx::DumpNodeChain( void )
+ {
+    xbNodeLink  *n;
+-   cout << "\n*************************\n";
+-   cout <<   "NodeLinkCtr = " << NodeLinkCtr;
+-   cout << "\nReused      = " << ReusedNodeLinks << "\n";
++   std::cout << "\n*************************\n";
++   std::cout <<   "NodeLinkCtr = " << NodeLinkCtr;
++   std::cout << "\nReused      = " << ReusedNodeLinks << "\n";
+ 
+    n = NodeChain;
+    while(n)
+    {
+-      cout << "xbNodeLink Chain" << n->NodeNo << "\n";
++      std::cout << "xbNodeLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+    n = FreeNodeChain;
+    while(n)
+    {
+-      cout << "FreeNodeLink Chain" << n->NodeNo << "\n";
++      std::cout << "FreeNodeLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+    n = DeleteChain;
+    while(n)
+    {
+-      cout << "DeleteLink Chain" << n->NodeNo << "\n";
++      std::cout << "DeleteLink Chain" << n->NodeNo << "\n";
+       n = n->NextNode;
+    }
+ }
+@@ -249,18 +249,18 @@
+ #ifdef XBASE_DEBUG
+ void xbNtx::DumpHdrNode( void )
+ {
+-    cout << "\nSignature          = " << HeadNode.Signature;
+-    cout << "\nVersion            = " << HeadNode.Version;
+-    cout << "\nStartPahe          = " << HeadNode.StartNode;
+-    cout << "\nUnusedOffset       = " << HeadNode.UnusedOffset;
+-    cout << "\nKeySize            = " << HeadNode.KeySize;
+-    cout << "\nKeyLen             = " << HeadNode.KeyLen;
+-    cout << "\nDecimalCount       = " << HeadNode.DecimalCount;
+-    cout << "\nKeysPerNode        = " << HeadNode.KeysPerNode;
+-    cout << "\nHalfKeysPerPage    = " << HeadNode.HalfKeysPerNode;
+-    cout << "\nKeyExpression      = " << HeadNode.KeyExpression;
+-    cout << "\nUnique             = " << HeadNode.Unique;
+-    cout << "\n";
++    std::cout << "\nSignature          = " << HeadNode.Signature;
++    std::cout << "\nVersion            = " << HeadNode.Version;
++    std::cout << "\nStartPahe          = " << HeadNode.StartNode;
++    std::cout << "\nUnusedOffset       = " << HeadNode.UnusedOffset;
++    std::cout << "\nKeySize            = " << HeadNode.KeySize;
++    std::cout << "\nKeyLen             = " << HeadNode.KeyLen;
++    std::cout << "\nDecimalCount       = " << HeadNode.DecimalCount;
++    std::cout << "\nKeysPerNode        = " << HeadNode.KeysPerNode;
++    std::cout << "\nHalfKeysPerPage    = " << HeadNode.HalfKeysPerNode;
++    std::cout << "\nKeyExpression      = " << HeadNode.KeyExpression;
++    std::cout << "\nUnique             = " << HeadNode.Unique;
++    std::cout << "\n";
+ }
+ #endif
+ /***********************************************************************/
+@@ -527,11 +527,11 @@
+    GetLeafNode( n, 0 );
+    NoOfKeys = dbf->xbase->GetShort( Node );
+    p = Node + 4;        /* go past no of keys */
+-   cout << "\n--------------------------------------------------------";
+-   cout << "\nNode # " << n << " Number of keys = " << NoOfKeys << "\n";
++   std::cout << "\n--------------------------------------------------------";
++   std::cout << "\nNode # " << n << " Number of keys = " << NoOfKeys << "\n";
+ 
+-   cout << "\n Key     Left     Rec      Key";
+-   cout << "\nNumber  Branch   Number    Data";
++   std::cout << "\n Key     Left     Rec      Key";
++   std::cout << "\nNumber  Branch   Number    Data";
+ 
+    for( i = 0; i < GetKeysPerNode()+1 /*NoOfKeys*/; i++ )
+    {
+@@ -539,8 +539,8 @@
+       p+=4;
+       RecNo = dbf->xbase->GetLong( p );
+       p+=4;
+-      cout << "\n" << i << "         " << LeftBranch << "          " << RecNo << "         ";
+-      for( j = 0; j < HeadNode.KeyLen; j++ ) cout << *p++;
++      std::cout << "\n" << i << "         " << LeftBranch << "          " << RecNo << "         ";
++      for( j = 0; j < HeadNode.KeyLen; j++ ) std::cout << *p++;
+    }
+ }
+ #endif
+@@ -619,9 +619,9 @@
+ xbNtx::GetItemOffset(xbShort RecNo, xbNodeLink *n, xbShort) {
+     if (RecNo > (this->HeadNode.KeysPerNode + 1))
+     {
+-        cout << "RecNo = " << RecNo << endl;
+-        cout << "this->HeadNode.KeysPerNode = " << this->HeadNode.KeysPerNode << endl;
+-        cout << "********************* BUG ***********************" << endl;
++        std::cout << "RecNo = " << RecNo << std::endl;
++        std::cout << "this->HeadNode.KeysPerNode = " << this->HeadNode.KeysPerNode << std::endl;
++        std::cout << "********************* BUG ***********************" << std::endl;
+         // ;-)
+         exit(1);
+     }
+@@ -2465,7 +2465,7 @@
+    if( !n ) return XB_INVALID_NODELINK;
+    if( !GetDbfNo( 0, n ))
+    {
+-      cout << "Fatal index error - Not a leaf node" << n->NodeNo << "\n";
++      std::cout << "Fatal index error - Not a leaf node" << n->NodeNo << "\n";
+ //      exit(0);
+       return XB_NOT_LEAFNODE;
+    }
+@@ -2788,7 +2788,7 @@
+ //    else
+ //    {
+ //       /* this should never be true-but could be if 100 byte limit is ignored*/
+-//       cout << "Fatal index error\n";
++//       std::cout << "Fatal index error\n";
+ //       exit(0);
+ //    }
+ //    return XB_NO_ERROR;   
+@@ -3129,7 +3129,7 @@
+ //             {
+ //                 // Clipper, don't know why
+ //                 PutLeftNodeNo(0, n2 , -1 );
+-//                 cout << "Clipper hack" << endl;
++//                 std::cout << "Clipper hack" << std::endl;
+ //             }
+ 
+             DeleteKeyOffset(medianOffset, n2);
+@@ -3149,7 +3149,7 @@
+ //                 {
+ //                     // Clipper, don't know why
+ //                     PutLeftNodeNo(0, n2 , -1 );
+-//                     cout << "Clipper hack in loop i = " <<  i << endl;
++//                     std::cout << "Clipper hack in loop i = " <<  i << std::endl;
+ //                 }
+             
+                 // Remove the key from the current node.
+@@ -3181,12 +3181,12 @@
+    xbShort rc;
+    xbLong ctr = 1L;
+ 
+-   if ( option ) cout << "Checking NTX " << IndexName << endl;
++   if ( option ) std::cout << "Checking NTX " << IndexName << std::endl;
+    rc = dbf->GetRecord( ctr );
+    while( ctr < dbf->NoOfRecords() )
+    {
+       ctr++;
+-      if( option ) cout << "\nChecking Record " << ctr;
++      if( option ) std::cout << "\nChecking Record " << ctr;
+       if(!dbf->RecordDeleted())      
+       {
+          CreateKey( 0, 0 );
+@@ -3195,8 +3195,8 @@
+          {
+             if( option )
+             {
+-               cout << "\nRecord number " << dbf->GetCurRecNo() <<  " Not Found\n";
+-               cout << "Key = " << KeyBuf << "\n";
++               std::cout << "\nRecord number " << dbf->GetCurRecNo() <<  " Not Found\n";
++               std::cout << "Key = " << KeyBuf << "\n";
+             }
+             return rc;
+          }
+@@ -3207,8 +3207,8 @@
+ 
+    if( option )
+    {
+-       cout << "Exiting with rc = " << rc << "\n";
+-       cout << "\nTotal records checked = " << ctr << "\n";
++       std::cout << "Exiting with rc = " << rc << "\n";
++       std::cout << "\nTotal records checked = " << ctr << "\n";
+    }
+ 
+    return XB_NO_ERROR;
+--- xbase-2.0.0/xbase/xbstring.h.orig	2001-01-27 05:00:32.000000000 +0000
++++ xbase-2.0.0/xbase/xbstring.h	2010-02-10 22:01:46.000000000 +0000
+@@ -55,8 +55,8 @@
+ #include <xbase/xbconfig.h>
+ #endif
+ 
+-#include <stdlib.h>
+-#include <iostream.h>
++#include <cstdlib>
++#include <iostream>
+ 
+ /*! \file xbstring.h
+ */
+@@ -119,7 +119,7 @@
+   bool operator <= ( const xbString& ) const;
+   bool operator >= ( const xbString& ) const;
+ 
+-  friend ostream& operator << ( ostream&, const xbString& );
++  friend std::ostream& operator << ( std::ostream&, const xbString& );
+ 
+   xbString &remove(size_t pos = 0, int n = npos);
+   xbString mid(size_t pos = 0, int n = npos) const;
+--- xbase-2.0.0/xbase/stack.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/xbase/stack.cpp	2010-02-10 22:01:46.000000000 +0000
+@@ -57,9 +57,9 @@
+ 
+ #include <xbase/xbase.h>
+ 
+-#include <string.h>
+-#include <stdlib.h>
+-#include <iostream.h>
++#include <cstring>
++#include <cstdlib>
++#include <iostream>
+ 
+ #include <xbase/xstack.h>
+ 
+@@ -199,32 +199,32 @@
+    xbStackElement * e;
+    if( StackDepth == 0 )
+    {
+-      cout << "\nStack is empty...";
++      std::cout << "\nStack is empty...";
+       return;
+    }
+ 
+-   cout << "\nThere are " << StackDepth << " entries.";
+-   cout << "\nFirst = " << First << "  Last = " << Last;
++   std::cout << "\nThere are " << StackDepth << " entries.";
++   std::cout << "\nFirst = " << First << "  Last = " << Last;
+ 
+    e = First;
+    while( e )
+    {
+-      cout << "\n*****************************";
+-      cout << "\nThis      = " << e;
+-      cout << "\nNext      = " << e->Next;
+-      cout << "\nPrevious  = " << e->Previous;
+-      cout << "\nUser Pointer = " << e->UserPtr;
++      std::cout << "\n*****************************";
++      std::cout << "\nThis      = " << e;
++      std::cout << "\nNext      = " << e->Next;
++      std::cout << "\nPrevious  = " << e->Previous;
++      std::cout << "\nUser Pointer = " << e->UserPtr;
+       e = e->Next;
+    }
+-   cout << "\nFree list follows...";
++   std::cout << "\nFree list follows...";
+    e = Free;
+    while( e )
+    {
+-      cout << "\n*****************************";
+-      cout << "\nThis      = " << e;
+-      cout << "\nNext      = " << e->Next;
+-      cout << "\nPrevious  = " << e->Previous;
+-      cout << "\nUser Pointer = " << e->UserPtr;
++      std::cout << "\n*****************************";
++      std::cout << "\nThis      = " << e;
++      std::cout << "\nNext      = " << e->Next;
++      std::cout << "\nPrevious  = " << e->Previous;
++      std::cout << "\nUser Pointer = " << e->UserPtr;
+       e = e->Next;
+    }
+    return;
+--- xbase-2.0.0/examples/sample2.cpp.orig	2000-11-10 19:40:16.000000000 +0000
++++ xbase-2.0.0/examples/sample2.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -55,7 +55,7 @@
+ 
+ /* set the stack large for dos compiles */
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -75,15 +75,15 @@
+ 
+ 
+   if(( rc = MyFile.OpenDatabase( "MYFILE.DBF" )) != XB_NO_ERROR )
+-     cout << "\nError opening MYFILE.DBF rc=" << rc;
++     std::cout << "\nError opening MYFILE.DBF rc=" << rc;
+   if(( rc = MyIndex1.OpenIndex( "MYINDEX1.NDX" )) != XB_NO_ERROR )
+-     cout << "\nError opening index1 rc=" << rc;
++     std::cout << "\nError opening index1 rc=" << rc;
+   if(( rc = MyIndex2.OpenIndex( "MYINDEX2.NDX" )) != XB_NO_ERROR )
+-     cout << "\nError opening index2 rc=" << rc;
++     std::cout << "\nError opening index2 rc=" << rc;
+   if(( rc = MyIndex3.OpenIndex( "MYINDEX3.NDX" )) != XB_NO_ERROR )
+-     cout << "\nError opening index3 rc=" << rc;
++     std::cout << "\nError opening index3 rc=" << rc;
+   if(( rc = MyIndex4.OpenIndex( "MYINDEX4.NDX" )) != XB_NO_ERROR )
+-     cout << "\nError opening index4 rc=" << rc;
++     std::cout << "\nError opening index4 rc=" << rc;
+ 
+   lname     = MyFile.GetFieldNo( "LASTNAME" );
+   fname     = MyFile.GetFieldNo( "FIRSTNAME" ); 
+@@ -97,19 +97,19 @@
+   m1        = MyFile.GetFieldNo( "MEMO1" );
+   z         = MyFile.GetFieldNo( "ZIPCODE" );
+ 
+-  cout << "\nLast Name Id  = " << lname;
+-  cout << "\nFirst Name Id = " << fname;
+-  cout << "\nBirthdate Id  = " << birthdate;
+-  cout << "\nAmount Id     = " << amount;
+-  cout << "\nSwitch Id     = " << sw;
+-  cout << "\nFloat 1 Id    = " << f1;  
+-  cout << "\nFloat 2 Id    = " << f2;
+-  cout << "\nFloat 3 Id    = " << f3;
+-  cout << "\nFloat 4 Id    = " << f4;
++  std::cout << "\nLast Name Id  = " << lname;
++  std::cout << "\nFirst Name Id = " << fname;
++  std::cout << "\nBirthdate Id  = " << birthdate;
++  std::cout << "\nAmount Id     = " << amount;
++  std::cout << "\nSwitch Id     = " << sw;
++  std::cout << "\nFloat 1 Id    = " << f1;  
++  std::cout << "\nFloat 2 Id    = " << f2;
++  std::cout << "\nFloat 3 Id    = " << f3;
++  std::cout << "\nFloat 4 Id    = " << f4;
+ #ifdef XB_MEMO_FIELDS
+-  cout << "\nMemo1 Id      = " << m1;
++  std::cout << "\nMemo1 Id      = " << m1;
+ #endif
+-  cout << "\nZipcode Id    = " << z << "\n";
++  std::cout << "\nZipcode Id    = " << z << "\n";
+ 
+   /* build record one */
+   MyFile.BlankRecord();			/* blank out the record buffer */
+@@ -125,7 +125,7 @@
+   MyFile.PutField( f4, "1" );
+   MyFile.PutField( z, "76262" );
+   if(( rc = MyFile.AppendRecord()) != XB_NO_ERROR )       /* write it */
+-     cout << "\nError " << rc << " appending data record.";
++     std::cout << "\nError " << rc << " appending data record.";
+ 
+   /* build record two */
+   MyFile.BlankRecord();			/* blank out the record buffer */
+@@ -146,7 +146,7 @@
+   MyFile.UpdateMemoData( m1, 20, "Sample memo field 2", F_SETLKW );
+ #endif
+   if(( rc = MyFile.AppendRecord()) != XB_NO_ERROR )       /* write it */
+-     cout << "\nError " << rc << " appending data record.";
++     std::cout << "\nError " << rc << " appending data record.";
+ 
+   /* build record three */
+   MyFile.BlankRecord();			/* blank out the record buffer */
+@@ -167,7 +167,7 @@
+   MyFile.UpdateMemoData( m1, 20, "Sample memo field 3", F_SETLKW );
+ #endif
+   if(( rc = MyFile.AppendRecord()) != XB_NO_ERROR )       /* write it */
+-     cout << "\nError " << rc << " appending data record.";
++     std::cout << "\nError " << rc << " appending data record.";
+ 
+   /* build record four */
+   MyFile.BlankRecord();			/* blank out the record buffer */
+@@ -188,7 +188,7 @@
+   MyFile.UpdateMemoData( m1, 20, "Sample memo field 4", F_SETLKW );
+ #endif
+   if(( rc = MyFile.AppendRecord()) != XB_NO_ERROR )       /* write it */
+-     cout << "\nError " << rc << " appending data record.";
++     std::cout << "\nError " << rc << " appending data record.";
+ 
+   MyFile.CloseDatabase();				/* close database */
+   return 0;
+--- xbase-2.0.0/examples/sample3.cpp.orig	2000-09-27 18:25:08.000000000 +0100
++++ xbase-2.0.0/examples/sample3.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -56,7 +56,7 @@
+ 
+ /* set the stack large for dos compiles */
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -81,66 +81,66 @@
+   f1        = MyFile.GetFieldNo( "FLOAT1" );
+   memo      = MyFile.GetFieldNo( "MEMO1" );
+ 
+-  cout << "\nThere are " << MyFile.FieldCount() << " fields in the file";
++  std::cout << "\nThere are " << MyFile.FieldCount() << " fields in the file";
+   recs = MyFile.NoOfRecords();
+-  cout << "There are " << recs << " records in the file." << endl;  
++  std::cout << "There are " << recs << " records in the file." << std::endl;  
+ 
+-  cout << "\nLASTNAME   is type: " << MyFile.GetFieldType( lname )
++  std::cout << "\nLASTNAME   is type: " << MyFile.GetFieldType( lname )
+    << " length: " << MyFile.GetFieldLen( lname );
+-  cout << "\nFIRSTNAME  is type: " << MyFile.GetFieldType( fname )
++  std::cout << "\nFIRSTNAME  is type: " << MyFile.GetFieldType( fname )
+    << " length: " << MyFile.GetFieldLen( fname );
+-  cout << "\nBIRTHDATE  is type: " << MyFile.GetFieldType( birthdate )
++  std::cout << "\nBIRTHDATE  is type: " << MyFile.GetFieldType( birthdate )
+    << " length: " << MyFile.GetFieldLen( birthdate );
+-  cout << "\nAMOUNT     is type: " << MyFile.GetFieldType( amount )
++  std::cout << "\nAMOUNT     is type: " << MyFile.GetFieldType( amount )
+    << " length: " << MyFile.GetFieldLen( amount );
+-  cout << "\nSWITCH     is type: " << MyFile.GetFieldType( sw )
++  std::cout << "\nSWITCH     is type: " << MyFile.GetFieldType( sw )
+    << " length: " << MyFile.GetFieldLen( sw ) << "\n\n";
+ 
+-  cout << "Sample GetRecord" << endl; 
++  std::cout << "Sample GetRecord" << std::endl; 
+   MyFile.GetRecord( 1L );
+   MyFile.GetField( lname, buf );  
+-  cout << "Name 1 = " << buf << endl;
+-  cout << "Name 1 = " << MyFile.GetStringField( lname ) << endl;
++  std::cout << "Name 1 = " << buf << std::endl;
++  std::cout << "Name 1 = " << MyFile.GetStringField( lname ) << std::endl;
+ 
+   f = MyFile.GetFloatField( f1 );
+-  cout << "FLOAT1 = " << f << endl;
++  std::cout << "FLOAT1 = " << f << std::endl;
+   f = MyFile.GetFloatField( "FLOAT2" );
+-  cout << "FLOAT2 = " << f << endl;
++  std::cout << "FLOAT2 = " << f << std::endl;
+ 
+-  cout << "Sample GetRecordBuf" << endl; 
++  std::cout << "Sample GetRecordBuf" << std::endl; 
+   p = MyFile.GetRecordBuf();			/* pointer to record buffer */
+-  for( i = 0; i < 49; i++ ) cout << *p++;	/* display the buffer */
++  for( i = 0; i < 49; i++ ) std::cout << *p++;	/* display the buffer */
+ 
+-  cout << "\n\nLoop through forwards..." << endl;
++  std::cout << "\n\nLoop through forwards..." << std::endl;
+   rc = MyFile.GetFirstRecord(); 
+   while( rc == XB_NO_ERROR )
+   {
+     MyFile.GetField( lname, buf );  
+-    cout << MyFile.GetCurRecNo();
+-    cout << " Name = " << buf << endl;
++    std::cout << MyFile.GetCurRecNo();
++    std::cout << " Name = " << buf << std::endl;
+     rc = MyFile.GetNextRecord();
+ #ifdef XB_MEMO_FIELDS
+     if( MyFile.MemoFieldExists( memo ))
+-     cout << "Memo field MEMO1 len = " << MyFile.GetMemoFieldLen(memo) << endl;
++     std::cout << "Memo field MEMO1 len = " << MyFile.GetMemoFieldLen(memo) << std::endl;
+ #endif
+   }
+ 
+-  cout << "\n\nSample PutRecord" << endl << endl;
++  std::cout << "\n\nSample PutRecord" << std::endl << std::endl;
+   MyFile.PutField( lname, "Stantonbob" );
+   MyFile.PutField( lname, "Sally" );
+   MyFile.PutRecord( MyFile.GetCurRecNo() );
+ 
+-  cout << "\nLoop through backwards.." << endl;
++  std::cout << "\nLoop through backwards.." << std::endl;
+   rc = MyFile.GetLastRecord(); 
+   while( rc == XB_NO_ERROR )
+   {
+ //    MyFile.GetField( lname, buf );  
+-    cout << "Last Name = " << MyFile.GetStringField( lname ) << endl;
+-    cout << "Logical Field = " << MyFile.GetLogicalField( "SWITCH" ) << endl;
++    std::cout << "Last Name = " << MyFile.GetStringField( lname ) << std::endl;
++    std::cout << "Logical Field = " << MyFile.GetLogicalField( "SWITCH" ) << std::endl;
+     rc = MyFile.GetPrevRecord();
+   }
+ 
+-  cout << endl;
++  std::cout << std::endl;
+   MyFile.CloseDatabase();				/* close database */
+   return 0;
+ }     
+--- xbase-2.0.0/examples/sample5.cpp.orig	2000-09-27 18:25:08.000000000 +0100
++++ xbase-2.0.0/examples/sample5.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -47,7 +47,7 @@
+ 
+ /* set the stack large for dos compiles */
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -62,37 +62,37 @@
+    xbNdx i4( &d );
+ 
+    rc = d.OpenDatabase( "MYFILE" );
+-   cout << "OpenDatabase rc = " << rc << "\n";
++   std::cout << "OpenDatabase rc = " << rc << "\n";
+ 
+    rc = i1.OpenIndex( "MYINDEX1" );
+-   cout << "OpenIndex 1 rc = " << rc << "\n";
++   std::cout << "OpenIndex 1 rc = " << rc << "\n";
+ 
+    rc = i2.OpenIndex( "MYINDEX2" );
+-   cout << "OpenIndex 2 rc = " << rc << "\n";
++   std::cout << "OpenIndex 2 rc = " << rc << "\n";
+ 
+    rc = i3.OpenIndex( "MYINDEX3" );
+-   cout << "OpenIndex 3 rc = " << rc << "\n";
++   std::cout << "OpenIndex 3 rc = " << rc << "\n";
+ 
+    rc = i4.OpenIndex( "MYINDEX4" );
+-   cout << "OpenIndex 4 rc = " << rc << "\n";
++   std::cout << "OpenIndex 4 rc = " << rc << "\n";
+ 
+    rc = i1.FindKey( "Queue" );			/* alpha search   */
+-   cout << "Find Key rc = " << rc << "\n";
++   std::cout << "Find Key rc = " << rc << "\n";
+ 
+    rc = i4.FindKey( (xbDouble) 77.77 );		/* numeric search */
+-   cout << "Find Key rc = " << rc << "\n";
++   std::cout << "Find Key rc = " << rc << "\n";
+ 
+    rc = i1.GetFirstKey();
+-   cout << "GetFirstKey rc = " << rc << "\n";
++   std::cout << "GetFirstKey rc = " << rc << "\n";
+ 
+    rc = i1.GetNextKey();
+-   cout << "GetNextKey rc = " << rc << "\n";
++   std::cout << "GetNextKey rc = " << rc << "\n";
+ 
+    rc = i1.GetLastKey();
+-   cout << "GetLastKey rc = " << rc << "\n";
++   std::cout << "GetLastKey rc = " << rc << "\n";
+ 
+    rc = i1.GetPrevKey();
+-   cout << "GetPrevKey rc = " << rc << "\n";
++   std::cout << "GetPrevKey rc = " << rc << "\n";
+ 
+    d.CloseDatabase();
+    return 0;
+--- xbase-2.0.0/examples/exfilter.cpp.orig	2000-09-27 18:25:08.000000000 +0100
++++ xbase-2.0.0/examples/exfilter.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -59,15 +59,15 @@
+   xbDbf d( &x );
+   xbNdx i( &d );
+ 
+-  cout << "exfilter program executing" << endl;
++  std::cout << "exfilter program executing" << std::endl;
+ 
+   if(( rc = d.OpenDatabase( "MYFILE.DBF" )) != XB_NO_ERROR ){
+-    cout << "Error opening database" << endl;
++    std::cout << "Error opening database" << std::endl;
+     return 1;
+   }
+ 
+   if(( rc = i.OpenIndex( "MYINDEX1.NDX" )) != XB_NO_ERROR ){
+-    cout << "Error opening index" << endl;
++    std::cout << "Error opening index" << std::endl;
+     return 2;
+   }
+ 
+@@ -75,7 +75,7 @@
+   /* use filter 1 w/o index */
+   rc = f1.GetFirstFilterRec();
+   while( rc == XB_NO_ERROR ){
+-    cout << "Filter 1 Found Record " << d.GetCurRecNo() << endl;
++    std::cout << "Filter 1 Found Record " << d.GetCurRecNo() << std::endl;
+     rc = f1.GetNextFilterRec();
+   }
+   xbFilter f2( &d, &i, "FLOAT1>1" );
+@@ -83,12 +83,12 @@
+   rc = f2.GetLastFilterRec();
+ 
+   while( rc == XB_NO_ERROR ){
+-    cout << "Filter 2 Found Record " << d.GetCurRecNo() << endl;
++    std::cout << "Filter 2 Found Record " << d.GetCurRecNo() << std::endl;
+     rc = f2.GetPrevFilterRec();
+   }
+   d.CloseDatabase();
+ #else
+-  cout << "XB_FILTERS not compiled into library" << endl;
++  std::cout << "XB_FILTERS not compiled into library" << std::endl;
+ #endif  
+ 
+   return 0;
+--- xbase-2.0.0/examples/sample4.cpp.orig	2000-09-27 18:25:08.000000000 +0100
++++ xbase-2.0.0/examples/sample4.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -52,7 +52,7 @@
+ #include <xbase/xbase.h>
+ 
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -68,33 +68,33 @@
+ 
+   if(( rc = MyFile.OpenDatabase( "MYFILE.DBF" )) != XB_NO_ERROR )
+   {
+-     cout << "\nError opening file rc = " << rc << "\n";
++     std::cout << "\nError opening file rc = " << rc << "\n";
+      exit(1);
+   }
+   if(( rc = MyIndex1.OpenIndex( "MYINDEX1.NDX" )) != XB_NO_ERROR )
+   {
+-     cout << "\nError opening index1 rc = " << rc << "\n";
++     std::cout << "\nError opening index1 rc = " << rc << "\n";
+      exit(1);
+   }
+ 
+   if(( rc = MyIndex2.OpenIndex( "MYINDEX2.NDX" )) != XB_NO_ERROR )
+   {
+-     cout << "\nError opening index2 rc = " << rc << "\n";
++     std::cout << "\nError opening index2 rc = " << rc << "\n";
+      exit(1);
+   }
+   if(( rc = MyIndex3.OpenIndex( "MYINDEX3.NDX" )) != XB_NO_ERROR )
+   {
+-     cout << "\nError opening index3 rc = " << rc << "\n";
++     std::cout << "\nError opening index3 rc = " << rc << "\n";
+      exit(1);
+   }
+   if(( rc = MyIndex4.OpenIndex( "MYINDEX4.NDX" )) != XB_NO_ERROR )
+   {
+-     cout << "\nError opening index4 rc = " << rc << "\n";
++     std::cout << "\nError opening index4 rc = " << rc << "\n";
+      exit(1);
+   }
+ 
+ 
+-  cout << "Sample GetRecord\n"; 
++  std::cout << "Sample GetRecord\n"; 
+ 
+   MyFile.ExclusiveLock( F_SETLKW ); /* lock the files for our exclusive use */
+ 
+@@ -103,26 +103,26 @@
+   MyFile.DeleteRecord();
+   
+   if( MyFile.RecordDeleted() )
+-    cout << "Record is deleted...\n";
++    std::cout << "Record is deleted...\n";
+   else 
+-    cout << "Record is not deleted...\n";
++    std::cout << "Record is not deleted...\n";
+ 
+ 
+ /* to undelete a record the following commented code could be used
+ 
+   MyFile.UndeleteRecord();
+   if( MyFile.RecordDeleted() )
+-     cout << "Record is deleted...\n";
++     std::cout << "Record is deleted...\n";
+   else 
+-    cout << "Record is not deleted...\n";
++    std::cout << "Record is not deleted...\n";
+ */
+ 
+ /* to permanently remove deleted records from the file, pack the database */
+ 
+    if(( rc = MyFile.PackDatabase( F_SETLKW )) != XB_NO_ERROR )
+-      cout << "\nError packing database rc = " << rc;
++      std::cout << "\nError packing database rc = " << rc;
+    else
+-      cout << "\nDatabase packed.\n";
++      std::cout << "\nDatabase packed.\n";
+ 
+   MyFile.ExclusiveUnlock();     /* unlock the files */
+   MyFile.CloseDatabase();	/* close database */
+--- xbase-2.0.0/examples/sample1.cpp.orig	2000-09-27 18:25:08.000000000 +0100
++++ xbase-2.0.0/examples/sample1.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -49,7 +49,7 @@
+ 
+ /* set the stack large for dos compiles */
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -86,29 +86,29 @@
+ 
+   if(( rc = MyFile.CreateDatabase( "MYFILE.DBF", MyRecord, XB_OVERLAY )) 
+         != XB_NO_ERROR )
+-     cout << "\nError creating database = " << rc << "\n";
++     std::cout << "\nError creating database = " << rc << "\n";
+   else
+   {
+      /* define a simple index */
+ 
+      if(( rc = MyIndex1.CreateIndex( 
+        "MYINDEX1.NDX", "LASTNAME", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+-        cout << "\nError creating index 1 = " << rc << "\n";
++        std::cout << "\nError creating index 1 = " << rc << "\n";
+ 
+      /* define a multi-field index "LASTNAME            FIRSTNAME" */
+      if(( rc = MyIndex2.CreateIndex( 
+        "MYINDEX2.NDX", "LASTNAME+FIRSTNAME", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+-        cout << "\nError creating index 2 = " << rc << "\n";
++        std::cout << "\nError creating index 2 = " << rc << "\n";
+ 
+      /* define a multi-field index "LASTNAMEFIRSTNAME" */
+      if(( rc = MyIndex3.CreateIndex( 
+        "MYINDEX3.NDX", "LASTNAME-FIRSTNAME", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+-        cout << "\nError creating index 3 = " << rc << "\n";
++        std::cout << "\nError creating index 3 = " << rc << "\n";
+ 
+      /* define a numeric index "ZIPCODE" */
+      if(( rc = MyIndex4.CreateIndex( 
+        "MYINDEX4.NDX", "ZIPCODE", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+-        cout << "\nError creating index 4 = " << rc << "\n";
++        std::cout << "\nError creating index 4 = " << rc << "\n";
+   }
+ 
+   MyFile.CloseDatabase();   /* Close database and associated indexes */
+--- xbase-2.0.0/bin/checkndx.cpp.orig	2000-12-18 17:58:52.000000000 +0000
++++ xbase-2.0.0/bin/checkndx.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -54,32 +54,32 @@
+    xbShort rc;
+ 
+    if( 3 != ac ){
+-     cout <<
++     std::cout <<
+        "\nUsage: checkndx dbf_file index_file\n";
+        return 1;
+    }
+ 
+    if(( rc = d.OpenDatabase( av[1] )) != XB_NO_ERROR )
+    {
+-      cout << "\nCould not open file " << av[1] << " rc = " << rc << "\n";
++      std::cout << "\nCould not open file " << av[1] << " rc = " << rc << "\n";
+       return 2;
+    }
+ 
+    if(( rc = i.OpenIndex( av[2] )) != XB_NO_ERROR )
+    {
+-      cout << "\nCould not open file " << av[2] << " rc = " << rc << "\n";
++      std::cout << "\nCould not open file " << av[2] << " rc = " << rc << "\n";
+       return 3;
+    }
+ 
+-   cout << "\nRunning...\n";
++   std::cout << "\nRunning...\n";
+    rc = i.CheckIndexIntegrity( 1 );
+-   cout << "\nNdx integrity check = " << rc << "\n";
++   std::cout << "\nNdx integrity check = " << rc << "\n";
+ 
+    i.DumpHdrNode();
+ 
+    d.CloseDatabase();
+ #else
+-   cout << "\nXBASE_DEBUG is not compiled in\n";
++   std::cout << "\nXBASE_DEBUG is not compiled in\n";
+ #endif
+    return 0;
+ }
+--- xbase-2.0.0/bin/dbfxtrct.cpp.orig	2000-11-10 19:04:17.000000000 +0000
++++ xbase-2.0.0/bin/dbfxtrct.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -51,14 +51,14 @@
+ void Usage();
+ void Usage()
+ {
+-  cout << "\nUsage: dbfxtrct -iDATABASE.DBF -sINDEX.N[TD]X -f -F -dMM/DD/YY\n";
+-  cout << "\nWhere DATABASE.DBF is the name of the database file to dump\n";
+-  cout << "INDEX.NTX or .NDX is an optional index sort paramater\n";
+-  cout << "-f  optional field name list in first record\n";
+-  cout << "-F  optional field name and attributes in first record\n";
+-  cout << "MM/DD/YY is an optional output date format for any date fields\n";
+-  cout << "\nThis program creates output suitable for awk and perl scripts\n";
+-  cout << "\nThis program does not support memo fields (yet).\n";
++  std::cout << "\nUsage: dbfxtrct -iDATABASE.DBF -sINDEX.N[TD]X -f -F -dMM/DD/YY\n";
++  std::cout << "\nWhere DATABASE.DBF is the name of the database file to dump\n";
++  std::cout << "INDEX.NTX or .NDX is an optional index sort paramater\n";
++  std::cout << "-f  optional field name list in first record\n";
++  std::cout << "-F  optional field name and attributes in first record\n";
++  std::cout << "MM/DD/YY is an optional output date format for any date fields\n";
++  std::cout << "\nThis program creates output suitable for awk and perl scripts\n";
++  std::cout << "\nThis program does not support memo fields (yet).\n";
+ }
+ /*************************************************************************/
+ int main(int ac,char** av)
+@@ -86,7 +86,7 @@
+   {
+     p = av[i];
+     if( *p != '-' ){
+-      cout << "Invalid paramater " << *p << endl;
++      std::cout << "Invalid paramater " << *p << std::endl;
+       Usage();
+       return 1;
+     }
+@@ -102,7 +102,7 @@
+     else if( *p == 'd' )
+       x.SetDefaultDateFormat( ++p );
+     else{
+-      cout << "Invalid paramater " << *p << endl;
++      std::cout << "Invalid paramater " << *p << std::endl;
+       Usage();
+       return 1;
+     }
+@@ -119,7 +119,7 @@
+ 
+    if(( rc = d.OpenDatabase( dbfname )) != XB_NO_ERROR )
+    {
+-      cout << "\nCould not open file " << dbfname << " rc = " << rc << "\n";
++      std::cout << "\nCould not open file " << dbfname << " rc = " << rc << "\n";
+       return 2;
+    }
+ 
+@@ -137,12 +137,12 @@
+        ix = new xbNdx( &d );
+ #endif
+      if( !ix ){
+-       cout << "Unknown index type. .NTX and .NDX index file support only\n";
++       std::cout << "Unknown index type. .NTX and .NDX index file support only\n";
+        return 3;
+      }
+      if(( rc = ix->OpenIndex( ixname )) != XB_NO_ERROR )
+      {
+-       cout << "\nCould not open index " << ixname << " rc = " << rc << "\n";
++       std::cout << "\nCould not open index " << ixname << " rc = " << rc << "\n";
+        return 4;
+      }
+    }
+@@ -151,14 +151,14 @@
+ /*  if -f or -F paramater, dump the header information */
+   if( FieldOption ){
+     for( xbLong l = 0; l < d.FieldCount(); l++ ){
+-      if( l ) cout << ",";
+-      cout << d.GetFieldName(l);
++      if( l ) std::cout << ",";
++      std::cout << d.GetFieldName(l);
+       if( FieldOption == 2 ){
+-        cout << "|" << d.GetFieldType(l) << "|" << d.GetFieldLen(l);
+-	cout << "|" << d.GetFieldDecimal(l);
++        std::cout << "|" << d.GetFieldType(l) << "|" << d.GetFieldLen(l);
++	std::cout << "|" << d.GetFieldDecimal(l);
+       }
+     }
+-    cout << endl;
++    std::cout << std::endl;
+   }
+ 
+ /*  if an index used, then loop thru each record, based on index, else
+@@ -170,18 +170,18 @@
+     
+   while( rc == XB_NO_ERROR ){
+     for( xbLong l = 0; l < d.FieldCount(); l++ ){
+-      if( l ) cout << ",";
++      if( l ) std::cout << ",";
+       strcpy( buf, x.LTRIM( d.GetStringField( l )));
+       if( d.GetFieldType( l ) == 'D' )
+-        cout << x.DTOC( buf );
++        std::cout << x.DTOC( buf );
+       else
+-        cout << x.TRIM( buf );
++        std::cout << x.TRIM( buf );
+     }
+     if( ixname )
+       rc = ix->GetNextKey();
+     else
+       rc = d.GetNextRecord();
+-    cout << endl;
++    std::cout << std::endl;
+   }
+ 
+ /*  close everything */
+--- xbase-2.0.0/bin/zap.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/zap.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -48,7 +48,7 @@
+ int main(int ac,char** av)
+ {
+    if (ac <= 1) {
+-       cout << 
++       std::cout << 
+            "\nUsage: zap filename...\n"
+            "\nThis program does not automatically reindex any indices."
+            "\nUse the reindex program to reindex any indexes associated"
+@@ -66,18 +66,18 @@
+    xbDbf MyFile( &x );
+ 
+        if( MyFile.OpenDatabase( filename )) {
+-      cout << "Could not open file " << filename << "\n";
++      std::cout << "Could not open file " << filename << "\n";
+       return 0;
+    }
+ 
+        xbShort rc = MyFile.Zap( F_SETLKW );
+        if( rc != XB_NO_ERROR ) {
+-      cout << "\nError zapping database ==> " << filename;
+-      cout << " Return Code = " << rc;
++      std::cout << "\nError zapping database ==> " << filename;
++      std::cout << " Return Code = " << rc;
+    }
+    MyFile.CloseDatabase();	/* close database */
+ 
+-   cout << "\nZap Database complete...\n\n";
++   std::cout << "\nZap Database complete...\n\n";
+    }
+ 
+    return 0;
+--- xbase-2.0.0/bin/undelall.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/undelall.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -48,7 +48,7 @@
+ int main(int ac,char** av)
+ {
+     if (ac <= 1) {
+-        cout << 
++        std::cout << 
+             "\nUsage: undelall filename...\n"
+             "\nThis program does not automatically reindex any NDX indexes."
+             "\nUse the reindex program to reindex any indexes associated"
+@@ -66,18 +66,18 @@
+    xbDbf MyFile( &x );
+ 
+         if( MyFile.OpenDatabase( filename )) {
+-      cout << "Could not open file " << filename << "\n";
++      std::cout << "Could not open file " << filename << "\n";
+       return 0;
+    }
+ 
+         xbShort rc = MyFile.UndeleteAllRecords();
+         if( rc != XB_NO_ERROR ) {
+-      cout << "\nError undeleting records - database ==> " << filename;
+-      cout << " Return Code = " << rc;
++      std::cout << "\nError undeleting records - database ==> " << filename;
++      std::cout << " Return Code = " << rc;
+    }
+    MyFile.CloseDatabase();	/* close database */
+ 
+-   cout << "\nUndelete all records complete...\n\n";
++   std::cout << "\nUndelete all records complete...\n\n";
+     }
+     return 0;
+ }     
+--- xbase-2.0.0/bin/packdbf.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/packdbf.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -49,7 +49,7 @@
+ int main(int ac,char** av)
+ {
+     if (ac <= 1) {
+-        cout <<
++        std::cout <<
+             "\nUsage: packdbf filename...\n"
+             "\nThis program does not automatically reindex any NDX indexes."
+             "\nUse the reindex program to reindex any indexes associated"
+@@ -67,18 +67,18 @@
+    xbDbf MyFile( &x );
+ 
+         if( MyFile.OpenDatabase( filename )) {
+-      cout << "Could not open file " << filename << "\n";
++      std::cout << "Could not open file " << filename << "\n";
+             return 1;
+    }
+ 
+         xbShort rc = MyFile.PackDatabase( F_SETLKW );
+         if( rc != XB_NO_ERROR ) {
+-      cout << "\nError packing database ==> " << filename;
+-      cout << " Return Code = " << rc;
++      std::cout << "\nError packing database ==> " << filename;
++      std::cout << " Return Code = " << rc;
+    }
+    MyFile.CloseDatabase();	/* close database */
+ 
+-   cout << "\nPack Database complete...\n\n";
++   std::cout << "\nPack Database complete...\n\n";
+     }
+ 
+     return 0;
+--- xbase-2.0.0/bin/dumphdr.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/dumphdr.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -54,7 +54,7 @@
+   xbXBase x;
+ 
+   if( ac <= 1 ) {
+-    cout << "\nUsage: dumphdr filename...\n";
++    std::cout << "\nUsage: dumphdr filename...\n";
+     return 1;
+   }
+   for( int i = 1; i < ac; ++i ){
+@@ -63,14 +63,14 @@
+  
+     if(( rc =  MyFile.OpenDatabase( filename )) != 0 )
+     {
+-     cout << "Could not open file rc = " << rc  << " file = " << filename << "\n";
++     std::cout << "Could not open file rc = " << rc  << " file = " << filename << "\n";
+      return 0;
+     }
+     MyFile.DumpHeader( 3 );
+     MyFile.CloseDatabase();
+   }
+ #else
+-  cout << "\nXBASE_DEBUG is not compiled in\n";
++  std::cout << "\nXBASE_DEBUG is not compiled in\n";
+ #endif
+   return 0;
+ }     
+--- xbase-2.0.0/bin/reindex.cpp.orig	2001-01-27 04:58:47.000000000 +0000
++++ xbase-2.0.0/bin/reindex.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -57,7 +57,7 @@
+ int main(int ac,char** av)
+ {
+     if (3 != ac) {
+-        cout << 
++        std::cout << 
+             "\nUsage: reindex dbf_file ndx_file\n"
+             ;
+         return 1;
+@@ -71,26 +71,26 @@
+    xbNdx MyIndex( &MyFile );
+ 
+     if( MyFile.OpenDatabase( filename )) {
+-      cout << "Could not open file " << filename << "\n";
++      std::cout << "Could not open file " << filename << "\n";
+       return 0;
+    }
+     if( MyIndex.OpenIndex( filename2 )) {
+-      cout << "Could not open index file " << filename2 << "\n";
++      std::cout << "Could not open index file " << filename2 << "\n";
+       return 0;
+    }
+ 
+     xbShort rc = MyIndex.ReIndex(showStatus);
+     printf("\n");
+     if( rc != XB_NO_ERROR ) {
+-      cout << "\nError reindexing index ==> " << filename2;
+-      cout << " Return Code = " << rc;
++      std::cout << "\nError reindexing index ==> " << filename2;
++      std::cout << " Return Code = " << rc;
+    }
+ 
+     /* or
+    if(( rc = MyFile.RebuildAllIndicis()) != XB_NO_ERROR ) 
+    {
+-      cout << "\nError reindexing...";
+-      cout << "\nReturn Code = " << rc;
++      std::cout << "\nError reindexing...";
++      std::cout << "\nReturn Code = " << rc;
+    }
+     */
+    MyFile.CloseDatabase();	/* close database */
+--- xbase-2.0.0/bin/copydbf.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/copydbf.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -47,7 +47,7 @@
+ int main(int ac,char** av)
+ {
+    if (3 != ac) {
+-      cout <<
++      std::cout <<
+          "\nUsage: copydbf filename1 filename2\n"
+          "This program copies the structure of one dbf file to another\n";
+         return 1;
+@@ -61,7 +61,7 @@
+ 
+     xbShort rc = MyFile.OpenDatabase( sfilename );
+     if( rc != XB_NO_ERROR ) {
+-      cout << "Could not open file " << sfilename << " Error = " << rc << "\n";
++      std::cout << "Could not open file " << sfilename << " Error = " << rc << "\n";
+         return 2;
+    }
+ 
+@@ -70,7 +70,7 @@
+ 
+    if(( rc = MyFile.CopyDbfStructure( tfilename, OverlaySwitch )) != XB_NO_ERROR )
+    {
+-      cout << "Could not copy file " << tfilename << " Error = " << rc << "\n";
++      std::cout << "Could not copy file " << tfilename << " Error = " << rc << "\n";
+       return 3;
+    }
+ 
+--- xbase-2.0.0/bin/dumprecs.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/dumprecs.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -55,7 +55,7 @@
+ int main(int ac,char** av)
+ {
+     if (ac <= 1) {
+-        cout <<
++        std::cout <<
+             "\nUsage: dumprecs filename...\n"
+             ;
+         return 1;
+@@ -72,11 +72,11 @@
+ #endif
+             xbShort rc = MyFile.OpenDatabase(filename);
+             if ( rc != XB_NO_ERROR) {
+-       cout << "Could not open file " << filename << " Error = " << rc << "\n";
++       std::cout << "Could not open file " << filename << " Error = " << rc << "\n";
+        return 0;
+      }
+ 
+-     cout << "\nLoop through forwards...\n";
++     std::cout << "\nLoop through forwards...\n";
+      int i = 0;
+      while(i<MyFile.NoOfRecords()) {
+        MyFile.DumpRecord(i+1);
+--- xbase-2.0.0/bin/dumpdbt.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/dumpdbt.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -53,7 +53,7 @@
+    xbXBase x;
+ 
+    if( ac <= 1 ){
+-     cout << "\nUsage: dumpdbt filename...\n";
++     std::cout << "\nUsage: dumpdbt filename...\n";
+      return 1;
+    }
+ 
+@@ -63,16 +63,16 @@
+       
+ 
+      if( dbf.OpenDatabase( filename )){
+-        cout << "\nCant open input file " << filename;
++        std::cout << "\nCant open input file " << filename;
+         return 2;
+      }
+   
+-     cout << "\n\nFree Block Chain....";
++     std::cout << "\n\nFree Block Chain....";
+ #ifdef XBASE_DEBUG
+      dbf.DumpMemoFreeChain();
+-     cout <<"\nEnd of free block chain\n***********************************";
++     std::cout <<"\nEnd of free block chain\n***********************************";
+ #else
+-     cout << "\nXBASE_DEBUG is not compiled in\n";
++     std::cout << "\nXBASE_DEBUG is not compiled in\n";
+ #endif
+ 
+    /* lock the memo file */
+@@ -81,19 +81,19 @@
+ #  endif /* XB_LOCKING_ON */
+ 
+         if( !dbf.MemoFieldsPresent() ) {
+-            cout << "No memo fields exist in " << filename << endl;
++            std::cout << "No memo fields exist in " << filename << std::endl;
+         } else {
+             xbLong BufSize = 0L;
+             char* Buf = NULL;
+             for( xbLong l = 1; l <= dbf.NoOfRecords(); l++ )
+       {
+          dbf.GetRecord( l );
+-         cout << "\nRecord # " << dbf.GetCurRecNo();
++         std::cout << "\nRecord # " << dbf.GetCurRecNo();
+                 for( int j = 0; j < dbf.FieldCount(); j++ ) {
+                     if( dbf.GetFieldType( j ) == 'M' ) {
+                         int len = dbf.GetMemoFieldLen( j );
+-               cout << "\nMemo field " << dbf.GetFieldName(j) << " length = " << len;
+-               cout << " Head Block = " << dbf.GetLongField( j ) << "\n";
++               std::cout << "\nMemo field " << dbf.GetFieldName(j) << " length = " << len;
++               std::cout << " Head Block = " << dbf.GetLongField( j ) << "\n";
+                if( len > BufSize )
+                {
+                   if( BufSize ) free( Buf );
+@@ -103,7 +103,7 @@
+                }
+                dbf.GetMemoField( j, len, Buf, F_SETLKW );
+                         for( int i = 0; i < len; i++ )
+-                  cout << Buf[i];
++                  std::cout << Buf[i];
+             }
+       }
+    }
+@@ -114,11 +114,11 @@
+        dbf.LockMemoFile( F_SETLK, F_UNLCK );
+ #  endif /* XB_LOCKING_ON */
+ 
+-       cout << "\n";
++       std::cout << "\n";
+        dbf.CloseDatabase();
+      }
+ #else
+-     cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++     std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+    }
+    return 0;
+--- xbase-2.0.0/bin/dbfutil1.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/dbfutil1.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -91,8 +91,8 @@
+ void MyClass::DumpIndexNodes()
+ {
+   xbLong NodeCnt = ix->GetTotalNodes();
+-  cout << "For NDX indices, output placed in xbase.log" << endl;
+-  cout << "total nodes = " << NodeCnt << endl;
++  std::cout << "For NDX indices, output placed in xbase.log" << std::endl;
++  std::cout << "total nodes = " << NodeCnt << std::endl;
+   ix->DumpHdrNode();
+   if( NodeCnt > 1 )
+     for( xbLong l = 1L; l <= NodeCnt-1; l++ )
+@@ -103,8 +103,8 @@
+ {
+   int rc = 0;
+   char Filename[51];
+-  cout << "Enter index name: ";
+-  cin >> Filename;
++  std::cout << "Enter index name: ";
++  std::cin >> Filename;
+   if( strstr( Filename, "NDX" ) || strstr( Filename, "ndx" )){
+     ix = new xbNdx( &d );
+     rc = ix->OpenIndex( Filename );
+@@ -115,56 +115,56 @@
+   }
+   else
+   {
+-    cout << "Invalid index name. Needs file extension. index.ndx or index.ntx" << endl;
++    std::cout << "Invalid index name. Needs file extension. index.ndx or index.ntx" << std::endl;
+     return;
+   }
+-  cout << "Return code " << rc << endl;
++  std::cout << "Return code " << rc << std::endl;
+ }    
+ /************************************************************************/
+ void MyClass::FindKey()
+ {
+   char KeyBuf[101];
+   memset( KeyBuf, 0x00, 101 );
+-  cout << "This function only works for character keys (so far).."<<endl;
+-  cout << "Enter search key:" << endl;
+-  cin >> KeyBuf;
+-  cout <<  "Return code " << ix->FindKey( KeyBuf ) << endl;
++  std::cout << "This function only works for character keys (so far).."<<std::endl;
++  std::cout << "Enter search key:" << std::endl;
++  std::cin >> KeyBuf;
++  std::cout <<  "Return code " << ix->FindKey( KeyBuf ) << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::GetNextKey()
+ {
+-  cout << "Return code " << ix->GetNextKey() << endl;
++  std::cout << "Return code " << ix->GetNextKey() << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::GetPrevKey()
+ {
+-  cout << "Return code " << ix->GetPrevKey() << endl;
++  std::cout << "Return code " << ix->GetPrevKey() << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::GetFirstKey()
+ {
+-  cout << "Return code " << ix->GetFirstKey() << endl;
++  std::cout << "Return code " << ix->GetFirstKey() << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::GetLastKey()
+ {
+-  cout << "Return code " << ix->GetLastKey() << endl;
++  std::cout << "Return code " << ix->GetLastKey() << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::CloseIndex()
+ {
+-  cout << "Return code " << ix->CloseIndex() << endl;
++  std::cout << "Return code " << ix->CloseIndex() << std::endl;
+ }
+ /************************************************************************/
+ /* stats */
+ void MyClass::FileStats()
+ {
+-  cout << "Number of records   = " << d.NoOfRecords()       << endl;
+-  cout << "Number of fields    = " << d.FieldCount()        << endl;
+-  cout << "Database Status     = " << d.GetDbfStatus()      << endl;
+-  cout << "Record Length       = " << d.GetRecordLen()      << endl;
+-  cout << "Memo Fields Present = " << d.MemoFieldsPresent() << endl;
+-  cout << "Current Record No   = " << d.GetCurRecNo()       << endl;
++  std::cout << "Number of records   = " << d.NoOfRecords()       << std::endl;
++  std::cout << "Number of fields    = " << d.FieldCount()        << std::endl;
++  std::cout << "Database Status     = " << d.GetDbfStatus()      << std::endl;
++  std::cout << "Record Length       = " << d.GetRecordLen()      << std::endl;
++  std::cout << "Memo Fields Present = " << d.MemoFieldsPresent() << std::endl;
++  std::cout << "Current Record No   = " << d.GetCurRecNo()       << std::endl;
+ }  
+ /************************************************************************/
+ /* open database */
+@@ -172,11 +172,11 @@
+ {
+   int rc;
+   char filename[50];
+-  cout << "Enter database file name: ";
+-  cin >> filename;
++  std::cout << "Enter database file name: ";
++  std::cin >> filename;
+ 
+   rc = d.OpenDatabase( filename );
+-  cout << "Return Code " << rc << endl;
++  std::cout << "Return Code " << rc << std::endl;
+ }
+ /************************************************************************/
+ /* close database */
+@@ -184,7 +184,7 @@
+ {
+   int rc;
+   rc = d.CloseDatabase();
+-  cout << "Return Code " << rc << endl;
++  std::cout << "Return Code " << rc << std::endl;
+ }
+ /************************************************************************/
+ /* convefrt database */
+@@ -197,31 +197,31 @@
+   char    *MemoFieldBuf = NULL;
+   xbLong  MemoFieldLen = 0L;
+ 
+-  cout << "Warning - check your results!!" << endl << endl;
++  std::cout << "Warning - check your results!!" << std::endl << std::endl;
+ 
+   char filename[50];
+-  cout << "Enter database file name to convert to: ";
+-  cin >> filename;
++  std::cout << "Enter database file name to convert to: ";
++  std::cin >> filename;
+ 
+   if(( rc = d2.OpenDatabase( filename )) != XB_NO_ERROR ){
+-    cout << "Error " << rc << " opening database" << endl;
++    std::cout << "Error " << rc << " opening database" << std::endl;
+     return;
+   }
+ 
+   rc = d.GetFirstRecord();
+   FieldCnt = d.FieldCount();
+-  cout << "Database has " << FieldCnt << " fields to convert" << endl;
++  std::cout << "Database has " << FieldCnt << " fields to convert" << std::endl;
+   while( rc == XB_NO_ERROR )
+   {
+     d2.BlankRecord();
+     for( xbShort i = 0; i < FieldCnt; i++ )
+     {
+       if(( FieldNo = d2.GetFieldNo( d.GetFieldName( i ))) == -1 )
+-        cout << "Error converting field " << d.GetFieldName( i ) << endl;
++        std::cout << "Error converting field " << d.GetFieldName( i ) << std::endl;
+       else 
+       {
+         if( d.GetFieldType( i ) != d2.GetFieldType( FieldNo ))
+-          cout << "Error - different field types " << d.GetFieldName(i);
++          std::cout << "Error - different field types " << d.GetFieldName(i);
+         else
+         {
+           if( d.GetFieldType( i ) == 'M' )
+@@ -238,12 +238,12 @@
+             d.GetMemoField( i, len, MemoFieldBuf, F_SETLKW );              
+             d2.UpdateMemoData( FieldNo, len, MemoFieldBuf, F_SETLKW );
+ #else
+-           cout << "Memo fields not converted XB_MEMO_FIELDS not compiled in\n";
++           std::cout << "Memo fields not converted XB_MEMO_FIELDS not compiled in\n";
+ #endif
+           }
+           else{
+             if( d.GetFieldType(i) == 'N' ){
+-                cout << "const code compile prob..." << endl;
++                std::cout << "const code compile prob..." << std::endl;
+ 
+ //                d2.PutField( FieldNo, x.LTRIM( d.GetField( i )));
+             }
+@@ -263,33 +263,33 @@
+ /************************************************************************/
+ void MyClass::ShowFieldInfo()
+ {
+-  cout << "Number   Name        Type  Len  Decs" << endl;
++  std::cout << "Number   Name        Type  Len  Decs" << std::endl;
+   for( int i = 0; i < d.FieldCount(); i++ ){
+     printf( "%d     %-10s         %c     %5d   %d\n", i,
+               d.GetFieldName(i), d.GetFieldType(i), d.GetFieldLen(i),
+               d.GetFieldDecimal(i) );
+     if(((i+1)%15) == 0 ){
+-      cout << "Press a key to continue" << endl;
++      std::cout << "Press a key to continue" << std::endl;
+       getchar();
+-      cout << "Number   Name        Type  Len  Decs" << endl;
++      std::cout << "Number   Name        Type  Len  Decs" << std::endl;
+     }
+   } 
+-  cout << "Press a key to continue" << endl;
++  std::cout << "Press a key to continue" << std::endl;
+   getchar();
+ }
+ /************************************************************************/
+ void MyClass::ShowFieldData()
+ {
+-  cout << "Name      Data" << endl;
++  std::cout << "Name      Data" << std::endl;
+   for( int i = 0; i < d.FieldCount(); i++ ){
+     printf( "%-10s = %s\n", d.GetFieldName(i), d.GetStringField(i));
+     if(((i+1)%15) == 0 ){
+-      cout << "Press a key to continue" << endl;
++      std::cout << "Press a key to continue" << std::endl;
+       getchar();
+-      cout << "Name      Data" << endl;
++      std::cout << "Name      Data" << std::endl;
+     }
+   }
+-  cout << "Press a key to continue" << endl;
++  std::cout << "Press a key to continue" << std::endl;
+   getchar();
+    
+ }
+@@ -299,13 +299,13 @@
+   char dbuf[100];
+   int rc, fn;
+ 
+-  cout  << "Enter Field Number to update (first field is 0): " << endl;
+-  cin   >> fn;
+-  cout  << "Enter Field Data" << endl;
+-  cin   >> dbuf;
++  std::cout  << "Enter Field Number to update (first field is 0): " << std::endl;
++  std::cin   >> fn;
++  std::cout  << "Enter Field Data" << std::endl;
++  std::cin   >> dbuf;
+   rc = d.PutField( fn, dbuf );
+   
+-  cout << "Return Code " << rc << endl;
++  std::cout << "Return Code " << rc << std::endl;
+ }
+ /************************************************************************/
+ /* open database */
+@@ -314,27 +314,27 @@
+   xbNdx n(&d);
+   int rc;
+   char filename[50];
+-  cout << "Enter index file name: ";
+-  cin >> filename;
++  std::cout << "Enter index file name: ";
++  std::cin >> filename;
+ 
+   if(( rc = n.OpenIndex( filename )) != XB_NO_ERROR ){
+-    cout << "Error " << rc << " Opening index" << endl;
++    std::cout << "Error " << rc << " Opening index" << std::endl;
+     return;
+   }
+ 
+   if(( rc = n.ReIndex()) != XB_NO_ERROR )
+-    cout << "Error " << rc << " Reindexing database" << endl;
++    std::cout << "Error " << rc << " Reindexing database" << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::GetRecord()
+ {
+   int rc;
+   xbLong RecNo;
+-  cout << "Enter record number: ";
+-  cin >> RecNo;
++  std::cout << "Enter record number: ";
++  std::cin >> RecNo;
+ 
+   rc = d.GetRecord( RecNo );
+-  cout << "Return Code = " << rc << endl;
++  std::cout << "Return Code = " << rc << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::UpdateMemoField()
+@@ -345,31 +345,31 @@
+   char bufchar[2];
+   char *buf;
+ 
+-  cout << "Enter Field Number: " << endl;
+-  cin >> fn;
++  std::cout << "Enter Field Number: " << std::endl;
++  std::cin >> fn;
+   if( fn < 0 || fn > d.FieldCount()){
+-    cout << "Invalid Field Number" << endl;
++    std::cout << "Invalid Field Number" << std::endl;
+     return;
+   }
+   if( d.GetFieldType( fn ) != 'M' ){
+-    cout << "Field " << fn << " is not a memo field" << endl;
+-    cout << "Field Name = " << d.GetFieldName( fn ) << " type= ";
+-    cout << d.GetFieldType( fn ) << endl;
++    std::cout << "Field " << fn << " is not a memo field" << std::endl;
++    std::cout << "Field Name = " << d.GetFieldName( fn ) << " type= ";
++    std::cout << d.GetFieldType( fn ) << std::endl;
+     return;
+   }
+-  cout << "Enter length of memo data:" << endl;
+-  cin >> len;
++  std::cout << "Enter length of memo data:" << std::endl;
++  std::cin >> len;
+  
+-  cout << "Enter character to populate memo data:" << endl;
+-  cin >> bufchar;
++  std::cout << "Enter character to populate memo data:" << std::endl;
++  std::cin >> bufchar;
+ 
+   buf = new char[len];
+   memset( buf, bufchar[0], len );
+ 
+   rc = d.UpdateMemoData( fn, len, buf, F_SETLKW );
+-  cout << "Return Code = " << rc << endl;
++  std::cout << "Return Code = " << rc << std::endl;
+ #else
+-  cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++  std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+ }
+ /************************************************************************/
+@@ -377,22 +377,22 @@
+ {
+ #ifdef XB_MEMO_FIELDS
+   xbShort fn,rc;
+-  cout << "Enter Field Number: " << endl;
+-  cin >> fn;
++  std::cout << "Enter Field Number: " << std::endl;
++  std::cin >> fn;
+   if( fn < 0 || fn > d.FieldCount()){
+-    cout << "Invalid Field Number" << endl;
++    std::cout << "Invalid Field Number" << std::endl;
+     return;
+   }
+   if( d.GetFieldType( fn ) != 'M' ){
+-    cout << "Field " << fn << " is not a memo field" << endl;
+-    cout << "Field Name = " << d.GetFieldName( fn ) << " type= ";
+-    cout << d.GetFieldType( fn ) << endl;
++    std::cout << "Field " << fn << " is not a memo field" << std::endl;
++    std::cout << "Field Name = " << d.GetFieldName( fn ) << " type= ";
++    std::cout << d.GetFieldType( fn ) << std::endl;
+     return;
+   }
+   rc = d.UpdateMemoData( fn, 0, 0, F_SETLKW );
+-  cout << "Return Code = " << rc << endl;
++  std::cout << "Return Code = " << rc << std::endl;
+ #else
+-  cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++  std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+ }
+ /************************************************************************/
+@@ -409,12 +409,12 @@
+      probably not to useful for anything else - Gary */
+ 
+   rc = d.DumpMemoFreeChain();
+-  cout << "\nFuncion Return Code = " << rc << endl;
++  std::cout << "\nFuncion Return Code = " << rc << std::endl;
+ #else
+-  cout << "\nXBASE_DEBUG is not compiled in\n";
++  std::cout << "\nXBASE_DEBUG is not compiled in\n";
+ #endif
+ #else
+-  cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++  std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+ }
+ /************************************************************************/
+@@ -424,16 +424,16 @@
+   xbLong BlocksNeeded, Location, PrevNode;
+   int rc;
+ 
+-  cout << "Enter number of blocks: " << endl;
+-  cin  >> BlocksNeeded;
+-  cout << "Enter starting location: " << endl;
+-  cin  >> Location;
+-  cout << "Enter previous node: " << endl;
+-  cin  >> PrevNode;
++  std::cout << "Enter number of blocks: " << std::endl;
++  std::cin  >> BlocksNeeded;
++  std::cout << "Enter starting location: " << std::endl;
++  std::cin  >> Location;
++  std::cout << "Enter previous node: " << std::endl;
++  std::cin  >> PrevNode;
+   rc = d.GetBlockSetFromChain( BlocksNeeded, Location, PrevNode );
+-  cout << "Return code = " << rc << endl;
++  std::cout << "Return code = " << rc << std::endl;
+ #else
+-  cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++  std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+ }
+ /************************************************************************/
+@@ -443,14 +443,14 @@
+   xbLong BlocksNeeded, Location, PrevNode;
+   int rc;
+ 
+-  cout << "Enter number of blocks: " << endl;
+-  cin  >> BlocksNeeded;
++  std::cout << "Enter number of blocks: " << std::endl;
++  std::cin  >> BlocksNeeded;
+   rc = d.FindBlockSetInChain( BlocksNeeded, 0, Location, PrevNode );
+-  cout << "Return code = " << rc << endl;
+-  cout << "Location = " << Location << endl;
+-  cout << "Previous Node = " << PrevNode << endl;
++  std::cout << "Return code = " << rc << std::endl;
++  std::cout << "Location = " << Location << std::endl;
++  std::cout << "Previous Node = " << PrevNode << std::endl;
+ #else
+-  cout << "\nXB_MEMO_FIELDS is not compiled in\n";
++  std::cout << "\nXB_MEMO_FIELDS is not compiled in\n";
+ #endif
+ }
+ #endif   // XBASE_DEBUG
+@@ -460,18 +460,18 @@
+   int option = 0;
+ 
+   while( option != 99 ) {
+-   cout << endl << endl << "NDX and NTX Index Menu" << endl;
+-   cout << "This program only supports one index at a time" << endl;
+-   cout << "1 - Open Index" << endl;
+-   cout << "2 - Find Key" << endl;
+-   cout << "3 - Get First Key" << endl;
+-   cout << "4 - Get Last Key" << endl;
+-   cout << "5 - Get Previous Key" << endl;
+-   cout << "6 - Get Next Key" << endl;
+-   cout << "7 - Close Index" << endl;
++   std::cout << std::endl << std::endl << "NDX and NTX Index Menu" << std::endl;
++   std::cout << "This program only supports one index at a time" << std::endl;
++   std::cout << "1 - Open Index" << std::endl;
++   std::cout << "2 - Find Key" << std::endl;
++   std::cout << "3 - Get First Key" << std::endl;
++   std::cout << "4 - Get Last Key" << std::endl;
++   std::cout << "5 - Get Previous Key" << std::endl;
++   std::cout << "6 - Get Next Key" << std::endl;
++   std::cout << "7 - Close Index" << std::endl;
+    
+-   cout << "99 - Exit Menu" << endl;
+-   cin >> option;
++   std::cout << "99 - Exit Menu" << std::endl;
++   std::cin >> option;
+    switch( option ){
+     case 1:  OpenIndex();  break;
+     case 2:  FindKey(); break;
+@@ -481,7 +481,7 @@
+     case 6:  GetNextKey();  break;
+     case 7:  CloseIndex();     break;    
+     case 99: break;
+-    default: cout << "Invalid option" << endl; break;
++    default: std::cout << "Invalid option" << std::endl; break;
+    }
+   }
+ }
+@@ -492,20 +492,20 @@
+   int option = 0;
+ 
+   while( option != 99 ) {
+-   cout << endl << endl << "Debug Menu" << endl;
+-   cout << "1 - Dislay DBT Header" << endl;
+-   cout << "2 - Find Memo Blocks" << endl;
+-   cout << "3 - Get Memo Blocks" << endl;
+-   cout << "4 - Dump index node chains to file xbase.dmp" << endl;
+-   cout << "99 - Exit Menu" << endl;
+-   cin >> option;
++   std::cout << std::endl << std::endl << "Debug Menu" << std::endl;
++   std::cout << "1 - Dislay DBT Header" << std::endl;
++   std::cout << "2 - Find Memo Blocks" << std::endl;
++   std::cout << "3 - Get Memo Blocks" << std::endl;
++   std::cout << "4 - Dump index node chains to file xbase.dmp" << std::endl;
++   std::cout << "99 - Exit Menu" << std::endl;
++   std::cin >> option;
+    switch( option ){
+     case 1:  DumpDbtHeader();  break;
+     case 2:  FindMemoBlocks(); break;
+     case 3:  GetMemoBlocks();  break;
+     case 4:  DumpIndexNodes(); break;
+     case 99: break;
+-    default: cout << "Invalid option" << endl; break;
++    default: std::cout << "Invalid option" << std::endl; break;
+    }
+   }
+ }
+@@ -514,10 +514,10 @@
+ void MyClass::PutRecord()
+ {
+   xbLong l;
+-  cout << "Enter Record number for PutRecord()" << endl;
+-  cin >> l;
++  std::cout << "Enter Record number for PutRecord()" << std::endl;
++  std::cin >> l;
+   int rc = d.PutRecord( l );
+-  cout << "Return Code " << rc << endl;
++  std::cout << "Return Code " << rc << std::endl;
+ }
+ /************************************************************************/
+ void MyClass::FieldMenu()
+@@ -525,14 +525,14 @@
+   int option = 0;
+ 
+   while( option != 99 ) {
+-   cout << endl << endl << "Field Menu" << endl;
+-   cout << "1  - Delete Memo Field" << endl;
+-   cout << "2  - Update Memo Field" << endl;
+-   cout << "3  - Show Field Info"   << endl;
+-   cout << "4  - Show Field Data"   << endl;
+-   cout << "5  - Update Field Data" << endl;
+-   cout << "99 - Exit Menu" << endl;
+-   cin >> option;
++   std::cout << std::endl << std::endl << "Field Menu" << std::endl;
++   std::cout << "1  - Delete Memo Field" << std::endl;
++   std::cout << "2  - Update Memo Field" << std::endl;
++   std::cout << "3  - Show Field Info"   << std::endl;
++   std::cout << "4  - Show Field Data"   << std::endl;
++   std::cout << "5  - Update Field Data" << std::endl;
++   std::cout << "99 - Exit Menu" << std::endl;
++   std::cin >> option;
+    switch( option ){
+     case 1:  DeleteMemoField(); break;
+     case 2:  UpdateMemoField(); break;
+@@ -540,7 +540,7 @@
+     case 4:  ShowFieldData();   break;
+     case 5:  UpdateFieldData(); break;
+     case 99: break;
+-    default: cout << "Function not available" << endl; break;
++    default: std::cout << "Function not available" << std::endl; break;
+    }
+  }
+ }
+@@ -548,20 +548,20 @@
+ void MyClass::RecordMenu()
+ {
+   int option = 0;
+-  cout << "File Menu" << endl;
++  std::cout << "File Menu" << std::endl;
+   while( option != 99 ) {
+-   cout << endl << endl << "Record Menu" << endl;
+-   cout << "1  - Get Record" << endl;
+-   cout << "2  - Blank Record" << endl;
+-   cout << "3  - Append Record" << endl;
+-   cout << "4  - Put Record" << endl;
+-   cout << "99 - Exit Menu" << endl;
+-   cin >> option;
++   std::cout << std::endl << std::endl << "Record Menu" << std::endl;
++   std::cout << "1  - Get Record" << std::endl;
++   std::cout << "2  - Blank Record" << std::endl;
++   std::cout << "3  - Append Record" << std::endl;
++   std::cout << "4  - Put Record" << std::endl;
++   std::cout << "99 - Exit Menu" << std::endl;
++   std::cin >> option;
+    switch( option ){
+     case 1:  GetRecord(); break;
+     case 4:  PutRecord(); break;
+     case 99: break;
+-    default: cout << "Invalid option" << endl; break;
++    default: std::cout << "Invalid option" << std::endl; break;
+    }
+   }
+ }
+@@ -571,13 +571,13 @@
+   int option = 0;
+ 
+   while( option != 99 ) {
+-   cout << endl << endl << "File Menu" << endl;
+-   cout << "1  - Open File" << endl;
+-   cout << "2  - Close File" << endl;
+-   cout << "3  - File Stats" << endl;
+-   cout << "4  - Convert Database" << endl; 
+-   cout << "99 - Exit Menu" << endl;
+-   cin  >> option;
++   std::cout << std::endl << std::endl << "File Menu" << std::endl;
++   std::cout << "1  - Open File" << std::endl;
++   std::cout << "2  - Close File" << std::endl;
++   std::cout << "3  - File Stats" << std::endl;
++   std::cout << "4  - Convert Database" << std::endl; 
++   std::cout << "99 - Exit Menu" << std::endl;
++   std::cin  >> option;
+ 
+    switch( option ){
+     case 1:  OpenFile();  break;
+@@ -585,7 +585,7 @@
+     case 3:  FileStats(); break;
+     case 4:  ConvertDatabase(); break;
+     case 99: break;
+-    default: cout << "Invalid Option" << endl;
++    default: std::cout << "Invalid Option" << std::endl;
+    }
+  }
+ }
+@@ -593,18 +593,18 @@
+ void MyClass::MainMenu()
+ {
+   int option = 0;
+-  cout << endl<< endl << "XBase Utility Program";
++  std::cout << std::endl<< std::endl << "XBase Utility Program";
+   while( option != 99 ) {
+-   cout << endl << endl << "Main Menu" << endl;
+-   cout << "1  - File Menu" << endl;
+-   cout << "2  - Record Menu" << endl; 
+-   cout << "3  - Field Menu" << endl;
+-   cout << "4  - Index Menu" << endl;
++   std::cout << std::endl << std::endl << "Main Menu" << std::endl;
++   std::cout << "1  - File Menu" << std::endl;
++   std::cout << "2  - Record Menu" << std::endl; 
++   std::cout << "3  - Field Menu" << std::endl;
++   std::cout << "4  - Index Menu" << std::endl;
+ #ifdef XBASE_DEBUG
+-   cout << "5  - Debug Menu" << endl;
++   std::cout << "5  - Debug Menu" << std::endl;
+ #endif
+-   cout << "99 - Exit" << endl;
+-   cin >> option;
++   std::cout << "99 - Exit" << std::endl;
++   std::cin >> option;
+    switch( option ){
+      case 1:  FileMenu();   break;
+      case 2:  RecordMenu(); break;
+@@ -613,8 +613,8 @@
+ #ifdef XBASE_DEBUG
+      case 5:  DebugMenu();  break;
+ #endif
+-     case 99: cout << "Bye!! - Thanks for using XBase" << endl; break;
+-     default: cout << "Invalid function" << endl; break;
++     case 99: std::cout << "Bye!! - Thanks for using XBase" << std::endl; break;
++     default: std::cout << "Invalid function" << std::endl; break;
+    }
+   }
+ }
+--- xbase-2.0.0/bin/deletall.cpp.orig	2000-09-27 18:25:07.000000000 +0100
++++ xbase-2.0.0/bin/deletall.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -48,7 +48,7 @@
+ int main(int ac,char** av)
+ {
+     if (ac <= 1) {
+-        cout <<
++        std::cout <<
+             "\nUsage: deletall filename...\n"
+             ;
+         return 1;
+@@ -61,18 +61,18 @@
+    xbDbf MyFile( &x );
+ 
+         if( MyFile.OpenDatabase( filename )) {
+-      cout << "Could not open file " << filename << "\n";
++      std::cout << "Could not open file " << filename << "\n";
+             return 2;
+    }
+ 
+         xbShort rc = MyFile.DeleteAllRecords(); 
+         if( rc != XB_NO_ERROR ) {
+-      cout << "\nError Deleting all records - database ==> " << filename;
+-      cout << " Return Code = " << rc;
++      std::cout << "\nError Deleting all records - database ==> " << filename;
++      std::cout << " Return Code = " << rc;
+    }
+    MyFile.CloseDatabase();	/* close database */
+ 
+-   cout << "\nDone...\n\n";
++   std::cout << "\nDone...\n\n";
+     }
+     
+     return 0;
+--- xbase-2.0.0/libtest/testdate.cpp.orig	2000-11-10 19:27:00.000000000 +0000
++++ xbase-2.0.0/libtest/testdate.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -66,133 +66,133 @@
+    xbDate d3( CharDate );                  /* from char data     */
+    xbDate d4;                              /* another date class */
+ 
+-   cout << "This program tests the XDATE routines" << endl;
+-   cout << "Date 1 (Sysdate) is    " << d1.GetDate() << endl;
+-   cout << "Date 2 (StringDate) is " << d2.GetDate() << endl;
+-   cout << "Date 3 (CharDate) is   " << d3.GetDate() << endl;
+-
+-   cout << "This year is  " << d1.YearOf() << endl;
+-   cout << "Year of xbString Date is " <<  d2.YearOf( StringDate ) << endl;
+-   cout << "Year of char Date is "     <<  d3.YearOf( CharDate ) << endl;
+-
+-   cout << "This Month is " << d1.MonthOf() << endl;
+-   cout << "Month of xbString Date is " <<  d2.MonthOf( StringDate ) << endl;
+-   cout << "Month of char Date is "     <<  d3.MonthOf( CharDate ) << endl;
+-
+-   cout << "Today is day " << d1.DayOf( XB_FMT_WEEK ) << " of the week" << endl; 
+-   cout << "StringDate is day " << d2.DayOf( XB_FMT_MONTH, StringDate ) << " of the month" << endl;
+-   cout << "CharDate is day " << d3.DayOf( XB_FMT_YEAR, CharDate ) << " of the year" << endl;
++   std::cout << "This program tests the XDATE routines" << std::endl;
++   std::cout << "Date 1 (Sysdate) is    " << d1.GetDate() << std::endl;
++   std::cout << "Date 2 (StringDate) is " << d2.GetDate() << std::endl;
++   std::cout << "Date 3 (CharDate) is   " << d3.GetDate() << std::endl;
++
++   std::cout << "This year is  " << d1.YearOf() << std::endl;
++   std::cout << "Year of xbString Date is " <<  d2.YearOf( StringDate ) << std::endl;
++   std::cout << "Year of char Date is "     <<  d3.YearOf( CharDate ) << std::endl;
++
++   std::cout << "This Month is " << d1.MonthOf() << std::endl;
++   std::cout << "Month of xbString Date is " <<  d2.MonthOf( StringDate ) << std::endl;
++   std::cout << "Month of char Date is "     <<  d3.MonthOf( CharDate ) << std::endl;
++
++   std::cout << "Today is day " << d1.DayOf( XB_FMT_WEEK ) << " of the week" << std::endl; 
++   std::cout << "StringDate is day " << d2.DayOf( XB_FMT_MONTH, StringDate ) << " of the month" << std::endl;
++   std::cout << "CharDate is day " << d3.DayOf( XB_FMT_YEAR, CharDate ) << " of the year" << std::endl;
+ 
+    if( d1.IsLeapYear())
+-      cout << "This is a leapyear" << endl;
++      std::cout << "This is a leapyear" << std::endl;
+    else
+-      cout << "This is not a leap year." << endl;
++      std::cout << "This is not a leap year." << std::endl;
+  
+    if( d2.IsLeapYear( StringDate ))
+-      cout << "StringDate is a leapyear" << endl;
++      std::cout << "StringDate is a leapyear" << std::endl;
+    else
+-      cout << "StringDate is not a leap year." << endl;
++      std::cout << "StringDate is not a leap year." << std::endl;
+  
+    if( d3.IsLeapYear( CharDate ))
+-      cout << "CharDate is a leapyear" << endl;
++      std::cout << "CharDate is a leapyear" << std::endl;
+    else
+-      cout << "CharDate is not a leap year." << endl;
++      std::cout << "CharDate is not a leap year." << std::endl;
+  
+-   cout << "Today is " << d1.Sysdate() << endl;
++   std::cout << "Today is " << d1.Sysdate() << std::endl;
+ 
+    if( d1.DateIsValid( "19951301" ))
+-      cout << "19951301 is a valid date" << endl;
++      std::cout << "19951301 is a valid date" << std::endl;
+    else
+-      cout << "19951301 is not a valid date" << endl;
++      std::cout << "19951301 is not a valid date" << std::endl;
+ 
+    if( d1.DateIsValid( "19920229" ))
+-      cout << "19920229 is a valid date" << endl;
++      std::cout << "19920229 is a valid date" << std::endl;
+    else
+-      cout << "19920229 is not a valid date" << endl;
++      std::cout << "19920229 is not a valid date" << std::endl;
+ 
+    if( d2.DateIsValid( StringDate ))
+-      cout << StringDate << " is a valid date" << endl;
++      std::cout << StringDate << " is a valid date" << std::endl;
+    else
+-      cout << StringDate << " is not a valid date" << endl;
++      std::cout << StringDate << " is not a valid date" << std::endl;
+ 
+-   cout << "Today's Julian date " << d1.JulianDays() << endl;
+-   cout << "StringDate Julian date " << d2.JulianDays( StringDate ) << endl;
++   std::cout << "Today's Julian date " << d1.JulianDays() << std::endl;
++   std::cout << "StringDate Julian date " << d2.JulianDays( StringDate ) << std::endl;
+ 
+-   cout << "There are " << 
++   std::cout << "There are " << 
+         ( d1.JulianDays( "19951101" ) - d1.JulianDays( "19951001" ))
+-        << " days between 10/1/95 and 11/1/95." << endl;
++        << " days between 10/1/95 and 11/1/95." << std::endl;
+ 
+-   cout << "Todays Julian date (Number of days since Jan 1 0100):"
+-        << d1.JulianDays() << endl; 
++   std::cout << "Todays Julian date (Number of days since Jan 1 0100):"
++        << d1.JulianDays() << std::endl; 
+ 
+    d4 = d1;    // set d4 class = to sysdate 
+-   cout << "Object d4 initialized to " << d4.GetDate() << endl;
+-   cout << "This should be todays date: "  
+-        << d4.JulToDate8(d4.JulianDays()) << endl;
+-   cout << "In 7 days it will be "  
+-        << d4.JulToDate8(d4.JulianDays() + 7L ) << endl;
+-
+-   cout << "Today is " << d1.CharDayOf() << endl;
+-   cout << "StringDate day is " << d2.CharDayOf( StringDate ) << endl;
+-   cout << "This month is " << d1.CharMonthOf() << endl;
+-   cout << "StringDate month is " << d2.CharMonthOf() << endl;
++   std::cout << "Object d4 initialized to " << d4.GetDate() << std::endl;
++   std::cout << "This should be todays date: "  
++        << d4.JulToDate8(d4.JulianDays()) << std::endl;
++   std::cout << "In 7 days it will be "  
++        << d4.JulToDate8(d4.JulianDays() + 7L ) << std::endl;
++
++   std::cout << "Today is " << d1.CharDayOf() << std::endl;
++   std::cout << "StringDate day is " << d2.CharDayOf( StringDate ) << std::endl;
++   std::cout << "This month is " << d1.CharMonthOf() << std::endl;
++   std::cout << "StringDate month is " << d2.CharMonthOf() << std::endl;
+ 
+ 
+    /* various format routines using different formats, strings and chars */
+    xbString xbStFmt( "MM/DD/YY" );
+-   cout << "Format (YYDDD)     " << d1.FormatDate( "YYDDD" ) << endl;
+-   cout << "Format (MM/DD/YY)  " << d1.FormatDate( xbStFmt ) << endl;
++   std::cout << "Format (YYDDD)     " << d1.FormatDate( "YYDDD" ) << std::endl;
++   std::cout << "Format (MM/DD/YY)  " << d1.FormatDate( xbStFmt ) << std::endl;
+    xbStFmt = "DD/MM/YY";
+-   cout << "Format (DD/MM/YY)  " << d1.FormatDate(xbStFmt, "19730110") << endl;
+-   cout << "Format (MMMM DD,YYYY)    " <<
+-      d1.FormatDate( "MMMM DD,YYYY", d1.GetDate()) << endl;
++   std::cout << "Format (DD/MM/YY)  " << d1.FormatDate(xbStFmt, "19730110") << std::endl;
++   std::cout << "Format (MMMM DD,YYYY)    " <<
++      d1.FormatDate( "MMMM DD,YYYY", d1.GetDate()) << std::endl;
+    xbStFmt = "DDDD, MMMM DD YYYY";
+-   cout << "Format (DDDD, MMMM DD YYYY) " <<
+-      d2.FormatDate( xbStFmt, d2.GetDate()) << endl;
++   std::cout << "Format (DDDD, MMMM DD YYYY) " <<
++      d2.FormatDate( xbStFmt, d2.GetDate()) << std::endl;
+ 
+-   cout << "Last day this month " << d1.LastDayOfMonth() << endl;
+-   cout << "Last day of month for StringDate is " <<
+-      d2.LastDayOfMonth( d2.GetDate()) << endl;
++   std::cout << "Last day this month " << d1.LastDayOfMonth() << std::endl;
++   std::cout << "Last day of month for StringDate is " <<
++      d2.LastDayOfMonth( d2.GetDate()) << std::endl;
+ 
+-   cout << "Overloaded operators test..." << endl;
++   std::cout << "Overloaded operators test..." << std::endl;
+ 
+    if( d1 == d2 )
+-     cout << d1.GetDate() << " is equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is equal to " << d2.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is not equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not equal to " << d2.GetDate() << std::endl;
+ 
+    if( d1 != d3 )
+-     cout << d1.GetDate() << " is not equal to " << d3.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not equal to " << d3.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is equal to " << d3.GetDate() << endl;
++     std::cout << d1.GetDate() << " is equal to " << d3.GetDate() << std::endl;
+      
+    if( d1 < d2 )
+-     cout << d1.GetDate() << " is less than " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is less than " << d2.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is not less than " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not less than " << d2.GetDate() << std::endl;
+      
+    if( d1 > d2 )
+-     cout << d1.GetDate() << " is greater than " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is greater than " << d2.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is not greater than " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not greater than " << d2.GetDate() << std::endl;
+      
+    if( d1 <= d2 )
+-     cout << d1.GetDate() << " is less than or equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is less than or equal to " << d2.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is not less than or equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not less than or equal to " << d2.GetDate() << std::endl;
+      
+    if( d1 >= d2 )
+-     cout << d1.GetDate() << " is greater than or equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is greater than or equal to " << d2.GetDate() << std::endl;
+    else
+-     cout << d1.GetDate() << " is not greater than or equal to " << d2.GetDate() << endl;
++     std::cout << d1.GetDate() << " is not greater than or equal to " << d2.GetDate() << std::endl;
+ 
+    d1.Sysdate();
+    d1++;
+-   cout << "Tomorrow is " << d1.GetDate() << endl;
++   std::cout << "Tomorrow is " << d1.GetDate() << std::endl;
+    d1-=2;
+-   cout << "Yesterday was " << d1.GetDate() << endl;
+-   cout << "There are " << d1 - d2 << " days between " << d1.GetDate() 
+-        << " and " << d2.GetDate() << endl;
++   std::cout << "Yesterday was " << d1.GetDate() << std::endl;
++   std::cout << "There are " << d1 - d2 << " days between " << d1.GetDate() 
++        << " and " << d2.GetDate() << std::endl;
+ 
+    return 0;
+ }
+--- xbase-2.0.0/libtest/exptest.cpp.orig	2000-11-07 21:19:48.000000000 +0000
++++ xbase-2.0.0/libtest/exptest.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -50,39 +50,39 @@
+   xbShort rc = 0;
+   
+   if(( rc = dbfPtr->xbase->ParseExpression( Expression, dbfPtr )) != 0 ){
+-    cout << "Parse Error " << rc << " in expression " << Expression << endl;
++    std::cout << "Parse Error " << rc << " in expression " << Expression << std::endl;
+     return 1;
+   }
+   e = dbfPtr->xbase->GetExpressionHandle();
+ 
+-//  cout << "********************************" << endl << "Expression: " << Expression << endl;
++//  std::cout << "********************************" << std::endl << "Expression: " << Expression << std::endl;
+ //  dbfPtr->xbase->DumpExpressionTree( e );
+ 
+   if(( rc = dbfPtr->xbase->ProcessExpression(e)) != 0 ){
+-    cout << "Error " << rc << " processing expression " << Expression << endl;
++    std::cout << "Error " << rc << " processing expression " << Expression << std::endl;
+     return 1;
+   }
+   char type = dbfPtr->xbase->GetExpressionResultType(e);
+   if( type != 'N' && type != 'L' ){
+-    cout << "Expression " << Expression;
+-    cout << " Expected result type Numeric or Logical, actual was ";
+-    cout << type << endl;
++    std::cout << "Expression " << Expression;
++    std::cout << " Expected result type Numeric or Logical, actual was ";
++    std::cout << type << std::endl;
+     return 1;
+   }
+ //  if( type == 'N' && ExpectedResult != dbfPtr->xbase->GetDoub()){
+-//    cout << "Expression " << Expression;
+-//    cout << " Actual result of " << dbfPtr->xbase->GetDoub() << " does not match ";
+-//    cout << " expected result of " << ExpectedResult << endl;
++//    std::cout << "Expression " << Expression;
++//    std::cout << " Actual result of " << dbfPtr->xbase->GetDoub() << " does not match ";
++//    std::cout << " expected result of " << ExpectedResult << std::endl;
+ //    return  1;
+ //  }
+ //  if( type == 'L' && ExpectedResult != (xbDouble) dbfPtr->xbase->GetInt()){
+-//    cout << "Expression " << Expression;
+-//    cout << " Actual result of " << dbfPtr->xbase->GetInt() << " does not match ";
+-//    cout << " expected result of " << ExpectedResult << endl;
++//    std::cout << "Expression " << Expression;
++//    std::cout << " Actual result of " << dbfPtr->xbase->GetInt() << " does not match ";
++//    std::cout << " expected result of " << ExpectedResult << std::endl;
+ //    return  1;
+ //  }
+-  cout << "Expression " << Expression << " returned " << ExpectedResult;
+-  cout << " OK" << endl;
++  std::cout << "Expression " << Expression << " returned " << ExpectedResult;
++  std::cout << " OK" << std::endl;
+   return 0;
+ }
+ /**************************************************************************/
+@@ -94,42 +94,42 @@
+ //  char temp[5];
+ 	
+   if(( rc = dbfPtr->xbase->ParseExpression( Expression, dbfPtr )) != 0 ){
+-    cout << "Parse Error " << rc << " in expression " << Expression << endl;
++    std::cout << "Parse Error " << rc << " in expression " << Expression << std::endl;
+     return 1;
+   }
+   e = dbfPtr->xbase->GetExpressionHandle();
+ 
+-//  cout << "**********************************" << endl << "Expression: " << Expression << endl;
++//  std::cout << "**********************************" << std::endl << "Expression: " << Expression << std::endl;
+ //  dbfPtr->xbase->DumpExpressionTree( e );
+ //  cin >> temp;
+ 
+   if(( rc = dbfPtr->xbase->ProcessExpression(e)) != 0 ){
+-    cout << "Error " << rc << " processing expression " << Expression << endl;
++    std::cout << "Error " << rc << " processing expression " << Expression << std::endl;
+     return 1;
+   }
+   char type = dbfPtr->xbase->GetExpressionResultType(e);
+   if( type != 'C' ){
+-    cout << "Expression " << Expression;
+-    cout << " Expected result type Character, actual was " << type << endl;
++    std::cout << "Expression " << Expression;
++    std::cout << " Expected result type Character, actual was " << type << std::endl;
+     return 1;
+   }
+ //  if( strlen( ExpectedResult ) != strlen( dbfPtr->xbase->GetCharResult())){
+-//    cout << "Expression " << Expression;
+-//    cout << " result length of " << strlen( dbfPtr->xbase->GetCharResult()) <<
+-//      " different than expected of " << strlen( ExpectedResult ) << endl;
+-//    cout << "Calculated result =" << dbfPtr->xbase->GetCharResult() << "<" << endl;
++//    std::cout << "Expression " << Expression;
++//    std::cout << " result length of " << strlen( dbfPtr->xbase->GetCharResult()) <<
++//      " different than expected of " << strlen( ExpectedResult ) << std::endl;
++//    std::cout << "Calculated result =" << dbfPtr->xbase->GetCharResult() << "<" << std::endl;
+ //    return 1;
+ //  }
+ /*
+   if( strcmp( ExpectedResult, dbfPtr->xbase->GetCharResult())){
+-    cout << "Expression " << Expression;
+-    cout << " Actual result of " << dbfPtr->xbase->GetCharResult() << " does not match ";
+-    cout << " expected result of " << ExpectedResult << endl;
++    std::cout << "Expression " << Expression;
++    std::cout << " Actual result of " << dbfPtr->xbase->GetCharResult() << " does not match ";
++    std::cout << " expected result of " << ExpectedResult << std::endl;
+     return  1;
+   }
+ */
+-  cout << "Expression " << Expression << " returned " << ExpectedResult;
+-  cout << " OK" << endl;
++  std::cout << "Expression " << Expression << " returned " << ExpectedResult;
++  std::cout << " OK" << std::endl;
+   return 0;
+ }
+ /*************************************************************************/
+@@ -149,8 +149,8 @@
+   d.PutFloatField( "FLOAT1", 5 );  
+   
+ 
+-  cout << "XBase Expression testor program.." << endl;
+-  cout << "This program test the XBase expression logic." << endl;
++  std::cout << "XBase Expression testor program.." << std::endl;
++  std::cout << "This program test the XBase expression logic." << std::endl;
+   ExpTestor * e = new ExpTestor(&d);
+ 
+   e->TestExpression( "(25-3+2)*2", 48 );
+--- xbase-2.0.0/libtest/indextst.cpp.orig	2000-11-10 20:06:31.000000000 +0000
++++ xbase-2.0.0/libtest/indextst.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -33,7 +33,7 @@
+ 
+ /* set the stack large for dos compiles */
+ #ifdef __XBDOS
+-#include <stdio.h>
++#include <cstdio>
+ extern unsigned _stklen = 100000;
+ #endif
+ 
+@@ -79,36 +79,36 @@
+ #endif
+ 
+ #ifndef XBASE_DEBUG
+-  cout << "XBASE_DEBUG support option not compiled into library";
++  std::cout << "XBASE_DEBUG support option not compiled into library";
+   return 1;
+ #endif
+ 
+ 
+-  cout << "Creating test database and indices" << endl;
++  std::cout << "Creating test database and indices" << std::endl;
+   if(( rc = MyFile.CreateDatabase( "IXTEST.DBF", MyRecord, XB_OVERLAY ))
+         != XB_NO_ERROR )
+-     cout << "Error creating database = " << rc << "\n";
++     std::cout << "Error creating database = " << rc << "\n";
+   else
+   {
+ #ifdef XB_INDEX_NDX
+      if(( rc = indx1.CreateIndex(
+        "IXNDX1.NDX", "CHARFLD1", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 1 = " << rc << endl;
++        std::cout << "Error creating index 1 = " << rc << std::endl;
+         exit( 1 );
+      }
+ 
+      if(( rc = indx2.CreateIndex(
+        "IXNDX2.NDX", "CHARFLD1+CHARFLD2", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 2 = " << rc << endl;
++        std::cout << "Error creating index 2 = " << rc << std::endl;
+         exit( 1 );
+      }
+ 
+      if(( rc = indx3.CreateIndex(
+        "IXNDX3.NDX", "NUMFLD1", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 3 = " << rc << endl;
++        std::cout << "Error creating index 3 = " << rc << std::endl;
+         exit( 1 );
+      }
+ #endif
+@@ -118,21 +118,21 @@
+      if(( rc = intx1.CreateIndex(
+        "IXNTX1.NTX", "CHARFLD1", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 4 = " << rc << endl;
++        std::cout << "Error creating index 4 = " << rc << std::endl;
+         exit( 1 );
+      }
+ 
+      if(( rc = intx2.CreateIndex( 
+        "IXNTX2.NTX", "CHARFLD1+CHARFLD2", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 5 = " << rc << endl;
++        std::cout << "Error creating index 5 = " << rc << std::endl;
+         exit( 1 );
+      }
+ 
+      if(( rc = intx3.CreateIndex( 
+        "IXNTX3.NTX", "NUMFLD1", XB_NOT_UNIQUE, XB_OVERLAY )) != XB_NO_ERROR )
+      {
+-        cout << "Error creating index 6 = " << rc << endl;
++        std::cout << "Error creating index 6 = " << rc << std::endl;
+         exit( 1 );
+      }
+ #endif
+@@ -142,14 +142,14 @@
+   f2 = MyFile.GetFieldNo( "CHARFLD2" );
+   f3 = MyFile.GetFieldNo( "NUMFLD1" ); 
+ 
+-  cout << "Populating database and indices with data" << endl;
+-  cout << ".";
+-  cout.flush();
++  std::cout << "Populating database and indices with data" << std::endl;
++  std::cout << ".";
++  std::cout.flush();
+   for( int i = 0; i < 10000; i++ ){
+       if (i % 1000 == 0)
+       {
+-          cout << ".";
+-          cout.flush();
++          std::cout << ".";
++          std::cout.flush();
+       }
+     memset( charbuf, 0x00, 10 );
+     sprintf( charbuf, "%d", i );
+@@ -159,7 +159,7 @@
+     MyFile.PutLongField( f3, i );
+     MyFile.AppendRecord();
+   }
+-  cout << " Done." << endl;
++  std::cout << " Done." << std::endl;
+ 
+   // Check all indices.
+   sts += CheckIndex(
+@@ -179,14 +179,14 @@
+   //
+   // - Bob Cotton <bob@synxis.com>
+   //
+-  cout << "Reversing records." << endl;
+-  cout << ".";
+-  cout.flush();
++  std::cout << "Reversing records." << std::endl;
++  std::cout << ".";
++  std::cout.flush();
+     for( xbLong j = 1; j < MyFile.NoOfRecords(); j++ ){
+       if (j  % 1000 == 0)
+       {
+-          cout << ".";
+-          cout.flush();
++          std::cout << ".";
++          std::cout.flush();
+       }
+       MyFile.GetRecord(j);
+       memset( charbuf, 0x00, 10 );
+@@ -196,7 +196,7 @@
+       MyFile.PutLongField( f3, j-1 );
+       MyFile.PutRecord();
+   }
+-  cout << " Done." << endl;
++  std::cout << " Done." << std::endl;
+     
+           
+   // Check all indices
+@@ -213,7 +213,7 @@
+                     );
+     
+ 
+-  cout << "Index testing completed" << endl;cout.flush();
++  std::cout << "Index testing completed" << std::endl;std::cout.flush();
+   MyFile.CloseDatabase();   /* Close database and associated indexes */
+   return sts;
+ }     
+@@ -239,55 +239,55 @@
+     int sts = 0;
+     
+ #if defined( XB_INDEX_NDX ) && defined( XBASE_DEBUG )
+-    cout << "Testing NDX index 1 "; cout.flush();
++    std::cout << "Testing NDX index 1 "; std::cout.flush();
+     if(( rc = indx1->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index indx1" << endl;
++        std::cout << "Error " << rc << " with index indx1" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ 
+-    cout << "Testing NDX index 2 ";cout.flush();
++    std::cout << "Testing NDX index 2 ";std::cout.flush();
+     if(( rc = indx2->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index indx2" << endl;
++        std::cout << "Error " << rc << " with index indx2" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ 
+ 
+-    cout << "Testing NDX index 3 ";cout.flush();
++    std::cout << "Testing NDX index 3 ";std::cout.flush();
+     if(( rc = indx3->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index indx3" << endl;
++        std::cout << "Error " << rc << " with index indx3" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ #endif
+ #if defined( XB_INDEX_NTX ) && defined( XBASE_DEBUG )
+-    cout << "Testing NTX index 1 ";cout.flush();
++    std::cout << "Testing NTX index 1 ";std::cout.flush();
+     if(( rc = intx1->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index intx1" << endl;
++        std::cout << "Error " << rc << " with index intx1" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ 
+-    cout << "Testing NTX index 2 ";cout.flush();
++    std::cout << "Testing NTX index 2 ";std::cout.flush();
+     if(( rc = intx2->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index intx2" << endl;
++        std::cout << "Error " << rc << " with index intx2" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ 
+-    cout << "Testing NTX index 3 ";cout.flush();
++    std::cout << "Testing NTX index 3 ";std::cout.flush();
+     if(( rc = intx3->CheckIndexIntegrity(0)) != XB_NO_ERROR ){
+-        cout << "Error " << rc << " with index intx3" << endl;
++        std::cout << "Error " << rc << " with index intx3" << std::endl;
+         sts++;
+     }
+     else
+-        cout << "OK" << endl;
++        std::cout << "OK" << std::endl;
+ #endif
+     return sts;
+ 
+--- xbase-2.0.0/tv/tvxbase.cpp.orig	2000-09-20 21:34:02.000000000 +0100
++++ xbase-2.0.0/tv/tvxbase.cpp	2010-02-10 22:01:40.000000000 +0000
+@@ -23,7 +23,7 @@
+     Foundation, Inc., or see http://www.gnu.org/.
+ */
+ 
+-#include <iostream.h>
++#include <iostream>
+ 
+ #define Uses_TApplication
+ #define Uses_TButton

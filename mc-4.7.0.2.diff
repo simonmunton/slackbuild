@@ -1,0 +1,35 @@
+--- mc-4.7.0.2/lib/vfs/mc-vfs/fish.c.orig	2010-01-29 08:09:27.000000000 +0000
++++ mc-4.7.0.2/lib/vfs/mc-vfs/fish.c	2010-02-10 08:58:25.000000000 +0000
+@@ -479,7 +479,7 @@
+ 				  "if test \"$m\" = \"0\" ; then \n"
+ 					  "s=$d; m=$y; d=$n y=$n2; n=$n3\n"
+ 				  "else\n"
+-					  "n=$n\" \"$n2\" \"$n3\n"
++					  "if [ \"$n2\" != \"\" ] ; then n=$n\" \"$n2\" \"$n3 ; fi\n"
+ 				  "fi\n"
+ 				  "if [ $ADD  = 0 ]; then\n"
+ 					  "echo \"P$p $u.$g\nS$s\nd$m $d $y\n:$n\n\"\n"
+@@ -496,7 +496,7 @@
+ 				  "if test \"$a\" = \"0\" ; then \n"
+ 					  "a=$m; i=$d; m=$y; d=$n y=$n2; n=$n3\n"
+ 				  "else\n"
+-					  "n=$n\" \"$n2\" \"$n3\n"
++					  "if [ \"$n2\" != \"\" ] ; then n=$n\" \"$n2\" \"$n3 ; fi\n"
+ 				  "fi\n"
+ 				  "if [ $ADD = 0 ]; then\n"
+ 					  "echo \"P$p $u.$g\nE$a$i\nd$m $d $y\n:$n\n\"\n"
+--- mc-4.7.0.2/src/editor/editwidget.c.orig	2010-02-01 09:17:32.000000000 +0000
++++ mc-4.7.0.2/src/editor/editwidget.c	2010-02-10 08:58:04.000000000 +0000
+@@ -313,6 +313,12 @@
+ 	    int cmd, ch;
+ 	    cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++	    if (parm == KEY_BTAB) {
++		edit_execute_key_command (e, cmd, '\t');
++		edit_update_screen (e);
++		return MSG_HANDLED;
++            }
++
+ 	    /* The user may override the access-keys for the menu bar. */
+ 	    if (edit_translate_key (e, parm, &cmd, &ch)) {
+ 		edit_execute_key_command (e, cmd, ch);
