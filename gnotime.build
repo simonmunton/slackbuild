@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
 VERSION=2.3.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gnotime-2.3.0.diff
 )
 fi
 
@@ -57,8 +57,9 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 `pkg-config --cflags libgnomeui-2.0`" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+LDFLAGS="`pkg-config --libs libgnomeui-2.0`" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \

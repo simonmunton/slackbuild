@@ -4,22 +4,24 @@
 # Set initial variables:
 PKG=/tmp/package-ooo
 
-VERSION=3.1.1
+VERSION=3.2.0
 
 ARCH=${ARCH:-i586}
 
-BUILD=9420
+BUILD=9483
 
 # As of 2.0.2 the menus have a different build revision
-#BUILD_MENU=9376
+BUILD_MENU=9472
 
 # 2.0 hack - directory versions don't match package name versions
 S_VERSION=3
 
+OO_LANG=_en-GB
 
 # Change to the name of the file you downloaded from OOo
 # Usually in the form of: OOo_$VERSION_LinuxIntel_install.tar.gz
-INPUT=~/tmp/new/o/OpenOffice/OOo_${VERSION}_LinuxIntel_install_en-US.tar.gz
+#INPUT=~/tmp/new/o/OpenOffice/OOo_${VERSION}_LinuxIntel_install_en-US.tar.gz
+INPUT=~/tmp/new/o/OpenOffice/OOo_${VERSION}_LinuxIntel_install_wJRE${OO_LANG}.tar.gz
 
 if [ ! -r $INPUT ]; then
 echo "Cannot find $INPUT Terminating..."
@@ -68,6 +70,7 @@ rm ./RPMS/openoffice.org*-debian*
 
 # Add any other packages you don't want here in the form
 # rm $PKG/RPMS/openofficeorg-$PACKAGENAME*
+rm ./RPMS/jre*
 
 mv ./RPMS/*.rpm .
 rm -rf ./RPMS
@@ -148,6 +151,76 @@ for n in $icons
 do
   gtk-update-icon-cache -f -t /usr/share/icons/\$n
 done
+
+INSTDIR=\`/usr/bin/mktemp -d "/tmp/userinstall.XXXXXX"\`
+for f in /opt/openoffice.org3/share/extension/install/*.oxt
+do
+  /opt/openoffice.org3/program/unopkg add --shared --shared \$f "-env:UserInstallation=file:///\$INSTDIR" '-env:UNO_JAVA_JFW_INSTALL_DATA=\$OOO_BASE_DIR/share/config/javasettingsunopkginstall.xml' '-env:JFW_PLUGIN_DO_NOT_CHECK_ACCESSIBILITY=1'
+done
+rm -rf "\$INSTDIR"
+
+
+# update /etc/mime.types
+# backing out existing entries to avoid duplicates
+sed '
+/application\/vnd\.oasis\.opendocument/d
+/application\/vnd\.openofficeorg/d
+/application\/vnd\.sun/d
+/application\/vnd\.stardivision/d
+' /etc/mime.types 2>/dev/null >> /etc/mime.types.tmp\$\$
+
+# now append our stuff to the temporary file
+cat >> /etc/mime.types.tmp\$\$ << END
+application/vnd.oasis.opendocument.text odt
+application/vnd.oasis.opendocument.text-template ott
+application/vnd.oasis.opendocument.text-web oth
+application/vnd.oasis.opendocument.text-master odm
+application/vnd.oasis.opendocument.graphics odg
+application/vnd.oasis.opendocument.graphics-template otg
+application/vnd.oasis.opendocument.presentation odp
+application/vnd.oasis.opendocument.presentation-template otp
+application/vnd.oasis.opendocument.spreadsheet ods
+application/vnd.oasis.opendocument.spreadsheet-template ots
+application/vnd.oasis.opendocument.chart odc
+application/vnd.oasis.opendocument.formula odf
+application/vnd.oasis.opendocument.image odi
+application/vnd.sun.xml.writer sxw
+application/vnd.sun.xml.writer.template stw
+application/vnd.sun.xml.writer.global sxg
+application/vnd.stardivision.writer sdw vor
+application/vnd.stardivision.writer-global sgl
+application/vnd.sun.xml.calc sxc
+application/vnd.sun.xml.calc.template stc
+application/vnd.stardivision.calc sdc
+application/vnd.stardivision.chart sds
+application/vnd.sun.xml.impress sxi
+application/vnd.sun.xml.impress.template sti
+application/vnd.stardivision.impress sdd sdp
+application/vnd.sun.xml.draw sxd
+application/vnd.sun.xml.draw.template std
+application/vnd.stardivision.draw sda
+application/vnd.sun.xml.math sxm
+application/vnd.stardivision.math smf
+application/vnd.sun.xml.base odb
+application/vnd.openofficeorg.extension oxt
+application/vnd.openxmlformats-officedocument.wordprocessingml.document docx
+application/vnd.ms-word.document.macroenabled.12 docm
+application/vnd.openxmlformats-officedocument.wordprocessingml.template dotx
+application/vnd.ms-word.template.macroenabled.12 dotm
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet xlsx
+application/vnd.ms-excel.sheet.macroenabled.12 xlsm
+application/vnd.openxmlformats-officedocument.spreadsheetml.template xltx
+application/vnd.ms-excel.template.macroenabled.12 xltm
+application/vnd.openxmlformats-officedocument.presentationml.presentation pptx
+application/vnd.ms-powerpoint.presentation.macroenabled.12 pptm
+application/vnd.openxmlformats-officedocument.presentationml.template potx
+application/vnd.ms-powerpoint.template.macroenabled.12 potm
+END
+
+# and replace the original file
+mv -f /etc/mime.types.tmp\$\$ /etc/mime.types 2>/dev/null
+
+
 _EOF_
 
 chmod a+x $PKG/install/doinst.sh
@@ -174,5 +247,5 @@ GROUP=`id -gn`
 cd $PKG
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n $PKG/openoffice.org-$VERSION-$ARCH-$BUILD.tgz; \
+makepkg -l y -c n /tmp/packages/openoffice.org-$VERSION${OO_LANG//-/_}-$ARCH-$BUILD.tgz; \
 chown -R $USERNAME.$GROUP $PKG"

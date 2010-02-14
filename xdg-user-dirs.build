@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gedit-plugins
+TARNAME=xdg-user-dirs
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARSEP="-"
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=2.28.0
+VERSION=0.12
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://www.freedesktop.org/wiki/Software/xdg-user-dirs"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -52,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -89,8 +103,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "plugins for gedit"
-gedit-plugins is a set of plugins for gedit.
+make_slack_desc << EOF "tool to help manage "well known" user directories"
+xdg-user-dirs is a tool to help manage "well known" user directories 
+like the desktop folder and the music folder. It also handles 
+localization (i.e. translation) of the filenames.
+
+The way it works is that xdg-user-dirs-update is run very early in the 
+login phase. This program reads a configuration file, and a set of 
+default directories. It then creates localized versions of these 
+directories in the users home directory and sets up a config file in 
+\$(XDG_CONFIG_HOME)/user-dirs.dirs (XDG_CONFIG_HOME defaults to 
+~/.config) that applications can read to find these directories. 
 
 EOF
 
