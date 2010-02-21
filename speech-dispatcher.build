@@ -1,24 +1,25 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=oxygen-icons
+TARNAME=speech-dispatcher
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.4.0
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=4.4.0
+VERSION=0.6.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.freebsoft.org/speechd"
+# http://www.freebsoft.org/pub/projects/speechd/
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -34,12 +35,9 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
-cd /bigdisk/simon-src/kde4
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-cd ${CWD}
-ln -s /bigdisk/simon-src/kde4/${TARNAME}-${VERSION} .
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -48,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/speech-dispatcher-0.6.7.diff
 )
 fi
 
@@ -58,25 +56,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,8 +88,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-cd ..
 
 strip_binaries
 
@@ -108,8 +104,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Oxygen icons"
-Oxygen icons for KDE
+make_slack_desc << EOF " high level layer for speech synthesis"
+The goal of Speech Dispatcher project is to provide a high-level 
+device independent layer for speech synthesis through a simple, stable 
+and well documented interface.
+
+What is a very high level GUI library to graphics, Speech Dispatcher 
+is to speech synthesis. The application neither needs to talk to the 
+devices directly nor to handle concurrent access, sound output and 
+other tricky aspects of the speech subsystem. 
 
 EOF
 

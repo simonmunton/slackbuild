@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=oxygen-icons
+TARNAME=libssh
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.4.0
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=4.4.0
+VERSION=0.4.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.libssh.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -34,12 +34,9 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
-cd /bigdisk/simon-src/kde4
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-cd ${CWD}
-ln -s /bigdisk/simon-src/kde4/${TARNAME}-${VERSION} .
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -58,25 +55,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 mkdir build
 cd build
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
 cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -108,8 +108,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Oxygen icons"
-Oxygen icons for KDE
+make_slack_desc << EOF "ssh library"
+The ssh library was designed to be used by programmers needing a 
+working SSH implementation by the mean of a library. The complete 
+control of the client is made by the programmer. With libssh, you can 
+remotely execute programs, transfer files, use a secure and 
+transparent tunnel for your remote programs. With its Secure FTP 
+implementation, you can play with remote files easily, without 
+third-party programs others than libcrypto (from openssl). 
 
 EOF
 
