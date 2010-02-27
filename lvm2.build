@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=get_iplayer
+TARNAME=LVM2
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/g
+TARSEP="."
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.72
+VERSION=2.02.61
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://linuxcentre.net/iplayer"
+WEBPAGE="http://sources.redhat.com/lvm2/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=lvm2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}.${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,13 +59,27 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${PKGCFLAGS}" \
-#CXXFLAGS="${PKGCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --mandir=/usr/man \
+	    --disable-readline \
+	    --enable-cmdlib \
+	    --enable-applib \
+	    --enable-dmeventd \
+	    --libdir=/lib \
+	    --enable-static_link \
+	    --with-lvm1=internal \
+	    --enable-static_link \
+	    --enable-pkgconfig \
+	    --enable-dmeventd \
+	    --enable-fsadm \
+	    --disable-selinux \
+	    --with-device-uid=0 \
+	    --with-device-gid=6 \
+	    --with-device-mode=0660 \
+	    --enable-udev_rules \
+	    --enable-udev_sync
+
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -79,8 +93,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,13 +101,10 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/{bin,man/man1} ${PKG}/usr/share/get_iplayer/plugins
-
-cp get_iplayer ${PKG}/usr/bin
-cp get_iplayer.1 ${PKG}/usr/man/man1
-cp plugins/* ${PKG}/usr/share/get_iplayer/plugins
+mv ${PKG}/etc/lvm/lvm.conf ${PKG}/etc/lvm/lvm.conf.new
+doinst_config etc/lvm/lvm.conf.new
 
 strip_binaries
 
@@ -105,15 +115,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO LICENSE.txt CHANGELOG* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO VERSION WHATS_NEW \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PVR for BBC's iPlayer"
-get_iplayer lists, searches and downloads BBC iPlayer TV/Radio, BBC
-Podcast and ITVplayer TV programmes.
+make_slack_desc << EOF "Logical Volume Manager version 2"
+Heinz Mauelshagen's LVM (Logical Volume Manager) for Linux.
+LVM adds an additional layer between the physical peripherals and the
+low-level I/O interface to get a logical view of disks.  This allows
+the concatenation of several disks (so-called physical volumes or PVs)
+to form a storage pool (so-called Volume Group or VG) with allocation
+units called physical extents (called PE).  With LVM, you can extend,
+resize, or relocate storage dynamically.
 
 EOF
 
