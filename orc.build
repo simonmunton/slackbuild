@@ -2,21 +2,23 @@
 #
 . build_funcs
 
-TARNAME=xine-lib
+TARNAME=orc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xine
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.1.18.1
+VERSION=0.4.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://code.entropywave.com/projects/orc/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/xine-lib-1.1.18.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -53,17 +55,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
-            --mandir=/usr/man \
-            --with-w32-path=/usr/lib/codecs \
-            --with-libflac \
-            --with-freetype \
-            --with-fontconfig \
-            --with-wavpack
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -79,9 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/lib/codecs
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,12 +103,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "xine multimedia playback engine libraries)"
-xine-lib is a free (GPL licensed) high-performance multimedia
-playback engine.  The xine shared libraries are used by xine-ui (and
-other media players and multimedia applications) for smooth video
-processing and playback of multimedia streams such as movies, radio
-and TV network streams, DVDs, and VCDs.
+make_slack_desc << EOF "Orc  The Oil Runtime Compiler"
+Orc is a library and set of tools for compiling and executing very 
+simple programs that operate on arrays of data.  The language is a 
+generic assembly language that represents many of the features 
+available in SIMD architectures, including saturated addition and 
+subtraction, and many arithmetic operations.
 
 EOF
 
