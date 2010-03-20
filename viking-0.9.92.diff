@@ -1,0 +1,16 @@
+--- viking-0.9.92/src/file.c.orig	2010-03-13 20:42:35.000000000 +0000
++++ viking-0.9.92/src/file.c	2010-03-20 20:55:45.000000000 +0000
+@@ -596,7 +596,12 @@
+ 
+ gboolean a_file_save ( VikAggregateLayer *top, gpointer vp, const gchar *filename )
+ {
+-  FILE *f = g_fopen(filename, "w");
++  FILE *f;
++
++  if (strncmp(filename, "file://", 7) == 0)
++    filename = filename + 7;
++
++  f = g_fopen(filename, "w");
+ 
+   if ( ! f )
+     return FALSE;
