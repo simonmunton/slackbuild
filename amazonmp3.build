@@ -4,10 +4,10 @@
 
 TARNAME=amazonmp3
 TARNAMEEXTRA=
-TARSEP=""
+TARSEP="-"
 TARDIR=~/tmp/new/a/amazon
 TAR_EXT=.rpm
-VERSION=
+VERSION=1.0.9
 VERSIONEXTRA=
 BUILD=1
 
@@ -16,7 +16,7 @@ WEBPAGE=""
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-PKGVERSION=1.0.4
+#PKGVERSION=1.0.4
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -74,8 +74,17 @@ fi
 (cd ${PKG}
 
 rpm2cpio ${FULL_TARNAME} | cpio -i -d
-rpm2cpio ${TARDIR}/openssl-0.9.8g-6.fc9.i686.rpm | cpio -i -d ./lib/*
-rpm2cpio ${TARDIR}/boost-1.34.1-13.fc9.i386.rpm | cpio -i -d ./usr/lib/*
+
+rpm2cpio ${TARDIR}/glibc-2.11*.rpm | cpio -i -d "./lib/*"
+
+rpm2cpio ${TARDIR}/openssl-1.0*.rpm | cpio -i -d "./usr/lib/*"
+
+rpm2cpio ${TARDIR}/libicu*.rpm | cpio -i -d "./usr/lib/*"
+
+for f in ${TARDIR}/boost*1.39*.rpm
+do
+rpm2cpio $f | cpio -i -v -d "./usr/lib/*"
+done
 
 mv lib/* usr/share/amazonmp3
 mv usr/lib/* usr/share/amazonmp3
