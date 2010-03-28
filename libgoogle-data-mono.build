@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=soundkonverter
+TARNAME=libgoogle-data-mono
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.3.11
+VERSION=1.4.0.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://code.google.com/p/google-gdata/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/soundkonverter-0.3.11.diff
- make -f Makefile.cvs
+ patch -p1 < ${CWD}/libgoogle-data-mono-1.4.0.2.diff
 )
 fi
 
@@ -56,19 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/opt/kde3/lib/qt3
-export CPLUS_INCLUDE_PATH=$QTDIR/include:$CPLUS_INCLUDE_PATH
-export PATH="$PATH:$QTDIR/bin:/opt/kde3/bin"
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CPPFLAGS="-I/usr/include/cdda" \
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure 
-#--prefix=/usr \
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
 #            --sysconfdir=/etc \
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
@@ -85,7 +79,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PREFIX=/usr || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,7 +87,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} PREFIX=/usr
+
+cp misc/Google.GData.Client.dll.config ${PKG}/usr/lib/mono/gac/Google.GData.Client/*/
+#cp misc/Google.GData.Client.dll.config ${PKG}/usr/lib/mono/GData-Sharp
 
 strip_binaries
 
@@ -110,11 +107,20 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "sound format converter for KDE"
-soundKonverter supports reading and writing tags for many formats, so
-the tags are preserved when converting files.
-It comes with an Amarok script that allows you to easily transcode
-files when transfering to your media device.
+make_slack_desc << EOF
+The Google Data APIs (GData) provide a simple protocol for reading and 
+writing data on the web.
+
+Each of the following Google services provides a Google data API:
+    * Base			    * Blogger
+    * Calendar			    * Spreadsheets
+    * Google Apps Provisioning      * Code Search
+    * Notebook                      * Picasa Web Albums
+    * Document Feed                 * Contacts
+    * You Tube                      * Google Health 
+
+The GData .NET Client Library provides a library and source code that 
+make it easy to access data through Google Data APIs. 
 
 EOF
 

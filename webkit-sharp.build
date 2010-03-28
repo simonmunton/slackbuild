@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=WebKit
+TARNAME=webkit-sharp
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=r56652
+VERSION=0.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://webkit.org/"
+WEBPAGE="http://www.ohloh.net/p/webkit-sharp"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/WebKit-r37126.diff
- ./autogen.sh
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,17 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-introspection
+	    --mandir=/usr/man
 
-#	    --enable-mathml \
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,12 +103,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source web browser engine"
-WebKit is an open source web browser engine. WebKit is also the name 
-of the Mac OS X system framework version of the engine that's used by 
-Safari, Dashboard, Mail, and many other OS X applications. WebKit's 
-HTML and JavaScript code began as a branch of the KHTML and KJS 
-libraries from KDE.
+make_slack_desc << EOF "WebKit bindings for Mono"
+WebKit is a web content engine, derived from KHTML and KJS from KDE, 
+and used primarily in Apple's Safari browser. It is made to be 
+embedded in other applications, such as mail readers, or web browsers.
+
+This package provides Mono bindings for WebKit libraries.
 
 EOF
 
