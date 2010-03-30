@@ -1,21 +1,22 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kipi-plugins
+TARNAME=Terminal
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+XFCE_VER=4.6.1
+TARDIR=~/tmp/new/x/xfce-${XFCE_VER}
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=0.4.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.kipi-plugins.org/drupal/"
+WEBPAGE="http://www.xfce.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=xfce-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/terminal-0.4.0-fixup_docdir.diff
 )
 fi
 
@@ -59,13 +60,27 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc/xfce \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --htmldir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --disable-static
+
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,9 +95,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -90,22 +103,25 @@ compress_manpages
 
 compress_info
 
+mkdir -p ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
+
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  BUGS COMPOSITOR FAQ HACKING NOTES THANKS example.gtkrc-2.0 \
+  ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
 
 fix_docs
 
-#-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "plugin architecture for image apps"
-Libkipi allows image applications to use a plugin architecture for
-additional functionality. Currently implemented plugins are:
+rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
- RawConverter, SlideShow, MpegEncoder, PrintWizard, JpegLossLess, 
- CdArchiving, AcquireImages, Calendar, SendImages, BatchProcessImages,
- TimeAdjust, WallPaper, FindImages, GalleryExport, FlickrExport,
- HTMLExport, SimpleViewerExport, GPSSync, IpodExport (beta),
- MetadataEdit
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a fast and lightweight desktop environment for X"
+Xfce is a fast and lightweight desktop environment that is both
+visually appealing and easy to use.
+
+For more information, see:  http://www.xfce.org
+
+Xfce was developed by Olivier Fourdan.
 
 EOF
 

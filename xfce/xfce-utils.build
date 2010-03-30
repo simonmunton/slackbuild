@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=gnome-disk-utility
+TARNAME=xfce-utils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+XFCE_VER=4.6.1
+TARDIR=~/tmp/new/x/xfce-${XFCE_VER}
 #TAR_EXT=.tar.gz
-VERSION=2.28.1
+VERSION=${XFCE_VER}
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.xfce.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=xfce-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/gnome-disk-utility-2.28.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -62,9 +63,15 @@ then
 CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --sysconfdir=/etc/xfce \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --htmldir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --disable-static
+
+
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -88,6 +95,12 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/etc/X11/xinit
+( cd ${PKG}/etc/X11/xinit
+  ln -sf ../../xfce/xdg/xfce4/xinitrc xinitrc.xfce
+  chmod 755 ../../xfce/xdg/xfce4/xinitrc
+)
+
 strip_binaries
 
 fix_links
@@ -96,16 +109,25 @@ compress_manpages
 
 compress_info
 
+mkdir -p ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
+
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  BUGS COMPOSITOR FAQ HACKING NOTES THANKS example.gtkrc-2.0 \
+  ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
 
 fix_docs
 
+rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "libraries and applications for dealing with storage devices"
-gnome-disk-utility provides libraries and applications for dealing
-with storage devices.
+make_slack_desc << EOF "a fast and lightweight desktop environment for X"
+Xfce is a fast and lightweight desktop environment that is both
+visually appealing and easy to use.
+
+For more information, see:  http://www.xfce.org
+
+Xfce was developed by Olivier Fourdan.
 
 EOF
 
