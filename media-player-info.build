@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=clamav
+TARNAME=media-player-info
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.96
+VERSION=5
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://hal.freedesktop.org/releases/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,15 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-milter
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,38 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/etc
-cp etc/*conf ${PKG}/etc
-#mv ${PKG}/etc/clamav.conf ${PKG}/etc/clamav.conf.new
-mv ${PKG}/etc/clamd.conf ${PKG}/etc/clamd.conf.new
-mv ${PKG}/etc/clamav-milter.conf ${PKG}/etc/clamav-milter.conf.new
-mv ${PKG}/etc/freshclam.conf ${PKG}/etc/freshclam.conf.new
-
-mkdir -p ${PKG}/etc/logrotate.d
-cat > ${PKG}/etc/logrotate.d/clamav.new << EOF
-/var/log/clamav/clamd.log {
-    size 900k
-    postrotate
-        /bin/killall -HUP clamd 2>/dev/null || true
-    endscript
-}
-/var/log/clamav/freshclam.log {
-    size 900k
-}
-/var/log/clamav/clamav-milter.log {
-    size 900k
-}
-EOF
-
-doinst_config etc/logrotate.d/clamav.new etc/clamd.conf.new etc/clamav-milter.conf.new etc/freshclam.conf.new
-
-cat >> ${PKG}/install/doinst.sh << EOF
-#
-rm -rf usr/share/clamav/*inc
-
-EOF
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -122,13 +103,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "anti-virus toolkit"
-Clam AntiVirus is an anti-virus toolkit for UNIX, designed especially
-for e-mail scanning on mail gateways. It provides a number of
-utilities including a flexible and scalable multi-threaded daemon, a
-command line scanner and advanced tool for automatic database updates.
-The core of the package is an anti-virus engine available in a form of
-shared library.
+make_slack_desc << EOF "media-player-info"
+media-player-info is a repository of data files describing media 
+player (mostly USB Mass Storage ones) capabilities. These files 
+contain information about the directory layout to use to add music to 
+these devices, about the supported file formats, ... These 
+capabilities used to be provided by HAL in the 
+10-usb-music-players.fdi file but had to be moved elsewhere as part 
+of the big HALectomy.
 
 EOF
 
@@ -137,6 +119,5 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-chown -R clamav.clamav usr/share/clamav; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

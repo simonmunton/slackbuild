@@ -2,16 +2,17 @@
 #
 . build_funcs
 
-TARNAME=xf86-video-fbdev
+TARNAME=udisks
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/driver
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=0.4.1
+VERSION=1.0.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://freedesktop.org/wiki/Software/DeviceKit"
+# http://hal.freedesktop.org/releases/udisks-1.0.0.tar.gz
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/udisks-1.0.0.diff
 )
 fi
 
@@ -64,10 +65,7 @@ CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -81,7 +79,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} pkgconfigdir=/usr/lib/pkgconfig || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +87,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} pkgconfigdir=/usr/lib/pkgconfig
 
 strip_binaries
 
@@ -106,15 +104,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-xf86-video-fbdev is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "udisks"
+disks provides a daemon, D-Bus API and command line tools for 
+managing disks and storage devices.
 
 EOF
 

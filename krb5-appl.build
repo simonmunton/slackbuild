@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=poppler
+TARNAME=krb5-appl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.12.4
+VERSION=1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://poppler.freedesktop.org/"
+WEBPAGE="http://web.mit.edu/Kerberos/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,23 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CPPFLAGS="-I /usr/include/et" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static \
-            --enable-gtk-doc \
-	    --enable-xpdf-headers \
+	    --mandir=/usr/man
 
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
-#	    --disable-poppler-qt
-
-#            --enable-opi \
-#            --enable-zlib \
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -86,43 +89,29 @@ fi
 
 make install DESTDIR=${PKG}
 
-if false
-then
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
+# Fix several nasties.
+(
+  cd ${PKG}/usr/bin
+  for i in ftp rcp rlogin rsh telnet; do
+    mv ${i} k${i}
+  done
+  cd ${PKG}/usr/sbin
+  for i in ftpd telnetd; do
+    mv ${i} k${i}
+  done
+  cd ${PKG}/usr/man/man1
+  for i in ftp rcp rlogin rsh telnet; do
+    mv ${i}.1 k${i}.1
+  done
+  cd ${PKG}/usr/man/man5
+  mv .k5login.5 k5login.5
+  cd ${PKG}/usr/man/man8
+  for i in ftpd telnetd; do
+    mv ${i}.8 k${i}.8
+  done
+)
 
-if [ ${DO_CONFIGURE} == "yes" ]
-then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static \
-            --enable-opi \
-            --enable-gtk-doc \
-	    --enable-xpdf-headers \
-	    --disable-poppler-qt
-
-#            --enable-zlib \
-fi
-
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} || exit
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-make install DESTDIR=${PKG}
-
-fi
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -137,12 +126,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "pdf library based on xpdf"
-Poppler is a library based on the xpdf PDF viewer developed by Derek
-Noonburg of Glyph and Cog, LLC.  Since xpdf does not provide a shared
-library, whenever a flaw was found potentially dozens of applications
-incorporating code from xpdf would have to be patched.  By providing
-a centralized PDF library this duplicated effort will be eliminated.
+make_slack_desc << EOF "Kerberos applications"
+This package contains Kerberized versions of telnet, rlogin, rsh, rcp,
+and ftp clients and daemons, as well as a terminal login program which
+can obtain Kerberos credentials when presented with the user's
+password.
+
+These programs are no longer in wide use, having been supplanted in
+many environments by OpenSSH, but there is still some interest in
+their continued maintenance.  These programs were included in the main
+Kerberos 5 distribution through release 1.7, but are now packaged
+separately.
 
 EOF
 
