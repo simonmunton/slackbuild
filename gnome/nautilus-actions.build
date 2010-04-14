@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libmtp
+TARNAME=nautilus-actions
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=1.0.1
+VERSION=2.30.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://libmtp.sourceforge.net"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=libmtp0.3
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,15 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --disable-static
+	    --disable-schemas-install
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,16 +87,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} schemasdir=/etc/gconf/schemas
 
-# Add udev rules:
-mkdir -p ${PKG}/lib/udev/rules.d
-cat libmtp.rules | sed -e 's/MODE="666"/GROUP="audio", MODE="0660"/' > ${PKG}/lib/udev/rules.d/90-libmtp.rules
-# Add device information for HAL:
-mkdir -p ${PKG}/usr/share/hal/fdi/information/20thirdparty/
-cat libmtp.fdi > ${PKG}/usr/share/hal/fdi/information/20thirdparty/10-libmtp.fdi
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -94,23 +98,13 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO hotplug.sh libmtp.rules libmtp.sh libmtp.usermap \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A library for MTP media devices"
-libmtp is a library that attempts to support Microsoft's Media
-Transfer Protocol (MTP).  It was initially based the great libptp2
-library by Mariusz Woloszyn now maintained by Marcus Meissners, and
-Hubert Figuere's libgphoto2 work based on libptp2 (or is libptp2
-based on libgphoto?).  It is like a master DJ has remixed all of
-these tracks and then added a new API adapted for portable media
-players.  :-)
-
-For the latest info, check out:  http://libmtp.sourceforge.net
-
+make_slack_desc << EOF
 EOF
 
 post_install

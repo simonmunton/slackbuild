@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=xf86-input-evdev
+TARNAME=stunnel
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/driver
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.4.0
+VERSION=4.33
 VERSIONEXTRA=
 BUILD=1
 
@@ -65,9 +65,12 @@ CXXFLAGS="${PKGCFLAGS}" \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
 
+
+#	    --libdir=/usr/lib \
+#	    --exec-prefix= \
+#	    --datadir=/usr/share \
+#	    --sbindir=/usr/sbin
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -89,7 +92,28 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/var/run/stunnel
+
+# This will produce a useless key.
+make install DESTDIR=${PKG} pkglibdir=/usr/lib
+
+# Get rid of key, so nobody tries to use it:
+rm -f ${PKG}/etc/stunnel/stunnel.pem
+# Add cnf:
+cat tools/stunnel.cnf > ${PKG}/etc/stunnel/stunnel.cnf.new
+doinst_config etc/stunnel/stunnel.cnf.new
+
+cat ${CWD}/stunnel-generate-stunnel-key.sh > ${PKG}/etc/stunnel/generate-stunnel-key.sh
+chmod 755 ${PKG}/etc/stunnel/generate-stunnel-key.sh
+
+mkdir -p ${PKG}/usr/man/pl/man8
+mv ${PKG}/usr/man/man8/stunnel.pl.8 ${PKG}/usr/man/pl/man8/stunnel.8
+mkdir -p ${PKG}/usr/man/fr/man8
+mv ${PKG}/usr/man/man8/stunnel.fr.8 ${PKG}/usr/man/fr/man8/stunnel.8
+
+# The 4.15 version of stunnel caused some bizarre perms, so
+# we'll protect against that:
+chmod 0755 ${PKG}/var/lib
 
 strip_binaries
 
@@ -106,15 +130,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-xf86-input-evdev is part of X11.
+make_slack_desc << EOF "Universal SSL tunnel"
+The stunnel program is designed to work as an SSL encryption wrapper
+between remote client and local (inetd-startable) or remote servers.
+The goal is to facilitate SSL encryption and authentication for
+non-SSL-aware programs.
 
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+stunnel can be used to add SSL functionality to commonly used inetd
+daemons like POP-2, POP-3 and IMAP servers without any changes in the
+programs' code.
 
 EOF
 
