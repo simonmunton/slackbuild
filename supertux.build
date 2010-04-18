@@ -6,7 +6,7 @@ TARNAME=supertux
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.3.1d
+VERSION=0.3.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,17 +54,25 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-jam ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +80,7 @@ then
   exit
 fi
 
-jam -s DESTDIR=${PKG} install
+make DESTDIR=${PKG} install
 
 mv ${PKG}/usr/share/doc/supertux*/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
 rmdir -p ${PKG}/usr/share/doc/supertux*
