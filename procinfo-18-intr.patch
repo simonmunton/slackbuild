@@ -1,0 +1,213 @@
+--- procinfo-18/routines.c.intr	2007-10-11 09:52:56.000000000 +0200
++++ procinfo-18/routines.c	2007-10-10 16:38:41.000000000 +0200
+@@ -410,21 +410,24 @@
+ char *
+ perc (unsigned long i, unsigned long t, int cpus)
+ {
+-    unsigned int v;
++    long double v;
+     static char buf[16];
+ 
+     if ((signed long) i == -1 || t == 0)
+ 	return "---.-%";
+ 
+-    v = (unsigned int) (i < 1000000 ?
+-			((1000 * i + t / 2) / t) :
+-			((i + t / 2000) / (t / 1000)));
+-    v /= cpus;
++	if (i < 1000000UL)
++	{
++		v = (1000.0 * i + t / 2.0) / t;
++	}
++	else
++	{
++		v = (i + t / 2000.0) / (t / 1000.0);
++	}
++	v = v / (cpus * 10.0);
+ 
+-    /* if (v > 1000)
+-	return "+++.+%";
+-    else */
+-	sprintf (buf, "%3u.%u%%", v / 10, v % 10);
++	buf[0] = '\0';
++	snprintf (buf, sizeof(buf), "%3.1Lf", v);
+     return buf;
+ }
+ 
+--- procinfo-18/procinfo.c.intr	2007-10-11 09:52:56.000000000 +0200
++++ procinfo-18/procinfo.c	2007-10-10 16:40:01.000000000 +0200
+@@ -335,26 +335,6 @@
+ 
+     elapsed = new.uptime;
+ 
+-/* XXX Is this stuff still relevant/true? */
+-
+-#ifdef __i386__		/* IRQ 0 is timer tick on i386's... */
+-    if (nr_irqs) {
+-	if (fs && old.uptime)
+-	    elapsed = DIFF (intr[0]);
+-    } else
+-#endif
+-#ifdef __sparc__	/* IRQ 10 is timer tick on sparc's... */
+-    if (nr_irqs) {
+-	if (fs && old.uptime)
+-	    elapsed = DIFF (intr[10]);
+-    } else
+-#endif
+-    {
+-	/* This won't be exact... */
+-	if (fs && old.uptime)
+-	    elapsed = DIFF (uptime);
+-    }
+-
+     printf ("user  : %s %s",
+ 	    hms (bDIFF (cpu_user)), perc (bDIFF (cpu_user), elapsed, nr_cpus));
+     printf ("  page in :%9lu", bDIFF (pgin));
+@@ -414,22 +394,31 @@
+ 
+     if (nr_irqs) {
+ 	char irq_label[nr_irqs][22];
++	unsigned real_irq_nums[nr_irqs];
++	unsigned real_nr_irqs = 0U;
+ 
+ 	memset (irq_label, 0, nr_irqs * 22);
+ 
+ 	if (interruptsfp) {
+-	    int i;
+ 
+ 	    fseek (interruptsfp, 0L, SEEK_SET);
+ 	    while (fgets (line, sizeof (line), interruptsfp)) {
++		char *endptr;
+ 		char *p;
++		int i;
+ 
+ 		if (!strchr(line, ':'))		/* skip "           CPU0" */
+ 		    continue;
+ 
+-		i = atol (strtok (line, ":")); /* Get the IRQ no. */
+-
+-		p = strtok (NULL, "\n");
++		/* Get the IRQ no. */
++		p = strtok(line, ":");
++		endptr = NULL;
++		real_irq_nums[real_nr_irqs] = strtol(p, &endptr, 10);
++		if (endptr == p) /* Not a number */
++		{
++			continue;
++		}
++		p = strtok (NULL, " ");
+ 
+ 		/*
+ 		  Left: p = "      31273 + serial"
+@@ -438,38 +427,24 @@
+ 		  or whatever.
+ 		  Anyway, let's first gobble up...
+ 		*/
+-
+-		while (*p == ' ')		/* ...spaces... */
+-		    p++;
+-		while (*p >= '0' && *p <= '9')	/* ...digits... */
+-		    p++;
+-		while (*p == ' ' || *p == '+')	/* ...and the rest. */
+-		    p++;
++		for (i = 0; i < nr_cpus; i++)
++			p = strtok(NULL, " ");
+ 
+ 		/* Left: "serial" or "XT PIC   serial" */
+ 
+ 		if (linux_version_code >= 0x20150) {
+-		    /*
+-		      I don't really like hardcoding version numbers, but
+-		      since the label itself may contain spaces, I can't
+-		      think of a fool-proof algorithm to detect a "XT PIC"
+-		      style /proc/interrupts.
+-		    */
+-		    char *q;
+-
+-		    if ((q = strstr (p, "PIC"))) {
+-			while (*q != ' ')	/* eat up "PIC" or "PIC-foo" */
+-			    q++;
+-			while (*q == ' ')	/* eat up spaces */
+-			    q++;
+-			p = q;
+-		    }
++			p = strtok(NULL, " ");
+ 		}
++		if (p[strlen(p) - 1] == '\n')
++			p[strlen(p) - 1] = '\0';
++		
+ 
+ 		/* XXX Don't let NMI:, IPI: overwrite real values */
+-		if (irq_label[i][0] == 0)
+-		    strncpy (irq_label[i], p, 20);
++		if (irq_label[real_nr_irqs][0] == 0) {
++		    strncpy (irq_label[real_nr_irqs], p, 20);
++			++real_nr_irqs;
+ 	    }
++		}
+ 	}
+ 
+ 
+@@ -484,7 +459,7 @@
+ 	    while (fgets (line, sizeof (line), dmafp)) {
+ 		int foo = strcspn (&line[4], " \n");
+ 
+-		for (i = 0; i < nr_irqs; i++) {
++		for (i = 0; i < real_nr_irqs; i++) {
+ 		    if (strncmp (&line[4], irq_label[i], foo) == 0) {
+ 			tmplen = snprintf (tmp, sizeof(tmp), " [%ld]",
+ 					  atol (strtok (line, ":")));
+@@ -509,9 +484,9 @@
+ 		char *label;
+ 	    } squirqs[nr_irqs];
+ 
+-	    for (i = 0; i < nr_irqs; i++) {
++	    for (i = 0; i < real_nr_irqs; i++) {
+ 		if (new.intr[i] || irq_label[i][0]) {
+-		    squirqs[howmany].nr = i;
++		    squirqs[howmany].nr = real_irq_nums[i];
+ 		    squirqs[howmany].count = bDIFF(intr[i]);
+ 		    squirqs[howmany].label = irq_label[i];
+ 		    howmany++;
+@@ -523,11 +498,11 @@
+ 	    for (i = 0; i < rows; i++) {
+ 		/* The last row may be incomplete if howmany is odd, hence: */
+ 		if (i == rows - 1 && howmany & 1) {
+-		    printf ("irq%3d:%10lu %-21s\n",
++		    printf ("irq%4d:%10lu %-21s\n",
+ 			    squirqs[i].nr, squirqs[i].count, squirqs[i].label);
+ 		} else {
+-		    printf ("irq%3d:%10lu %-21s "
+-			    "irq%3d:%10lu %-21s\n",
++		    printf ("irq%4d:%10lu %-21s "
++			    "irq%4d:%10lu %-21s\n",
+ 			    squirqs[i].nr, squirqs[i].count, squirqs[i].label,
+ 			    squirqs[i+rows].nr,
+ 			    squirqs[i+rows].count,
+@@ -535,10 +510,10 @@
+ 		}
+ 	    }
+ 	} else {
+-	    for (i = 0; i < nr_irqs / 2; i++)
++	    for (i = 0; i < real_nr_irqs / 2; i++)
+ 		printf ("irq%3d:%10lu %-21s "
+ 			"irq%3d:%10lu %-21s\n",
+-			i, bDIFF (intr[i]), irq_label[i],
++			real_irq_nums[i], bDIFF (intr[i]), irq_label[i],
+ 			i + (nr_irqs / 2),
+ 			bDIFF (intr[i + (nr_irqs / 2)]),
+ 			irq_label[i + (nr_irqs / 2)]);
+@@ -859,10 +834,10 @@
+ 	    for(i = 5; i < len; i++)
+ 		if(line[i] == ' ')
+ 		    nr_irqs++;
+-	    new.intr = my_xcalloc (nr_irqs, sizeof (unsigned int));
+-	    old.intr = my_xcalloc (nr_irqs, sizeof (unsigned int));
++	    new.intr = my_xcalloc (nr_irqs, sizeof (unsigned long));
++	    old.intr = my_xcalloc (nr_irqs, sizeof (unsigned long));
+ 	    memset (&base, 0, sizeof (struct info));
+-	    base.intr = my_xcalloc (nr_irqs, sizeof (unsigned int));
++	    base.intr = my_xcalloc (nr_irqs, sizeof (unsigned long));
+ 	    continue;
+ 	}
+ 	/* While we're at it, fill in booted. */

@@ -1,0 +1,45 @@
+diff -urN procinfo-18.save/procinfo.c procinfo-18/procinfo.c
+--- procinfo-18.save/procinfo.c	2001-02-25 06:29:16.000000000 -0500
++++ procinfo-18/procinfo.c	2003-07-29 22:10:07.000000000 -0400
+@@ -249,6 +249,9 @@
+ 	    new.cpu_nice = VAL;
+ 	    new.cpu_sys = VAL;
+ 	    new.cpu_idle = VAL;
++	    new.cpu_iowait = VAL;
++	    new.cpu_irq = VAL;
++	    new.cpu_softirq = VAL;
+ 	    /*
+ 	     * according to bug #1959, sometimes the cpu_idle
+ 	     * seems to go backwards(!) on SMP boxes.  This may
+@@ -373,7 +376,9 @@
+ 	putchar ('\n');
+ 
+     printf ("system: %s %s",
+-	    hms (bDIFF (cpu_sys)), perc (bDIFF (cpu_sys), elapsed, nr_cpus));
++	    hms (bDIFF (cpu_sys) + bDIFF (cpu_irq) + bDIFF (cpu_softirq)),
++	    perc (bDIFF (cpu_sys) + bDIFF (cpu_irq) + bDIFF (cpu_softirq),
++		elapsed, nr_cpus));
+     printf ("  swap in :%9lu", bDIFF (swin));
+     if (new.disk_r[2])
+ 	printf ("  disk 3: %8lur%8luw\n", bDIFF (disk_r[2]),
+@@ -384,7 +389,8 @@
+ 	putchar ('\n');
+ 
+     printf ("idle  : %s %s",
+-	    hms (bDIFF (cpu_idle)), perc (bDIFF (cpu_idle), elapsed, nr_cpus));
++	    hms (bDIFF (cpu_idle) + bDIFF (cpu_iowait)),
++	    perc (bDIFF (cpu_idle) + bDIFF (cpu_iowait), elapsed, nr_cpus));
+     printf ("  swap out:%9lu", bDIFF (swout));
+     if (new.disk_r[3])
+ 	printf ("  disk 4: %8lur%8luw\n", bDIFF (disk_r[3]),
+diff -urN procinfo-18.save/procinfo.h procinfo-18/procinfo.h
+--- procinfo-18.save/procinfo.h	2001-02-24 18:30:45.000000000 -0500
++++ procinfo-18/procinfo.h	2003-07-29 22:10:09.000000000 -0400
+@@ -82,6 +82,7 @@
+     long m_to, m_us, m_fr, m_sh, m_bu, m_ca;
+     long s_to, s_us, s_fr;
+     unsigned long cpu_user, cpu_nice, cpu_sys, cpu_idle;
++    unsigned long cpu_iowait, cpu_irq, cpu_softirq;
+     unsigned long disk[5];
+     unsigned long disk_r[5];
+     unsigned long disk_w[5];

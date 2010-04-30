@@ -1,0 +1,45 @@
+--- procinfo-18/procinfo.h.steal	2006-04-21 01:09:52.000000000 +0200
++++ procinfo-18/procinfo.h	2006-04-21 01:10:36.000000000 +0200
+@@ -81,7 +81,7 @@
+     unsigned long uptime;
+     long m_to, m_us, m_fr, m_sh, m_bu, m_ca;
+     long s_to, s_us, s_fr;
+-    unsigned long cpu_user, cpu_nice, cpu_sys, cpu_idle;
++    unsigned long cpu_user, cpu_nice, cpu_sys, cpu_idle, cpu_steal;
+     unsigned long cpu_iowait, cpu_irq, cpu_softirq;
+     unsigned long disk[5];
+     unsigned long disk_r[5];
+--- procinfo-18/procinfo.8.steal	2006-04-21 01:22:58.000000000 +0200
++++ procinfo-18/procinfo.8	2006-04-21 01:24:01.000000000 +0200
+@@ -61,6 +61,10 @@
+ The amount of time spent doing nothing.
+ 
+ .TP
++.BI steal:
++The amount of time spent the virtual CPU waiting for physical CPU.
++
++.TP
+ .BI uptime:
+ The time that the system has been up. The above four should more or
+ less add up to this one.
+--- procinfo-18/procinfo.c.steal	2006-04-21 01:10:58.000000000 +0200
++++ procinfo-18/procinfo.c	2006-04-21 01:22:25.000000000 +0200
+@@ -252,6 +252,8 @@
+ 	    new.cpu_iowait = VAL;
+ 	    new.cpu_irq = VAL;
+ 	    new.cpu_softirq = VAL;
++	    new.cpu_steal = VAL;
++
+ 	    /*
+ 	     * according to bug #1959, sometimes the cpu_idle
+ 	     * seems to go backwards(!) on SMP boxes.  This may
+@@ -400,6 +402,9 @@
+     else
+ 	putchar ('\n');
+ 
++    printf ("steal : %s %s\n",
++	    hms (bDIFF (cpu_steal)), perc (bDIFF (cpu_steal), elapsed, nr_cpus));
++
+     printf ("uptime: %s         context :%9lu", hms (new.uptime),
+ 	    bDIFF (ctxt));
+     if (new.syscalls)	/* If we have this, we can use the old interrupts spot. */

@@ -1,0 +1,40 @@
+--- procinfo-18/procinfo.c.ranges	2005-10-12 12:07:20.000000000 +0200
++++ procinfo-18/procinfo.c	2005-10-12 12:09:17.000000000 +0200
+@@ -231,8 +231,8 @@
+ 
+     fseek (loadavgfp, 0L, SEEK_SET);
+     fgets (line, sizeof (line), loadavgfp);
+-    strcpy (loadavg, line);
+-    loadavg[strlen (loadavg) - 1] = '\0';
++    strncpy (loadavg, line, sizeof (loadavg));
++    loadavg[sizeof (loadavg) - 1] = '\0';
+     fgets (line, sizeof (line), loadavgfp);
+ 
+     printf ("Bootup: %s    Load average: %s\n\n", booted, loadavg);
+@@ -481,7 +481,7 @@
+ 
+ 		for (i = 0; i < nr_irqs; i++) {
+ 		    if (strncmp (&line[4], irq_label[i], foo) == 0) {
+-			tmplen = sprintf (tmp, " [%ld]",
++			tmplen = snprintf (tmp, sizeof(tmp), " [%ld]",
+ 					  atol (strtok (line, ":")));
+ 
+ 			if (strlen (irq_label[i]) > (21 - tmplen)) {
+@@ -686,7 +686,7 @@
+ 	    fs = strchr (line, '\t');
+ 	    fs = strtok (fs + 1, "\n");
+ 	    if (line[0] == 'n') {
+-		sprintf (tmp, "[%s]", fs);
++		snprintf (tmp, sizeof(tmp), "[%s]", fs);
+ 		printf ("%-20s", tmp);
+ 	    } else
+ 		printf ("%-20s", fs);
+@@ -1003,7 +1003,7 @@
+ 		    if (strlen (line) > 1) {
+ 			tmpsl = atof (line);
+ 			sl = (long) (tmpsl * 1000000.0);
+-			sprintf (line, "delay set to %f", tmpsl);
++			snprintf (line, sizeof(line), "delay set to %f", tmpsl);
+ 			message = line;
+ 		    }
+ 		    redrawn = 1;
