@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.0.0
+VERSION=2.1.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/OpenCV-2.0.0.diff
+# patch -p1 < ${CWD}/OpenCV-2.0.0.diff
 # patch -p1 < ${CWD}/opencv-1.0.0.diff
 # autoreconf
 )
@@ -57,20 +57,34 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i486 ${CPUOPT}=i686"
+PKGCPPFLAGS="-I/usr/include/OpenEXR"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CPPFLAGS="-I/usr/include/OpenEXR" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static \
-	    --enable-python \
-	    --enable-apps \
-	    --with-quicktime=no \
-	    --with-xine
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CPPFLAGS="-I/usr/include/OpenEXR" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man \
+#	    --disable-static \
+#	    --enable-python \
+#	    --enable-apps \
+#	    --with-quicktime=no \
+#	    --with-xine
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CPP_FLAGS:STRING="${PKGCPPFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -D:USE_IPP=ON \
+      -DWITH_XINE:BOOL=On \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]

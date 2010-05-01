@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kipi-plugins
+TARNAME=v4l-utils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=0.7.91
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://www.kipi-plugins.org/drupal/"
+WEBPAGE="http://people.fedoraproject.org/~jwrdegoede/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,18 +59,29 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+make ${NUM_JOBS} PREFIX=/usr || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,11 +89,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+make install DESTDIR=${PKG} PREFIX=/usr
 
-sanitise_la_files ${PKG}/usr/lib
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -97,15 +108,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "plugin architecture for image apps"
-Libkipi allows image applications to use a plugin architecture for
-additional functionality. Currently implemented plugins are:
-
- RawConverter, SlideShow, MpegEncoder, PrintWizard, JpegLossLess, 
- CdArchiving, AcquireImages, Calendar, SendImages, BatchProcessImages,
- TimeAdjust, WallPaper, FindImages, GalleryExport, FlickrExport,
- HTMLExport, SimpleViewerExport, GPSSync, IpodExport (beta),
- MetadataEdit
+make_slack_desc << EOF "video4linux (V4L) and DVB utilities"
+v4l-utils is a collection of various video4linux (V4L) and DVB 
+utilities. 
+libv4l is an accompanying collection of libraries that adds a thin 
+abstraction layer on top of video4linux2 (V4L2) devices. The purpose 
+of this layer is to make it easy for application writers to support a 
+wide variety of devices without having to write separate code for 
+different devices in the same class. It consists of 3 different 
+libraries. 
 
 EOF
 
