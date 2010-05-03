@@ -11,7 +11,7 @@ VERSION=0.8.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="www.lirc.org"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -49,8 +49,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/lirc-imon_0038-v2.patch
  patch -p1 < ${CWD}/lirc-0.8.6.diff
+# ./autogen.sh
 )
 fi
 
@@ -110,8 +110,6 @@ rm -rf ${PKG}/dev
 #/dev/lircd
 #/dev/lircm
 
-mkdir -p ${PKG}/var/run/lirc
-
 cat > ${PKG_MODULE}/install/doinst.sh << EOF
 #
 /sbin/depmod ${KERNELRELEASE}
@@ -143,11 +141,6 @@ EOF
 mv ${PKG}/install/slack-desc ${PKG_MODULE}/install
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "LIRC - linux infrared remote control"
-LIRC is a package that supports receiving and sending IR signals of 
-the most common IR remote controls. It contains a daemon that decodes 
-and sends IR signals, a mouse daemon that translates IR signals to 
-mouse movements, and a couple of user programs.
-
 EOF
 
 post_install
