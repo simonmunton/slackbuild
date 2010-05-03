@@ -1,0 +1,102 @@
+--- mythtv-0.22_r23499/libs/libmythdb/mythdbcon.cpp.orig	2009-11-14 14:38:26.000000000 +0000
++++ mythtv-0.22_r23499/libs/libmythdb/mythdbcon.cpp	2010-02-07 14:50:58.000000000 +0000
+@@ -185,7 +185,8 @@
+ 
+ MDBManager::MDBManager()
+ {
+-    m_connID = 0;
++    m_nextConnID = 0;
++    m_connCount = 0;
+ 
+     m_sem = new QSemaphore(20);
+ 
+@@ -216,8 +217,9 @@
+ 
+     if (m_pool.isEmpty())
+     {
+-        db = new MSqlDatabase("DBManager" + QString::number(m_connID++));
+-        VERBOSE(VB_IMPORTANT, QString("New DB connection, total: %1").arg(m_connID));
++        db = new MSqlDatabase("DBManager" + QString::number(m_nextConnID++));
++        ++m_connCount;
++        VERBOSE(VB_IMPORTANT, QString("New DB connection, total: %1").arg(m_connCount));
+     }
+     else
+         db = m_pool.takeLast();
+@@ -242,7 +244,8 @@
+     m_lock.unlock();
+     m_sem->release();
+ 
+-    PurgeIdleConnections();
++    // Delay purging of idle connections as long as possible.
++    //PurgeIdleConnections();
+ }
+ 
+ void MDBManager::PurgeIdleConnections(void)
+@@ -252,8 +255,11 @@
+     QDateTime now = QDateTime::currentDateTime();
+     QList<MSqlDatabase*>::iterator it = m_pool.begin();
+ 
++    unsigned purgedConnections=0, totalConnections=0;
++    MSqlDatabase *newDb = NULL;
+     while (it != m_pool.end())
+     {
++        totalConnections ++;
+         if ((*it)->m_lastDBKick.secsTo(now) <= 3600)
+         {
+             ++it;
+@@ -264,8 +270,42 @@
+         // not been used in the past hour.
+         MSqlDatabase *entry = *it;
+         it = m_pool.erase(it);
+-        --m_connID;
++        --m_connCount;
++        purgedConnections ++;
++        // Qt's MySQL driver apparently keeps track of the number of
++        // open DB connections, and when it hits 0, calls
++        // my_thread_global_end().  The mysql library then assumes the
++        // application is ending and that all threads that created DB
++        // connections have already exited.  This is rarely true, and
++        // may result in the mysql library pausing 5 seconds and
++        // printing a message like "Error in my_thread_global_end(): 1
++        // threads didn't exit".  This workaround simply creates an
++        // extra DB connection before all pooled connections are
++        // purged so that my_thread_global_end() won't be called.
++        if (it == m_pool.end() &&
++            purgedConnections > 0 &&
++            totalConnections == purgedConnections)
++        {
++            newDb = new MSqlDatabase("DBManager" +
++                                     QString::number(m_nextConnID++));
++            ++m_connCount;
++            VERBOSE(VB_IMPORTANT,
++                    QString("New DB connection, total: %1").arg(m_connCount));
++            newDb->m_lastDBKick = QDateTime::currentDateTime();
++        }
++        VERBOSE(VB_IMPORTANT, "Deleting idle DB connection...");
+         delete entry;
++        VERBOSE(VB_IMPORTANT, "Done deleting idle DB connection.");
++    }
++    if (newDb != NULL)
++    {
++        m_pool.prepend(newDb);
++    }
++    if (purgedConnections > 0)
++    {
++        VERBOSE(VB_IMPORTANT,
++                QString("Purged %1 idle of %2 total DB connections.")
++                .arg(purgedConnections).arg(totalConnections));
+     }
+ }
+ 
+--- mythtv-0.22_r23499/libs/libmythdb/mythdbcon.h.orig	2009-11-14 14:38:26.000000000 +0000
++++ mythtv-0.22_r23499/libs/libmythdb/mythdbcon.h	2010-02-07 14:50:58.000000000 +0000
+@@ -56,7 +56,8 @@
+     QList<MSqlDatabase*> m_pool;
+     QMutex m_lock;
+     QSemaphore *m_sem;
+-    int m_connID;
++    int m_nextConnID;
++    int m_connCount;
+ 
+     MSqlDatabase *m_schedCon;
+     MSqlDatabase *m_DDCon;
