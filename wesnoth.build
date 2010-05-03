@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=1.6.4
+VERSION=1.8.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.wesnoth.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,18 +59,29 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-            --enable-server \
-            --enable-campaign-server \
-            --enable-editor \
-            --enable-tools \
-            --with-kde \
-            --with-gnome \
-            --with-server-uid=simon \
-            --with-server-gid=users
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var \
+#	    --mandir=/usr/man \
+#            --enable-server \
+#            --enable-campaign-server \
+#            --enable-editor \
+#            --enable-tools \
+#            --with-kde \
+#            --with-gnome \
+#            --with-server-uid=simon \
+#            --with-server-gid=users
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DENABLE_CAMPAIGN_SERVER=ON \
+      -DSERVER_UID=simon \
+      -DSERVER_GID=users \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
