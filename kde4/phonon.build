@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.4.0
+VERSION=4.4.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -58,6 +58,9 @@ fix_perms
 #export QTDIR=/usr/lib/qt4
 #PATH=/usr/lib/qt4/bin:$PATH
 
+mkdir build
+cd build
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
@@ -67,7 +70,7 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
-      . \
+      .. \
       2>&1 | tee ${TARNAME}.config
 fi
 
@@ -85,6 +88,8 @@ make install DESTDIR=${PKG}
 
 make_debug_files
 #strip_binaries
+
+cd ..
 
 fix_links
 
