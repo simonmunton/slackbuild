@@ -1,6 +1,6 @@
---- mythtv-0.22_r22969/programs/mythbackend/scheduler.cpp.orig	2009-11-14 14:38:30.000000000 +0000
-+++ mythtv-0.22_r22969/programs/mythbackend/scheduler.cpp	2009-12-20 09:32:43.000000000 +0000
-@@ -1968,7 +1968,6 @@
+--- mythtv-0.23_r24674/programs/mythbackend/scheduler.cpp.orig	2010-05-15 06:18:54.000000000 +0100
++++ mythtv-0.23_r24674/programs/mythbackend/scheduler.cpp	2010-05-15 12:57:19.000000000 +0100
+@@ -2029,7 +2029,6 @@
          {
              MythEvent me("SCHEDULE_CHANGE");
              gContext->dispatch(me);
@@ -8,7 +8,7 @@
          }
  
          // if idletimeout is 0, the user disabled the auto-shutdown feature
-@@ -2001,8 +2000,11 @@
+@@ -2062,8 +2061,11 @@
                      }
                      resetIdleTime_lock.unlock();
  
@@ -21,15 +21,17 @@
                          RecIter idleIter = reclist.begin();
                          for ( ; idleIter != reclist.end(); idleIter++)
                              if ((*idleIter)->recstatus == rsWillRecord)
-@@ -2011,15 +2013,14 @@
+@@ -2072,17 +2074,16 @@
                          if (idleIter != reclist.end())
                          {
                              if (curtime.secsTo((*idleIter)->recstartts) -
--                                prerollseconds > idleWaitForRecordingTime * 60)
-+                                prerollseconds < idleWaitForRecordingTime * 60)
+-                                prerollseconds >
++                                prerollseconds <
+                                 (idleWaitForRecordingTime * 60) +
+                                 idleTimeoutSecs)
                              {
 -                                idleSince = curtime;
-+                                idleSince = QDateTime();
++                                idleSince = QDateTime();;
                              }
                          }
 -                        else
