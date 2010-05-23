@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=fpcbuild
+TARNAME=fpc
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=2.2.2
-VERSIONEXTRA=
+VERSION=2.4.0
+VERSIONEXTRA=.source
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.freepascal.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,8 +34,9 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+then
+mkdir ${TARNAME}-${VERSION}
+#${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
@@ -47,15 +48,8 @@ fi
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
 
- sed -i -e 's/-link 2/-link 2 /' fpcdocs/Makefile.l2h
+# sed -i -e 's/-link 2/-link 2 /' fpcdocs/Makefile.l2h
 
- mkdir bin
- (cd bin
-  tar xOf ${TARDIR}/fpc-${VERSION}.i386-linux.tar binary.i386-linux.tar | tar xOf - base.i386-linux.tar.gz | tar xzf -
-
-  mv bin/fpc .
-  mv lib/fpc/${VERSION}/ppc386 .
- )
 )
 fi
 
@@ -74,7 +68,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} NOGDB=1 all INSTALL_PREFIX=/usr INSTALL_DOCDIR=/usr/doc/${TARNAME}-${VERSION} || exit
+:
+#make ${NUM_JOBS} NOGDB=1 all INSTALL_PREFIX=/usr INSTALL_DOCDIR=/usr/doc/${TARNAME}-${VERSION} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -82,17 +77,30 @@ then
   exit
 fi
 
-make install NOGDB=1 INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
+(cd ${PKG}/usr
+  tar xOf ${TARDIR}/fpc-${VERSION}.i386-linux.tar binary.i386-linux.tar | tar xf -
+  for f in *.tar.gz
+  do
+    tar xf $f
+  done
+
+  rm *.tar.gz
+
+# link ppc386 to usr/bin
+ ln -s ../lib/fpc/${VERSION}/ppc386 ${PKG}/usr/bin
+)
+
+#make install NOGDB=1 INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
 #(cd fpcdocs
 # make l2h htmlinstall NOGDB=1 INSTALL_PREFIX=${PKG}/usr INSTALL_DOCDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
 #)
 
 # generate config file
 mkdir -p ${PKG}/etc
-${PKG}/usr/lib/fpc/${VERSION}/samplecfg /usr/lib/fpc/${VERSION} ${PKG}/etc
+#echo ${PKG}/usr/lib/fpc/${VERSION}/samplecfg ${PKG}/usr/lib/fpc/${VERSION} ${PKG}/etc
+${PKG}/usr/lib/fpc/${VERSION}/samplecfg ${PKG}/usr/lib/fpc/${VERSION} ${PKG}/etc
 
-# link ppc386 to usr/bin
-ln -s /usr/lib/fpc/${VERSION}/ppc386 ${PKG}/usr/bin
+sed -i "s@${PKG}@@g" ${PKG}/etc/fpc.cfg ${PKG}/usr/lib/fpc/${VERSION}/ide/text/fp.cfg ${PKG}/usr/lib/fpc/${VERSION}/ide/text/fp.ini
 
 #strip_binaries
 

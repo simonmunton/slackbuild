@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=lyx
+TARNAME=transmageddon
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=1.6.6
+VERSION=0.16
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.linuxrising.org/transmageddon/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,17 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PATH=/usr/lib/qt4/bin:${PATH}
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-frontend=qt4
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,10 +103,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "WYSIWYM document processor"
-LyX is a document processor that encourages an approach to writing
-based on the structure of your documents, not their appearance. It is
-released under a Free Software / Open Source license.
+make_slack_desc << EOF "Video transcoder"
+Transmageddon Video Transcoding application.
 
 EOF
 
