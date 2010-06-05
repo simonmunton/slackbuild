@@ -12,7 +12,7 @@ BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libpng12
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -62,12 +62,12 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
 
-ln -sf scripts/makefile.linux Makefile
+#ln -sf scripts/makefile.linux Makefile
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} prefix=/usr || exit
+make ${NUM_JOBS} prefix=/usr LIBPATH=/usr/lib ZLIBLIB="-L/usr/lib -lm -lz" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,17 +75,21 @@ then
   exit
 fi
 
-make install prefix=/usr DESTDIR=${PKG}
+make install prefix=/usr LIBPATH=/usr/lib ZLIBLIB="-L/usr/lib -lm -lz" DESTDIR=${PKG}
+
+rm ${PKG}/usr/include/{png.h,pngconf.h} ${PKG}/usr/bin/libpng-config ${PKG}/usr/lib/pkgconfig/libpng.pc
+rm ${PKG}/usr/lib/{libpng.a,libpng.la,libpng.so}
+rm -rf ${PKG}/usr/man
 
 # This symlink is needed to keep old applications running:
 # I guess the real lib used the major number 3, then 0 for
 # a short while, and now .3 again.  Hopefully it will stay
 # this way as it was .3 in Slackware 10.2.  One can hope.
-( cd ${PKG}/usr/lib
-  if [ ! -e libpng.so.0 -a -e libpng.so.3 ]; then
-    ln -sf libpng.so.3 libpng.so.0
-  fi
-)
+#( cd ${PKG}/usr/lib
+#  if [ ! -e libpng.so.0 -a -e libpng.so.3 ]; then
+#    ln -sf libpng.so.3 libpng.so.0
+#  fi
+#)
 
 strip_binaries
 

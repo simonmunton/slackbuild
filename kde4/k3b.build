@@ -1,22 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
 TARNAME=k3b
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.0.5
+VERSION=1.92.0rc3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://www.k3b.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION%rc*} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -53,15 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc/kde \
-            --docdir=/usr/doc 
-#           --without-cdrecord-suid-root
-
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,6 +88,12 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+# Move the dbus configuration files to the proper place:
+#mv $PKG/etc/kde/dbus-1 $PKG/etc/
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -85,22 +103,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* ChangeLog FAQ INSTALL KNOWNBUGS PERMISSIONS README* RELEASE_HOWTO TODO k3b.lsm \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  FAQ KNOWNBUGS RELEASE_HOWTO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE CD and DVD burning tool"
-K3b is a CD and DVD burning application for Linux systems optimized
-for KDE. It provides a comfortable user interface to perform most
-CD/DVD burning tasks like creating an Audio CD from a set of audio
-files or copying a CD.
-While the experienced user can take influence in all steps of the
-burning process, the beginner may find comfort in the automatic
-settings and the reasonable K3b defaults which allow a quick start.
-The actual burning in K3b is done by the command line utilities
-cdrecord, cdrdao, and growisofs.
+make_slack_desc << EOF "The CD Creator"
+K3b makes writing cds under Linux easy.  It has an easy to use 
+interface and supports CD burning (including on-the-fly), copying, 
+erasing, ripping, and more.
+
+K3b was written by Sebastian Trueg, Thomas Froescher, Christian 
+Kvasny, and Klaus-Dieter Krannich.
 
 EOF
 
