@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.1.8
+VERSION=r1136444
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,12 +57,21 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      . \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,6 +85,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+make_debug_files
 
 #strip_binaries
 

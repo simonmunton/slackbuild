@@ -1,0 +1,28 @@
+--- libkexiv2-r1136443/CMakeLists.txt.orig	2010-04-06 08:35:25.000000000 +0100
++++ libkexiv2-r1136443/CMakeLists.txt	2010-06-09 22:29:26.000000000 +0100
+@@ -1,5 +1,14 @@
+ PROJECT(libkexiv2)
+ 
++FIND_PACKAGE(KDE4 REQUIRED)
++INCLUDE(KDE4Defaults)
++INCLUDE(MacroLibrary)
++INCLUDE(MacroOptionalAddSubdirectory)
++INCLUDE(FindPackageHandleStandardArgs)
++
++ADD_DEFINITIONS (${QT_DEFINITIONS} ${QT_QTDBUS_DEFINITIONS} ${KDE4_DEFINITIONS})
++INCLUDE_DIRECTORIES (${QDBUS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${KDE4_INCLUDES})
++
+ # =======================================================
+ # Information to update before to release this library.
+ 
+@@ -52,6 +61,10 @@
+ 
+ # =======================================================
+ 
++set(EXIV2_MIN_VERSION "0.18")
++macro_optional_find_package(Exiv2)
++macro_log_feature(EXIV2_FOUND "Exiv2" "A library to access image metadata" "http://www.exiv2.org" FALSE ${EXIV2_MIN_VERSION} "Required to build libkexiv2.")
++
+ if (EXIV2_FOUND)
+   SUBDIRS(libkexiv2)
+   SUBDIRS(test)
