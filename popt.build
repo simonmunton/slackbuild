@@ -63,8 +63,7 @@ CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --libdir=/lib \
+	    --localstatedir=/var/lib \
 	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
@@ -88,6 +87,17 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+# Move the binary and shared library to /sbin and /lib(64)
+mkdir -p ${PKG}/lib
+( cd ${PKG}/usr/lib
+  for file in lib*.so.?.*
+  do
+    mv ${file} ../../lib
+    ln -sf ../../lib/${file} .
+  done
+  cp -a lib*.so.? ../../lib
+)
 
 strip_binaries
 
