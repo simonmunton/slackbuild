@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.9.0
+VERSION=20100617
 VERSIONEXTRA=
 BUILD=1
 
@@ -61,7 +61,13 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
-./configure --target=x86-linux-gcc
+./configure --prefix=/usr \
+	--target=x86-linux-gcc \
+	--enable-pic \
+	--enable-vp8 \
+	--enable-psnr \
+	--enable-postproc \
+	--enable-shared
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -76,6 +82,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+rm libvpx.so.0.9.0
+make
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,6 +92,13 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+#mkdir -p ${PKG}/usr/include/vpx ${PKG}/usr/lib
+#cp vp8/*.h ${PKG}/usr/include/vpx
+#cp vpx_codec/*.h ${PKG}/usr/include/vpx
+#cp vpx_ports/*.h ${PKG}/usr/include/vpx
+#cp vpx-vp8-*/include/* ${PKG}/usr/include/vpx
+#cp libvpx.a ${PKG}/usr/lib/
 
 strip_binaries
 

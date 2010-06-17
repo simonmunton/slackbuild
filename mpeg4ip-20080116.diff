@@ -1,47 +1,23 @@
---- mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp.orig	2005-05-09 22:29:45.000000000 +0100
-+++ mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp	2009-12-13 10:46:41.000000000 +0000
-@@ -153,7 +153,8 @@
- typedef long Long; 
- typedef unsigned long ULong; 
- typedef int Int; 
--typedef void Void; 
-+//typedef void Void; 
-+#define Void void
- typedef int Bool; 
- typedef long CoordI; 
- typedef double CoordD; 
---- mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am.orig	2006-02-09 17:57:29.000000000 +0000
-+++ mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am	2009-12-13 10:46:41.000000000 +0000
-@@ -1,5 +1,5 @@
+--- mpeg4ip-20080116/player/src/media_utils.cpp.orig	2007-03-29 19:52:19.000000000 +0100
++++ mpeg4ip-20080116/player/src/media_utils.cpp	2010-06-16 07:34:41.000000000 +0100
+@@ -605,7 +605,8 @@
+ 				  int have_audio_driver,
+ 				  control_callback_vft_t *cc_vft)
+ {
+-  char *slash, *cm;
++  const char *slash;
++  char *cm;
+   uint64_t prog;
+   session_desc_t *sdp;
  
--AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
-+AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -D_OBSS_ @BILLS_CPPWARNINGS@
- 
- INCLUDES = -I$(srcdir)/../include
- 
---- mpeg4ip-20080116/lib/SDLAudio/configure.in.orig	2005-01-17 20:46:07.000000000 +0000
-+++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2009-12-13 10:46:41.000000000 +0000
-@@ -47,6 +47,7 @@
- 
- AC_LIBTOOL_WIN32_DLL
- AM_PROG_LIBTOOL
-+AM_PROG_AS
- AC_PROG_MAKE_SET
- AC_PROG_CC
- AC_C_INLINE
---- mpeg4ip-20080116/player/lib/audio/faad/Makefile.am.orig	2007-09-18 21:52:04.000000000 +0100
-+++ mpeg4ip-20080116/player/lib/audio/faad/Makefile.am	2009-12-13 10:46:41.000000000 +0000
-@@ -33,6 +33,6 @@
- 	transfo.h\
- 	util.h
- INCLUDES = -I$(top_srcdir)/include
--AM_CFLAGS = -O2 -Werror -Wall -fexceptions -fno-strict-aliasing
-+AM_CFLAGS = -O2 -Wall -fexceptions -fno-strict-aliasing
- 
- EXTRA_DIST = COPYING libfaad60.dsp README libfaad.vcproj
 --- mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:01.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h	2009-12-13 10:46:41.000000000 +0000
-@@ -26,7 +26,7 @@
++++ mpeg4ip-20080116/player/plugin/audio/ffmpeg/ffmpeg.h	2010-06-16 07:25:13.000000000 +0100
+@@ -23,10 +23,12 @@
+  */
+ #ifndef __MPEG4IP_FFMPEG_H__
+ #define __MPEG4IP_FFMPEG_H__ 1
++#define __STDC_CONSTANT_MACROS
++#include <stdint.h>
  #include "codec_plugin.h"
  extern "C" {
  #ifdef HAVE_FFMPEG_INSTALLED
@@ -51,7 +27,7 @@
  #include <avcodec.h>
  #endif
 --- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp.orig	2007-07-02 21:26:03.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp	2009-12-13 10:46:41.000000000 +0000
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.cpp	2010-06-16 06:32:22.000000000 +0100
 @@ -324,6 +324,10 @@
      ffmpeg_interface_unlock();
      free(ffmpeg->m_c);
@@ -90,8 +66,13 @@
  					 ffmpeg->have_cached_ts ?
  					 ffmpeg->cached_ts : ts);
 --- mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h.orig	2007-07-02 21:26:03.000000000 +0100
-+++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h	2009-12-13 10:46:41.000000000 +0000
-@@ -27,7 +27,8 @@
++++ mpeg4ip-20080116/player/plugin/video/ffmpeg/ffmpeg.h	2010-06-16 07:26:28.000000000 +0100
+@@ -24,10 +24,13 @@
+ #ifndef __MPEG4IP_FFMPEG_H__
+ #define __MPEG4IP_FFMPEG_H__ 1
+ #define always_inline inline
++#define __STDC_CONSTANT_MACROS
++#include <stdint.h>
  #include "codec_plugin.h"
  extern "C" {
  #ifdef HAVE_FFMPEG_INSTALLED
@@ -101,7 +82,7 @@
  #else
  #include <avcodec.h>
  #endif
-@@ -45,6 +46,7 @@
+@@ -45,6 +48,7 @@
    AVCodec *m_codec;
    AVCodecContext *m_c;
    AVFrame *m_picture;
@@ -109,8 +90,18 @@
    bool m_codec_opened;
    bool m_video_initialized;
    int m_did_pause;
+--- mpeg4ip-20080116/player/lib/audio/faad/Makefile.am.orig	2007-09-18 21:52:04.000000000 +0100
++++ mpeg4ip-20080116/player/lib/audio/faad/Makefile.am	2010-06-16 06:32:22.000000000 +0100
+@@ -33,6 +33,6 @@
+ 	transfo.h\
+ 	util.h
+ INCLUDES = -I$(top_srcdir)/include
+-AM_CFLAGS = -O2 -Werror -Wall -fexceptions -fno-strict-aliasing
++AM_CFLAGS = -O2 -Wall -fexceptions -fno-strict-aliasing
+ 
+ EXTRA_DIST = COPYING libfaad60.dsp README libfaad.vcproj
 --- mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h.orig	2007-07-02 21:26:04.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h	2009-12-13 10:46:41.000000000 +0000
++++ mpeg4ip-20080116/server/mp4live/audio_ffmpeg.h	2010-06-16 06:32:22.000000000 +0100
 @@ -25,7 +25,7 @@
  #include "audio_encoder.h"
  extern "C" {
@@ -120,8 +111,29 @@
  #else
  #include <avcodec.h>
  #endif
+--- mpeg4ip-20080116/server/mp4live/mp4live.h.orig	2002-09-23 23:33:11.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/mp4live.h	2010-06-16 21:58:01.000000000 +0100
+@@ -22,6 +22,7 @@
+ 
+ #ifndef __MP4LIVE_H__
+ #define __MP4LIVE_H__
++#define __STDC_CONSTANT_MACROS
+ #include "mpeg4ip.h"
+ #include <sys/types.h>
+ #include <unistd.h>
+--- mpeg4ip-20080116/server/mp4live/video_x264.cpp.orig	2007-07-03 14:47:57.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_x264.cpp	2010-06-16 06:32:22.000000000 +0100
+@@ -318,7 +318,7 @@
+   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
+   m_param.pf_log = x264_log;
+   m_param.i_threads = Profile()->GetIntegerValue(CFG_X264_THREADS);
+-  m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
++  m_pts_add = m_param.i_bframe ? (m_param.i_bframe_pyramid ? 2 : 1) : 0;
+   m_pts_add *= m_frame_time;
+   debug_message("pts add "D64, m_pts_add);
+ 
 --- mpeg4ip-20080116/server/mp4live/video_ffmpeg.h.orig	2007-07-02 21:26:05.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/video_ffmpeg.h	2009-12-13 10:46:41.000000000 +0000
++++ mpeg4ip-20080116/server/mp4live/video_ffmpeg.h	2010-06-16 06:32:22.000000000 +0100
 @@ -25,7 +25,7 @@
  #include "video_encoder.h"
  extern "C" {
@@ -131,19 +143,8 @@
  #else
  #include <avcodec.h>
  #endif
---- mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp.orig	2007-07-02 21:26:05.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp	2009-12-13 10:46:41.000000000 +0000
-@@ -27,7 +27,7 @@
- #ifdef HAVE_FFMPEG
- extern "C" {
- #ifdef HAVE_FFMPEG_INSTALLED
--#include <ffmpeg/avcodec.h>
-+#include <libavcodec/avcodec.h>
- #else
- #include <avcodec.h>
- #endif
 --- mpeg4ip-20080116/server/mp4live/video_util_resize.h.orig	2005-03-25 20:40:05.000000000 +0000
-+++ mpeg4ip-20080116/server/mp4live/video_util_resize.h	2009-12-13 11:00:58.000000000 +0000
++++ mpeg4ip-20080116/server/mp4live/video_util_resize.h	2010-06-16 06:32:22.000000000 +0100
 @@ -90,7 +90,7 @@
  
  void CopyYuv(const uint8_t *fY, const uint8_t *fU, const uint8_t *fV,
@@ -154,19 +155,50 @@
 +	     uint32_t tyStride, uint32_t tuStride, uint32_t tvStride,
  	     uint32_t w, uint32_t h);
  #endif
---- mpeg4ip-20080116/server/mp4live/video_x264.cpp.orig	2007-07-03 14:47:57.000000000 +0100
-+++ mpeg4ip-20080116/server/mp4live/video_x264.cpp	2009-12-13 11:14:55.000000000 +0000
-@@ -318,7 +318,7 @@
-   m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
-   m_param.pf_log = x264_log;
-   m_param.i_threads = Profile()->GetIntegerValue(CFG_X264_THREADS);
--  m_pts_add = m_param.i_bframe ? (m_param.b_bframe_pyramid ? 2 : 1) : 0;
-+  m_pts_add = m_param.i_bframe ? (m_param.i_bframe_pyramid ? 2 : 1) : 0;
-   m_pts_add *= m_frame_time;
-   debug_message("pts add "D64, m_pts_add);
+--- mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp.orig	2007-07-02 21:26:05.000000000 +0100
++++ mpeg4ip-20080116/server/mp4live/video_encoder_class.cpp	2010-06-16 06:32:22.000000000 +0100
+@@ -27,7 +27,7 @@
+ #ifdef HAVE_FFMPEG
+ extern "C" {
+ #ifdef HAVE_FFMPEG_INSTALLED
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ #else
+ #include <avcodec.h>
+ #endif
+--- mpeg4ip-20080116/lib/SDLAudio/configure.in.orig	2005-01-17 20:46:07.000000000 +0000
++++ mpeg4ip-20080116/lib/SDLAudio/configure.in	2010-06-16 06:32:22.000000000 +0100
+@@ -47,6 +47,7 @@
  
+ AC_LIBTOOL_WIN32_DLL
+ AM_PROG_LIBTOOL
++AM_PROG_AS
+ AC_PROG_MAKE_SET
+ AC_PROG_CC
+ AC_C_INLINE
+--- mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am.orig	2006-02-09 17:57:29.000000000 +0000
++++ mpeg4ip-20080116/common/video/iso-mpeg4/src/Makefile.am	2010-06-16 06:32:22.000000000 +0100
+@@ -1,5 +1,5 @@
+ 
+-AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror -D_OBSS_ @BILLS_CPPWARNINGS@
++AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -D_OBSS_ @BILLS_CPPWARNINGS@
+ 
+ INCLUDES = -I$(srcdir)/../include
+ 
+--- mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp.orig	2005-05-09 22:29:45.000000000 +0100
++++ mpeg4ip-20080116/common/video/iso-mpeg4/include/basic.hpp	2010-06-16 06:32:22.000000000 +0100
+@@ -153,7 +153,8 @@
+ typedef long Long; 
+ typedef unsigned long ULong; 
+ typedef int Int; 
+-typedef void Void; 
++//typedef void Void; 
++#define Void void
+ typedef int Bool; 
+ typedef long CoordI; 
+ typedef double CoordD; 
 --- mpeg4ip-20080116/configure.in.orig	2007-09-28 21:45:08.000000000 +0100
-+++ mpeg4ip-20080116/configure.in	2009-12-13 10:46:41.000000000 +0000
++++ mpeg4ip-20080116/configure.in	2010-06-16 06:32:22.000000000 +0100
 @@ -512,10 +512,10 @@
       if test x$have_ffmpeg = xtrue; then
          AC_DEFINE(HAVE_FFMPEG_INSTALLED, 1, [defined if ffmpeg is installed])
@@ -200,3 +232,20 @@
          BILLSNASM_ret=`util/testnasm.sh $BILLSNASM_arg`
  	if test x$BILLSNASM_ret = x"yes"; then
  	   USENASM=true
+--- mpeg4ip-20080116/include/mpeg4ip.h.orig	2006-08-07 19:27:00.000000000 +0100
++++ mpeg4ip-20080116/include/mpeg4ip.h	2010-06-16 06:41:27.000000000 +0100
+@@ -120,14 +120,6 @@
+ #endif
+ #include <sys/param.h>
+ 
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-char *strcasestr(const char *haystack, const char *needle);
+-#ifdef __cplusplus
+-}
+-#endif
+-
+ #define OPEN_RDWR O_RDWR
+ #define OPEN_CREAT O_CREAT 
+ #define OPEN_RDONLY O_RDONLY
