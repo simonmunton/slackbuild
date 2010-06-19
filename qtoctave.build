@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=soprano
+TARNAME=qtoctave
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=2.4.3
+VERSION=0.9.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://soprano.sourceforge.net/"
+WEBPAGE="http://qtoctave.wordpress.com"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,12 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#export QTDIR=/usr/lib/qt4
-#PATH=/usr/lib/qt4/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX=/usr
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -90,10 +103,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Qt interface to RDF storage solutions"
-Soprano (formally known as QRDF) is a library which provides a nice Qt
-interface to RDF storage solutions. It has a modular structure which
-allows to replace the actual RDF storage implementation used.
+make_slack_desc << EOF "front-end user interface for Octave"
+QtOctave is a front-end user interface for the Octave high-level 
+language, primarily intended for numerical computations similar to 
+Matlab.
+It simplifies the use of Octave for user who are not familiar with 
+the original, command line based version of Octave.
 
 EOF
 
