@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=plotutils
-TARNAMEEXTRA=
+TARNAME=portmidi
+TARNAMEEXTRA=-src
 TARSEP="-"
-TARDIR=~/tmp/gnu/plotutils
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.6
+VERSION=200
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://portmedia.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,25 +59,21 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --enable-ps-fonts-in-pcl \
-            --enable-lj-fonts-in-ps \
-            --enable-lj-fonts-in-x \
-            --enable-libplotter \
-            --enable-libxmi
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DCMAKE_CACHEFILE_DIR=`pwd`
+      .
 
 fi
 
@@ -92,6 +88,11 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/usr
+ mv local/* .
+ rmdir local
+)
 
 strip_binaries
 
@@ -108,12 +109,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU plotutils"
-The GNU plotutils package contains software for both programmers and 
-technical users. Its centerpiece is libplot, a powerful C/C++ 
-function library for exporting 2-D vector graphics in many file 
-formats, both vector and raster. It can also do vector graphics 
-animations.
+make_slack_desc << EOF "Platform Independent Library for MIDI I/O"
+PortMidi is a library for software developers. It supports real-time 
+input and output of MIDI data using a system-independent interface. 
+PortMidi runs on Windows (using MME), Macintosh (using CoreMIDI), and 
+Linux (using ALSA).
 
 EOF
 

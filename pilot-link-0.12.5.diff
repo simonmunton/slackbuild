@@ -1,0 +1,101 @@
+--- pilot-link-0.12.5/src/pilot-read-notepad.c.orig	2009-06-04 14:26:19.000000000 +0100
++++ pilot-link-0.12.5/src/pilot-read-notepad.c	2010-06-20 20:57:49.000000000 +0100
+@@ -166,8 +166,8 @@
+    width = n->body.width + 8;
+ 
+    png_ptr = png_create_write_struct
+-     ( PNG_LIBPNG_VER_STRING, png_voidp_NULL,
+-       png_error_ptr_NULL, png_error_ptr_NULL);
++     ( PNG_LIBPNG_VER_STRING, NULL,
++       NULL, NULL);
+ 
+    if(!png_ptr)
+      return;
+--- pilot-link-0.12.5/src/pilot-read-palmpix.c.orig	2009-06-04 14:26:19.000000000 +0100
++++ pilot-link-0.12.5/src/pilot-read-palmpix.c	2010-06-20 20:58:22.000000000 +0100
+@@ -223,8 +223,8 @@
+ 	png_infop info_ptr;
+ 
+ 	png_ptr = png_create_write_struct
+-		( PNG_LIBPNG_VER_STRING, png_voidp_NULL,
+-		png_error_ptr_NULL, png_error_ptr_NULL);
++		( PNG_LIBPNG_VER_STRING, NULL,
++		NULL, NULL);
+ 
+ 	if(!png_ptr)
+ 		return;
+--- pilot-link-0.12.5/src/pilot-read-screenshot.c.orig	2009-06-04 14:26:19.000000000 +0100
++++ pilot-link-0.12.5/src/pilot-read-screenshot.c	2010-06-20 20:59:03.000000000 +0100
+@@ -87,8 +87,8 @@
+ 		gray_buf = malloc( state->w );
+ 
+ 	png_ptr = png_create_write_struct
+-		(PNG_LIBPNG_VER_STRING, png_voidp_NULL,
+-		png_error_ptr_NULL, png_error_ptr_NULL);
++		(PNG_LIBPNG_VER_STRING, NULL,
++		NULL, NULL);
+ 
+ 	if (!png_ptr)
+ 		return;
+--- pilot-link-0.12.5/src/pilot-read-veo.c.orig	2009-06-04 14:26:19.000000000 +0100
++++ pilot-link-0.12.5/src/pilot-read-veo.c	2010-06-20 20:59:43.000000000 +0100
+@@ -856,8 +856,8 @@
+    png_infop info_ptr;
+ 
+    png_ptr = png_create_write_struct
+-	 (PNG_LIBPNG_VER_STRING, png_voidp_NULL,
+-	  png_error_ptr_NULL, png_error_ptr_NULL);
++	 (PNG_LIBPNG_VER_STRING, NULL,
++	  NULL, NULL);
+ 
+    if (!png_ptr)
+ 	 return;
+--- pilot-link-0.12.5/bindings/Perl/Pilot.xs.orig	2007-11-12 17:45:43.000000000 +0000
++++ pilot-link-0.12.5/bindings/Perl/Pilot.xs	2007-11-12 17:49:54.000000000 +0000
+@@ -2200,29 +2200,38 @@
+ 	OUTPUT:
+ 	RETVAL
+ 
+-SV *
++void
+ accept(socket)
+ 	int	socket
+-	CODE:
++	PPCODE:
+ 	{
+ 		struct pi_sockaddr a;
+ 		size_t len = sizeof(struct pi_sockaddr);
+ 		int result;
+ 		result = pi_accept(socket, (struct sockaddr*)&a, &len);
++		EXTEND(SP, 1);
+ 		if (result < 0) {
+-			RETVAL = newSViv(result);
++			PUSHs(sv_newmortal());
+ 		} else {
+ 			PDA__Pilot__DLP * x = malloc(sizeof(PDA__Pilot__DLP));
+ 			SV * sv = newSViv((IV)(void*)x);
+ 			x->errnop = 0;
+ 			x->socket = result;
+-			RETVAL = newRV(sv);
+-			SvREFCNT_dec(sv);
+-			sv_bless(RETVAL, gv_stashpv("PDA::Pilot::DLPPtr",0));
++			SV * rv = newRV_noinc(sv);
++			sv_bless(rv, gv_stashpv("PDA::Pilot::DLPPtr",0));
++			PUSHs(sv_2mortal(rv));
+ 		}
++		/* In list context, return error code as a second value */
++		if (GIMME_V == G_ARRAY) {
++		        EXTEND(SP, 1);
++			if (result < 0) {
++				PUSHs(sv_2mortal(newSViv(result)));
++			} else {
++				PUSHs(sv_newmortal());
++			}
++		}
++			
+ 	}
+-	OUTPUT:
+-	RETVAL
+ 
+ MODULE = PDA::Pilot		PACKAGE = PDA::Pilot::DLP::DBPtr
+ 

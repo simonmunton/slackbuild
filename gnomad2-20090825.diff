@@ -1,0 +1,91 @@
+--- gnomad2-20090825/src/filesystem.c.orig	2009-01-22 23:04:53.000000000 +0000
++++ gnomad2-20090825/src/filesystem.c	2010-06-20 22:29:04.000000000 +0100
+@@ -74,6 +74,11 @@
+   GList *metalist;
+ } metadata_set_args_t;
+ 
++static gboolean call_gtk_widget_destroy(gpointer w) {
++  gtk_widget_destroy(w);
++  return FALSE;
++}
++
+ static gboolean draw_label(gpointer p) {
+   draw_label_args_t *args = (draw_label_args_t *) p;
+   
+@@ -653,7 +658,7 @@
+   metarg->metalist = metalist;
+   g_idle_add(update_metadata,metarg);
+ 
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   g_free(args->path);
+   g_free(args);
+   return NULL;
+--- gnomad2-20090825/src/jukebox.c.orig	2009-01-19 21:44:35.000000000 +0000
++++ gnomad2-20090825/src/jukebox.c	2010-06-20 22:29:04.000000000 +0100
+@@ -168,6 +168,11 @@
+   return current; /* I.E. type == LIBMTP_FILETYPE_UNKNOWN */
+ }
+ 
++static gboolean call_gtk_widget_destroy(gpointer w) {
++  gtk_widget_destroy(w);
++  return FALSE;
++}
++
+ static const mtp_filetype_description_t*
+ get_mtp_filetype_description_by_codec(const gchar *name) {
+   const mtp_filetype_description_t *current;
+@@ -1810,7 +1815,7 @@
+     g_print("Building playlist tree...\n");
+   }
+   g_idle_add(call_build_playlist_tree, (gpointer) args->pltreestore);
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   
+   jukebox_locked = FALSE;
+   return NULL;
+@@ -1995,7 +2000,7 @@
+  clean_up_and_return:
+ 
+   jukebox_locked = FALSE;
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   g_idle_add(call_fill_in_dir, GINT_TO_POINTER((gint)HD_LIST));
+   /* Free the memory used by the list */
+   destroy_metalist(args->metalist);
+@@ -2079,7 +2084,7 @@
+ 
+   destroy_metalist(args->metalist);
+   jukebox_locked = FALSE;
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   g_idle_add(call_fill_in_dir, GINT_TO_POINTER((gint)HDDATA_LIST));
+   g_free(args);
+   return NULL;
+@@ -2288,7 +2293,7 @@
+     rmdir(tmpdirname);
+   }
+   
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   if (args->playlists != NULL) {
+     g_idle_add(call_build_playlist_tree, (gpointer) args->pltreestore);
+   } 
+@@ -2407,7 +2412,7 @@
+ 
+  hd2jb_data_cleanup:
+ 
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   jukebox_locked = FALSE;
+   destroy_metalist(args->metalist);
+   g_free(args);
+@@ -3553,7 +3558,7 @@
+   }
+ 
+   // Let the main loop destroy the dialog
+-  g_idle_add((GSourceFunc) gtk_widget_destroy, args->dialog);
++  g_idle_add(call_gtk_widget_destroy, args->dialog);
+   g_mutex_lock(play_thread_mutex);
+   // Free the playlist
+   destroy_metalist(playlist);
