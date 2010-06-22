@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=kmymoney2
+TARNAME=kmymoney
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.0.0
+VERSION=3.98.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://kmymoney2.sourceforge.net/index-home.html"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=kmymoney2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -57,12 +57,20 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
