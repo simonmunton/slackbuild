@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=swig
+TARNAME=pyfits
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.0.0
+VERSION=2.3.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.swig.org"
+WEBPAGE="http://www.stsci.edu/resources/software_hardware/pyfits"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,19 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,9 +88,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-#strip_binaries
+#make install DESTDIR=${PKG}
+python setup.py install --root ${PKG}
+strip_binaries
 
 fix_links
 
@@ -92,18 +105,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Simplified Wrapper and Interface Generator"
-SWIG is a software development tool that connects programs written in 
-C and C++ with a variety of high-level programming languages. SWIG is 
-primarily used with common scripting languages such as Perl, Python, 
-Tcl/Tk, and Ruby, however the list of supported languages also 
-includes non-scripting languages such as Java, OCAML and C#. Also 
-several interpreted and compiled Scheme implementations (Guile, 
-MzScheme, Chicken) are supported. SWIG is most commonly used to create
-high-level interpreted or compiled programming environments, user 
-interfaces, and as a tool for testing and prototyping C/C++ software. 
-SWIG can also export its parse tree in the form of XML and Lisp 
-s-expressions.
+make_slack_desc << EOF "Python interface to FITS formatted files"
+PyFITS provides an interface to FITS formatted files under the Python 
+scripting language and PyRAF, the Python-based interface to IRAF. It 
+is useful both for interactive data analysis and for writing analysis 
+scripts in Python using FITS files as either input or output. PyFITS 
+is a development project of the Science Software Branch at the Space 
+Telescope Science Institute. 
 
 EOF
 
