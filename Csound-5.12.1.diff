@@ -1,0 +1,33 @@
+--- Csound-5.12.1/Opcodes/Loris/lorisgens5.C.orig	2008-09-06 12:16:08.000000000 +0100
++++ Csound-5.12.1/Opcodes/Loris/lorisgens5.C	2010-06-26 04:55:21.000000000 +0100
+@@ -256,7 +256,7 @@
+             oscil.resetEnvelopes( bp, (double) csound->esr );
+ 
+             //    roll back the phase:
+-            oscil.resetPhase( bp.phase() - ( radfreq * (double) csound->ksmps ) );
++            oscil.setPhase( bp.phase() - ( radfreq * (double) csound->ksmps ) );
+           }
+ 
+         //        accumulate samples into buffer:
+--- Csound-5.12.1/install.py.orig	2009-10-05 07:30:30.000000000 +0100
++++ Csound-5.12.1/install.py	2010-06-26 05:48:54.000000000 +0100
+@@ -335,7 +335,7 @@
+   for i in xmgList:
+     makeDir(concatPath([xmgDir, i, 'LC_MESSAGES']))
+     src = 'po/' + i + '/LC_MESSAGES/csound5.mo'
+-    fileName = concatPath([xmgDir, i, 'LC_MESSAGES/csound5.mo'])
++    fileName = concatPath([instDir,xmgDir, i, 'LC_MESSAGES/csound5.mo'])
+     err = runCmd(['install', '-p', '-m', '0644', src, fileName])
+     if err == 0:
+         addMD5(fileName, fileName)
+--- Csound-5.12.1/SConstruct.orig	2010-01-15 23:27:37.000000000 +0000
++++ Csound-5.12.1/SConstruct	2010-06-26 05:12:43.000000000 +0100
+@@ -1873,8 +1873,6 @@
+     print 'CONFIGURATION DECISION: Building with PortMIDI.'
+     portMidiEnvironment = pluginEnvironment.Clone()
+     portMidiEnvironment.Append(LIBS = ['portmidi'])
+-    if getPlatform() != 'darwin':
+-        portMidiEnvironment.Append(LIBS = ['porttime'])
+     if getPlatform() == 'win32':
+         portMidiEnvironment.Append(LIBS = csoundWindowsLibraries)
+     if getPlatform() == 'linux' and alsaFound:

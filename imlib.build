@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libgnomekbd
+TARNAME=imlib
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARSEP="-"
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=2.30.2
+VERSION=1.9.15
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/libgnomekbd-2.28.2.diff
+ patch -p1 < ${CWD}/imlib.mitshm.render.diff
+ patch -p1 < ${CWD}/imlib-1.9.15.diff
 )
 fi
 
@@ -52,14 +56,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +89,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -89,8 +104,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNOME keyboard indicator plugin"
-GNOME keyboard indicator plugin
+make_slack_desc << EOF "image loading and rendering library"
+Imlib is a display depth-independent image loading and rendering
+library.  Imlib is designed to simplify and speed up the process of
+loading images and obtaining X Window System drawables.  Imlib
+provides many simple manipulation routines which can be used for
+common operations.
 
 EOF
 
