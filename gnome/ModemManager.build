@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=dates
+TARNAME=ModemManager
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/p/pimlico
+TARSEP="-"
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.4.7
+VERSION=0.4
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://cgit.freedesktop.org/ModemManager/ModemManager/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -43,6 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ ./autogen.sh
 )
 fi
 
@@ -52,14 +56,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +89,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -89,12 +104,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "small, lightweight calendar"
-Dates is a small, lightweight calendar, featuring an innovative, 
-unified, zooming view and is designed primarily for use on hand-held 
-devices. It is available in several flavours; a vanilla GTK+ user 
-interface, a version for the Nokia 770/N800 Maemo platform  and a 
-version for OpenMoko  devices.
+make_slack_desc << EOF "ModemManager"
+The problem ModemManager tries to solve is to provide a unified high 
+level API for communicating with (mobile broadband) modems. While the 
+basic commands are standardized, the more advanced operations (like 
+signal quality monitoring while connected) varies a lot.
 
 EOF
 
