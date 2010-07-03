@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=20070111
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 WEBPAGE=""
 
@@ -88,6 +88,13 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/usr/include
+ for f in *.h
+ do
+  sed -i '/config.h/ d; s/#fdef HAVE_ICONV/#if 1/' $f
+ done
+)
 
 strip_binaries
 

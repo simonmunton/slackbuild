@@ -1,0 +1,89 @@
+--- mc-4.7.0.6/lib/vfs/mc-vfs/fish.c.orig	2010-06-04 19:15:55.000000000 +0100
++++ mc-4.7.0.6/lib/vfs/mc-vfs/fish.c	2010-07-01 09:57:20.000000000 +0100
+@@ -475,36 +475,32 @@
+ 			  "ADD=1;\n"
+ 		  "fi\n"
+ 		  "ls $LSOPT /%s 2>/dev/null | grep '^[^cbt]' | (\n"
+-			  "while read p l u g s m d y n n2 n3; do\n"
++			  "while read p l u g s m d y n; do\n"
+ 				  "if test \"$m\" = \"0\" ; then \n"
+-					  "s=$d; m=$y; d=$n y=$n2; n=$n3\n"
+-				  "else\n"
+-					  "n=$n\" \"$n2\" \"$n3\n"
++					  "s=$d; m=$y; d=$n y=$n2; n=fixme\n"
+ 				  "fi\n"
+ 				  "if [ $ADD  = 0 ]; then\n"
+ 					  "echo \"P$p $u.$g\nS$s\nd$m $d $y\n:$n\n\"\n"
+ 				  "elif `sed --version >/dev/null 2>&1` ; then\n"
+ 					  "file=`echo $n | sed -e 's#^\\(.*\\) -> \\(.*\\)#\\1\" -> \"\\2#'`\n"
+ 	,
+-					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\"$file\"\n\"\n"
++					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\\\"$file\\\"\n\"\n"
+ 				  "else\n"
+-					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\"$n\"\n\"\n"
++					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\\\"$n\\\"\n\"\n"
+ 				  "fi\n"
+ 			  "done )\n"
+ 		  "ls $LSOPT /%s 2>/dev/null | grep '^[cb]' | (\n"
+-			  "while read p l u g a i m d y n n2 n3; do\n"
++			  "while read p l u g a i m d y n; do\n"
+ 				  "if test \"$a\" = \"0\" ; then \n"
+-					  "a=$m; i=$d; m=$y; d=$n y=$n2; n=$n3\n"
+-				  "else\n"
+-					  "n=$n\" \"$n2\" \"$n3\n"
++					  "a=$m; i=$d; m=$y; d=$n y=$n2; n=fixme\n"
+ 				  "fi\n"
+ 				  "if [ $ADD = 0 ]; then\n"
+ 					  "echo \"P$p $u.$g\nE$a$i\nd$m $d $y\n:$n\n\"\n"
+ 				  "elif `sed --version >/dev/null 2>&1` ; then\n"
+ 					  "file=`echo $n | sed -e 's#^\\(.*\\) -> \\(.*\\)#\\1\" -> \"\\2#'`\n"
+-					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\"$file\"\n\"\n"
++					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\\\"$file\\\"\n\"\n"
+ 				  "else\n"
+-					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\"$n\"\n\"\n"
++					  "echo \"P$p $u $g\nS$s\nd$m $d $y\n:\\\"$n\\\"\n\"\n"
+ 				  "fi\n"
+ 			  "done)\n"
+ 		  "echo '### 200'\n"
+@@ -736,7 +732,7 @@
+ 		 "(\n"
+ 		   "head -c %lu -q - || echo DD >&3\n"
+ 		 ") 2>/dev/null | (\n"
+-		   "cat > $file\n"
++		   "cat > \"$file\"\n"
+ 		   "cat > /dev/null\n"
+ 		 ")`; [ \"$res\" = DD ] && {\n"
+ 			"> \"$file\"\n"
+@@ -761,7 +757,7 @@
+ 			"while [ $rest -gt 0 ]\n"
+ 			"do\n"
+ 			"    cnt=`expr \\( $rest + 255 \\) / 256`\n"
+-			"    n=`dd bs=256 count=$cnt | tee -a $file | wc -c`\n"
++			"    n=`dd bs=256 count=$cnt | tee -a \"$file\" | wc -c`\n"
+ 			"    rest=`expr $rest - $n`\n"
+ 			"done\n"
+ 		 "}; echo '### 200'\n",
+--- mc-4.7.0.6/src/editor/editwidget.c.orig	2010-06-04 19:15:56.000000000 +0100
++++ mc-4.7.0.6/src/editor/editwidget.c	2010-06-30 10:17:29.000000000 +0100
+@@ -313,6 +313,12 @@
+ 	    int cmd, ch;
+ 	    cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++	    if (parm == KEY_BTAB) {
++		edit_execute_key_command (e, cmd, '\t');
++		edit_update_screen (e);
++		return MSG_HANDLED;
++            }
++
+ 	    /* The user may override the access-keys for the menu bar. */
+ 	    if (edit_translate_key (e, parm, &cmd, &ch)) {
+ 		edit_execute_key_command (e, cmd, ch);
+--- mc-4.7.0.6/misc/syntax/php.syntax.orig	2010-06-04 19:15:55.000000000 +0100
++++ mc-4.7.0.6/misc/syntax/php.syntax	2010-06-30 10:17:29.000000000 +0100
+@@ -3151,5 +3151,6 @@
+ 
+ context ' ' brightgreen
+     spellcheck
++    keyword \\\\ brightcyan
+     keyword \\' brightcyan
+ 

@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=2.6.0
+VERSION=2.8.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -89,12 +89,41 @@ mkdir -p ${PKG}/var/log/setup
 cat ${CWD}/fontconfig-setup.05.fontconfig > ${PKG}/var/log/setup/setup.05.fontconfig
 chmod 755 ${PKG}/var/log/setup/setup.05.fontconfig
 
-# Set up Slackware specfic options in /etc/fonts/conf.d:
+## Set up Slackware specfic options in /etc/fonts/conf.d:
+#(  cd ${PKG}/etc/fonts/conf.d
+#   for fontconf in 10-autohint.conf ; do
+#     ln -sf ../conf.avail/${fontconf} .
+#   done
+#)
+
+# Set up the default options in /etc/fonts/conf.d:
 (  cd ${PKG}/etc/fonts/conf.d
-   for fontconf in 10-autohint.conf ; do
-     ln -sf ../conf.avail/${fontconf} .
+   for fontconf in \
+        20-fix-globaladvance.conf \
+        20-unhint-small-vera.conf \
+        30-urw-aliases.conf \
+        30-metric-aliases.conf \
+        40-nonlatin.conf \
+        45-latin.conf \
+        49-sansserif.conf \
+        50-user.conf \
+        51-local.conf \
+        60-latin.conf \
+        65-fonts-persian.conf \
+        65-nonlatin.conf \
+        69-unifont.conf \
+        80-delicious.conf \
+        90-synthetic.conf ; do
+     ln -sf ../conf.avail/$fontconf . || exit 1
    done
+   if [ ! $? = 0 ]; then
+     exit 1
+   fi
 )
+if [ ! $? = 0 ]; then
+  echo "Missing /etc/fonts/$fontconf default.  Exiting"
+  exit 1
+fi
 
 cat >> ${PKG}/install/doinst.sh << EOF
 #

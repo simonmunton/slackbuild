@@ -1,3 +1,32 @@
+--- motion-3.2.10.1/picture.c.orig	2008-06-10 23:39:40.000000000 +0100
++++ motion-3.2.10.1/picture.c	2010-07-03 16:45:34.000000000 +0100
+@@ -52,7 +52,7 @@
+         dest->jpegsize = dest->bufsize - dest->pub.free_in_buffer;
+ }
+ 
+-static GLOBAL(void) jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize)
++static GLOBAL(void) my_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET* buf, size_t bufsize)
+ {
+         mem_dest_ptr dest;
+ 
+@@ -127,7 +127,7 @@
+ 	jpeg_set_quality(&cinfo, quality, TRUE);
+ 	cinfo.dct_method = JDCT_FASTEST;
+ 
+-	jpeg_mem_dest(&cinfo, dest_image, image_size);	// data written to mem
++	my_jpeg_mem_dest(&cinfo, dest_image, image_size);	// data written to mem
+ 	
+ 	jpeg_start_compress (&cinfo, TRUE);
+ 
+@@ -177,7 +177,7 @@
+ 
+ 	jpeg_set_quality(&cjpeg, quality, TRUE);
+ 	cjpeg.dct_method = JDCT_FASTEST;
+-	jpeg_mem_dest(&cjpeg, dest_image, image_size);  // data written to mem
++	my_jpeg_mem_dest(&cjpeg, dest_image, image_size);  // data written to mem
+ 
+ 	jpeg_start_compress (&cjpeg, TRUE);
+ 
 --- motion-3.2.10.1/configure.orig	2008-06-10 23:39:40.000000000 +0100
 +++ motion-3.2.10.1/configure	2008-10-06 06:36:55.000000000 +0100
 @@ -4321,9 +4321,9 @@

@@ -1,0 +1,75 @@
+--- avifile-0.7-0.7.45/lib/aviplay/aviplay.cpp.orig	2005-11-04 21:56:33.000000000 +0000
++++ avifile-0.7-0.7.45/lib/aviplay/aviplay.cpp	2010-07-03 22:27:32.000000000 +0100
+@@ -242,7 +242,7 @@
+ 	//printf("VSTREAMTIME %f\n", m_pVideostream->GetTime());
+ 	// reading subtitles
+ 	avm::string fn = m_Filename;
+-	char* p = strrchr(fn.c_str(), '.');
++	char* p = (char *)strrchr(fn.c_str(), '.');
+ 	if (p)
+             *p = 0;
+ 	InitSubtitles(m_Subfilename.size()
+--- avifile-0.7-0.7.45/lib/codeckeeper.cpp.orig	2004-03-10 13:27:38.000000000 +0000
++++ avifile-0.7-0.7.45/lib/codeckeeper.cpp	2010-07-03 22:43:43.000000000 +0100
+@@ -143,7 +143,7 @@
+     {
+ 	char plgn[100];
+ 	strcpy(plgn, "avm_codec_plugin_");
+-	char* x = strrchr(name, '/');
++	char* x = (char *) strrchr(name, '/');
+ 	strncat(plgn, x + 1, 50);
+ 	x = strchr(plgn, '.');
+ 	*x = 0;
+--- avifile-0.7-0.7.45/lib/common/Args.cpp.orig	2003-02-06 20:39:12.000000000 +0000
++++ avifile-0.7-0.7.45/lib/common/Args.cpp	2010-07-03 22:35:21.000000000 +0100
+@@ -259,7 +259,7 @@
+     }
+     for (unsigned i = 0; i < arr.size(); i++)
+     {
+-	char* par = strchr(arr[i], '=');
++	char* par = (char *)strchr(arr[i], '=');
+ 	if (par)
+ 	{
+ 	    *par = 0;
+@@ -335,7 +335,7 @@
+ 	    {
+ 		for (unsigned j = 1; j < arr.size(); j++)
+ 		{
+-		    char* p = strchr(arr[j].c_str(), '=');
++		    char* p = (char *) strchr(arr[j].c_str(), '=');
+ 		    int val = 0;
+ 		    bool valid = false;
+ 		    if (p)
+--- avifile-0.7-0.7.45/samples/qtvidcap/kv4lsetup.cpp.orig	2005-03-23 15:18:21.000000000 +0000
++++ avifile-0.7-0.7.45/samples/qtvidcap/kv4lsetup.cpp	2010-07-03 22:51:24.000000000 +0100
+@@ -229,7 +229,7 @@
+     if (XF86DGAQueryExtension(dpy, &foo, &bar)) {
+ 	XF86DGAQueryDirectVideo(dpy, XDefaultScreen(dpy),&flags);
+ 	if (flags & XF86DGADirectPresent) {
+-	    XF86DGAGetVideoLL(dpy,XDefaultScreen(dpy),(int*)&base,&width,&foo,&bar);
++	    XF86DGAGetVideoLL(dpy,XDefaultScreen(dpy),(unsigned int*)&base,&width,&foo,&bar);
+ 	    set_bpl  = width * set_bpp/8;
+ 	    set_base = base;
+ 	    if (verbose == 2) {
+--- avifile-0.7-0.7.45/samples/qtvidcap/v4lxif.cpp.orig	2005-03-23 16:16:09.000000000 +0000
++++ avifile-0.7-0.7.45/samples/qtvidcap/v4lxif.cpp	2010-07-03 22:52:05.000000000 +0100
+@@ -1115,7 +1115,7 @@
+ 		     major,minor, XDGA_MAJOR_VERSION,XDGA_MINOR_VERSION);
+ 		have_dga= false;
+ 	    } else {
+-		XF86DGAGetVideoLL(disp, DefaultScreen(disp), (int*)&base, &width, &bank, &ram);
++		XF86DGAGetVideoLL(disp, DefaultScreen(disp), (unsigned int*)&base, &width, &bank, &ram);
+ 		if (!base)
+ 		    avml(AVML_WARN,
+ 			 "v4l1: can not allocate frame buffer base: %p\n", base);
+--- avifile-0.7-0.7.45/plugins/libmp3lame_audioenc/mp3encoder.cpp.orig	2006-03-05 20:45:26.000000000 +0000
++++ avifile-0.7-0.7.45/plugins/libmp3lame_audioenc/mp3encoder.cpp	2010-07-03 22:48:42.000000000 +0100
+@@ -30,7 +30,7 @@
+ 	short  nCodecDelay;
+     };
+ public:
+-    MP3Encoder::MP3Encoder(const CodecInfo& info, const WAVEFORMATEX* format)
++    MP3Encoder(const CodecInfo& info, const WAVEFORMATEX* format)
+ 	:IAudioEncoder(info)
+     {
+ 	in_fmt=*format;
