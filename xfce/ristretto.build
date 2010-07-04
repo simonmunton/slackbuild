@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=libopensync-plugin-ldap
+TARNAME=ristretto
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l/libopensync
+XFCE_VER=4.6.2
+TARDIR=~/tmp/new/x/xfce-${XFCE_VER}
 #TAR_EXT=.tar.gz
-VERSION=0.22
+VERSION=0.0.22
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.xfce.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=xfce-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,14 +56,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --sysconfdir=/etc/xfce \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --docdir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --htmldir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
+	    --disable-static
+
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +95,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -85,15 +103,25 @@ compress_manpages
 
 compress_info
 
+mkdir -p ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
+
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  BUGS COMPOSITOR FAQ HACKING NOTES THANKS example.gtkrc-2.0 \
+  ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
 
 fix_docs
 
+rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenSync plugin for LDAP"
-OpenSync plugin for LDAP
+make_slack_desc << EOF "a fast and lightweight desktop environment for X"
+Xfce is a fast and lightweight desktop environment that is both
+visually appealing and easy to use.
+
+For more information, see:  http://www.xfce.org
+
+Xfce was developed by Olivier Fourdan.
 
 EOF
 

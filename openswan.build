@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.6.16
+VERSION=2.6.27
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/openswan-2.6.16.diff
+# patch -p1 < ${CWD}/openswan-2.6.16.diff
 )
 fi
 
@@ -64,7 +64,7 @@ if [ ${DO_MAKE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-make ${NUM_JOBS} programs INC_USRLOCAL=/usr || exit
+make ${NUM_JOBS} programs INC_USRLOCAL=/usr USE_LWRES=true || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,7 +72,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INC_USRLOCAL=/usr
+make install DESTDIR=${PKG} INC_USRLOCAL=/usr USE_LWRES=true
 
 mv ${PKG}/etc/rc.d/init.d/ipsec ${PKG}/etc/rc.d/rc.ipsec.new
 rm -rf ${PKG}/etc/rc.d/init.d ${PKG}/etc/rc.d/rc*.d

@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libopensync-plugin-ldap
+TARNAME=libffi
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l/libopensync
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.22
+VERSION=3.0.9
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://sourceware.org/libffi/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +103,19 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenSync plugin for LDAP"
-OpenSync plugin for LDAP
+make_slack_desc << EOF "high level programming interface to various calling conventions"
+The libffi library provides a portable, high level programming 
+interface to various calling conventions. This allows a programmer to 
+call any function specified by a call interface description at 
+run-time.
+
+FFI stands for Foreign Function Interface. A foreign function 
+interface is the popular name for the interface that allows code 
+written in one language to call code written in another language. 
+The libffi library really only provides the lowest, machine dependent 
+layer of a fully featured foreign function interface. A layer must 
+exist above libffi that handles type conversions for values passed 
+between the two languages. 
 
 EOF
 

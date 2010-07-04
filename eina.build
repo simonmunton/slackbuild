@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libopensync-plugin-ldap
+TARNAME=eina
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l/libopensync
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=0.22
+VERSION=0.9.9.49898
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://download.enlightenment.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +103,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenSync plugin for LDAP"
-OpenSync plugin for LDAP
+make_slack_desc << EOF "data type library."
+Eina is a data type library.
 
 EOF
 
