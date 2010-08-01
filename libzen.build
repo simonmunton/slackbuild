@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=LVM2
+TARNAME=libzen
 TARNAMEEXTRA=
-TARSEP="."
+TARSEP="_"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.02.72
+VERSION=0.4.15
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sources.redhat.com/lvm2/"
+WEBPAGE="http://mediainfo.sourceforge.net/en"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=lvm2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}.${VERSION} ${TARNAME}-${VERSION}
+mv ZenLib ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,28 +59,19 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+pushd Project/GNU/Library
+chmod +x autogen
+./autogen
+
 CFLAGS="${PKGCFLAGS}" \
 CXXFLAGS="${PKGCFLAGS}" \
-./configure --mandir=/usr/man \
-	    --disable-readline \
-	    --enable-cmdlib \
-	    --enable-applib \
-	    --enable-dmeventd \
-	    --libdir=/lib \
-	    --enable-static_link \
-	    --with-lvm1=internal \
-	    --enable-static_link \
-	    --enable-pkgconfig \
-	    --enable-dmeventd \
-	    --enable-fsadm \
-	    --disable-selinux \
-	    --with-device-uid=0 \
-	    --with-device-gid=6 \
-	    --with-device-mode=0660 \
-	    --enable-udev_rules \
-	    --enable-udev_sync
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-shared
 
-
+popd
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
@@ -93,7 +84,13 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+pushd Source/Doc/
+  doxygen Doxyfile
+popd
+
+pushd Project/GNU/Library
 make ${NUM_JOBS} || exit
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -101,10 +98,24 @@ then
   exit
 fi
 
+pushd Project/GNU/Library
 make install DESTDIR=${PKG}
+popd
 
-mv ${PKG}/etc/lvm/lvm.conf ${PKG}/etc/lvm/lvm.conf.new
-doinst_config etc/lvm/lvm.conf.new
+# Zenlib headers and ZenLib-config
+mkdir -p ${PKG}/usr/include/ZenLib
+cp Source/ZenLib/*.h ${PKG}/usr/include/ZenLib
+
+for i in Base64 HTTP_Client Format/Html Format/Http TinyXml
+do
+  mkdir -p ${PKG}/usr/include/ZenLib/$i
+  cp Source/ZenLib/$i/*.h ${PKG}/usr/include/ZenLib/$i
+done
+
+chmod -R -x,+X  ${PKG}/usr/include/ZenLib
+
+mkdir -p ${PKG}/usr/lib/pkgconfig
+sed -e "s|Version: |Version: ${VERSION}|g" Project/GNU/Library/libzen.pc > ${PKG}/usr/lib/pkgconfig/libzen.pc
 
 strip_binaries
 
@@ -115,20 +126,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO VERSION WHATS_NEW \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ReadMe.txt Doc License.txt \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Logical Volume Manager version 2"
-Heinz Mauelshagen's LVM (Logical Volume Manager) for Linux.
-LVM adds an additional layer between the physical peripherals and the
-low-level I/O interface to get a logical view of disks.  This allows
-the concatenation of several disks (so-called physical volumes or PVs)
-to form a storage pool (so-called Volume Group or VG) with allocation
-units called physical extents (called PE).  With LVM, you can extend,
-resize, or relocate storage dynamically.
+make_slack_desc << EOF "Shared library for libmediainfo and medianfo*"
+Shared library for libmediainfo and medianfo-*.
 
 EOF
 
