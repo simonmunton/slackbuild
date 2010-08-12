@@ -1,13 +1,12 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=libwnck
+TARNAME=Gtk2-GladeXML
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/T/TS/TSCH
 #TAR_EXT=.tar.gz
-VERSION=2.30.3
+VERSION=1.007
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,13 +14,13 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=perl_${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -37,15 +36,8 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-  echo "${TARNAME}-${VERSION} directory not found"
-  exit
-fi
-
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ #patch -p1 < $CWD/
 )
 fi
 
@@ -55,27 +47,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-if [ ${DO_CONFIGURE} == "yes" ]
+if [ -f Build.PL ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG} --installdirs=vendor
+else
+  perl Makefile.PL
+  make
+  make test
+  make install DESTDIR=${PKG} INSTALLDIRS=vendor
 fi
 
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} || exit
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-make install DESTDIR=${PKG}
+perllocalpod
 
 #strip_binaries
 
@@ -92,10 +77,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Window Navigator Construction Kit"
-libwnck is Window Navigator Construction Kit, i.e. a library to use
-for writing pagers and taskslists and stuff.
-
+make_slack_desc << EOF
 EOF
 
 post_install

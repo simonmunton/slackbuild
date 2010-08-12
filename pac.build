@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=videoproto
+TARNAME=pac
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/proto
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.3.1
-VERSIONEXTRA=
+VERSION=2.4.0.4
+VERSIONEXTRA=-all
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://sites.google.com/site/davidtv/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=noarch
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,15 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -81,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +88,20 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+:
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1,share/{applications,pixmaps}} ${PKG}/opt/pac/{lib/{method,edit},res}
+
+cp -pr pac LICENSE README lib res ${PKG}/opt/pac
+ln -s  /opt/pac/pac ${PKG}/usr/bin
+
+ln -s /opt/pac/res/pac64x64.png ${PKG}/usr/share/pixmaps/pac.png
+(cd ${PKG}
+ mv opt/pac/res/pac.desktop usr/share/applications
+ mv opt/pac/res/pac.1 usr/man/man1
+
+ rm -rf opt/pac/res/{pac.glade.old,pac_methods.glade,scr,*.rpm,*.deb}
+)
 
 strip_binaries
 
@@ -106,15 +118,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-videoproto is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "PAC Perl Auto Connector"
+PAC is a telnet/ssh/rsh/etc connection manager/automator written in 
+Perl GTK aimed at making both administrators and switchers (from 
+Windoze) life easier. This is free software, licensed under GNU's 
+GPLv3
 
 EOF
 

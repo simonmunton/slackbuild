@@ -6,9 +6,9 @@ TARNAME=util-linux-ng
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=2.17.2
+VERSION=2.18
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -66,7 +66,6 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --enable-agetty \
 	    --disable-init \
 	    --enable-kill \
-	    --enable-rdev \
 	    --disable-last \
 	    --enable-mesg \
 	    --enable-raw \
@@ -77,8 +76,11 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --enable-wall \
 	    --enable-write \
 	    --enable-use-tty-group \
+	    --enable-libblkid \
+	    --enable-libuuid \
+	    --disable-uuidd \
 	    --disable-makeinstall-chown \
-	    --with-fsprobe=builtin
+	    --enable-partx
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -93,11 +95,19 @@ fi
 
 make install DESTDIR=${PKG}
 
-# Install (probably obsolete) rdev manually:
-cat ./sys-utils/rdev > ${PKG}/sbin/rdev
-#chown root:root ${PKG}/sbin/rdev
-chmod 755 ${PKG}/sbin/rdev
-#cat ./sys-utils/rdev.8 | gzip -9c > ${PKG}/usr/man/man8/rdev.8.gz
+# Moving things around that have been in the same place
+# for 15 years is, IMHO, not a wise idea AT ALL.
+# If this had to be moved, some place out of /usr might
+# have shown a grain of insight...
+if [ -r ${PKG}/usr/sbin/fdformat ]; then
+  mkdir -p ${PKG}/usr/bin
+  mv ${PKG}/usr/sbin/fdformat ${PKG}/usr/bin/fdformat
+  # Now since stuff will start looking in this new place,
+  # we have no choice but to link these:
+  ( cd ${PKG}/usr/sbin
+    ln -sf ../bin/fdformat .
+  )
+fi
 
 # These have always traditionally been available before /usr
 # might be mounted:
