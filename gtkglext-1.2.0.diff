@@ -1,3 +1,73 @@
+--- gtkglext-1.2.0/examples/viewlw.c.orig	2004-02-20 17:41:02.000000000 +0000
++++ gtkglext-1.2.0/examples/viewlw.c	2010-08-13 14:53:40.000000000 +0100
+@@ -631,33 +631,25 @@
+   return TRUE;
+ }
+ 
+-static gint
+-filew_ok(GtkWidget *widget,
+-         GtkWidget *filew)
+-{
+-  if (show_lwobject(gtk_file_selection_get_filename(GTK_FILE_SELECTION(filew))) == TRUE)
+-    gtk_widget_destroy(filew);
+-  return TRUE;
+-}
+ 
+ static void
+ select_lwobject(void)
+ {
+-  GtkWidget *filew = gtk_file_selection_new("Select LightWave 3D object");
+-
+-  g_signal_connect(G_OBJECT(GTK_FILE_SELECTION (filew)->ok_button), "clicked",
+-                   G_CALLBACK(filew_ok), filew);
++  GtkWidget *dialog = gtk_file_chooser_dialog_new("Select LightWave 3D object", NULL, 
++						  GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
++						  GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
++						  NULL);
+ 
+-  g_signal_connect_swapped(G_OBJECT(GTK_FILE_SELECTION(filew)->cancel_button),
+-                           "clicked", G_CALLBACK(gtk_widget_destroy),
+-                           filew);
+-
+-  g_signal_connect(G_OBJECT(filew), "destroy",
+-                   G_CALLBACK(window_destroy), NULL);
++  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
++    {
++      char *filename;
+ 
+-  window_count++;
++      filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
++      show_lwobject (filename);
++      g_free (filename);
++    }
+ 
+-  gtk_widget_show(filew);
++  gtk_widget_destroy (dialog);
+ }
+ 
+ int
+--- gtkglext-1.2.0/examples/pixmap-mixed.c.orig	2003-09-14 10:23:33.000000000 +0100
++++ gtkglext-1.2.0/examples/pixmap-mixed.c	2010-08-13 13:31:05.000000000 +0100
+@@ -154,7 +154,7 @@
+               gpointer        data)
+ {
+   gdk_draw_drawable (widget->window,
+-		     widget->style->fg_gc[GTK_WIDGET_STATE (widget)],
++		     widget->style->fg_gc[gtk_widget_get_state (widget)],
+ 		     pixmap,
+ 		     event->area.x, event->area.y,
+ 		     event->area.x, event->area.y,
+--- gtkglext-1.2.0/examples/pixmap.c.orig	2003-09-14 10:23:33.000000000 +0100
++++ gtkglext-1.2.0/examples/pixmap.c	2010-08-13 13:31:05.000000000 +0100
+@@ -137,7 +137,7 @@
+               gpointer        data)
+ {
+   gdk_draw_drawable (widget->window,
+-		     widget->style->fg_gc[GTK_WIDGET_STATE (widget)],
++		     widget->style->fg_gc[gtk_widget_get_state (widget)],
+ 		     pixmap,
+ 		     event->area.x, event->area.y,
+ 		     event->area.x, event->area.y,
 --- gtkglext-1.2.0/gtk/gtkglwidget.c.orig	2004-02-20 09:38:36.000000000 +0000
 +++ gtkglext-1.2.0/gtk/gtkglwidget.c	2010-06-15 21:07:21.000000000 +0100
 @@ -127,7 +127,7 @@
@@ -42,7 +112,7 @@
    g_return_val_if_fail (GTK_IS_WIDGET (widget), FALSE);
 -  g_return_val_if_fail (!GTK_WIDGET_NO_WINDOW (widget), FALSE);
 -  g_return_val_if_fail (!GTK_WIDGET_REALIZED (widget), FALSE);
-+  g_return_val_if_fail (!gtk_widget_get_has_window (widget), FALSE);
++  g_return_val_if_fail (gtk_widget_get_has_window (widget), FALSE);
 +  g_return_val_if_fail (!gtk_widget_get_realized (widget), FALSE);
    g_return_val_if_fail (GDK_IS_GL_CONFIG (glconfig), FALSE);
  

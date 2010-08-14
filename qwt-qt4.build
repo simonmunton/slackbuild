@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=5.2.1
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,6 +45,8 @@ fi
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
  cp qwtconfig.pri qwtconfig.pri.in
+
+ sed -i -e '/CONFIG.*QwtSVGItem/ s/#//' qwtconfig.pri.in
 )
 fi
 
@@ -89,6 +91,8 @@ make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
 mv ${PKG}/usr/doc/man ${PKG}/usr
 mv ${PKG}/usr/doc/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+ln -s qt/lib/libqwt.so ${PKG}/usr/lib
 
 #strip_binaries
 
