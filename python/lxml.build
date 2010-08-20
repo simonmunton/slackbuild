@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gphoto2
+TARNAME=lxml
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.4.10
+VERSION=2.2.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.gphoto.org/"
+WEBPAGE="http://codespeak.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,19 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,9 +87,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,8 +104,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "frontend to libgphoto2"
-gphoto2 is a command-line frontend to libgphoto2
+make_slack_desc << EOF "Python binding for libxml2 and libxslt"
+lxml is a Pythonic, mature binding for the libxml2 and libxslt 
+libraries. It provides safe and convenient access to these libraries 
+using the ElementTree API.
+
+It extends the ElementTree API significantly to offer support for 
+XPath, RelaxNG, XML Schema, XSLT, C14N and much more.
 
 EOF
 

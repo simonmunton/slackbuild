@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=fotoxx
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/f
+#TAR_EXT=.tar.gz
+VERSION=10.8.4
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://kornelix.squarespace.com/fotoxx/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/fotoxx-10.8.4.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+MAKEFLAGS="PREFIX=/usr DOCDIR=/usr/doc/${TARNAME}-${VERSION} MANDIR=/usr/man/man1"
+# DESKTOP=/usr/share/applications/${TARNAME}.desktop"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} ${MAKEFLAGS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/man/man1
+make install menu manpage DESTDIR=${PKG} ${MAKEFLAGS}
+
+ln -s /usr/share/fotoxx/kornelix-fotoxx.desktop ${PKG}/usr/share/applications
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "digital photo editor and collection manager"
+Navigate an image collection using a thumbnail browser. View and edit
+images: brightness, color, contrast, tone mapping, trim, rescale,
+rotate, warp, sharpen, blur, suppress noise, fix red-eyes, HDR, HDF,
+panorama, fix perspective, make artful transformations, slide show,
+burn CD/DVD. Edit an area selected with the mouse with smooth edge
+blending. Convert camera RAW files to TIFF and edit in 16 bits/color.
+Assign tags and star-ratings to images and use these for searching.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
