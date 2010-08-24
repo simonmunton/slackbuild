@@ -1,0 +1,36 @@
+--- MPlayer-20100820/libmpcodecs/vd_ffmpeg.c.orig	2010-08-21 14:07:25.000000000 +0100
++++ MPlayer-20100820/libmpcodecs/vd_ffmpeg.c	2010-08-21 14:06:49.000000000 +0100
+@@ -550,9 +550,9 @@
+         // sets the value correctly in avcodec_open.
+         set_format_params(avctx, avctx->pix_fmt);
+         mp_msg(MSGT_DECVIDEO, MSGL_V, "[ffmpeg] aspect_ratio: %f\n", aspect);
+-        if (sh->aspect == 0 ||
++        if (isnormal(aspect) && (sh->aspect == 0 ||
+             av_cmp_q(avctx->sample_aspect_ratio,
+-                     ctx->last_sample_aspect_ratio))
++                     ctx->last_sample_aspect_ratio)))
+             sh->aspect = aspect;
+         ctx->last_sample_aspect_ratio = avctx->sample_aspect_ratio;
+         sh->disp_w = width;
+--- MPlayer-20100820/libmpdemux/demux_lavf.c.orig	2010-08-20 20:30:15.000000000 +0100
++++ MPlayer-20100820/libmpdemux/demux_lavf.c	2010-08-21 09:05:47.000000000 +0100
+@@ -378,11 +378,15 @@
+             sh_video->frametime=1/av_q2d(st->r_frame_rate);
+             sh_video->format=bih->biCompression;
+             if(st->sample_aspect_ratio.num)
+-                sh_video->aspect = codec->width  * st->sample_aspect_ratio.num
+-                         / (float)(codec->height * st->sample_aspect_ratio.den);
++                if (st->sample_aspect_ratio.den) {
++                    sh_video->aspect = codec->width  * st->sample_aspect_ratio.num
++                             / (float)(codec->height * st->sample_aspect_ratio.den);
++                }
+             else
+-                sh_video->aspect=codec->width  * codec->sample_aspect_ratio.num
+-                       / (float)(codec->height * codec->sample_aspect_ratio.den);
++                if (codec->sample_aspect_ratio.den) {
++                    sh_video->aspect=codec->width  * codec->sample_aspect_ratio.num
++                           / (float)(codec->height * codec->sample_aspect_ratio.den);
++                }
+             sh_video->i_bps=codec->bit_rate/8;
+             if (title && title->value)
+                 mp_msg(MSGT_IDENTIFY, MSGL_INFO, "ID_VID_%d_NAME=%s\n", priv->video_streams, title->value);
