@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=NetworkManager-pptp
+TARNAME=umtsmon
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=0.8.1
-VERSIONEXTRA=
+VERSION=0.9
+VERSIONEXTRA=.src
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://umtsmon.sourceforge.net/index.shtml"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,14 +57,18 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+QTDIR=/opt/kde3/lib/qt3
+PATH=/opt/kde3/lib/qt3/bin:$PATH
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+qmake
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -86,7 +90,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,share/{applications,icons}}
+cp umtsmon ${PKG}/usr/bin
+cp umtsmon.desktop ${PKG}/usr/share/applications
+cp images/128/umtsmon-128x128.png ${PKG}/usr/share/icons
 
 strip_binaries
 
@@ -103,10 +111,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PPTP support for NetworkManager"
-PPTP support for NetworkManager
-
-This requires the Linux PPTP client installed
+make_slack_desc << EOF "tool to control and monitor a wireless mobile network card"
+UMTSmon is a tool to control and monitor a wireless mobile network 
+card (GPRS, EDGE, WCDMA, UMTS, HSDPA) in a laptop running the Linux 
+operating system. It handles PIN codes, operator choice (roaming), 
+signal strength and network statistics, sending/receiving SMS. 
 
 EOF
 
