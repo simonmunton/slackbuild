@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=9.4.2-P1
+VERSION=9.7.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,11 +54,11 @@ fi
 # We want to use /var/run/named/, not just /var/run/.
 # This allows changing the ownership of that directory if we want to run
 # named as a non-root user.
- patch -p1 < ${CWD}/bind.var.run.named.diff
+# patch -p1 < ${CWD}/bind.var.run.named.diff
 # Threads break '-u' on Linux (for now)
 
 # The man pages should reflect /var/run/named:
- patch -p1 < ${CWD}/bind.man.diff
+# patch -p1 < ${CWD}/bind.man.diff
 )
 fi
 
@@ -122,6 +122,9 @@ cat ${CWD}/bind-caching-example-named.conf > ${PKG}/etc/named.conf.new
 cat ${CWD}/bind-caching-example-localhost.zone > ${PKG}/var/named/caching-example/localhost.zone
 cat ${CWD}/bind-caching-example-named.local > ${PKG}/var/named/caching-example/named.local
 cat ${CWD}/bind-caching-example-named.root > ${PKG}/var/named/caching-example/named.root
+# This name is deprecated, but having it here doesn't hurt in case
+# an old configuration file wants it:
+cat ${CWD}/bind-caching-example-named.root > ${PKG}/var/named/caching-example/named.ca
 
 doinst_same_perm etc/rc.d/rc.bind
 doinst_config etc/rc.d/rc.bind.new etc/named.conf.new
@@ -158,7 +161,7 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 # This one should have the correct perms of the config file:
-chmod 644 ${PKG}/usr/doc/${TARNAME}-${VERSION}/misc/rndc.conf-sample
+#chmod 644 ${PKG}/usr/doc/${TARNAME}-${VERSION}/misc/rndc.conf-sample
 
 # One format of this is plenty.  Especially get rid of the bloated PDF.
 ( cd ${PKG}/usr/doc/bind-${VERSION}/arm

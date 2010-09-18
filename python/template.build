@@ -59,12 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -78,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,7 +88,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
 

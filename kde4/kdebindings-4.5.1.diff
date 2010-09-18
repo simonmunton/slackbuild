@@ -1,0 +1,120 @@
+--- kdebindings-4.5.1/python/pykde4/sip/kdecore/typedefs.sip.orig	2010-01-20 16:25:59.000000000 +0000
++++ kdebindings-4.5.1/python/pykde4/sip/kdecore/typedefs.sip	2010-09-04 15:22:12.000000000 +0100
+@@ -733,61 +733,6 @@
+ };
+ 
+ 
+-%MappedType QList<uint>
+-{
+-%TypeHeaderCode
+-#include <qlist.h>
+-%End
+-
+-%ConvertFromTypeCode
+-    // Create the list.
+-    PyObject *l;
+-
+-    if ((l = PyList_New(sipCpp->size())) == NULL)
+-        return NULL;
+-
+-    // Set the list elements.
+-    for (int i = 0; i < sipCpp->size(); ++i) {
+-        PyObject *pobj;
+-
+-#if PY_MAJOR_VERSION >= 3
+-        if ((pobj = PyLong_FromLong(sipCpp->value(i))) == NULL) {
+-#else
+-        if ((pobj = PyInt_FromLong(sipCpp->value(i))) == NULL) {
+-#endif
+-            Py_DECREF(l);
+-
+-            return NULL;
+-        }
+-
+-        PyList_SET_ITEM(l, i, pobj);
+-    }
+-
+-    return l;
+-%End
+-
+-%ConvertToTypeCode
+-    // Check the type if that is all that is required.
+-    if (sipIsErr == NULL)
+-        return PyList_Check(sipPy);
+-
+-    QList<uint> *ql = new QList<uint>;
+- 
+-    for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i) {
+-#if PY_MAJOR_VERSION >= 3
+-        ql->append(PyLong_AsLong(PyList_GET_ITEM(sipPy, i)));
+-#else
+-        ql->append(PyInt_AsLong(PyList_GET_ITEM(sipPy, i)));
+-#endif        
+-    }
+-    
+-    *sipCppPtr = ql;
+- 
+-    return sipGetState(sipTransferObj);
+-%End
+-};
+-
+-
+ template <TYPE*>
+ %MappedType QStack<TYPE*>
+ {
+--- kdebindings-4.5.1/generator/parser/rpp/pp-macro-expander.cpp.orig	2009-12-31 13:35:20.000000000 +0000
++++ kdebindings-4.5.1/generator/parser/rpp/pp-macro-expander.cpp	2009-12-31 13:35:20.000000000 +0000
+@@ -120,6 +120,9 @@
+   return pp_actual();
+ }
+ 
++#define RETURN_IF_INPUT_BROKEN    if(input.atEnd()) { qDebug() << "too early end while expanding" << macro->name.str(); return; }
++
++
+ pp_macro_expander::pp_macro_expander(pp* engine, pp_frame* frame, bool inHeaderSection)
+   : m_engine(engine)
+   , m_frame(frame)
+@@ -420,6 +423,8 @@
+         
+         QList<pp_actual> actuals;
+         ++input; // skip '('
++        
++        RETURN_IF_INPUT_BROKEN
+ 
+         pp_macro_expander expand_actual(m_engine, m_frame);
+ 
+@@ -455,6 +460,8 @@
+         while (!input.atEnd() && input == ',')
+         {
+           ++input; // skip ','
++          
++          RETURN_IF_INPUT_BROKEN
+ 
+           {
+             PreprocessedContents actualText;
+@@ -494,6 +501,7 @@
+           //Move one character into the output, so we don't get an endless loop
+           output << input;
+           ++input;
++          
+           continue;
+         }
+         
+@@ -506,7 +514,7 @@
+         //Q_ASSERT(!input.atEnd() && input == ')');
+ 
+         ++input; // skip ')'
+-
++        
+ #if 0 // ### enable me
+         assert ((macro->variadics && macro->formals.size () >= actuals.size ())
+                     || macro->formals.size() == actuals.size());
+@@ -520,6 +528,8 @@
+         if(frame.depth >= maxMacroExpansionDepth) 
+         {
+           qDebug() << "reached maximum macro-expansion depth while expanding" << macro->name.str();
++          RETURN_IF_INPUT_BROKEN
++          
+           output << input;
+           ++input;
+         }else{

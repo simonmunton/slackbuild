@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
 VERSION=2.3
 VERSIONEXTRA=
-BUILD=1
+BUILD=3
 
 WEBPAGE="http://rtmpdump.mplayerhq.hu/"
 
@@ -53,6 +53,8 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
+MAKEFLAGS="XCFLAGS=-ggdb XLDFLAGS="
+
 fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
@@ -62,7 +64,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ${MAKEFLAGS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,7 +81,7 @@ fi
 # make install DESTDIR=${PKG} prefix=/usr
 #)
 
-make install DESTDIR=${PKG} prefix=/usr
+make install DESTDIR=${PKG} ${MAKEFLAGS} prefix=/usr
 
 strip_binaries
 

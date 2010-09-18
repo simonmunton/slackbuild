@@ -1,0 +1,22 @@
+--- avogadro-1.0.1/libavogadro/src/engines/ringengine.cpp.orig	2010-05-02 17:31:22.000000000 +0100
++++ avogadro-1.0.1/libavogadro/src/engines/ringengine.cpp	2010-08-28 09:27:34.000000000 +0100
+@@ -87,6 +87,7 @@
+     if (m_alpha > 0.999) return true;
+ 
+     Color *map = colorMap();
++    if (!map) map = pd->colorMap();
+     map->setAlpha(m_alpha);
+     // Special case for everything up to 7 membered rings.
+     QList<Fragment *> rings = const_cast<Molecule *>(pd->molecule())->rings();
+--- avogadro-1.0.1/libavogadro/src/engines/surfaceengine.cpp.orig	2010-05-02 17:31:22.000000000 +0100
++++ avogadro-1.0.1/libavogadro/src/engines/surfaceengine.cpp	2010-08-28 09:07:23.000000000 +0100
+@@ -233,7 +233,8 @@
+         index = m_settingsWidget->orbital1Combo->count();
+ 
+       // Now figure out the mesh type and add it to the map
+-      Cube::Type cubeType = m_molecule->cubeById(mesh->cube())->cubeType();
++      Cube *c = m_molecule->cubeById(mesh->cube());
++      Cube::Type cubeType = c ? c->cubeType() : Cube::None;
+       QString comboText;
+       if (cubeType == Cube::VdW) {
+         comboText = tr("Van der Waals, isosurface = %L1",

@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=3.2.15
+VERSION=3.5.5
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.samba.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,13 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd source
+cd source3
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
 ./configure --prefix=/usr \
+	    --libdir=/usr/lib${LIBDIRSUFFIX} \
             --sysconfdir=/etc \
             --localstatedir=/var \
 	    --mandir=/usr/man \
@@ -70,14 +71,16 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
 	    --enable-cups \
 	    --enable-static=no \
 	    --enable-shared=yes \
-	    --with-fhs \
 	    --with-acl-support=yes \
 	    --with-automount \
 	    --with-lockdir=/var/cache/samba \
 	    --with-configdir=/etc/samba \
 	    --with-privatedir=/etc/samba/private \
 	    --with-swatdir=/usr/share/swat \
-	    --with-smbmount \
+	    --with-piddir=/var/run \
+	    --with-logfilebase=/var/log/samba \
+	    --with-cifsmount \
+	    --with-cifsumount \
 	    --with-quotas \
 	    --with-syslog \
 	    --with-utmp \
@@ -85,6 +88,9 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686 -ggdb" \
 	    --with-winbind \
 	    --with-ldap \
 	    --disable-dnssd
+
+#	    --with-fhs \
+
 
 fi
 
@@ -98,15 +104,17 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/var/spool/samba ${PKG}/var/log/samba
+mkdir -p ${PKG}/var/spool/samba ${PKG}/var/log/samba ${PKG}/etc/samba/private ${PKG}/var/cache/samba
 
 make install-everything DESTDIR=${PKG}
 
+cd ..
+
 # Install libnss_win* libraries:
-mkdir -p ${PKG}/lib
-cp -a nsswitch/libnss_winbind.so ${PKG}/lib/libnss_winbind.so.2
-cp -a nsswitch/libnss_wins.so ${PKG}/lib/libnss_wins.so.2
-( cd ${PKG}/lib
+mkdir -p ${PKG}/lib${LIBDIRSUFFIX}
+cp -a nsswitch/libnss_winbind.so ${PKG}/lib${LIBDIRSUFFIX}/libnss_winbind.so.2
+cp -a nsswitch/libnss_wins.so ${PKG}/lib${LIBDIRSUFFIX}/libnss_wins.so.2
+( cd ${PKG}/lib${LIBDIRSUFFIX}
   ln -sf libnss_winbind.so.2 libnss_winbind.so
   ln -sf libnss_wins.so.2 libnss_wins.so
 )
@@ -119,7 +127,7 @@ mkdir -p ${PKG}/sbin
 # Add a wrapper script from Debian that's included in the upstream Samba
 # sources to help out people (like me ;-) who don't read every speck of
 # documentation:
-cat ../examples/scripts/mount/mount.smbfs > ${PKG}/sbin/mount.smbfs
+cat examples/scripts/mount/mount.smbfs > ${PKG}/sbin/mount.smbfs
 chmod 755 ${PKG}/sbin/mount.smbfs
 
 # I suppose this wouldn't be the worst idea in the world, either:
@@ -146,8 +154,6 @@ mkdir -p ${PKG}/etc/rc.d
 cat ${CWD}/samba-rc.samba > ${PKG}/etc/rc.d/rc.samba.new
 chmod 644 ${PKG}/etc/rc.d/rc.samba.new
 
-cd ..
-
 doinst_config etc/rc.d/rc.samba.new
 
 #strip_binaries
@@ -169,7 +175,7 @@ rm -rf ${PKG}/usr/doc/samba-$VERSION/docs/htmldocs \
 mkdir -p ${PKG}/usr/doc/samba-$VERSION/docs
 ( cd ${PKG}/usr/doc/samba-$VERSION/docs
   ln -sf /usr/share/swat/help htmldocs
-  ln -sf /usr/share/swat/using_samba using_samba
+#  ln -sf /usr/share/swat/using_samba using_samba
 )
 # I'm sorry, but when all this info is included in HTML, adding 7MB worth of
 # PDF files just to have extra artwork is more fluff than I'll agree to.
