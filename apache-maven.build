@@ -1,0 +1,292 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=apache-maven
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/a
+#TAR_EXT=.tar.gz
+VERSION=2.2.1
+VERSIONEXTRA=-src
+BUILD=1
+
+WEBPAGE="http://maven.apache.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+export M2_HOME=`pwd`/installation/apache-maven-${VERSION}
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+#make ${NUM_JOBS} || exit
+ant
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+
+# maven2 directory in /usr/share/java
+install -dm 755 ${PKG}/usr/share/java/maven2
+
+###########
+# M2_HOME #
+###########
+install -dm 755 ${PKG}/usr/share/maven2
+
+###############
+# M2_HOME/bin #
+###############
+install -dm 755 ${PKG}/usr/share/maven2/bin
+cp -a $M2_HOME/bin/* ${PKG}/usr/share/maven2/bin
+
+# Remove unnecessary batch scripts
+rm -f ${PKG}/usr/share/maven2/bin/*.bat
+
+# Update conf file for unversioned jar names
+sed -i -e s:'-classpath "${M2_HOME}"/boot/classworlds-\*.jar':'-classpath "${M2_HOME}"/boot/classworlds.jar':g \
+        ${PKG}/usr/share/maven2/bin/mvn ${PKG}/usr/share/maven2/bin/mvnDebug
+
+################
+# M2_HOME/boot #
+################
+install -dm 755 ${PKG}/usr/share/maven2/boot
+#%if %{bootstrap}
+cp -a $M2_HOME/boot/* ${PKG}/usr/share/maven2/boot/
+(cd ${PKG}/usr/share/maven2/boot
+ ln -s classworlds-*.jar classworlds.jar
+)
+#%endif
+
+################
+# M2_HOME/conf #
+################
+install -dm 755 ${PKG}/usr/share/maven2/conf
+cp -a $M2_HOME/conf/* ${PKG}/usr/share/maven2/conf/
+
+###############
+# M2_HOME/lib #
+###############
+install -dm 755 ${PKG}/usr/share/maven2/lib
+
+install -p -m 644 $M2_HOME/lib/maven-${VERSION}-uber.jar ${PKG}/usr/share/java/maven2/uber-${VERSION}.jar
+ln -s uber-${VERSION}.jar ${PKG}/usr/share/java/maven2/uber.jar
+ln -s /usr/share/java/maven2/uber.jar ${PKG}/usr/share/maven2/lib/maven-${VERSION}-uber.jar
+
+################
+# M2_HOME/poms #
+#*##############
+install -dm 755 ${PKG}/usr/share/maven2/poms
+
+########################
+# /etc/maven/fragments #
+########################
+install -dm 755 ${PKG}/etc/maven/fragments
+
+##############################
+# /usr/share/java repository #
+##############################
+install -dm 755 ${PKG}/usr/share/maven2/repository
+ln -s /usr/share/java ${PKG}/usr/share/maven2/repository/JPP
+
+##################
+# javadir/maven2 #
+#*################
+install -dm 755 ${PKG}/usr/share/java/maven2
+
+#######################
+# javadir/maven2/poms #
+#*#####################
+ln -s /usr/share/maven2/poms ${PKG}/usr/share/java/maven2/poms
+
+############
+# /usr/bin #
+############
+install -dm 755 ${PKG}/usr/bin
+
+# Install files
+install -m 644 ${CWD}/apache-maven-empty-dep.pom ${PKG}/usr/share/maven2/poms/JPP.maven2-empty-dep.pom
+install -m 644 ${CWD}/apache-maven-empty-dep.jar ${PKG}/usr/share/java/maven2/empty-dep.jar
+
+# Wrappers
+/bin/cp -af ${CWD}/apache-maven-mvn ${PKG}/usr/bin/mvn
+/bin/cp -af ${CWD}/apache-maven-mvn-jpp ${PKG}/usr/bin/mvn-jpp
+
+#%if %{bootstrap}
+    cp -af `pwd`/.m2/repository ${PKG}/usr/share/maven2/bootstrap_repo
+#%endif
+
+###################
+# Individual jars #
+###################
+
+for file in \
+    maven-script/maven-script-ant/target/maven-script-ant-${VERSION}.jar \
+    maven-script/maven-script-beanshell/target/maven-script-beanshell-${VERSION}.jar \
+    apache-maven/target/apache-maven-${VERSION}.jar \
+    maven-profile/target/maven-profile-${VERSION}.jar \
+    maven-artifact-manager/target/maven-artifact-manager-${VERSION}.jar \
+    maven-monitor/target/maven-monitor-${VERSION}.jar \
+    maven-toolchain/target/maven-toolchain-${VERSION}.jar \
+    maven-toolchain/target/original-maven-toolchain-${VERSION}.jar \
+    maven-project/target/maven-project-${VERSION}.jar \
+    maven-settings/target/maven-settings-${VERSION}.jar \
+    maven-plugin-parameter-documenter/target/maven-plugin-parameter-documenter-${VERSION}.jar \
+    maven-model/target/maven-model-${VERSION}.jar \
+    maven-artifact/target/maven-artifact-${VERSION}.jar \
+    maven-repository-metadata/target/maven-repository-metadata-${VERSION}.jar \
+    maven-plugin-api/target/maven-plugin-api-${VERSION}.jar \
+    maven-error-diagnostics/target/maven-error-diagnostics-${VERSION}.jar \
+    maven-compat/target/maven-compat-${VERSION}.jar \
+    maven-core/target/maven-core-${VERSION}.jar \
+    maven-plugin-registry/target/maven-plugin-registry-${VERSION}.jar \
+    maven-plugin-descriptor/target/maven-plugin-descriptor-${VERSION}.jar; do \
+
+        FNAME=`basename $file`
+        FNAME_NO_EXT=`echo "$FNAME" | sed -e s:.jar$::g`
+        DIR=`dirname $file`
+        UNVER_NAME=`basename $file | sed -e s:-${VERSION}::g`
+        UNVER_NAME_WITH_NO_EXT=`echo $FNAME_NO_EXT | sed -e s:-${VERSION}::g`
+        ARTIFACT=`basename \`dirname $DIR\``
+
+        OLDPWD=`pwd`
+        cd $DIR
+          install -m 644 $FNAME ${PKG}/usr/share/java/maven2/
+          ln -s $FNAME ${PKG}/usr/share/java/maven2/$UNVER_NAME
+          install -m 644 ../../pom.xml ${PKG}/usr/share/maven2/poms/JPP.maven2-$UNVER_NAME_WITH_NO_EXT.pom
+          #%add_to_maven_depmap org.apache.maven $ARTIFACT ${VERSION} JPP/maven2 $UNVER_NAME_WITH_NO_EXT
+        cd $OLDPWD
+done
+
+# maven-reporting-api
+install -m 644  maven-reporting/maven-reporting-api/target/maven-reporting-api-${VERSION}.jar ${PKG}/usr/share/java/maven2/
+ln -s maven-reporting-api-${VERSION}.jar ${PKG}/usr/share/java/maven2/maven-reporting-api.jar
+install -m 644 maven-reporting/maven-reporting-api/pom.xml ${PKG}/usr/share/maven2/poms/JPP.maven2-maven-reporting-api.pom
+#%add_to_maven_depmap org.apache.maven.reporting maven-reporting-api ${VERSION} JPP/maven2 maven-reporting-api
+
+# maven-reporting pom
+install -m 644 maven-reporting/pom.xml ${PKG}/usr/share/maven2/poms/JPP.maven2-maven-reporting.pom
+#%add_to_maven_depmap org.apache.maven.reporting maven-reporting ${VERSION} JPP/maven2 maven-reporting
+
+# maven pom
+install -m 644 pom.xml ${PKG}/usr/share/maven2/poms/JPP.maven2-maven.pom
+#%add_to_maven_depmap org.apache.maven maven ${VERSION} JPP/maven2 maven
+
+
+
+#%post
+#%update_maven_depmap
+#(cd /usr/share/maven2/lib
+#  build-jar-repository -s -p . jdom
+#)
+
+#(cd /usr/share/maven2/boot
+#  build-jar-repository -s -p . classworlds
+#)
+
+#%if ! %{bootstrap}
+#(cd /usr/share/maven2/lib
+#  build-jar-repository -s -p . backport-util-concurrent jsch commons-cli commons-httpclient commons-codec nekohtml maven-shared/reporting-api maven-doxia/logging-api maven-doxia/sink-api maven-wagon/file maven-wagon/http maven-wagon/http-lightweight maven-wagon/http-shared maven-wagon/provider-api maven-wagon/ssh maven-wagon/ssh-common maven-wagon/ssh-external plexus/container-default plexus/interactivity-api plexus/interpolation plexus/utils slf4j/jcl-over-slf4j slf4j/api slf4j/jdk14 slf4j/nop plexus/plexus-cipher plexus/plexus-sec-dispatcher xerces-j2
+#)
+#%endif
+
+
+
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "software project management and comprehension tool"
+Apache Maven is a software project management and comprehension tool. 
+Based on the concept of a project object model (POM), Maven can manage 
+a project\'s build, reporting and documentation from a central piece 
+of information. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
