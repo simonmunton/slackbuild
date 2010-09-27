@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xfontsel
+TARNAME=openshot
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/app
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.0.3
+VERSION=1.2.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.openshotvideo.com/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,15 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -81,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +88,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -106,15 +106,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-xfontsel is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "non-linear video editor"
+OpenShot Video Editor is a free, open-source, non-linear video editor. 
+It can create and edit videos and movies using many popular video, 
+audio, and image formats. Create videos for YouTube, Flickr, Vimeo, 
+Metacafe, Xbox, and many more common formats!
 
 EOF
 

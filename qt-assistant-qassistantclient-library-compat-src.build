@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qt-assistant-qassistantclient-library-compat
+#TARNAME=qt
+TARNAMEEXTRA=-src
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=4.6.3
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv qt-assistant-qassistantclient-library-compat-version-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/qt-assistant-01_build_system.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+qmake
+(cd lib
+ qmake
+)
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+pushd lib
+ make ${NUM_JOBS} || exit
+popd
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install INSTALL_ROOT=$PKG
+pushd lib
+make install INSTALL_ROOT=$PKG
+popd
+
+
+# Link the shared libraries into /usr/lib:
+( cd $PKG/usr/lib
+  for file in qt/lib/*.so* ; do
+    ln -sf $file .
+  done
+)
+
+# Put a ton of links to more "normal" places.  I'd just use a prefix of /usr, but it
+# creates a ton of new (and ambiguously named) /usr directories...
+mkdir -p $PKG/usr/bin
+( cd $PKG/usr/bin
+  for file in \
+    assistant_adp ;
+  do
+    ln -sf /usr/lib/qt/bin/$file .
+  done
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  GPL_EXCEPTION.TXT GPL_EXCEPTION_ADDENDUM.TXT INSTALL LICENSE.GPL \
+  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-$VERSION \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd $PKG/usr/doc/$TARNAME-$VERSION
+  ln -sf /usr/lib/qt/doc/html .
+)
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "QT Assistant compat version"
+QT Assistant compat version
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG1}"

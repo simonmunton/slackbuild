@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=0.5.10
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -64,7 +64,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 	    --enable-motion-est \
 	    --avformat-swscale \
 	    --qimage-libdir=/usr/lib/qt/lib \
-	    --qimage-includedir=/usr/lib/qt/include
+	    --qimage-includedir=/usr/lib/qt/include \
+	    --swig-languages=all
 
 #	    --disable-sox
 fi
@@ -80,6 +81,11 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+mkdir -p ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages
+cp src/swig/python/mlt.py src/swig/python/_mlt.so \
+   ${PKG}/usr/lib/python${PYTHON_VERSION}/site-packages
 
 #strip_binaries
 
