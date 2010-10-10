@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=ntp
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/n
+#TAR_EXT=.tar.gz
+VERSION=4.2.6p2
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.ntp.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/ntp.nano.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --with-binsubdir=sbin \
+	    --mandir=/usr/man
+
+#	    --bindir=/usr/bin \
+#	    --sbindir=/usr/sbin \
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# This is just empty:
+rmdir $PKG/usr/lib $PKG/usr/bin
+
+mkdir -p $PKG/etc/ntp
+cat $CWD/ntp.conf > $PKG/etc/ntp.conf.new
+cat $CWD/ntp.keys > $PKG/etc/ntp/ntp.keys.new
+chmod 600 $PKG/etc/ntp/ntp.keys.new
+touch $PKG/etc/ntp/step-tickers
+
+mkdir -p $PKG/etc/rc.d
+cat $CWD/ntp-rc.ntpd > $PKG/etc/rc.d/rc.ntpd.new
+
+doinst_config etc/ntp.conf.new
+doinst_config etc/ntp/ntp.keys.new
+
+doinst_same_perm etc/rc.d/rc.ntpd
+doinst_config etc/rc.d/rc.ntpd.new
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  COPYRIGHT WHERE-TO-START \
+  *.y2kfixes clockstuff conf html scripts \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir $PKG/usr/doc/ntp-$VERSION/util
+cp -a util/README $PKG/usr/doc/ntp-$VERSION/util
+
+mkdir $PKG/usr/doc/ntp-$VERSION/ntpdate
+cp -a ntpdate/README $PKG/usr/doc/ntp-$VERSION/ntpdate
+
+#( cd $PKG/usr/doc/ntp-$VERSION
+#  find . -name ".deps*" -exec rm -rf "{}" \; 2> /dev/null
+#)
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Network Time Protocol daemon"
+The Network Time Protocol (NTP) is used to synchronize the time of a
+computer client or server to another server or reference time source,
+such as a radio or satellite receiver or modem. It provides client
+accuracies typically within a millisecond on LANs and up to a few tens
+of milliseconds on WANs relative to a primary server synchronized to
+Coordinated Universal Time (UTC) via a Global Positioning Service
+(GPS) receiver, for example.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

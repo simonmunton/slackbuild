@@ -1,0 +1,1754 @@
+--- pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PdfEncryption.java.orig	2010-07-07 21:56:05.000000000 +0100
++++ pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PdfEncryption.java	2010-10-06 20:04:35.000000000 +0100
+@@ -50,7 +50,12 @@
+ 
+ package com.lowagie.text.pdf;
+ 
++// ssteward: local libs only needed for gcc 3.4
++
++
++
+ import java.security.MessageDigest;
++
+ import com.lowagie.text.ExceptionConverter;
+ 
+ /**
+@@ -59,7 +64,7 @@
+  * @author Kazuya Ujihara
+  */
+ public class PdfEncryption {
+-    
++
+     static final byte pad[] = {
+         (byte)0x28, (byte)0xBF, (byte)0x4E, (byte)0x5E, (byte)0x4E, (byte)0x75,
+         (byte)0x8A, (byte)0x41, (byte)0x64, (byte)0x00, (byte)0x4E, (byte)0x56,
+@@ -67,7 +72,7 @@
+         (byte)0x00, (byte)0xB6, (byte)0xD0, (byte)0x68, (byte)0x3E, (byte)0x80,
+         (byte)0x2F, (byte)0x0C, (byte)0xA9, (byte)0xFE, (byte)0x64, (byte)0x53,
+         (byte)0x69, (byte)0x7A};
+-        
++
+     byte state[] = new byte[256];
+     int x;
+     int y;
+@@ -107,7 +112,7 @@
+         if (enc.documentID != null)
+             documentID = (byte[])enc.documentID.clone();
+     }
+-    
++
+     /**
+      */
+     private byte[] padPassword(byte userPassword[]) {
+@@ -208,16 +213,16 @@
+     }
+ 
+     public void setupAllKeys(byte userPassword[], byte ownerPassword[], int permissions, boolean strength128Bits) {
+-	// ssteward: this 'random' owner PW is generally unexpected behavior
+-	// and could lead to unpleasant surprises; as noted, below,
+-	// if no owner password is given, use the user password in its place;
++ // ssteward: this 'random' owner PW is generally unexpected behavior
++ // and could lead to unpleasant surprises; as noted, below,
++ // if no owner password is given, use the user password in its place;
+         //if (ownerPassword == null || ownerPassword.length == 0)
+         //    ownerPassword = md5.digest(createDocumentId());
+-	if( ownerPassword== null || ownerPassword.length== 0 ) {
+-	    ownerPassword= new byte[userPassword.length];
+-	    System.arraycopy( userPassword, 0, ownerPassword, 0, userPassword.length );
+-	}
+-	// PDF 1.3 ref. (40 bit enc.) says to set unused, upper bits to 1
++ if( ownerPassword== null || ownerPassword.length== 0 ) {
++     ownerPassword= new byte[userPassword.length];
++     System.arraycopy( userPassword, 0, ownerPassword, 0, userPassword.length );
++ }
++ // PDF 1.3 ref. (40 bit enc.) says to set unused, upper bits to 1
+         permissions |= strength128Bits ? 0xfffff0c0 : 0xffffffc0;
+         permissions &= 0xfffffffc;
+         //PDF refrence 3.5.2 Standard Security Handler, Algorithum 3.3-1
+@@ -264,7 +269,7 @@
+     }
+ 
+     private void setupByOwnerPad(byte[] documentID, byte ownerPad[], byte userKey[], byte ownerKey[], int permissions, boolean strength128Bits) {
+-        byte userPad[] = computeOwnerKey(ownerKey, ownerPad, strength128Bits);	//userPad will be set in this.ownerKey
++        byte userPad[] = computeOwnerKey(ownerKey, ownerPad, strength128Bits); //userPad will be set in this.ownerKey
+         setupGlobalEncryptionKey(documentID, userPad, ownerKey, permissions, strength128Bits); //step 3
+         setupUserKey();
+     }
+@@ -274,7 +279,7 @@
+     }
+ 
+     public void setHashKey(int number, int generation) {
+-        md5.reset();	//added by ujihara
++        md5.reset(); //added by ujihara
+         extra[0] = (byte)number;
+         extra[1] = (byte)(number >> 8);
+         extra[2] = (byte)(number >> 16);
+@@ -363,7 +368,7 @@
+     public void encryptRC4(byte data[]) {
+         encryptRC4(data, 0, data.length, data);
+     }
+-    
++
+     public PdfObject getFileID() {
+         return createInfoId(documentID);
+     }
+--- pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PRStream.java.orig	2004-07-28 11:29:58.000000000 +0100
++++ pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PRStream.java	2010-10-05 17:26:38.000000000 +0100
+@@ -1,198 +1,300 @@
+-/*
+- * $Id: PRStream.java,v 1.12 2002/06/20 13:30:25 blowagie Exp $
+- * $Name:  $
+- *
+- * Copyright 2001, 2002 by Paulo Soares.
+- *
+- * The contents of this file are subject to the Mozilla Public License Version 1.1
+- * (the "License"); you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at http://www.mozilla.org/MPL/
+- *
+- * Software distributed under the License is distributed on an "AS IS" basis,
+- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+- * for the specific language governing rights and limitations under the License.
+- *
+- * The Original Code is 'iText, a free JAVA-PDF library'.
+- *
+- * The Initial Developer of the Original Code is Bruno Lowagie. Portions created by
+- * the Initial Developer are Copyright (C) 1999, 2000, 2001, 2002 by Bruno Lowagie.
+- * All Rights Reserved.
+- * Co-Developer of the code is Paulo Soares. Portions created by the Co-Developer
+- * are Copyright (C) 2000, 2001, 2002 by Paulo Soares. All Rights Reserved.
+- *
+- * Contributor(s): all the names of the contributors are added in the source code
+- * where applicable.
+- *
+- * Alternatively, the contents of this file may be used under the terms of the
+- * LGPL license (the "GNU LIBRARY GENERAL PUBLIC LICENSE"), in which case the
+- * provisions of LGPL are applicable instead of those above.  If you wish to
+- * allow use of your version of this file only under the terms of the LGPL
+- * License and not to allow others to use your version of this file under
+- * the MPL, indicate your decision by deleting the provisions above and
+- * replace them with the notice and other provisions required by the LGPL.
+- * If you do not delete the provisions above, a recipient may use your version
+- * of this file under either the MPL or the GNU LIBRARY GENERAL PUBLIC LICENSE.
+- *
+- * This library is free software; you can redistribute it and/or modify it
+- * under the terms of the MPL as stated above or under the terms of the GNU
+- * Library General Public License as published by the Free Software Foundation;
+- * either version 2 of the License, or any later version.
+- *
+- * This library is distributed in the hope that it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+- * FOR A PARTICULAR PURPOSE. See the GNU Library general Public License for more
+- * details.
+- *
+- * If you didn't download this code from the following link, you should check if
+- * you aren't using an obsolete version:
+- * http://www.lowagie.com/iText/
+- */
+-
+-package com.lowagie.text.pdf;
+-
+-import java.io.*;
+-import com.lowagie.text.ExceptionConverter;
+-import java.util.zip.DeflaterOutputStream;
+-import com.lowagie.text.Document;
+-import java.io.OutputStream;
+-import java.io.IOException;
+-
+-public class PRStream extends PdfStream {
+-    
+-    protected PdfReader reader;
+-    protected int offset;
+-    protected int length;
+-    
+-    //added by ujihara for decryption
+-    protected int objNum = 0;
+-    protected int objGen = 0;
+-    
+-    public PRStream(PRStream stream, PdfDictionary newDic) {
+-        reader = stream.reader;
+-        offset = stream.offset;
+-        length = stream.length;
+-        compressed = stream.compressed;
+-        streamBytes = stream.streamBytes;
+-        bytes = stream.bytes;
+-        objNum = stream.objNum;
+-        objGen = stream.objGen;
+-        if (newDic != null)
+-            putAll(newDic);
+-        else
+-            hashMap.putAll(stream.hashMap);
+-    }
+-
+-    public PRStream(PRStream stream, PdfDictionary newDic, PdfReader reader) {
+-        this(stream, newDic);
+-        this.reader = reader;
+-    }
+-
+-    public PRStream(PdfReader reader, int offset) {
+-        this.reader = reader;
+-        this.offset = offset;
+-    }
+-    
+-    public PRStream(PdfReader reader, byte conts[]) {
+-        this.reader = reader;
+-        this.offset = -1;
+-        if (Document.compress) {
+-            try {
+-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+-                DeflaterOutputStream zip = new DeflaterOutputStream(stream);
+-                zip.write(conts);
+-                zip.close();
+-                bytes = stream.toByteArray();
+-            }
+-            catch(IOException ioe) {
+-                throw new ExceptionConverter(ioe);
+-            }
+-            put(PdfName.FILTER, PdfName.FLATEDECODE);
+-        }
+-        else
+-            bytes = conts;
+-        setLength(bytes.length);
+-    }
+-    
+-    public void setLength(int length) {
+-        this.length = length;
+-        put(PdfName.LENGTH, new PdfNumber(length));
+-    }
+-    
+-    public int getOffset() {
+-        return offset;
+-    }
+-    
+-    public int getLength() {
+-        return length;
+-    }
+-    
+-    public PdfReader getReader() {
+-        return reader;
+-    }
+-    
+-    public byte[] getBytes() {
+-        return bytes;
+-    }
+-    
+-    public void setObjNum(int objNum, int objGen) {
+-        this.objNum = objNum;
+-        this.objGen = objGen;
+-    }
+-    
+-    int getObjNum() {
+-        return objNum;
+-    }
+-    
+-    int getObjGen() {
+-        return objGen;
+-    }
+-    
+-    public void toPdf(PdfWriter writer, OutputStream os) throws IOException {
+-        superToPdf(writer, os);
+-        os.write(STARTSTREAM);
+-        if (length > 0) {
+-            PdfEncryption crypto = null;
+-            if (writer != null)
+-                crypto = writer.getEncryption();
+-            if (offset < 0) {
+-                if (crypto == null)
+-                    os.write(bytes);
+-                else {
+-                    crypto.prepareKey();
+-                    byte buf[] = new byte[length];
+-                    System.arraycopy(bytes, 0, buf, 0, length);
+-                    crypto.encryptRC4(buf);
+-                    os.write(buf);
+-                }
+-            }
+-            else {
+-                byte buf[] = new byte[Math.min(length, 4092)];
+-                RandomAccessFileOrArray file = writer.getReaderFile(reader);
+-                file.seek(offset);
+-                int size = length;
+-                
+-                //added by ujihara for decryption
+-                PdfEncryption decrypt = reader.getDecrypt();
+-                if (decrypt != null) {
+-                    decrypt.setHashKey(objNum, objGen);
+-                    decrypt.prepareKey();
+-                }
+-                
+-                if (crypto != null)
+-                    crypto.prepareKey();
+-                while (size > 0) {
+-                    int r = file.read(buf, 0, Math.min(size, buf.length));
+-                    size -= r;
+-                    
+-                    if (decrypt != null)
+-                        decrypt.encryptRC4(buf, 0, r); //added by ujihara for decryption
+-                    
+-                    if (crypto != null)
+-                        crypto.encryptRC4(buf, 0, r);
+-                    os.write(buf, 0, r);
+-                }
+-            }
+-        }
+-        os.write(ENDSTREAM);
+-    }
+-}
++/*
++ * $Id: PRStream.java,v 1.12 2002/06/20 13:30:25 blowagie Exp $
++ * $Name:  $
++ *
++ * Copyright 2001, 2002 by Paulo Soares.
++ *
++ *
++ * The Original Code is 'iText, a free JAVA-PDF library'.
++ *
++ * The Initial Developer of the Original Code is Bruno Lowagie. Portions created by
++ * the Initial Developer are Copyright (C) 1999, 2000, 2001, 2002 by Bruno Lowagie.
++ * All Rights Reserved.
++ * Co-Developer of the code is Paulo Soares. Portions created by the Co-Developer
++ * are Copyright (C) 2000, 2001, 2002 by Paulo Soares. All Rights Reserved.
++ *
++ * Contributor(s): all the names of the contributors are added in the source code
++ * where applicable.
++ *
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Library General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ * 
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Library General Public License for more details.
++ * 
++ * You should have received a copy of the GNU Library General Public
++ * License along with this library; if not, write to the
++ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ *
++ *
++ * If you didn't download this code from the following link, you should check if
++ * you aren't using an obsolete version:
++ * http://www.lowagie.com/iText/
++ */
++
++package com.lowagie.text.pdf;
++
++import java.io.*;
++import com.lowagie.text.ExceptionConverter;
++import java.util.zip.DeflaterOutputStream;
++import com.lowagie.text.Document;
++import java.io.OutputStream;
++import java.io.IOException;
++import java.util.ArrayList; // ssteward
++
++public class PRStream extends PdfStream {
++    
++    protected PdfReader reader;
++    protected int offset;
++    protected int length;
++    
++    //added by ujihara for decryption
++    protected int objNum = 0;
++    protected int objGen = 0;
++    
++    public PRStream(PRStream stream, PdfDictionary newDic) {
++        reader = stream.reader;
++        offset = stream.offset;
++        length = stream.length;
++        compressed = stream.compressed;
++        streamBytes = stream.streamBytes;
++        bytes = stream.bytes;
++        objNum = stream.objNum;
++        objGen = stream.objGen;
++        if (newDic != null)
++            putAll(newDic);
++        else
++            hashMap.putAll(stream.hashMap);
++    }
++
++    public PRStream(PRStream stream, PdfDictionary newDic, PdfReader reader) {
++        this(stream, newDic);
++        this.reader = reader;
++    }
++
++    public PRStream(PdfReader reader, int offset) {
++        this.reader = reader;
++        this.offset = offset;
++    }
++    
++    public PRStream(PdfReader reader, byte conts[]) {
++        this.reader = reader;
++        this.offset = -1;
++        if (Document.compress) {
++            try {
++                ByteArrayOutputStream stream = new ByteArrayOutputStream();
++                DeflaterOutputStream zip = new DeflaterOutputStream(stream);
++                zip.write(conts);
++                zip.close();
++                bytes = stream.toByteArray();
++            }
++            catch (IOException ioe) {
++                throw new ExceptionConverter(ioe);
++            }
++            put(PdfName.FILTER, PdfName.FLATEDECODE);
++        }
++        else
++            bytes = conts;
++        setLength(bytes.length);
++    }
++    
++    /**Sets the data associated with the stream
++     * @param data raw data, decrypted and uncompressed.
++     */
++    public void setData(byte[] data) {
++        remove(PdfName.FILTER);
++        this.offset = -1;
++        if (Document.compress) {
++            try {
++                ByteArrayOutputStream stream = new ByteArrayOutputStream();
++                DeflaterOutputStream zip = new DeflaterOutputStream(stream);
++                zip.write(data);
++                zip.close();
++                bytes = stream.toByteArray();
++            }
++            catch (IOException ioe) {
++                throw new ExceptionConverter(ioe);
++            }
++            put(PdfName.FILTER, PdfName.FLATEDECODE);
++        }
++        else
++            bytes = data;
++        setLength(bytes.length);
++    }
++
++    public void setLength(int length) {
++        this.length = length;
++        put(PdfName.LENGTH, new PdfNumber(length));
++    }
++    
++    public int getOffset() {
++        return offset;
++    }
++    
++    public int getLength() {
++        return length;
++    }
++    
++    public PdfReader getReader() {
++        return reader;
++    }
++    
++    public byte[] getBytes() {
++        return bytes;
++    }
++    
++    public void setObjNum(int objNum, int objGen) {
++        this.objNum = objNum;
++        this.objGen = objGen;
++    }
++    
++    int getObjNum() {
++        return objNum;
++    }
++    
++    int getObjGen() {
++        return objGen;
++    }
++
++    // ssteward: added material to allow decoded, or "filtered," output;
++    // perhaps decryption should be moved to PdfReader, a'la PdfReader.getStreamBytes(),
++    // and encryption moved to PdfWriter?  it just seems unwieldy to have some
++    // of this code duplicated in PdfReader.getStreamBytes();
++    //
++    public void toPdf(PdfWriter writer, OutputStream os) throws IOException {
++
++	{ // ssteward (right?)
++	    // the filters to apply to this, if any
++	    ArrayList filters= new ArrayList(); {
++		PdfObject filter= this.reader.getPdfObject(this.get(PdfName.FILTER));
++		if (filter != null) {
++		    if (filter.type() == PdfObject.NAME) {
++			filters.add(filter);
++		    }
++		    else if (filter.type() == PdfObject.ARRAY) {
++			filters = ((PdfArray)filter).getArrayList();
++		    }
++		}
++	    }
++
++	    // apply filters to our stream data before streaming?
++	    boolean filterStream_b= 
++		( writer.filterStreams &&
++		  0< this.offset && // our stream data must be stored in a file, not in this.bytes
++		  this.reader.getPdfObject( this.get(PdfName.DECODEPARMS) )== null && 
++		  !filters.isEmpty() && allKnownFilters( this.reader, filters ) );
++
++	    if( filterStream_b ) { // apply filters
++		RandomAccessFileOrArray file= writer.getReaderFile( this.reader );
++		this.bytes= PdfReader.getStreamBytes( this, file ); // decrypts, too
++
++		this.remove(PdfName.FILTER);
++		this.setLength( this.bytes.length );
++		this.offset= -1; // indicate that we have read the stream into this.bytes
++	    }
++
++	    // apply compression to our stream data before streaming?
++	    // our stream data may be in this.bytes or in a file
++	    boolean compressStream_b=
++		( writer.compressStreams &&
++		  this.reader.getPdfObject( this.get(PdfName.DECODEPARMS) )== null && 
++		  filters.isEmpty() );
++
++	    if( compressStream_b ) { // apply compression
++		if( 0< this.offset ) { // our data is in file; pull into this.bytes
++		    RandomAccessFileOrArray file= writer.getReaderFile( this.reader );
++		    this.bytes= PdfReader.getStreamBytes( this, file ); // decrypts, too
++		}
++
++		ByteArrayOutputStream stream= new ByteArrayOutputStream();
++		DeflaterOutputStream zip= new DeflaterOutputStream( stream );
++		zip.write( this.bytes );
++		zip.close();
++		this.bytes= stream.toByteArray();
++
++		this.put( PdfName.FILTER, PdfName.FLATEDECODE );
++		this.setLength( this.bytes.length );
++		this.offset= -1; // indicate that we have read the stream into this.bytes
++	    }
++	}
++
++        superToPdf(writer, os); // PdfDictionary.toPdf(), outputs FILTER, LENGTH, etc.
++        os.write(STARTSTREAM);
++        if (length > 0) {
++            PdfEncryption crypto = null;
++            if (writer != null) { // ssteward
++                crypto = writer.getEncryption();
++	    }
++            if (offset < 0) { // our stream data is stored in this.bytes
++                if (crypto == null) {
++                    os.write(bytes);
++		}
++                else { // encrypt and output
++                    crypto.prepareKey();
++                    byte buf[] = new byte[length];
++                    System.arraycopy(bytes, 0, buf, 0, length);
++                    crypto.encryptRC4(buf);
++                    os.write(buf);
++                }
++            }
++            else { // our stream data is stored in a file
++                byte buf[] = new byte[Math.min(length, 4092)];
++                RandomAccessFileOrArray file = writer.getReaderFile(reader);
++                boolean isOpen = file.isOpen();
++                try {
++                    file.seek(offset);
++                    int size = length;
++
++                    //added by ujihara for decryption
++                    PdfEncryption decrypt = reader.getDecrypt();
++                    if (decrypt != null) {
++                        decrypt.setHashKey(objNum, objGen);
++                        decrypt.prepareKey();
++                    }
++
++                    if (crypto != null)
++                        crypto.prepareKey();
++                    while (size > 0) {
++                        int r = file.read(buf, 0, Math.min(size, buf.length));
++                        size -= r;
++
++                        if (decrypt != null)
++                            decrypt.encryptRC4(buf, 0, r); //added by ujihara for decryption
++
++                        if (crypto != null)
++                            crypto.encryptRC4(buf, 0, r);
++                        os.write(buf, 0, r);
++                    }
++                }
++                finally {
++                    if (!isOpen)
++                        try{file.close();}catch(Exception e){}
++                }
++            }
++        }
++        os.write(ENDSTREAM);
++    }
++
++    // ssteward
++    // do we know how to apply all of the filters in (ArrayList filters)?
++    public static boolean allKnownFilters( PdfReader reader, ArrayList filters ) {
++	boolean retVal= true;
++	String name;
++	for (int j = 0; j < filters.size(); ++j) {
++	    name = ((PdfName)reader.getPdfObject((PdfObject)filters.get(j))).toString();
++	    retVal= retVal &&
++		( (name.equals("/FlateDecode") || name.equals("/Fl")) ||
++		  (name.equals("/ASCIIHexDecode") || name.equals("/AHx")) ||
++		  (name.equals("/ASCII85Decode") || name.equals("/A85")) ||
++		  (name.equals("/LZWDecode")) );
++	}
++	return retVal;
++    }
++
++}
+--- pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PRTokeniser.java.orig	2004-07-20 01:25:36.000000000 +0100
++++ pdftk-1.43/java_libs_lgpl/com/lowagie/text/pdf/PRTokeniser.java	2010-10-05 17:26:38.000000000 +0100
+@@ -1,568 +1,577 @@
+-/*
+- * $Id: PRTokeniser.java,v 1.15 2002/06/20 13:30:25 blowagie Exp $
+- * $Name:  $
+- *
+- * Copyright 2001, 2002 by Paulo Soares.
+- *
+- * The contents of this file are subject to the Mozilla Public License Version 1.1
+- * (the "License"); you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at http://www.mozilla.org/MPL/
+- *
+- * Software distributed under the License is distributed on an "AS IS" basis,
+- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+- * for the specific language governing rights and limitations under the License.
+- *
+- * The Original Code is 'iText, a free JAVA-PDF library'.
+- *
+- * The Initial Developer of the Original Code is Bruno Lowagie. Portions created by
+- * the Initial Developer are Copyright (C) 1999, 2000, 2001, 2002 by Bruno Lowagie.
+- * All Rights Reserved.
+- * Co-Developer of the code is Paulo Soares. Portions created by the Co-Developer
+- * are Copyright (C) 2000, 2001, 2002 by Paulo Soares. All Rights Reserved.
+- *
+- * Contributor(s): all the names of the contributors are added in the source code
+- * where applicable.
+- *
+- * Alternatively, the contents of this file may be used under the terms of the
+- * LGPL license (the "GNU LIBRARY GENERAL PUBLIC LICENSE"), in which case the
+- * provisions of LGPL are applicable instead of those above.  If you wish to
+- * allow use of your version of this file only under the terms of the LGPL
+- * License and not to allow others to use your version of this file under
+- * the MPL, indicate your decision by deleting the provisions above and
+- * replace them with the notice and other provisions required by the LGPL.
+- * If you do not delete the provisions above, a recipient may use your version
+- * of this file under either the MPL or the GNU LIBRARY GENERAL PUBLIC LICENSE.
+- *
+- * This library is free software; you can redistribute it and/or modify it
+- * under the terms of the MPL as stated above or under the terms of the GNU
+- * Library General Public License as published by the Free Software Foundation;
+- * either version 2 of the License, or any later version.
+- *
+- * This library is distributed in the hope that it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+- * FOR A PARTICULAR PURPOSE. See the GNU Library general Public License for more
+- * details.
+- *
+- * If you didn't download this code from the following link, you should check if
+- * you aren't using an obsolete version:
+- * http://www.lowagie.com/iText/
+- */
+-
+-package com.lowagie.text.pdf;
+-
+-import java.io.*;
+-/**
+- *
+- * @author  Paulo Soares (psoares@consiste.pt)
+- */
+-public class PRTokeniser {
+-    
+-    public static final int TK_NUMBER = 1;
+-    public static final int TK_STRING = 2;
+-    public static final int TK_NAME = 3;
+-    public static final int TK_COMMENT = 4;
+-    public static final int TK_START_ARRAY = 5;
+-    public static final int TK_END_ARRAY = 6;
+-    public static final int TK_START_DIC = 7;
+-    public static final int TK_END_DIC = 8;
+-    public static final int TK_REF = 9;
+-    public static final int TK_OTHER = 10;
+-    public static final boolean delims[] = {
+-        true,  true,  false, false, false, false, false, false, false, false,
+-        true,  true,  false, true,  true,  false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, true,  false, false, false, false, true,  false,
+-        false, true,  true,  false, false, false, false, false, true,  false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, true,  false, true,  false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, true,  false, true,  false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false, false, false, false,
+-        false, false, false, false, false, false, false};
+-    
+-    static final String EMPTY = "";
+-
+-    
+-    protected RandomAccessFileOrArray file;
+-    protected int type;
+-    protected String stringValue;
+-    protected int reference;
+-    protected int generation;
+-    protected boolean hexString;
+-    
+-    private static final int LINE_SEGMENT_SIZE = 256;
+-    
+-    public PRTokeniser(String filename) throws IOException {
+-        file = new RandomAccessFileOrArray(filename);
+-    }
+-
+-    public PRTokeniser(byte pdfIn[]) {
+-        file = new RandomAccessFileOrArray(pdfIn);
+-    }
+-    
+-    public PRTokeniser(RandomAccessFileOrArray file) {
+-        this.file = file;
+-    }
+-    
+-    public void seek(int pos) throws IOException {
+-        file.seek(pos);
+-    }
+-    
+-    public int getFilePointer() throws IOException {
+-        return file.getFilePointer();
+-    }
+-
+-    public void close() throws IOException {
+-        file.close();
+-    }
+-    
+-    public int length() throws IOException {
+-        return file.length();
+-    }
+-
+-    public int read() throws IOException {
+-        return file.read();
+-    }
+-    
+-    public RandomAccessFileOrArray getSafeFile() {
+-        return new RandomAccessFileOrArray(file);
+-    }
+-    
+-    public String readString(int size) throws IOException {
+-        StringBuffer buf = new StringBuffer();
+-        int ch;
+-        while ((size--) > 0) {
+-            ch = file.read();
+-            if (ch == -1)
+-                break;
+-            buf.append((char)ch);
+-        }
+-        return buf.toString();
+-    }
+-
+-    public static final boolean isWhitespace(int ch) {
+-        return (ch == 0 || ch == 9 || ch == 10 || ch == 12 || ch == 13 || ch == 32);
+-    }
+-    
+-    public static final boolean isDelimiter(int ch) {
+-        return (ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '[' || ch == ']' || ch == '/' || ch == '%');
+-    }
+-
+-    public static final boolean isDelimiterWhitespace(int ch) {
+-        return delims[ch + 1];
+-    }
+-
+-    public int getTokenType() {
+-        return type;
+-    }
+-    
+-    public String getStringValue() {
+-        return stringValue;
+-    }
+-    
+-    public int getReference() {
+-        return reference;
+-    }
+-    
+-    public int getGeneration() {
+-        return generation;
+-    }
+-    
+-    public void backOnePosition(int ch) throws IOException {
+-        if (ch != -1)
+-            file.pushBack((byte)ch);
+-    }
+-    
+-    public void throwError(String error) throws IOException {
+-        throw new IOException(error + " at file pointer " + file.getFilePointer());
+-    }
+-    
+-    public char checkPdfHeader() throws IOException {
+-        file.setStartOffset(0);
+-        String str = readString(1024);
+-        int idx = str.indexOf("%PDF-1.");
+-        if (idx < 0)
+-            throw new IOException("PDF header signature not found.");
+-        file.setStartOffset(idx);
+-        return str.charAt(idx + 7);
+-    }
+-    
+-    public void checkFdfHeader() throws IOException {
+-        file.setStartOffset(0);
+-        String str = readString(1024);
+-        int idx = str.indexOf("%FDF-1.2");
+-        if (idx < 0)
+-            throw new IOException("FDF header signature not found.");
+-        file.setStartOffset(idx);
+-    }
+-
+-    public int getStartxref() throws IOException {
+-        int size = Math.min(1024, file.length());
+-        int pos = file.length() - size;
+-        file.seek(pos);
+-        String str = readString(1024);
+-        int idx = str.lastIndexOf("startxref");
+-        if (idx < 0)
+-            throw new IOException("PDF startxref not found.");
+-        return pos + idx;
+-    }
+-
+-    public static int getHex(int v) {
+-        if (v >= '0' && v <= '9')
+-            return v - '0';
+-        if (v >= 'A' && v <= 'F')
+-            return v - 'A' + 10;
+-        if (v >= 'a' && v <= 'f')
+-            return v - 'a' + 10;
+-        return -1;
+-    }
+-    
+-    public void nextValidToken() throws IOException {
+-        int level = 0;
+-        String n1 = null;
+-        String n2 = null;
+-        int ptr = 0;
+-        while (nextToken()) {
+-            if (type == TK_COMMENT)
+-                continue;
+-            switch (level) {
+-                case 0:
+-                {
+-                    if (type != TK_NUMBER)
+-                        return;
+-                    ptr = file.getFilePointer();
+-                    n1 = stringValue;
+-                    ++level;
+-                    break;
+-                }
+-                case 1:
+-                {
+-                    if (type != TK_NUMBER) {
+-                        file.seek(ptr);
+-                        type = TK_NUMBER;
+-                        stringValue = n1;
+-                        return;
+-                    }
+-                    n2 = stringValue;
+-                    ++level;
+-                    break;
+-                }
+-                default:
+-                {
+-                    if (type != TK_OTHER || !stringValue.equals("R")) {
+-                        file.seek(ptr);
+-                        type = TK_NUMBER;
+-                        stringValue = n1;
+-                        return;
+-                    }
+-                    type = TK_REF;
+-                    reference = Integer.valueOf(n1).intValue();
+-                    generation = Integer.valueOf(n2).intValue();
+-                    return;
+-                }
+-            }
+-        }
+-        throwError("Unexpected end of file");
+-    }
+-    
+-    public boolean nextToken() throws IOException {
+-        StringBuffer outBuf = null;
+-        stringValue = EMPTY;
+-        int ch = 0;
+-        do {
+-            ch = file.read();
+-        } while (ch != -1 && isWhitespace(ch));
+-        if (ch == -1)
+-            return false;
+-        switch (ch) {
+-            case '[':
+-                type = TK_START_ARRAY;
+-                break;
+-            case ']':
+-                type = TK_END_ARRAY;
+-                break;
+-            case '/':
+-            {
+-                outBuf = new StringBuffer();
+-                type = TK_NAME;
+-                while (true) {
+-                    ch = file.read();
+-                    if (delims[ch + 1])
+-                        break;
+-                    if (ch == '#') {
+-                        ch = (getHex(file.read()) << 4) + getHex(file.read());
+-                    }
+-                    outBuf.append((char)ch);
+-                }
+-                backOnePosition(ch);
+-                break;
+-            }
+-            case '>':
+-                ch = file.read();
+-                if (ch != '>')
+-                    throwError("'>' not expected");
+-                type = TK_END_DIC;
+-                break;
+-            case '<':
+-            {
+-                int v1 = file.read();
+-                if (v1 == '<') {
+-                    type = TK_START_DIC;
+-                    break;
+-                }
+-                outBuf = new StringBuffer();
+-                type = TK_STRING;
+-                hexString = true;
+-                int v2 = 0;
+-                while (true) {
+-                    while (isWhitespace(v1))
+-                        v1 = file.read();
+-                    if (v1 == '>')
+-                        break;
+-                    v1 = getHex(v1);
+-                    if (v1 < 0)
+-                        break;
+-                    v2 = file.read();
+-                    while (isWhitespace(v2))
+-                        v2 = file.read();
+-                    if (v2 == '>') {
+-                        ch = v1 << 4;
+-                        outBuf.append((char)ch);
+-                        break;
+-                    }
+-                    v2 = getHex(v2);
+-                    if (v2 < 0)
+-                        break;
+-                    ch = (v1 << 4) + v2;
+-                    outBuf.append((char)ch);
+-                    v1 = file.read();
+-                }
+-                if (v1 < 0 || v2 < 0)
+-                    throwError("Error reading string");
+-                break;
+-            }
+-            case '%':
+-                type = TK_COMMENT;
+-                do {
+-                    ch = file.read();
+-                } while (ch != -1 && ch != '\r' && ch != '\n');
+-                break;
+-            case '(':
+-            {
+-                outBuf = new StringBuffer();
+-                type = TK_STRING;
+-                hexString = false;
+-                int nesting = 0;
+-                while (true) {
+-                    ch = file.read();
+-                    if (ch == -1)
+-                        break;
+-                    if (ch == '(') {
+-                        ++nesting;
+-                    }
+-                    else if (ch == ')') {
+-                        --nesting;
+-                    }
+-                    else if (ch == '\\') {
+-                        boolean lineBreak = false;
+-                        ch = file.read();
+-                        switch (ch) {
+-                            case 'n':
+-                                ch = '\n';
+-                                break;
+-                            case 'r':
+-                                ch = '\r';
+-                                break;
+-                            case 't':
+-                                ch = '\t';
+-                                break;
+-                            case 'b':
+-                                ch = '\b';
+-                                break;
+-                            case 'f':
+-                                ch = '\f';
+-                                break;
+-                            case '(':
+-                            case ')':
+-                            case '\\':
+-                                break;
+-                            case '\r':
+-                                lineBreak = true;
+-                                ch = file.read();
+-                                if (ch != '\n')
+-                                    backOnePosition(ch);
+-                                break;
+-                            case '\n':
+-                                lineBreak = true;
+-                                break;
+-                            default:
+-                            {
+-                                if (ch < '0' || ch > '7') {
+-                                    break;
+-                                }
+-                                int octal = ch - '0';
+-                                ch = file.read();
+-                                if (ch < '0' || ch > '7') {
+-                                    backOnePosition(ch);
+-                                    ch = octal;
+-                                    break;
+-                                }
+-                                octal = (octal << 3) + ch - '0';
+-                                ch = file.read();
+-                                if (ch < '0' || ch > '7') {
+-                                    backOnePosition(ch);
+-                                    ch = octal;
+-                                    break;
+-                                }
+-                                octal = (octal << 3) + ch - '0';
+-                                ch = octal & 0xff;
+-                                break;
+-                            }
+-                        }
+-                        if (lineBreak)
+-                            continue;
+-                        if (ch < 0)
+-                            break;
+-                    }
+-                    else if (ch == '\r') {
+-                        ch = file.read();
+-                        if (ch < 0)
+-                            break;
+-                        if (ch != '\n') {
+-                            backOnePosition(ch);
+-                            ch = '\n';
+-                        }
+-                    }
+-                    if (nesting == -1)
+-                        break;
+-                    outBuf.append((char)ch);
+-                }
+-                if (ch == -1)
+-                    throwError("Error reading string");
+-                break;
+-            }
+-            default:
+-            {
+-                outBuf = new StringBuffer();
+-                if (ch == '-' || ch == '+' || ch == '.' || (ch >= '0' && ch <= '9')) {
+-                    type = TK_NUMBER;
+-                    do {
+-                        outBuf.append((char)ch);
+-                        ch = file.read();
+-                    } while (ch != -1 && ((ch >= '0' && ch <= '9') || ch == '.'));
+-                }
+-                else {
+-                    type = TK_OTHER;
+-                    do {
+-                        outBuf.append((char)ch);
+-                        ch = file.read();
+-                    } while (!delims[ch + 1]);
+-                }
+-                backOnePosition(ch);
+-                break;
+-            }
+-        }
+-        if (outBuf != null)
+-            stringValue = outBuf.toString();
+-        return true;
+-    }
+-    
+-    public int intValue() {
+-        return Integer.valueOf(stringValue).intValue();
+-    }
+-    
+-    public boolean readLineSegment(byte input[]) throws IOException {
+-        int c = -1;
+-        boolean eol = false;
+-        int ptr = 0;
+-        int len = input.length;
+-        while (!eol && ptr < len) {
+-            switch (c = read()) {
+-                case -1:
+-                case '\n':
+-                    eol = true;
+-                    break;
+-                case '\r':
+-                    eol = true;
+-                    int cur = getFilePointer();
+-                    if ((read()) != '\n') {
+-                        seek(cur);
+-                    }
+-                    break;
+-                default:
+-                    input[ptr++] = (byte)c;
+-                    break;
+-            }
+-        }
+-        if (ptr >= len) {
+-            eol = false;
+-            while (!eol) {
+-                switch (c = read()) {
+-                    case -1:
+-                    case '\n':
+-                        eol = true;
+-                        break;
+-                    case '\r':
+-                        eol = true;
+-                        int cur = getFilePointer();
+-                        if ((read()) != '\n') {
+-                            seek(cur);
+-                        }
+-                        break;
+-                }
+-            }
+-        }
+-        
+-        if ((c == -1) && (ptr == 0)) {
+-            return false;
+-        }
+-        if (ptr + 2 <= len) {
+-            input[ptr++] = (byte)' ';
+-            input[ptr] = (byte)'X';
+-        }
+-        return true;
+-    }
+-    
+-    public static int[] checkObjectStart(byte line[]) {
+-        try {
+-            PRTokeniser tk = new PRTokeniser(line);
+-            int num = 0;
+-            int gen = 0;
+-            if (!tk.nextToken() || tk.getTokenType() != TK_NUMBER)
+-                return null;
+-            num = tk.intValue();
+-            if (!tk.nextToken() || tk.getTokenType() != TK_NUMBER)
+-                return null;
+-            gen = tk.intValue();
+-            if (!tk.nextToken())
+-                return null;
+-            if (!tk.getStringValue().equals("obj"))
+-                return null;
+-            return new int[]{num, gen};
+-        }
+-        catch (Exception ioe) {
+-            // empty on purpose
+-        }
+-        return null;
+-    }
+-    
+-    public boolean isHexString() {
+-        return this.hexString;
+-    }
+-    
+-}
++/* -*- Mode: Java; tab-width: 4; c-basic-offset: 4 -*- */
++/*
++ * $Id: PRTokeniser.java,v 1.15 2002/06/20 13:30:25 blowagie Exp $
++ * $Name:  $
++ *
++ * Copyright 2001, 2002 by Paulo Soares.
++ *
++ *
++ * The Original Code is 'iText, a free JAVA-PDF library'.
++ *
++ * The Initial Developer of the Original Code is Bruno Lowagie. Portions created by
++ * the Initial Developer are Copyright (C) 1999, 2000, 2001, 2002 by Bruno Lowagie.
++ * All Rights Reserved.
++ * Co-Developer of the code is Paulo Soares. Portions created by the Co-Developer
++ * are Copyright (C) 2000, 2001, 2002 by Paulo Soares. All Rights Reserved.
++ *
++ * Contributor(s): all the names of the contributors are added in the source code
++ * where applicable.
++ *
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Library General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ * 
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Library General Public License for more details.
++ * 
++ * You should have received a copy of the GNU Library General Public
++ * License along with this library; if not, write to the
++ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ *
++ *
++ * If you didn't download this code from the following link, you should check if
++ * you aren't using an obsolete version:
++ * http://www.lowagie.com/iText/
++ */
++
++package com.lowagie.text.pdf;
++
++import java.io.*;
++/**
++ *
++ * @author  Paulo Soares (psoares@consiste.pt)
++ */
++public class PRTokeniser {
++    
++    public static final int TK_NUMBER = 1;
++    public static final int TK_STRING = 2;
++    public static final int TK_NAME = 3;
++    public static final int TK_COMMENT = 4;
++    public static final int TK_START_ARRAY = 5;
++    public static final int TK_END_ARRAY = 6;
++    public static final int TK_START_DIC = 7;
++    public static final int TK_END_DIC = 8;
++    public static final int TK_REF = 9;
++    public static final int TK_OTHER = 10;
++    public static final boolean delims[] = {
++        true,  true,  false, false, false, false, false, false, false, false,
++        true,  true,  false, true,  true,  false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, true,  false, false, false, false, true,  false,
++        false, true,  true,  false, false, false, false, false, true,  false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, true,  false, true,  false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, true,  false, true,  false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false, false, false, false,
++        false, false, false, false, false, false, false};
++    
++    static final String EMPTY = "";
++
++    
++    protected RandomAccessFileOrArray file;
++    protected int type;
++    protected String stringValue;
++    protected int reference;
++    protected int generation;
++    protected boolean hexString;
++    
++    private static final int LINE_SEGMENT_SIZE = 256;
++    
++    public PRTokeniser(String filename) throws IOException {
++        file = new RandomAccessFileOrArray(filename);
++    }
++
++    public PRTokeniser(byte pdfIn[]) {
++        file = new RandomAccessFileOrArray(pdfIn);
++    }
++    
++    public PRTokeniser(RandomAccessFileOrArray file) {
++        this.file = file;
++    }
++    
++    public void seek(int pos) throws IOException {
++        file.seek(pos);
++    }
++    
++    public int getFilePointer() throws IOException {
++        return file.getFilePointer();
++    }
++
++    public void close() throws IOException {
++        file.close();
++    }
++    
++    public int length() throws IOException {
++        return file.length();
++    }
++
++    public int read() throws IOException {
++        return file.read();
++    }
++    
++    public RandomAccessFileOrArray getSafeFile() {
++        return new RandomAccessFileOrArray(file);
++    }
++    
++    public RandomAccessFileOrArray getFile() {
++        return file;
++    }
++    
++    public String readString(int size) throws IOException {
++        StringBuffer buf = new StringBuffer();
++        int ch;
++        while ((size--) > 0) {
++            ch = file.read();
++            if (ch == -1)
++                break;
++            buf.append((char)ch);
++        }
++        return buf.toString();
++    }
++
++    public static final boolean isWhitespace(int ch) {
++        return (ch == 0 || ch == 9 || ch == 10 || ch == 12 || ch == 13 || ch == 32);
++    }
++    
++    public static final boolean isDelimiter(int ch) {
++        return (ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '[' || ch == ']' || ch == '/' || ch == '%');
++    }
++
++    public static final boolean isDelimiterWhitespace(int ch) {
++        return delims[ch + 1];
++    }
++
++    public int getTokenType() {
++        return type;
++    }
++    
++    public String getStringValue() {
++        return stringValue;
++    }
++    
++    public int getReference() {
++        return reference;
++    }
++    
++    public int getGeneration() {
++        return generation;
++    }
++    
++    public void backOnePosition(int ch) throws IOException {
++        if (ch != -1)
++            file.pushBack((byte)ch);
++    }
++    
++    public void throwError(String error) throws IOException {
++        throw new IOException(error + " at file pointer " + file.getFilePointer());
++    }
++    
++    public char checkPdfHeader() throws IOException {
++        file.setStartOffset(0);
++        String str = readString(1024);
++        int idx = str.indexOf("%PDF-1.");
++        if (idx < 0)
++            throw new IOException("PDF header signature not found.");
++        file.setStartOffset(idx);
++        return str.charAt(idx + 7);
++    }
++    
++    public void checkFdfHeader() throws IOException {
++        file.setStartOffset(0);
++        String str = readString(1024);
++        int idx = str.indexOf("%FDF-1.2");
++        if (idx < 0)
++            throw new IOException("FDF header signature not found.");
++        file.setStartOffset(idx);
++    }
++
++    public int getStartxref() throws IOException {
++        int size = Math.min(1024, file.length());
++        int pos = file.length() - size;
++        file.seek(pos);
++        String str = readString(1024);
++        int idx = str.lastIndexOf("startxref");
++        if (idx < 0)
++            throw new IOException("PDF startxref not found.");
++        return pos + idx;
++    }
++
++    public static int getHex(int v) {
++        if (v >= '0' && v <= '9')
++            return v - '0';
++        if (v >= 'A' && v <= 'F')
++            return v - 'A' + 10;
++        if (v >= 'a' && v <= 'f')
++            return v - 'a' + 10;
++        return -1;
++    }
++    
++    public void nextValidToken() throws IOException {
++        int level = 0;
++        String n1 = null;
++        String n2 = null;
++        int ptr = 0;
++        while (nextToken()) {
++            if (type == TK_COMMENT)
++                continue;
++            switch (level) {
++                case 0:
++                {
++                    if (type != TK_NUMBER)
++                        return;
++                    ptr = file.getFilePointer();
++                    n1 = stringValue;
++                    ++level;
++                    break;
++                }
++                case 1:
++                {
++                    if (type != TK_NUMBER) {
++                        file.seek(ptr);
++                        type = TK_NUMBER;
++                        stringValue = n1;
++                        return;
++                    }
++                    n2 = stringValue;
++                    ++level;
++                    break;
++                }
++                default:
++                {
++                    if (type != TK_OTHER || !stringValue.equals("R")) {
++                        file.seek(ptr);
++                        type = TK_NUMBER;
++                        stringValue = n1;
++                        return;
++                    }
++                    type = TK_REF;
++                    reference = Integer.valueOf(n1).intValue();
++                    generation = Integer.valueOf(n2).intValue();
++                    return;
++                }
++            }
++        }
++        throwError("Unexpected end of file");
++    }
++    
++    public boolean nextToken() throws IOException {
++        StringBuffer outBuf = null;
++        stringValue = EMPTY;
++        int ch = 0;
++        do {
++            ch = file.read();
++        } while (ch != -1 && isWhitespace(ch));
++        if (ch == -1)
++            return false;
++        switch (ch) {
++            case '[':
++                type = TK_START_ARRAY;
++                break;
++            case ']':
++                type = TK_END_ARRAY;
++                break;
++            case '/':
++            {
++                outBuf = new StringBuffer();
++                type = TK_NAME;
++                while (true) {
++                    ch = file.read();
++                    if (delims[ch + 1])
++                        break;
++                    if (ch == '#') {
++                        ch = (getHex(file.read()) << 4) + getHex(file.read());
++                    }
++                    outBuf.append((char)ch);
++                }
++                backOnePosition(ch);
++                break;
++            }
++            case '>':
++                ch = file.read();
++                if (ch != '>')
++                    throwError("'>' not expected");
++                type = TK_END_DIC;
++                break;
++            case '<':
++            {
++                int v1 = file.read();
++                if (v1 == '<') {
++                    type = TK_START_DIC;
++                    break;
++                }
++                outBuf = new StringBuffer();
++                type = TK_STRING;
++                hexString = true;
++                int v2 = 0;
++                while (true) {
++                    while (isWhitespace(v1))
++                        v1 = file.read();
++                    if (v1 == '>')
++                        break;
++                    v1 = getHex(v1);
++                    if (v1 < 0)
++                        break;
++                    v2 = file.read();
++                    while (isWhitespace(v2))
++                        v2 = file.read();
++                    if (v2 == '>') {
++                        ch = v1 << 4;
++                        outBuf.append((char)ch);
++                        break;
++                    }
++                    v2 = getHex(v2);
++                    if (v2 < 0)
++                        break;
++                    ch = (v1 << 4) + v2;
++                    outBuf.append((char)ch);
++                    v1 = file.read();
++                }
++                if (v1 < 0 || v2 < 0)
++                    throwError("Error reading string");
++                break;
++            }
++            case '%':
++                type = TK_COMMENT;
++                do {
++                    ch = file.read();
++                } while (ch != -1 && ch != '\r' && ch != '\n');
++                break;
++            case '(':
++            {
++                outBuf = new StringBuffer();
++                type = TK_STRING;
++                hexString = false;
++                int nesting = 0;
++                while (true) {
++                    ch = file.read();
++                    if (ch == -1)
++                        break;
++                    if (ch == '(') {
++                        ++nesting;
++                    }
++                    else if (ch == ')') {
++                        --nesting;
++                    }
++                    else if (ch == '\\') {
++                        boolean lineBreak = false;
++                        ch = file.read();
++                        switch (ch) {
++                            case 'n':
++                                ch = '\n';
++                                break;
++                            case 'r':
++                                ch = '\r';
++                                break;
++                            case 't':
++                                ch = '\t';
++                                break;
++                            case 'b':
++                                ch = '\b';
++                                break;
++                            case 'f':
++                                ch = '\f';
++                                break;
++                            case '(':
++                            case ')':
++                            case '\\':
++                                break;
++                            case '\r':
++                                lineBreak = true;
++                                ch = file.read();
++                                if (ch != '\n')
++                                    backOnePosition(ch);
++                                break;
++                            case '\n':
++                                lineBreak = true;
++                                break;
++                            default:
++                            {
++                                if (ch < '0' || ch > '7') {
++                                    break;
++                                }
++                                int octal = ch - '0';
++                                ch = file.read();
++                                if (ch < '0' || ch > '7') {
++                                    backOnePosition(ch);
++                                    ch = octal;
++                                    break;
++                                }
++                                octal = (octal << 3) + ch - '0';
++                                ch = file.read();
++                                if (ch < '0' || ch > '7') {
++                                    backOnePosition(ch);
++                                    ch = octal;
++                                    break;
++                                }
++                                octal = (octal << 3) + ch - '0';
++                                ch = octal & 0xff;
++                                break;
++                            }
++                        }
++                        if (lineBreak)
++                            continue;
++                        if (ch < 0)
++                            break;
++                    }
++                    else if (ch == '\r') {
++                        ch = file.read();
++                        if (ch < 0)
++                            break;
++                        if (ch != '\n') {
++                            backOnePosition(ch);
++                            ch = '\n';
++                        }
++                    }
++                    if (nesting == -1)
++                        break;
++                    outBuf.append((char)ch);
++                }
++                if (ch == -1)
++                    throwError("Error reading string");
++                break;
++            }
++            default:
++            {
++                outBuf = new StringBuffer();
++                if (ch == '-' || ch == '+' || ch == '.' || (ch >= '0' && ch <= '9')) {
++                    type = TK_NUMBER;
++                    do {
++                        outBuf.append((char)ch);
++                        ch = file.read();
++                    } while (ch != -1 && ((ch >= '0' && ch <= '9') || ch == '.'));
++                }
++                else {
++                    type = TK_OTHER;
++                    do {
++                        outBuf.append((char)ch);
++                        ch = file.read();
++                    } while (!delims[ch + 1]);
++                }
++                backOnePosition(ch);
++                break;
++            }
++        }
++        if (outBuf != null)
++            stringValue = outBuf.toString();
++        return true;
++    }
++    
++    public int intValue() {
++        return Integer.valueOf(stringValue).intValue();
++    }
++    
++    public boolean readLineSegment(byte input[]) throws IOException {
++        int c = -1;
++        boolean eol = false;
++        int ptr = 0;
++        int len = input.length;
++	// ssteward, pdftk-1.10, 040922: 
++	// skip initial whitespace; added this because PdfReader.rebuildXref()
++	// assumes that line provided by readLineSegment does not have init. whitespace;
++	if ( ptr < len ) {
++	    while ( isWhitespace( (c = read()) ) );
++	}
++	while ( !eol && ptr < len ) {
++	    switch (c) {
++                case -1:
++                case '\n':
++                    eol = true;
++                    break;
++                case '\r':
++                    eol = true;
++                    int cur = getFilePointer();
++                    if ((read()) != '\n') {
++                        seek(cur);
++                    }
++                    break;
++                default:
++                    input[ptr++] = (byte)c;
++                    break;
++            }
++
++	    // break loop? do it before we read() again
++	    if( eol || len <= ptr ) {
++		break;
++	    }
++	    else {
++		c = read();
++	    }
++        }
++        if (ptr >= len) {
++            eol = false;
++            while (!eol) {
++                switch (c = read()) {
++                    case -1:
++                    case '\n':
++                        eol = true;
++                        break;
++                    case '\r':
++                        eol = true;
++                        int cur = getFilePointer();
++                        if ((read()) != '\n') {
++                            seek(cur);
++                        }
++                        break;
++                }
++            }
++        }
++        
++        if ((c == -1) && (ptr == 0)) {
++            return false;
++        }
++        if (ptr + 2 <= len) {
++            input[ptr++] = (byte)' ';
++            input[ptr] = (byte)'X';
++        }
++        return true;
++    }
++    
++    public static int[] checkObjectStart(byte line[]) {
++        try {
++            PRTokeniser tk = new PRTokeniser(line);
++            int num = 0;
++            int gen = 0;
++            if (!tk.nextToken() || tk.getTokenType() != TK_NUMBER)
++                return null;
++            num = tk.intValue();
++            if (!tk.nextToken() || tk.getTokenType() != TK_NUMBER)
++                return null;
++            gen = tk.intValue();
++            if (!tk.nextToken())
++                return null;
++            if (!tk.getStringValue().equals("obj"))
++                return null;
++            return new int[]{num, gen};
++        }
++        catch (Exception ioe) {
++            // empty on purpose
++        }
++        return null;
++    }
++    
++    public boolean isHexString() {
++        return this.hexString;
++    }
++    
++}
+--- pdftk-1.43/pdftk/Makefile.Redhat.orig	2010-09-16 19:23:20.000000000 +0100
++++ pdftk-1.43/pdftk/Makefile.Redhat	2010-10-06 20:08:06.000000000 +0100
+@@ -74,7 +74,7 @@
+ #  
+ export CPPFLAGS= -DPATH_DELIM=0x2f -DASK_ABOUT_WARNINGS=false -DUNBLOCK_SIGNALS -fdollars-in-identifiers
+ export CXXFLAGS= -Wall -Wextra -Weffc++ -O2
+-export GCJFLAGS= -Wall -Wextra -O2
++export GCJFLAGS= -Wall -O2
+ export GCJHFLAGS= -force
+ export LDLIBS= -lgcj
+ 

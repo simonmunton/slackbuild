@@ -1,0 +1,326 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=php
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=5.2.14
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.php.net"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/php.gmp5.diff
+ patch -p1 < ${CWD}/php.gd_libpng-1.4.diff
+ patch -p1 < ${CWD}/php.ini.diff
+ patch -p1 < ${CWD}/php.recommended.ini.diff
+
+ tar xf ~/tmp/new/a/alpine-2.00.tar.bz2
+)
+fi
+
+pre_configure
+
+if [ ! -e alpine-2.00/c-client/c-client.a ]
+then
+(cd alpine-2.00
+ ./configure   --prefix=/usr \
+  --mandir=/usr/man \
+  --with-ssl-dir=/usr \
+  --with-ssl-certs-dir=/etc/ssl/certs \
+  --with-c-client-target=slx \
+  --with-system-pinerc=/etc/pine.conf \
+  --with-system-fixed-pinerc=/etc/pine.conf.fixed \
+  --disable-debug \
+  --with-debug-level=0 \
+  --without-tcl
+
+ echo y | make ${NUM_JOBS} EXTRACFLAGS="-fPIC" SSLTYPE=unix
+)
+fi
+
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+#PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686 -I`pwd`/alpine-2.00/c-client"
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+
+mkdir -p $PKG/etc/httpd
+mkdir -p $PKG/etc/php
+# A trick from DaMouse to enable building php into $PKG.
+# We'll remove this later on.
+cat /etc/httpd/original/httpd.conf > $PKG/etc/httpd/httpd.conf
+if [ ! -e /etc/httpd/original/httpd.conf ]; then
+  echo "FATAL:  no /etc/httpd/original/httpd.conf found."
+  exit 1
+fi
+
+IMAPLIBDIR=${CWD}/alpine-2.00/
+
+#LDFLAGS="-L $IMAPLIBDIR" 
+
+# Generic "kitchen sink" configure function, with as many things as possible (and
+# maybe then some ;-) compiled as shared extensions:
+php_configure() {
+EXTENSION_DIR=/usr/lib${LIBDIRSUFFIX}/php/extensions \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure \
+  $* \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --with-libdir=lib${LIBDIRSUFFIX} \
+  --sysconfdir=/etc \
+  --disable-safe-mode \
+  --disable-magic-quotes \
+  --enable-zend-multibyte \
+  --enable-mbregex \
+  --enable-tokenizer=shared \
+  --with-config-file-scan-dir=/etc/php \
+  --with-config-file-path=/etc/httpd \
+  --enable-mod_charset \
+  --with-layout=PHP \
+  --enable-sigchild \
+  --enable-xml \
+  --with-libxml-dir=/usr \
+  --enable-simplexml \
+  --enable-spl \
+  --enable-filter \
+  --disable-debug \
+  --with-openssl=shared \
+  --with-pcre-regex=/usr \
+  --with-zlib=shared,/usr \
+  --enable-bcmath=shared \
+  --with-bz2=shared,/usr \
+  --enable-calendar=shared \
+  --enable-ctype=shared \
+  --with-curl=shared \
+  --with-curlwrappers \
+  --with-mcrypt=/usr \
+  --enable-dba=shared \
+  --with-gdbm=/usr \
+  --with-db4=/usr \
+  --enable-dbase=shared \
+  --enable-exif=shared \
+  --enable-ftp=shared \
+  --with-gd=shared \
+  --with-jpeg-dir=/usr \
+  --with-png-dir=/usr \
+  --with-zlib-dir=/usr \
+  --with-xpm-dir=/usr \
+  --with-freetype-dir=/usr \
+  --with-t1lib=/usr \
+  --enable-gd-native-ttf \
+  --enable-gd-jis-conv \
+  --with-gettext=shared,/usr \
+  --with-gmp=shared,/usr \
+  --with-iconv=shared \
+  --with-imap-ssl=/usr \
+  --with-imap=$IMAPLIBDIR \
+  --with-kerberos \
+  --with-ldap=shared \
+  --enable-mbstring=shared \
+  --enable-hash \
+  --with-mhash=shared,/usr \
+  --with-mysql=shared,/usr \
+  --with-mysqli=shared,/usr/bin/mysql_config \
+  --enable-pdo=shared \
+  --with-pdo-mysql=shared,/usr \
+  --with-pdo-sqlite=shared,/usr \
+  --with-pspell=shared,/usr \
+  --with-mm=/usr \
+  --enable-shmop=shared \
+  --with-snmp=shared,/usr \
+  --enable-soap=shared \
+  --enable-sockets \
+  --with-sqlite=shared \
+  --enable-sqlite-utf8 \
+  --with-regex=php \
+  --enable-sysvmsg \
+  --enable-sysvsem \
+  --enable-sysvshm \
+  --enable-wddx=shared \
+  --with-xsl=shared,/usr \
+  --enable-zip=shared \
+  --with-tsrm-pthreads \
+  --enable-shared=yes \
+  --enable-static=no \
+  --with-gnu-ld \
+  --with-pic
+}
+
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+:
+#make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+# Make the Apache2 module version of PHP:
+php_configure \
+  --with-apxs2=/usr/sbin/apxs
+make $NUM_JOBS || make || exit 1
+make install INSTALL_ROOT=$PKG || exit 1
+
+# Make the CLI version of PHP:
+make distclean
+php_configure \
+  --enable-force-cgi-redirect \
+  --enable-pcntl \
+  --enable-sigchild
+make $NUM_JOBS || make || exit 1
+mkdir -p $PKG/usr/bin
+cat ./sapi/cli/php > $PKG/usr/bin/php
+chmod 755 $PKG/usr/bin/php
+
+# Make the FastCGI interpreter:
+make distclean
+php_configure \
+  --enable-fastcgi \
+  --enable-pcntl \
+  --enable-sigchild
+make $NUM_JOBS || make || exit 1
+mkdir -p $PKG/usr/bin
+cat sapi/cgi/php-cgi > $PKG/usr/bin/php-cgi
+chmod 755 $PKG/usr/bin/php-cgi
+
+# PHP (used to) install Pear with some strange permissions.
+chmod 755 $PKG/usr/bin/pear
+
+# PHP sometimes puts junk in the root directory:
+( cd $PKG
+  rm -rf .channels .depdb .depdblock .filemap .lock .registry
+)
+
+# Fix $PKG/usr/lib/php perms:
+( cd $PKG/usr/lib${LIBDIRSUFFIX}/php
+  find . \
+   \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
+   -exec chmod 755 {} \; -o \
+   \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
+   -exec chmod 644 {} \;
+)
+
+mkdir -p $PKG/etc/httpd
+cp -a php.ini-dist php.ini-recommended $PKG/etc/httpd
+cat $CWD/php-mod_php.conf.example | sed -e "s#lib/httpd#lib${LIBDIRSUFFIX}/httpd#" \
+  > $PKG/etc/httpd/mod_php.conf.example
+chmod 644 $PKG/etc/httpd/*
+
+# This can go now.
+rm -f $PKG/etc/httpd/httpd*
+
+# Session directory for PHP:
+mkdir -p $PKG/var/lib/php
+chmod 770 $PKG/var/lib/php
+chown root:apache $PKG/var/lib/php
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -r etc/httpd/mod_php.conf ]; then
+  cp -a etc/httpd/mod_php.conf.example etc/httpd/mod_php.conf
+elif [ "\`cat etc/httpd/mod_php.conf 2> /dev/null\`" = "" ]; then
+  cp -a etc/httpd/mod_php.conf.example etc/httpd/mod_php.conf
+fi
+if [ ! -r etc/httpd/php.ini ]; then
+   cp -a etc/httpd/php.ini-recommended etc/httpd/php.ini
+fi
+
+EOF
+
+#make install DESTDIR=${PKG}
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  CODING_STANDARDS CREDITS EXTENSIONS LICENSE TODO* \
+  sapi/cgi/README.FastCGI \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "HTML-embedded scripting language"
+PHP is an HTML-embedded scripting language.  It shares syntax
+characteristics with C, Java, and Perl.  The primary objective behind
+this language is to make a fast and easy-to-use scripting language
+for dynamic web sites.
+
+More information can be found online at http://www.php.net/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
