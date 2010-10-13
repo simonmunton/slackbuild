@@ -1,3 +1,90 @@
+--- kdebindings-4.5.2/csharp/kimono/src/kimonopluginfactory.cpp.orig	2010-05-16 11:04:56.000000000 +0100
++++ kdebindings-4.5.2/csharp/kimono/src/kimonopluginfactory.cpp	2010-10-13 07:28:17.000000000 +0100
+@@ -46,6 +46,8 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ 
++#include <glib.h>
++
+ class QWidget;
+ 
+ class KimonoPluginFactory : public KPluginFactory
+--- kdebindings-4.5.2/csharp/kimono/CMakeLists.txt.orig	2010-05-20 12:43:57.000000000 +0100
++++ kdebindings-4.5.2/csharp/kimono/CMakeLists.txt	2010-10-13 07:03:21.000000000 +0100
+@@ -22,7 +22,7 @@
+                       ${KDE4_KDECORE_LIBS} ${KDE4_KIO_LIBS})
+ 
+ # write FindPackage modules for these
+-pkg_search_module(LIBMONO mono)
++pkg_search_module(LIBMONO mono-2)
+ pkg_search_module(GLIB2 glib-2.0)
+ 
+ macro_log_feature(LIBMONO_FOUND "libmono" "Mono library" "http://www.mono-project.com" FALSE "" "Required to compile kimonopluginfactory")
+@@ -33,7 +33,7 @@
+ IF (LIBMONO_FOUND)
+     SET(SRC_FACTORY src/kimonopluginfactory.cpp)
+     LINK_DIRECTORIES(${LIBMONO_LIBRARY_DIRS} ${GLIB2_LIBRARY_DIRS})
+-    INCLUDE_DIRECTORIES(${LIBMONO_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS})
++    INCLUDE_DIRECTORIES(${LIBMONO_INCLUDEDIR} ${GLIB2_INCLUDE_DIRS})
+     ADD_DEFINITIONS(${GLIB2_CFLAGS} ${MONO_CFLAGS})
+     KDE4_ADD_PLUGIN(kimonopluginfactory ${SRC_FACTORY})
+     TARGET_LINK_LIBRARIES(kimonopluginfactory ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${KDE4_KDECORE_LIBS} ${KDE4_KIO_LIBS} qyoto smokebase smokeqtcore smokeqtgui ${LIBMONO_LIBRARIES})
+--- kdebindings-4.5.2/generator/parser/rpp/pp-macro-expander.cpp.orig	2009-12-31 13:35:20.000000000 +0000
++++ kdebindings-4.5.2/generator/parser/rpp/pp-macro-expander.cpp	2010-10-09 09:40:13.000000000 +0100
+@@ -120,6 +120,9 @@
+   return pp_actual();
+ }
+ 
++#define RETURN_IF_INPUT_BROKEN    if(input.atEnd()) { qDebug() << "too early end while expanding" << macro->name.str(); return; }
++
++
+ pp_macro_expander::pp_macro_expander(pp* engine, pp_frame* frame, bool inHeaderSection)
+   : m_engine(engine)
+   , m_frame(frame)
+@@ -420,6 +423,8 @@
+         
+         QList<pp_actual> actuals;
+         ++input; // skip '('
++        
++        RETURN_IF_INPUT_BROKEN
+ 
+         pp_macro_expander expand_actual(m_engine, m_frame);
+ 
+@@ -455,6 +460,8 @@
+         while (!input.atEnd() && input == ',')
+         {
+           ++input; // skip ','
++          
++          RETURN_IF_INPUT_BROKEN
+ 
+           {
+             PreprocessedContents actualText;
+@@ -494,6 +501,7 @@
+           //Move one character into the output, so we don't get an endless loop
+           output << input;
+           ++input;
++          
+           continue;
+         }
+         
+@@ -506,7 +514,7 @@
+         //Q_ASSERT(!input.atEnd() && input == ')');
+ 
+         ++input; // skip ')'
+-
++        
+ #if 0 // ### enable me
+         assert ((macro->variadics && macro->formals.size () >= actuals.size ())
+                     || macro->formals.size() == actuals.size());
+@@ -520,6 +528,8 @@
+         if(frame.depth >= maxMacroExpansionDepth) 
+         {
+           qDebug() << "reached maximum macro-expansion depth while expanding" << macro->name.str();
++          RETURN_IF_INPUT_BROKEN
++          
+           output << input;
+           ++input;
+         }else{
 --- kdebindings-4.5.1/python/pykde4/sip/kdecore/typedefs.sip.orig	2010-01-20 16:25:59.000000000 +0000
 +++ kdebindings-4.5.1/python/pykde4/sip/kdecore/typedefs.sip	2010-09-04 15:22:12.000000000 +0100
 @@ -733,61 +733,6 @@
