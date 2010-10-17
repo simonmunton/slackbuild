@@ -1,0 +1,41 @@
+--- a/src/option/k3bpluginoptiontab.cpp	2010/10/10 18:21:22	1184534
++++ b/src/option/k3bpluginoptiontab.cpp	2010/10/10 18:30:41	1184535
+@@ -23,6 +23,7 @@
+ #include <KPluginSelector>
+ #include <KPluginInfo>
+ 
++#include <QHash>
+ #include <QList>
+ 
+ 
+@@ -43,12 +44,25 @@
+     layout->addWidget( label );
+     layout->addWidget( pluginSelector );
+ 
+-    foreach( K3b::Plugin* plugin, k3bcore->pluginManager()->plugins() ) {
+-        kDebug() << "Adding plugin" << plugin->pluginInfo().name();
+-        pluginSelector->addPlugins( QList<KPluginInfo>() << plugin->pluginInfo(),
++    // find all categories
++    QHash<QString, QString> categoryNames;
++
++    foreach( Plugin* plugin, k3bcore->pluginManager()->plugins() ) {
++        categoryNames[ plugin->category() ] = plugin->categoryName();
++    }
++
++    // add all plugins in each category
++    foreach( const QString &category, categoryNames.keys() ) {
++        QList<KPluginInfo> plugins;
++
++        foreach( Plugin* plugin, k3bcore->pluginManager()->plugins( category ) ) {
++            plugins << plugin->pluginInfo();
++            kDebug() << "Adding plugin" << plugin->pluginInfo().name();
++        }
++        pluginSelector->addPlugins( plugins,
+                                     KPluginSelector::ReadConfigFile,
+-                                    plugin->categoryName(),
+-                                    plugin->category() );
++                                    categoryNames[ category ],
++                                    category );
+     }
+ }
+ 

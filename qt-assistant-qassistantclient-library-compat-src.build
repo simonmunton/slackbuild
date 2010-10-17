@@ -91,6 +91,42 @@ mkdir -p $PKG/usr/bin
   done
 )
 
+( cd $PKG/usr/lib/qt/include
+  cat > QtAssistant << EOF
+#ifndef QT_QTASSISTANT_MODULE_H
+#define QT_QTASSISTANT_MODULE_H
+#include <QtNetwork/QtNetwork>
+#include "qassistantclient.h"
+#endif
+EOF
+
+  cat > QAssistantClient << EOF
+#include "qassistantclient.h"
+EOF
+)
+
+( cd $PKG/usr/lib/qt/lib/pkgconfig
+  cat > QtAssistantClient.pc << EOF
+prefix=/usr/lib/qt
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include/QtAssistant
+qt_config=lex yacc warn_on uic resources qt warn_on release incremental link_prl exceptions no_mocdepend release stl qt_no_framework system-sqlite release shared largefile stl separate_debug_info mmx 3dnow sse sse2 dylib create_prl link_prl depend_includepath fix_output_dirs QTDIR_build use_libmysqlclient_r qt warn_on qt_install_headers create_pc moc thread dll shared
+
+Name: Qtassistantclient
+Description: Qtassistantclient Library
+Version: ${VERSION}
+Libs: -L\${libdir} -lQtAssistantClient 
+Libs.private: -L/usr/lib/qt/lib  -lQtGui -L/usr/lib/qt/lib -lQtNetwork -lQtCore -lpthread   
+Cflags: -I/usr/lib/qt/include -I\${includedir}
+Requires: QtNetwork
+EOF
+
+ mkdir $PKG/usr/lib/pkgconfig
+ cd $PKG/usr/lib/pkgconfig
+  ln -s /usr/lib/qt/lib/pkgconfig/QtAssistantClient.pc .
+)
+
 #strip_binaries
 
 fix_links

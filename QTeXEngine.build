@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mercurial
+TARNAME=QTeXEngine
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=1.6.4
-VERSIONEXTRA=
+VERSION=0.2
+VERSIONEXTRA=-opensource
 BUILD=1
 
-WEBPAGE="http://selenic.com/mercurial"
+WEBPAGE="http://soft.proindependent.com/qtexengine/index.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,14 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+qmake PREFIX=/usr
+
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,9 +88,13 @@ then
   exit
 fi
 
-make install PREFIX=${PKG}/usr
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
-#strip_binaries
+mkdir -p ${PKG}/usr/{lib,include}
+cp libQTeXEngine.a ${PKG}/usr/lib
+cp src/QTeXEngine.h ${PKG}/usr/include
+
+strip_binaries
 
 fix_links
 
@@ -81,14 +103,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Scalable distributed SCM"
-Mercurial source code management system
+make_slack_desc << EOF "TeX class for QT"
+QTeXEngine enables Qt based applications to easily export graphics 
+created using the QPainter class to TeX. It is built on top of 
+QPaintEngine and uses the TikZ/Pgf graphic systems for TeX.
 
 EOF
 
