@@ -4,9 +4,9 @@
 
 TARNAME=ExtUtils-CBuilder
 TARNAMEEXTRA=
-TARDIR=~/tmp/cpan/MINICPAN/authors/id/K/KW/KWILLIAMS
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/D/DA/DAGOLDEN
 #TAR_EXT=.tar.gz
-VERSION=0.24
+VERSION=0.2703
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,14 +45,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-perl Build.PL
-./Build
-./Build test
-./Build install --destdir=${PKG}
+if [ -f Build.PL ]
+then
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG}
+else
+  perl Makefile.PL
+  make
+  make test
+  make install DESTDIR=${PKG}
+fi
 
-#make || exit
-
-#make install DESTDIR=${PKG} INSTALLDIRS=perl
+perllocalpod
 
 #strip_binaries
 

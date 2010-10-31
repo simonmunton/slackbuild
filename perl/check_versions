@@ -1,0 +1,55 @@
+#!/bin/bash
+
+eval `grep -E "^(TARNAME|TARNAMEEXTRA|TARDIR|TARSEP|VERSION|VERSIONEXTRA|FULL_TARNAME|XFCE_VER)=" $1`
+
+: ${FULL_TARNAME:=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP:--}${VERSION}${VERSIONEXTRA}}
+TARNAME_BASE=${FULL_TARNAME%${VERSION}*}
+TARNAME_X=${TARNAME_BASE##*/}
+
+#echo ${FULL_TARNAME}
+#echo ${TARNAME_BASE}
+
+if [ -f ${FULL_TARNAME}.tar.gz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tar.gz
+elif [ -f ${FULL_TARNAME}.tgz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tgz
+elif [ -f ${FULL_TARNAME}.tar.bz2 ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tar.bz2
+elif [ -f ${FULL_TARNAME}.tbz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tbz
+elif [ -f ${FULL_TARNAME}.zip ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.zip
+elif [ -f ${FULL_TARNAME}.7z ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.7z
+fi
+
+echo "Current build version is ${VERSION}${VERSIONEXTRA}"
+
+if [ -e ${FULL_TARNAME} ]
+then
+  for f in `find ~/tmp/cpan/MINICPAN/authors/id -regex ".*/${TARNAME_X}[^-]+"`
+  do
+    if [ $f -nt ${FULL_TARNAME} ]
+    then
+      echo "$f (newer)"
+    else
+      if [ $f != ${FULL_TARNAME} ]
+      then
+        echo "$f (older)"
+      fi
+    fi
+  done
+else
+  echo ${FULL_TARNAME} not found, consider following:
+
+  find ~/tmp/cpan/MINICPAN/authors/id -regex ".*/${TARNAME_X}[^-]+"
+
+#  ls -1 -t ${TARNAME_BASE}*
+
+fi

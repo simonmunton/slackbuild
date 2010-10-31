@@ -13,6 +13,24 @@ then
   exit
 fi
 
+C=0
+N=${1//::/-}
+for f in `find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[0-9]*"`
+do
+  N1=MINICPAN/${f#*/MINICPAN/}
+  C=$(($C + 1))
+done
+if (( $C > 1 ))
+then
+  echo multiple candidates found:
+  find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[0-9]*"
+  exit
+elif (( $C == 1 ))
+then
+  set $N1
+fi
+
+
 if [[ "$1" =~ "/" ]]
 then
   if [[ ! "$1" =~ "MINICPAN/authors/id/" ]]
@@ -25,6 +43,7 @@ then
   VER=${NAME##*-}
   VER=${VER%%.tar*}
   NAME=${NAME%-*}
+  #echo $DIRPART $NAME $VER
 else
   NAME=${1%.build}
 fi
@@ -58,6 +77,6 @@ if [ -f ${NAME}.build ]
 then
   echo $NAME.build exists
 else
-  sed -e "s/TEMPLATE/$NAME/g; s@^TARDIR=~/tmp/cpan/@TARDIR=$DIR@; s/^VERSION=/VERSION=$VER/" template.build > $NAME.build
+  sed -e "s/TEMPLATE/$NAME/g; s@^TARDIR=~/tmp/cpan/.*@TARDIR=$DIR@; s/^VERSION=/VERSION=$VER/" template.build > $NAME.build
   chmod +x $NAME.build
 fi
