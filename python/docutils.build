@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xsane
+TARNAME=docutils
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=0.998
+VERSION=20100901
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.xsane.org"
+WEBPAGE="http://docutils.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,19 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,10 +88,10 @@ then
   exit
 fi
 
-#make install prefix=${PKG}/usr sysconfdir=${PKG}/etc localstatedir=${PKG}/var/lib
-make DESTDIR=${PKG} install
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,22 +100,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO xsane* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/*.spec*
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Graphical frontend to SANE, Scanner Access Now Easy"
-xsane provides a graphical user-interface to control an image
-acquisition device such as a flatbed scanner.  It allows previewing
-and scanning individual images and can be invoked either directly
-from the command-line or through the GIMP image manipulation program.
-
-xsane accesses image acquisition devices through the SANE (Scanner
-Access Now Easy) interface.
+make_slack_desc << EOF "text processing system for processing plain text documentation"
+Docutils is an open-source text processing system for processing plain
+text documentation into useful formats, such as HTML or LaTeX. It 
+includes reStructuredText, the easy to read, easy to use, 
+what-you-see-is-what-you-get plaintext markup language.
 
 EOF
 
