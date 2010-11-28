@@ -1,21 +1,21 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=phonon
+TARNAME=CLAPACK
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=4.4.3
+VERSION=3.2.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://phonon.kde.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=clapack
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-4.4 ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION}-* ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/phonon-4.4.1-kde235193.patch
+ patch -p1 < ${CWD}/CLAPACK-3.2.1.diff
 )
 fi
 
@@ -55,27 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#export QTDIR=/usr/lib/qt4
-#PATH=/usr/lib/qt4/bin:$PATH
-
-mkdir build
-cd build
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+:
+sed -e '/^BLASLIB/ s@=.*@= ../../libcblaswr.a -lcblas -latlas@' make.inc.example > make.inc
+
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
+
+ulimit -s 102400
 
 if [ ${DO_MAKE} == "yes" ]
 then
+make cblaswrap ${NUM_JOBS} || exit
 make ${NUM_JOBS} || exit
 fi
 
@@ -86,16 +94,16 @@ fi
 
 make install DESTDIR=${PKG}
 
-make_debug_files
-#strip_binaries
-
-cd ..
+strip_binaries
 
 fix_links
 
 compress_manpages
 
 compress_info
+
+wget http://www.netlib.org/clapack/readme
+wget http://www.netlib.org/clapack/readme.maintain
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
@@ -104,8 +112,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "multimedia framework for KDE4"
-Phonon is the multimedia framework for KDE4.
+make_slack_desc << EOF "C version of LAPACK"
+The CLAPACK library was built using a Fortran to C conversion utility
+called f2c.  The entire Fortran 77 LAPACK library is run through f2c 
+to obtain C code, and then modified to improve readability.  CLAPACK's 
+goal is to provide LAPACK for someone who does not have access to a 
+Fortran compiler.
 
 EOF
 
