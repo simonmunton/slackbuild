@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
 TARNAME=soundkonverter
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.3.11
+VERSION=0.9.94rc2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/soundkonverter-0.3.11.diff
- make -f Makefile.cvs
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,31 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/opt/kde3/lib/qt3
-export CPLUS_INCLUDE_PATH=$QTDIR/include:$CPLUS_INCLUDE_PATH
-export PATH="$PATH:$QTDIR/bin:/opt/kde3/bin"
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CPPFLAGS="-I/usr/include/cdda" \
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure 
-#--prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -95,7 +88,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 

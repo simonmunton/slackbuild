@@ -3,15 +3,15 @@
 . build_funcs
 
 TARNAME=openal
-TARNAMEEXTRA=
+TARNAMEEXTRA=-soft
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=20080606
+VERSION=1.12.854
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://connect.creativelabs.com/openal/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-*-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,10 +45,10 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/openal-20080606.diff
- (cd OpenAL-Sample
-  ./autogen.sh
- )
+# patch -p1 < ${CWD}/openal-20080606.diff
+# (cd OpenAL-Sample
+#  ./autogen.sh
+# )
 )
 fi
 
@@ -60,30 +60,39 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-(cd OpenAL-Sample
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --enable-alsa \
-	    --enable-alsa-dlopen \
-            --enable-arts \
-	    --enable-arts-dlopen \
-            --enable-esd \
-	    --enable-esd-dlopen \
-            --enable-vorbis \
-	    --enable-sdl 
-#	    --enable-debug --enable-debug-maximus
-)
+#(cd OpenAL-Sample
+#CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man \
+#            --enable-alsa \
+#	    --enable-alsa-dlopen \
+#            --enable-arts \
+#	    --enable-arts-dlopen \
+#            --enable-esd \
+#	    --enable-esd-dlopen \
+#            --enable-vorbis \
+#	    --enable-sdl 
+##	    --enable-debug --enable-debug-maximus
+
+pushd build
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+     ..
+popd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd OpenAL-Sample
+pushd build
 make ${NUM_JOBS} || exit
-)
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,9 +100,10 @@ then
   exit
 fi
 
-(cd OpenAL-Sample
+pushd build
 make install DESTDIR=${PKG}
-)
+popd
+
 #strip_binaries
 
 fix_links
