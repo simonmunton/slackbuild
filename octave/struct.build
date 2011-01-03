@@ -1,14 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=xf86-input-wacom
+TARNAME=struct
 TARNAMEEXTRA=
 TARSEP="-"
-#TARDIR=~/tmp/new/x/xorg/X11R7/driver
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/o/octave-forge
 #TAR_EXT=.tar.gz
-VERSION=0.10.8
+VERSION=1.0.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -16,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=octave-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -60,15 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -82,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +88,30 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mpath=/usr/share/octave/3.2.4/m
+bpath=/usr/libexec/octave/3.2.4/oct/i686-pc-linux-gnu
+
+mkdir -p ${PKG}/${mpath} ${PKG}/${bpath}
+
+export LDFLAGS=-Wl,--as-needed
+export OCTAVE_HISTFILE=/dev/null
+
+[ -e PKG_ADD ] && mv PKG_ADD PKG_ADD.bak
+octave --eval                                           \
+    "pkg ('prefix', '${PKG}/${mpath}',         \
+	  '${PKG}/${bpath}');                 \
+     pkg ('local_list', [pwd(),'/local-list']);         \
+     pkg ('global_list', [pwd(),'/global-list']);       \
+     if (exist ('PKG_ADD.bak') == 2),                   \
+	 movefile ('PKG_ADD.bak', 'PKG_ADD');           \
+     endif;                                             \
+     pkg -verbose -nodeps install ."
+
+#make install DESTDIR=${PKG}
+
+cat > ${PKG}/install/doinst.sh << EOF
+octave --silent --no-history --no-init-file --eval "pkg ('rebuild');"
+EOF
 
 strip_binaries
 
@@ -108,13 +129,6 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF
-xf86-input-wacom is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
 EOF
 
 post_install
@@ -122,5 +136,5 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+makepkg -l y -c n -p ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=tellico
+TARNAME=xcm
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=2.3.2
+VERSION=0.4.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.periapsis.org/tellico/"
+WEBPAGE="http://www.oyranos.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,13 +59,24 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc/kde \
-      .
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --disable-static
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -95,13 +106,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a collection manager for KDE"
-tellico keeps track of the items in a collection, and offers an easy
-way to enter data for each entry. It provides several field types,
-and allows for an unlimited number of user-defined fields. The
-entries in a collection may be grouped by any field for easy
-organization, and customizable views show as much or as little
-information as you like.
+make_slack_desc << EOF "X Color Management tools"
+The Xcm tools are colour management helpers for Xorg.
+A EDID parser and a colour management events observer are included.
 
 EOF
 
