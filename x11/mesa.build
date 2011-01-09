@@ -6,7 +6,7 @@ TARNAME=Mesa
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
-VERSION=7.9
+VERSION=7.9.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -47,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/Mesa-7.0.2.diff
+ patch -p1 < ${CWD}/Mesa-7.9.1.diff
 
  sed -i -e 's/DRI_DIRS =/DRI_DIRS = swrast/' configs/linux-dri
 )
@@ -107,6 +107,11 @@ make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xor
     glxinfo glxpbdemo glxpixmap \
     ${PKG}/usr/bin
 )
+
+if [ -e ${PKG}/usr/lib/xorg/modules/drivers/radeon_drv.so ]
+then
+  mv ${PKG}/usr/lib/xorg/modules/drivers/radeon_drv.so ${PKG}/usr/lib/xorg/modules/drivers/radeong_drv.so
+fi
 
 strip_binaries
 
