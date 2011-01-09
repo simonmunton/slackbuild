@@ -1,0 +1,231 @@
+--- kdebindings-4.5.5/python/pykde4/sip/kdecore/typedefs.sip.orig	2011-01-09 17:14:27.000000000 +0000
++++ kdebindings-4.5.5/python/pykde4/sip/kdecore/typedefs.sip	2011-01-09 17:51:11.000000000 +0000
+@@ -582,88 +582,6 @@
+ %End
+ };
+ 
+-template <TYPE>
+-%MappedType QSet<TYPE>
+-{
+-%TypeHeaderCode
+-#include <qset.h>
+-%End
+-
+-%ConvertFromTypeCode
+-    // Create the list.
+-    PyObject *l;
+-
+-    if ((l = PyList_New(sipCpp->size())) == NULL)
+-        return NULL;
+-
+-    // Set the list elements.
+-    QSet<TYPE> set = *sipCpp;
+-    int i = 0;
+-    foreach (TYPE value, set)
+-    {
+-        PyObject *obj = sipConvertFromNewType(&value, sipType_TYPE, sipTransferObj);
+-        if (obj == NULL || PyList_SET_ITEM (l, i, obj) < 0)
+-        {
+-            Py_DECREF(l);
+-
+-            if (obj)
+-                Py_DECREF(obj);
+-
+-            return NULL;
+-        }
+-
+-        Py_DECREF(obj);
+-        i++;
+-    }
+-   
+-    return l;
+-%End
+-
+-%ConvertToTypeCode
+-    // Check the type if that is all that is required.
+-    if (sipIsErr == NULL)
+-    {
+-        if (!PyList_Check(sipPy))
+-            return 0;
+-    }
+-
+-    // Check the type if that is all that is required.
+-    if (sipIsErr == NULL)
+-    {
+-        if (!PyList_Check(sipPy))
+-            return 0;
+-
+-        for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
+-            if (!sipCanConvertToType(PyList_GET_ITEM (sipPy, i), sipType_TYPE, SIP_NOT_NONE))
+-                return 0;
+-    }
+-
+-    QSet<TYPE> *qs = new QSet<TYPE>;
+- 
+-    for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
+-    {
+-        int state;
+-
+-        TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(PyList_GET_ITEM (sipPy, i), sipType_TYPE, sipTransferObj, SIP_NOT_NONE, &state, sipIsErr));
+- 
+-        if (*sipIsErr)
+-        {
+-            sipReleaseType(t, sipType_TYPE, state);
+-
+-            delete qs;
+-            return 0;
+-        }
+-
+-        *qs << *t;
+-
+-        sipReleaseType(t, sipType_TYPE, state);
+-    }
+- 
+-    *sipCppPtr = qs;
+- 
+-    return sipGetState(sipTransferObj);
+-%End
+-};
+ 
+ 
+ template <TYPE1,TYPE2>
+@@ -730,61 +648,6 @@
+  
+     return sipGetState(sipTransferObj);
+ %End
+-};
+-
+-
+-%MappedType QList<uint>
+-{
+-%TypeHeaderCode
+-#include <qlist.h>
+-%End
+-
+-%ConvertFromTypeCode
+-    // Create the list.
+-    PyObject *l;
+-
+-    if ((l = PyList_New(sipCpp->size())) == NULL)
+-        return NULL;
+-
+-    // Set the list elements.
+-    for (int i = 0; i < sipCpp->size(); ++i) {
+-        PyObject *pobj;
+-
+-#if PY_MAJOR_VERSION >= 3
+-        if ((pobj = PyLong_FromLong(sipCpp->value(i))) == NULL) {
+-#else
+-        if ((pobj = PyInt_FromLong(sipCpp->value(i))) == NULL) {
+-#endif
+-            Py_DECREF(l);
+-
+-            return NULL;
+-        }
+-
+-        PyList_SET_ITEM(l, i, pobj);
+-    }
+-
+-    return l;
+-%End
+-
+-%ConvertToTypeCode
+-    // Check the type if that is all that is required.
+-    if (sipIsErr == NULL)
+-        return PyList_Check(sipPy);
+-
+-    QList<uint> *ql = new QList<uint>;
+- 
+-    for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i) {
+-#if PY_MAJOR_VERSION >= 3
+-        ql->append(PyLong_AsLong(PyList_GET_ITEM(sipPy, i)));
+-#else
+-        ql->append(PyInt_AsLong(PyList_GET_ITEM(sipPy, i)));
+-#endif        
+-    }
+-    
+-    *sipCppPtr = ql;
+- 
+-    return sipGetState(sipTransferObj);
+-%End
+ };
+ 
+ 
+--- kdebindings-4.5.5/generator/parser/rpp/pp-macro-expander.cpp.orig	2010-11-02 12:51:11.000000000 +0000
++++ kdebindings-4.5.5/generator/parser/rpp/pp-macro-expander.cpp	2010-11-02 12:51:11.000000000 +0000
+@@ -120,6 +120,9 @@
+   return pp_actual();
+ }
+ 
++#define RETURN_IF_INPUT_BROKEN    if(input.atEnd()) { qDebug() << "too early end while expanding" << macro->name.str(); return; }
++
++
+ pp_macro_expander::pp_macro_expander(pp* engine, pp_frame* frame, bool inHeaderSection)
+   : m_engine(engine)
+   , m_frame(frame)
+@@ -265,10 +268,10 @@
+         output << '\"';
+ 
+         while (!is.atEnd()) {
+-          if (input == '"') {
++          if (is == '"') {
+             output << '\\' << is;
+ 
+-          } else if (input == '\n') {
++          } else if (is == '\n') {
+             output << '"' << is << '"';
+ 
+           } else {
+@@ -335,7 +338,7 @@
+             
+             skip_blanks(input, devnull());
+             //Omit paste tokens behind empty used actuals, else we will merge with the previous text
+-            if(input == '#' && (++input) == '#') {
++            if(!input.atEnd() && input == '#' && !(++input).atEnd() && input == '#') {
+               ++input;
+               //We have skipped a paste token
+             }else{
+@@ -420,6 +423,8 @@
+         
+         QList<pp_actual> actuals;
+         ++input; // skip '('
++        
++        RETURN_IF_INPUT_BROKEN
+ 
+         pp_macro_expander expand_actual(m_engine, m_frame);
+ 
+@@ -455,6 +460,8 @@
+         while (!input.atEnd() && input == ',')
+         {
+           ++input; // skip ','
++          
++          RETURN_IF_INPUT_BROKEN
+ 
+           {
+             PreprocessedContents actualText;
+@@ -494,6 +501,7 @@
+           //Move one character into the output, so we don't get an endless loop
+           output << input;
+           ++input;
++          
+           continue;
+         }
+         
+@@ -506,7 +514,7 @@
+         //Q_ASSERT(!input.atEnd() && input == ')');
+ 
+         ++input; // skip ')'
+-
++        
+ #if 0 // ### enable me
+         assert ((macro->variadics && macro->formals.size () >= actuals.size ())
+                     || macro->formals.size() == actuals.size());
+@@ -520,6 +528,8 @@
+         if(frame.depth >= maxMacroExpansionDepth) 
+         {
+           qDebug() << "reached maximum macro-expansion depth while expanding" << macro->name.str();
++          RETURN_IF_INPUT_BROKEN
++          
+           output << input;
+           ++input;
+         }else{
