@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=5.2.16
+VERSION=5.3.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,10 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/php.gmp5.diff
- patch -p1 < ${CWD}/php.gd_libpng-1.4.diff
- patch -p1 < ${CWD}/php.ini.diff
- patch -p1 < ${CWD}/php.recommended.ini.diff
+# patch -p1 < ${CWD}/php.gmp5.diff
+# patch -p1 < ${CWD}/php.gd_libpng-1.4.diff
+# patch -p1 < ${CWD}/php.ini.diff
+# patch -p1 < ${CWD}/php.recommended.ini.diff
+ patch -p1 < ${CWD}/php.ini-development.diff
+ patch -p1 php.ini-production < ${CWD}/php.ini-development.diff
 )
 
 tar xf ~/tmp/new/a/alpine-2.00.tar.bz2
@@ -137,7 +139,6 @@ CXXFLAGS="${PKGCFLAGS}" \
   --enable-dba=shared \
   --with-gdbm=/usr \
   --with-db4=/usr \
-  --enable-dbase=shared \
   --enable-exif=shared \
   --enable-ftp=shared \
   --with-gd=shared \
@@ -154,17 +155,16 @@ CXXFLAGS="${PKGCFLAGS}" \
   --with-iconv=shared \
   --with-imap-ssl=/usr \
   --with-imap=$IMAPLIBDIR \
-  --with-kerberos \
   --with-ldap=shared \
   --enable-mbstring=shared \
   --enable-hash \
-  --with-mhash=shared,/usr \
   --with-mysql=shared,/usr \
   --with-mysqli=shared,/usr/bin/mysql_config \
   --enable-pdo=shared \
   --with-pdo-mysql=shared,/usr \
   --with-pdo-sqlite=shared,/usr \
   --with-pspell=shared,/usr \
+  --with-enchant=shared,/usr \
   --with-mm=/usr \
   --enable-shmop=shared \
   --with-snmp=shared,/usr \
@@ -183,7 +183,8 @@ CXXFLAGS="${PKGCFLAGS}" \
   --enable-shared=yes \
   --enable-static=no \
   --with-gnu-ld \
-  --with-pic
+  --with-pic \
+  --with-kerberos
 }
 
 
