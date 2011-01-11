@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wacomtablet
+TARNAME=plasma-widget-message-indicator
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=1.2.3b
+VERSION=0.5.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://kde-apps.org/content/show.php/wacom+tablet?content=114856"
+WEBPAGE="https://launchpad.net/plasma-widget-message-indicator"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/wacomtablet-1.2.3b.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,25 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${PKGCFLAGS}" \
-#CXXFLAGS="${PKGCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
 cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -88,7 +88,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -103,10 +106,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE Wacom GUI"
-This module implements a GUI for the Wacom Linux Drivers and extends 
-it with profile support to handle different button / pen layouts per 
-profile.
+make_slack_desc << EOF "Message indicator plasma widget"
+A Plasma widget which displays messages from message-indicator 
+enabled applications.
 
 EOF
 
