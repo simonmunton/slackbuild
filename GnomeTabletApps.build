@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libksba
+TARNAME=GnomeTabletApps
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.1.0
+VERSION=20110104
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="www.gnupg.org"
+WEBPAGE="http://alexmac.cc/tablet-apps/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,12 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -78,7 +79,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,7 +88,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib/bonobo/servers,share/applications,share/pixmaps,share/tablet-apps}
+
+cp code/tablet-config ${PKG}/usr/bin
+cp code/tablet-pressure-applet ${PKG}/usr/bin
+cp code/pressure-applet.server ${PKG}/usr/lib/bonobo/servers
+cp code/tablet-config.desktop ${PKG}/usr/share/applications
+cp code/tablet-config.glade ${PKG}/usr/share/tablet-apps
+cp code/input-tablet.svg ${PKG}/usr/share/tablet-apps
+cp code/input-tablet.png ${PKG}/usr/share/pixmaps
 
 strip_binaries
 
@@ -103,10 +114,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library to make X.509 certificates"
-KSBA (pronounced Kasbah) is a library to make X.509 certificates as
-well as the CMS easily accessible by other applications.  Both
-specifications are building blocks of S/MIME and TLS.
+make_slack_desc << EOF "GNOME wacom applet"
+Gnome panel and control center applets to configure and monitor 
+graphics tablet devices
+The gnome wacom applet is a small gnome panel applet that shows how 
+much pressure is being applied to your wacom tablet by the current 
+device. Clicking on the panel icon brings up a dialog allowing you to 
+select a different device and check what pressure and tilt information 
+is being recieved from it. This dialog also contains a small drawing 
+test area to give your pen a quick test.
 
 EOF
 
