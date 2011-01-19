@@ -1,0 +1,64 @@
+--- mythtv-0.24_20101229/mythtv/themes/Terra/base.xml.orig	2010-12-29 10:03:14.000000000 +0000
++++ mythtv-0.24_20101229/mythtv/themes/Terra/base.xml	2010-12-29 12:00:48.000000000 +0000
+@@ -509,14 +509,14 @@
+         </fontdef>
+ 
+         <clock name="date">
+-            <area>825,689,350,30</area>
++            <area>800,689,350,30</area>
+             <font>datefont</font>
+             <align>right,vcenter</align>
+             <template>%DATE%</template>
+         </clock>
+ 
+         <clock name="time">
+-            <area>1185,688,80,30</area>
++            <area>1160,688,80,30</area>
+             <font>timefont</font>
+             <cutdown>no</cutdown>
+             <align>left,vcenter</align>
+--- mythtv-0.24_20101229/mythtv/programs/mythbackend/scheduler.cpp.orig	2010-12-29 10:03:14.000000000 +0000
++++ mythtv-0.24_20101229/mythtv/programs/mythbackend/scheduler.cpp	2010-12-29 13:25:26.000000000 +0000
+@@ -2182,7 +2182,6 @@
+         {
+             MythEvent me("SCHEDULE_CHANGE");
+             gCoreContext->dispatch(me);
+-            idleSince = QDateTime();
+         }
+ 
+         // if idletimeout is 0, the user disabled the auto-shutdown feature
+@@ -2215,8 +2214,11 @@
+                     }
+                     resetIdleTime_lock.unlock();
+ 
+-                    if (!idleSince.isValid())
++                    if (statuschanged || !idleSince.isValid())
+                     {
++                        if (!idleSince.isValid())
++                            idleSince = curtime;
++
+                         RecIter idleIter = reclist.begin();
+                         for ( ; idleIter != reclist.end(); ++idleIter)
+                             if ((*idleIter)->GetRecordingStatus() ==
+@@ -2227,17 +2229,16 @@
+                         {
+                             if (curtime.secsTo
+                                 ((*idleIter)->GetRecordingStartTime()) -
+-                                prerollseconds >
++                                prerollseconds <
+                                 (idleWaitForRecordingTime * 60) +
+                                 idleTimeoutSecs)
+                             {
+-                                idleSince = curtime;
++                                idleSince = QDateTime();
+                             }
+                         }
+-                        else
+-                            idleSince = curtime;
+                     }
+-                    else
++
++                    if (idleSince.isValid())
+                     {
+                         // is the machine already idling the timeout time?
+                         if (idleSince.addSecs(idleTimeoutSecs) < curtime)
