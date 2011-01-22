@@ -1,14 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=mono
+TARNAME=phonon-backend-vlc
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m/mono
+TARSEP="-"
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=2.8.2
+VERSION=0.3.2
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://phonon.kde.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-4.4 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/phonon-4.4.1-kde235193.patch
 )
 fi
 
@@ -52,14 +55,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+#export QTDIR=/usr/lib/qt4
+#PATH=/usr/lib/qt4/bin:$PATH
+
+mkdir build
+cd build
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +86,10 @@ fi
 
 make install DESTDIR=${PKG}
 
+make_debug_files
 #strip_binaries
+
+cd ..
 
 fix_links
 
@@ -89,13 +104,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "C# compiler"
-Mono provides the necessary software to develop and run .NET client 
-and server applications on Linux, Solaris, Mac OS X, Windows, and 
-Unix. Sponsored by Novell (http://www.novell.com), the Mono open 
-source project has an active and enthusiastic contributing community 
-and is positioned to become the leading choice for development of 
-Linux applications.
+make_slack_desc << EOF "multimedia framework for KDE4"
+Phonon is the multimedia framework for KDE4.
 
 EOF
 
