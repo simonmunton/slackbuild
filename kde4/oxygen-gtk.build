@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=dmidecode
+TARNAME=oxygen-gtk
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.11
+VERSION=1.0.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=i686
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -55,30 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib/qt
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc/kde \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make prefix=/usr mandir=/usr/man docdir=/usr/doc/${TARNAME}-${VERSION} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,9 +86,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} prefix=/usr mandir=/usr/man docdir=/usr/doc/${TARNAME}-${VERSION}
+make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -103,15 +106,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SMBIOS decoder"
-Dmidecode reports information about your system's hardware as 
-described in your system BIOS according to the SMBIOS/DMI standard. 
-This information typically includes system manufacturer, model name, 
-serial number, BIOS version, asset tag as well as a lot of other 
-details of varying level of interest and reliability depending on the 
-manufacturer. This will often include usage status for the CPU 
-sockets, expansion slots (e.g. AGP, PCI, ISA) and memory module slots, 
-and the list of I/O ports (e.g. serial, parallel, USB).
+make_slack_desc << EOF "port of default KDE theme to GTK"
+Oxygen-Gtk is a port of the default KDE widget theme (Oxygen) to GTK.
+Its primary goal is to ensure visual consistency between gtk-based and 
+qt-based applications running under KDE. A secondary objective is to 
+also have a stand-alone nice looking gtk theme that would behave well 
+on other Desktop Environments.
 
 EOF
 
