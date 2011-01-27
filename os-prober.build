@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xbiff
+TARNAME=os-prober
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/app
+TARSEP="_"
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.0.3
+VERSION=1.42
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://packages.debian.org/unstable/utils/os-prober"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,15 +59,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+:
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
@@ -89,7 +87,26 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib/os-prober} ${PKG}/usr/share/os-prober ${PKG}/var/lib/os-prober
+
+cp os-prober linux-boot-prober ${PKG}/usr/bin
+cp newns ${PKG}/usr/lib/os-prober
+cp common.sh ${PKG}/usr/share/os-prober
+
+for probes in os-probes os-probes/mounted os-probes/init \
+              linux-boot-probes linux-boot-probes/mounted
+do
+  mkdir -p ${PKG}/usr/lib/$probes
+  cp -a $probes/common/* ${PKG}/usr/lib/$probes
+  if [ -e "$probes/x86" ]
+  then
+    cp -a $probes/x86/* ${PKG}/usr/lib/$probes
+  fi
+done
+
+cp -a os-probes/mounted/powerpc/20macosx ${PKG}/usr/lib/os-probes/mounted
+
 
 strip_binaries
 
@@ -106,15 +123,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-xbiff is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "utility to detect other OSes on a set of drives"
+This package detects other OSes available on a system and outputs the 
+results in a generic machine-readable format. 
 
 EOF
 
