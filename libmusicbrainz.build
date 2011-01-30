@@ -4,21 +4,24 @@
 
 TARNAME=libmusicbrainz
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.1.5
+VERSION=3.0.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://musicbrainz.org/doc/libmusicbrainz"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libmusicbrainz3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -52,14 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --enable-static=no
+#CFLAGS="${PKGCFLAGS}" \
+#CXXFLAGS="${PKGCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,7 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -83,35 +97,23 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "music metadatabase"
+MusicBrainz is a user-maintained community music metadatabase.
+The MusicBrainz client library allows applications to make metadata
+lookups to a MusicBrainz server, generate signatures from WAV files
+and create CD Index Disk IDs from audio CD-ROMs.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: MusicBrainz is a user-maintained community music metadatabase.
-${PKGNAME}: The MusicBrainz client library allows applications to make metadata
-${PKGNAME}: lookups to a MusicBrainz server, generate signatures from WAV files
-${PKGNAME}: and create CD Index Disk IDs from audio CD-ROMs.
-${PKGNAME}:
-${PKGNAME}: libmusicbrainz is licensed under the GPL.  Relatable has graciously
-${PKGNAME}: given MusicBrainz a free license to use their TRM technology:
-${PKGNAME}:     Acoustic fingerprint technology provided by Relatable(TM),
-${PKGNAME}:     Copyright (c) 2000-2, Relatable LLC, All rights reserved.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+libmusicbrainz is licensed under the GPL.  Relatable has graciously
+given MusicBrainz a free license to use their TRM technology:
+    Acoustic fingerprint technology provided by Relatable(TM),
+    Copyright (c) 2000-2, Relatable LLC, All rights reserved.
+
 EOF
 
 post_install

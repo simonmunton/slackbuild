@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=poppler
+TARNAME=fityk
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=0.16.2
+VERSION=0.9.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://poppler.freedesktop.org/"
+WEBPAGE="http://fityk.nieto.pl/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,23 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static \
-            --enable-gtk-doc \
-	    --enable-xpdf-headers \
+	    --mandir=/usr/man
 
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
-#	    --disable-poppler-qt
-
-#            --enable-opi \
-#            --enable-zlib \
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -86,43 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-if false
-then
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
-
-if [ ${DO_CONFIGURE} == "yes" ]
-then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static \
-            --enable-opi \
-            --enable-gtk-doc \
-	    --enable-xpdf-headers \
-	    --disable-poppler-qt
-
-#            --enable-zlib \
-fi
-
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} || exit
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-make install DESTDIR=${PKG}
-
-fi
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -137,12 +103,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "pdf library based on xpdf"
-Poppler is a library based on the xpdf PDF viewer developed by Derek
-Noonburg of Glyph and Cog, LLC.  Since xpdf does not provide a shared
-library, whenever a flaw was found potentially dozens of applications
-incorporating code from xpdf would have to be patched.  By providing
-a centralized PDF library this duplicated effort will be eliminated.
+make_slack_desc << EOF "program for data processing and nonlinear curve fitting."
+Fityk is a program for data processing and nonlinear curve fitting.
 
 EOF
 
