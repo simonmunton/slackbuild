@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdepim
+TARNAME=xrestop
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.4.9
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=4.4.9
+VERSION=0.4
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.freedesktop.org/wiki/Software/xrestop"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kdepim-4.4.5.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,25 +55,25 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${PKGCFLAGS}" \
+CXXFLAGS="${PKGCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -88,10 +88,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -106,13 +103,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE PIM"
-The KDE-PIM project aims to bring together those who wish to help
-design, implement, test, etc. anything that's to do with personal
-information management.
-
-This rather broad scope encompasses mail clients, addressbooks,
-usenet news, scheduling, and even sticky notes.
+make_slack_desc << EOF "top like stats for X"
+Xrestop uses the X-Resource extension to provide 'top' like statistics 
+of each connected X11 client's server side resource usage. It is 
+intended as a developer tool to aid more efficient server resource 
+usage and debug server side leakage. 
 
 EOF
 
