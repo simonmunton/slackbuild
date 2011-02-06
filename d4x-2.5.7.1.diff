@@ -240,15 +240,15 @@
  #include <stdio.h>
  #include <gtk/gtk.h>
 --- d4x-2.5.7.1/main/sslsocket.cc.orig	2005-09-16 05:27:04.000000000 +0100
-+++ d4x-2.5.7.1/main/sslsocket.cc	2011-02-05 21:40:48.000000000 +0000
-@@ -23,8 +23,25 @@
++++ d4x-2.5.7.1/main/sslsocket.cc	2011-02-06 07:13:23.000000000 +0000
+@@ -23,8 +23,26 @@
  		return(SOCKET_CANT_CONNECT);
  	con_flag=0;
  	SSL_set_fd(Handler,fd);
 -	if (SSL_connect(Handler)!=1)
 -		return(SOCKET_CANT_CONNECT);
 +	int retry = 10, rv;
-+	while ((rv = SSL_connect(Handler)) < 0 && retry-- > 0)
++	while (retry-- > 0 && (rv = SSL_connect(Handler)) < 0)
 +	{
 +	    switch (SSL_get_error(Handler, rv))
 +	    {
@@ -261,6 +261,7 @@
 +		      retry = 10;
 +		    break;
 +		default:
++		    retry = 0;
 +		    break;
 +	    }
 +	}
@@ -269,14 +270,14 @@
  	con_flag=1;
  	return 0;
  };
-@@ -34,8 +51,25 @@
+@@ -34,8 +52,26 @@
  		return(SOCKET_CANT_CONNECT);
  	con_flag=0;
  	SSL_set_fd(Handler,fd);
 -	if (SSL_connect(Handler)!=1)
 -		return(SOCKET_CANT_CONNECT);
 +	int retry = 10, rv;
-+	while ((rv = SSL_connect(Handler)) < 0 && retry-- > 0)
++	while (retry-- > 0 && (rv = SSL_connect(Handler)) < 0)
 +	{
 +	    switch (SSL_get_error(Handler, rv))
 +	    {
@@ -289,6 +290,7 @@
 +		      retry = 10;
 +		    break;
 +		default:
++		    retry = 0;
 +		    break;
 +	    }
 +	}
@@ -297,14 +299,14 @@
  	con_flag=1;
  	return 0;
  };
-@@ -43,14 +77,51 @@
+@@ -43,14 +79,53 @@
  int SSLSocket::send_string(const char *what,int timeout){
  	DBC_RETVAL_IF_FAIL(what!=NULL,-1);
  	int a=strlen(what);
 -	int b=SSL_write(Handler,what,a);
 +	int retry = 10;
 +	int b;
-+	while ((b=SSL_write(Handler,what,a)) <0 && retry-- > 0)
++	while (retry-- > 0 && (b=SSL_write(Handler,what,a)) < 0)
 +	{
 +	    switch (SSL_get_error(Handler, b))
 +	    {
@@ -317,6 +319,7 @@
 +		      retry = 10;
 +		    break;
 +		default:
++		    retry = 0;
 +		    break;
 +	    }
 +	}
@@ -330,7 +333,7 @@
 +	int rv;
 +	int retry = 10;
 +
-+	while ((rv = SSL_read(Handler,where,len)) < 0 && retry-- > 0)
++	while (retry-- > 0 && (rv = SSL_read(Handler,where,len)) < 0)
 +	{
 +	    switch (SSL_get_error(Handler, rv))
 +	    {
@@ -343,6 +346,7 @@
 +		      retry = 10;
 +		    break;
 +		default:
++		    retry = 0;
 +		    break;
 +	    }
 +	}
