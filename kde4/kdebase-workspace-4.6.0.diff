@@ -1,0 +1,101 @@
+--- kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationgroup.cpp.orig	2011-01-19 22:05:43.000000000 +0000
++++ kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationgroup.cpp	2011-02-07 20:29:26.000000000 +0000
+@@ -66,6 +66,8 @@
+ 
+ NotificationGroup::~NotificationGroup()
+ {
++    m_extenderItemsForNotification.clear();
++    m_notificationForExtenderItems.clear();
+     qDeleteAll(m_notifications);
+ }
+ 
+@@ -137,6 +139,11 @@
+ 
+ void NotificationGroup::extenderItemDestroyed(Plasma::ExtenderItem *object)
+ {
++    if (m_extenderItemsForNotification.isEmpty()) {
++        // either we aren't tracking this notification or else we're being deleted
++        return;
++    }
++
+     Notification *n = m_notificationForExtenderItems.value(object);
+ 
+     if (n) {
+@@ -148,10 +155,16 @@
+ 
+ void NotificationGroup::removeNotification(Notification *notification)
+ {
++    if (m_extenderItemsForNotification.isEmpty()) {
++        // either we aren't tracking this notification or else we're being deleted
++        return;
++    }
++
+     Plasma::ExtenderItem *item = m_extenderItemsForNotification.value(notification);
+     if (item) {
+         m_notificationForExtenderItems.remove(item);
+     }
++
+     m_extenderItemsForNotification.remove(notification);
+     m_notifications.removeAll(notification);
+     QString applicationName = m_appForNotification.value(notification);
+--- kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationstack.cpp.orig	2011-01-19 22:05:43.000000000 +0000
++++ kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationstack.cpp	2011-02-07 20:28:57.000000000 +0000
+@@ -54,11 +54,9 @@
+ void NotificationStack::addNotification(Notification *notification)
+ {
+     m_canDismissTimer->start(1000);
+-    connect(notification, SIGNAL(notificationDestroyed(Notification *)), this, SLOT(removeNotification(Notification *)));
+-    connect(notification, SIGNAL(expired(Notification *)), this, SLOT(delayedRemoveNotification(Notification *)));
+-
+-    disconnect(notification, SIGNAL(changed(Notification *)), this, SLOT(notificationChanged(Notification *)));
+-    connect(notification, SIGNAL(changed(Notification *)), this, SLOT(notificationChanged(Notification *)));
++    connect(notification, SIGNAL(notificationDestroyed(Notification *)), this, SLOT(removeNotification(Notification *)), Qt::UniqueConnection);
++    connect(notification, SIGNAL(expired(Notification *)), this, SLOT(delayedRemoveNotification(Notification *)),  Qt::UniqueConnection);
++    connect(notification, SIGNAL(changed(Notification *)), this, SLOT(notificationChanged(Notification *)), Qt::UniqueConnection);
+ 
+     NotificationWidget *notificationWidget = new NotificationWidget(notification, this);
+     notificationWidget->installEventFilter(this);
+--- kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notifications.cpp.orig	2011-01-19 22:05:43.000000000 +0000
++++ kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notifications.cpp	2011-02-07 20:29:26.000000000 +0000
+@@ -106,6 +106,9 @@
+ {
+     // stop listening to the manager
+     disconnect(m_manager, 0, this, 0);
++    if (m_notificationStackDialog) {
++        disconnect(m_notificationStackDialog, 0, this, 0);
++    }
+ 
+     foreach (Notification *notification, m_manager->notifications()) {
+         // we don't want a destroyed managed after the destruction of manager
+@@ -342,10 +345,10 @@
+         return;
+     }
+ 
+-    if (extenderItem->config().readEntry("type", "") == "job") {
++    if (extenderItem->config().readEntry("type", QString()) == "job") {
+         extenderItem->setWidget(new JobWidget(0, extenderItem));
+-    //unknown type, this should never happen
+     } else {
++        //unknown type, this should never happen
+         extenderItem->destroy();
+     }
+ 
+--- kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationwidget.cpp.orig	2011-01-19 22:05:43.000000000 +0000
++++ kdebase-workspace-4.6.0/plasma/generic/applets/notifications/ui/notificationwidget.cpp	2011-02-07 20:29:30.000000000 +0000
+@@ -43,7 +43,6 @@
+ 
+ #include <Plasma/Animation>
+ #include <Plasma/Animator>
+-#include <Plasma/Extender>
+ #include <Plasma/Frame>
+ #include <Plasma/IconWidget>
+ #include <Plasma/Label>
+@@ -170,7 +169,7 @@
+     d->notification = notification;
+ 
+     connect(d->signalMapper, SIGNAL(mapped(const QString &)),
+-            d->notification.data(), SLOT(triggerAction(const QString &)));
++            notification, SLOT(triggerAction(const QString &)));
+     connect(notification, SIGNAL(changed()),
+             this, SLOT(updateNotification()));
+     connect(notification, SIGNAL(destroyed()),
