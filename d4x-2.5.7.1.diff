@@ -33,6 +33,16 @@
  	if (a) codepage=a+1;
  };
  
+--- d4x-2.5.7.1/main/sslsocket.h.orig	2005-09-16 05:23:52.000000000 +0100
++++ d4x-2.5.7.1/main/sslsocket.h	2011-02-09 07:27:50.000000000 +0000
+@@ -10,6 +10,7 @@
+ 	class SSLSocket:public tSocket{
+ 		SSL_CTX *ctx;
+ 		SSL *Handler;
++		int wait_for_read(int len);
+ 		fsize_t lowlevel_read(char *where,fsize_t len);
+ 	public:
+ 		SSLSocket();
 --- d4x-2.5.7.1/main/locstr.cc.orig	2005-11-11 21:38:45.000000000 +0000
 +++ d4x-2.5.7.1/main/locstr.cc	2011-02-05 19:06:37.000000000 +0000
 @@ -281,7 +281,7 @@
@@ -150,7 +160,7 @@
  		size_type r=rfind('/',p-1);
  		if (r!=npos){
 --- d4x-2.5.7.1/main/socket.cc.orig	2006-04-09 13:39:25.000000000 +0100
-+++ d4x-2.5.7.1/main/socket.cc	2011-02-05 18:59:24.000000000 +0000
++++ d4x-2.5.7.1/main/socket.cc	2011-02-09 07:40:37.000000000 +0000
 @@ -165,10 +165,10 @@
  		return(SOCKET_CANT_ALLOCATE);
  	int a=1;
@@ -217,6 +227,19 @@
  	tString *temp=answer->last();
  	if (!temp) return -1;
  	fsize_t rvalue=0;
+--- d4x-2.5.7.1/main/socket.h.orig	2006-04-05 20:41:08.000000000 +0100
++++ d4x-2.5.7.1/main/socket.h	2011-02-09 07:26:13.000000000 +0000
+@@ -50,8 +50,8 @@
+ 	char *buffer;
+ 	int RBytes,SBytes;
+ 	bool constr_name(const char *host,guint16 port);
+-	int wait_for_read(int len);
+-	int wait_for_write(int len);
++	virtual int wait_for_read(int len);
++	virtual int wait_for_write(int len);
+ 	bool connect_impl();
+ 	virtual fsize_t lowlevel_read(char *where,fsize_t len);
+  public:
 --- d4x-2.5.7.1/main/face/edit.cc.orig	2006-03-20 00:10:36.000000000 +0000
 +++ d4x-2.5.7.1/main/face/edit.cc	2011-02-05 18:56:06.000000000 +0000
 @@ -1450,7 +1450,7 @@
@@ -240,7 +263,7 @@
  #include <stdio.h>
  #include <gtk/gtk.h>
 --- d4x-2.5.7.1/main/sslsocket.cc.orig	2005-09-16 05:27:04.000000000 +0100
-+++ d4x-2.5.7.1/main/sslsocket.cc	2011-02-06 07:13:23.000000000 +0000
++++ d4x-2.5.7.1/main/sslsocket.cc	2011-02-09 07:40:55.000000000 +0000
 @@ -23,8 +23,26 @@
  		return(SOCKET_CANT_CONNECT);
  	con_flag=0;
@@ -299,7 +322,7 @@
  	con_flag=1;
  	return 0;
  };
-@@ -43,14 +79,53 @@
+@@ -43,16 +79,60 @@
  int SSLSocket::send_string(const char *what,int timeout){
  	DBC_RETVAL_IF_FAIL(what!=NULL,-1);
  	int a=strlen(what);
@@ -350,8 +373,15 @@
 +		    break;
 +	    }
 +	}
-+
 +	return rv;
  };
  
++int SSLSocket::wait_for_read(int len){
++	if (SSL_pending(Handler) > 0)
++	    return 0;
++	return tSocket::wait_for_read(len);
++}
++
  void SSLSocket::down(){
+ 	if (con_flag)
+ 		SSL_shutdown(Handler);
