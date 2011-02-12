@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<title>ATLAS on Debian Squeeze (AMD64) | Biboroku</title>
+<link rel="profile" href="http://gmpg.org/xfn/11" />
+<link rel="stylesheet" type="text/css" media="all" href="http://okomestudio.net/biboroku/wp-content/themes/twentyten/style.css" />
+<link rel="pingback" href="http://okomestudio.net/biboroku/xmlrpc.php" />
+<link rel="alternate" type="application/rss+xml" title="Biboroku &raquo; Feed" href="http://okomestudio.net/biboroku/?feed=rss2" />
+<link rel="alternate" type="application/rss+xml" title="Biboroku &raquo; Comments Feed" href="http://okomestudio.net/biboroku/?feed=comments-rss2" />
+<link rel="alternate" type="application/rss+xml" title="Biboroku &raquo; ATLAS on Debian Squeeze (AMD64) Comments Feed" href="http://okomestudio.net/biboroku/?feed=rss2&amp;p=1328" />
+<script type='text/javascript' src='http://okomestudio.net/biboroku/wp-includes/js/comment-reply.js?ver=20090102'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://okomestudio.net/biboroku/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://okomestudio.net/biboroku/wp-includes/wlwmanifest.xml" /> 
+<link rel='index' title='Biboroku' href='http://okomestudio.net/biboroku' />
+<link rel='start' title='K3b on Debian Lenny' href='http://okomestudio.net/biboroku/?p=53' />
+<link rel='prev' title='Installing IRAF version 2.15 on Debian Squeeze' href='http://okomestudio.net/biboroku/?p=1302' />
+<link rel='next' title='FFTW on Debian Squeeze (AMD64)' href='http://okomestudio.net/biboroku/?p=1339' />
+<meta name="generator" content="WordPress 3.0.4" />
+<link rel='canonical' href='http://okomestudio.net/biboroku/?p=1328' />
+<link rel='shortlink' href='http://wp.me/p1gMVz-lq' />
+<style type="text/css">
+/* <![CDATA[ */
+img.latex { vertical-align: middle; border: none; }
+/* ]]> */
+</style>
+<meta id="syntaxhighlighteranchor" name="syntaxhighlighter-version" content="3.1.1" />
+</head>
+
+<body class="single single-post postid-1328">
+<div id="wrapper" class="hfeed">
+	<div id="header">
+		<div id="masthead">
+			<div id="branding" role="banner">
+								<div id="site-title">
+					<span>
+						<a href="http://okomestudio.net/biboroku/" title="Biboroku" rel="home">Biboroku</a>
+					</span>
+				</div>
+				<div id="site-description">Taro Sato&#039;s Memorandum</div>
+
+										<img src="http://okomestudio.net/biboroku/wp-content/themes/twentyten/images/headers/berries.jpg" width="940" height="198" alt="" />
+								</div><!-- #branding -->
+
+			<div id="access" role="navigation">
+			  				<div class="skip-link screen-reader-text"><a href="#content" title="Skip to content">Skip to content</a></div>
+								<div class="menu"><ul><li ><a href="http://okomestudio.net/biboroku/" title="Home">Home</a></li><li class="page_item page-item-2"><a href="http://okomestudio.net/biboroku/?page_id=2" title="About">About</a></li><li class="page_item page-item-1460"><a href="http://okomestudio.net/biboroku/?page_id=1460" title="About This Blog">About This Blog</a></li><li class="page_item page-item-397"><a href="http://okomestudio.net/biboroku/?page_id=397" title="Presentations">Presentations</a></li></ul></div>
+			</div><!-- #access -->
+		</div><!-- #masthead -->
+	</div><!-- #header -->
+
+	<div id="main">
+
+		<div id="container">
+			<div id="content" role="main">
+
+
+				<div id="nav-above" class="navigation">
+					<div class="nav-previous"><a href="http://okomestudio.net/biboroku/?p=1302" rel="prev"><span class="meta-nav">&larr;</span> Installing IRAF version 2.15 on Debian Squeeze</a></div>
+					<div class="nav-next"><a href="http://okomestudio.net/biboroku/?p=1339" rel="next">FFTW on Debian Squeeze (AMD64) <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-above -->
+
+				<div id="post-1328" class="post-1328 post type-post hentry category-uncategorized tag-admin tag-atlas tag-computing tag-debian tag-debiansqueeze tag-install-procedure tag-linux tag-research-2 tag-software">
+					<h1 class="entry-title">ATLAS on Debian Squeeze (AMD64)</h1>
+
+					<div class="entry-meta">
+						<span class="meta-prep meta-prep-author">Posted on</span> <a href="http://okomestudio.net/biboroku/?p=1328" title="9:38 am" rel="bookmark"><span class="entry-date">November 30, 2010</span></a> <span class="meta-sep">by</span> <span class="author vcard"><a class="url fn n" href="http://okomestudio.net/biboroku/?author=1" title="View all posts by Taro">Taro</a></span>					</div><!-- .entry-meta -->
+
+					<div class="entry-content">
+						<h4>Installing from Debian Repository</h4>
+<pre><code>$ sudo aptitude install libatlas3gf-base
+$ sudo aptitude install libatlas-base-dev</code></pre>
+<p>The second line is necessary only for development.</p>
+<h4>Installing from Source</h4>
+<p><em>Disable CPU throttling</em>.  Find out how many CPUs I have:</p>
+<pre><code>$ cat /proc/cpuinfo
+... info for each CPU ...</code></pre>
+<p>Check which CPU I have.  Mine is ﻿﻿Intel(R) Core(TM) i5 CPU M 520 @ 2.40GHz and there are four CPUs (really two CPUs but becomes four with hyperthreading).  Set each CPU&#8217;s governor as performance:</p>
+<pre><code>$ for i in {0..3}; do sudo cpufreq-set -g performance -c $i ; done</code></pre>
+<p>(Note &#8220;{0..3}&#8221; should reflect how many CPUs there are; for a dual core machine, it probably should be {0..1}.)</p>
+<p>In case, do this first:</p>
+<pre><code>$ sudo aptitude install gcc gfortran</code></pre>
+<p>I download tarballs for <a href="http://math-atlas.sourceforge.net/">ATLAS</a> and <a href="http://www.netlib.org/lapack/">LAPACK</a> from the official repositories.  Here I use ATLAS 3.9.32 (still a development version) and LAPACK   3.3.0.  I assume the compiled library and header files will be installed   at <em>/usr/local/atlas</em>-3.9.32, which will be symbolic linked at <em>/usr/local/atlas</em>.</p>
+<p>Prepare the source directory:</p>
+<pre><code>$ mkdir tmp
+$ cd tmp
+$ wget http://www.netlib.org/lapack/lapack.tgz  # at the time of writing this is v3.3.0
+... download the tarball for ATLAS from sourceforge ...
+$ tar -xvjf atlas3.9.32.tar.bz2
+$ mv ATLAS atlas-3.9.32
+$ ln -s atlas-3.9.32 atlas
+$ mkdir atlas/bld
+$ cd atlas/bld
+$ ../configure -b 64 --shared \
+  --prefix=/usr/local/atlas-3.9.32 --with-netlib-lapack-tarfile=../../lapack.tgz</code></pre>
+<p><em>Hidden symbol in gcc error</em>.  Now this may only be relevant to my current configuration, but when I linked some other program against my custom ATLAS build (I was compiling SExtractor), I have the following error:</p>
+<pre><code>/usr/bin/ld: prog: hidden symbol `__powidf2' in /usr/lib/gcc/x86_64-.../libgcc.a(_powidf2.o) is referenced by DSO
+/usr/bin/ld: final link failed: Nonrepresentable section on output</code></pre>
+<p>which prevented me to build programs which link to ATLAS.  It took a while to find a fix, but to prevent this error, I need to modify <em>lib/Makefile</em> in the bld directory (after I run ../configure once) so that</p>
+<pre><code>liblapack.so : liblapack.a
+        ld $(LDFLAGS) -shared -soname $(LIBINSTdir)/liblapack.so \
+            -o liblapack.so  -rpath-link $(LIBINSTdir) --whole-archive \
+           liblapack.a --no-whole-archive $(F77SYSLIB) <span style="color: #ff0000;">-lgcc</span></code></pre>
+<p>&#8220;-lgcc&#8221; (in red) is added.</p>
+<p><em>Specifying Architecture</em>.  The build process might take very long time if I don&#8217;t specify right architecture.  Do this:</p>
+<pre><code>$ make xprint_enums ; ./xprint_enums</code></pre>
+<p>and I get a list of enums for different CPU architectures.  Mine is Intel Core i5, which isn&#8217;t actually listed but I figured it might be close enough to Core i7, so I chose that one (18).  I will feed this to the configure script.  Earlier I also found out that my CPU runs at 2.4 GHz.  I will also feed this info to the configure script as seen next.</p>
+<p>Now we do:</p>
+<pre><code>$ ../configure <span style="color: #ff0000;">-A 18</span> -b 64 <span style="color: #ff0000;">-D c -DPentiumCPS=2400</span> -Fa alg -fPIC --shared \
+  --prefix=/usr/local/atlas-3.9.32 --with-netlib-lapack-tarfile=../../lapack.tgz
+$ time make build</code></pre>
+<p>(Note the options &#8220;-A 18&#8243; and &#8220;-D c -DPentiumCPS=2400&#8243; have been added.)  This takes about 15 minutes on my Lenovo T410s.</p>
+<p>If I wish to do some checking, do:</p>
+<pre><code>$ make check
+...
+$ make time
+...</code></pre>
+<p>I may wish to compare the outputs with that found in <em>../doc/atlas_install.pdf</em>.  My timing tests look like this:</p>
+<pre><code>            single precision                  double precision
+            ********************************  *******************************
+            real             complex          real             complex
+            ---------------  ---------------  ---------------  ---------------
+Benchmark   Refrenc Present  Refrenc Present  Refrenc Present  Refrenc Present
+=========   ======= =======  ======= =======  ======= =======  ======= =======
+kSelMM      718.6   863.4    663.4   798.7    339.3   402.4    334.5   405.6
+kGenMM      185.4   216.8    183.8   218.6    179.1   194.9    177.6   204.4
+kMM_NT      157.9   186.7    160.7   190.1    170.5   172.2    166.6   186.3
+kMM_TN      177.7   206.6    184.3   217.9    171.4   186.0    169.7   196.2
+BIG_MM      679.2   796.3    691.1   802.4    322.9   353.8    323.2   357.0
+kMV_N       175.7   149.6    353.1   292.1     92.3    74.3    159.5   136.8
+kMV_T       182.3   150.2    372.1   296.8     94.8    76.3    161.9   139.4
+kGER        137.9   109.1    267.2   213.1     68.9    52.2    121.7   103.1
+make[1]: Leaving directory `/usr/local/src/atlas/atlas-3.9.32/bld'</code></pre>
+<p>If I don&#8217;t find any problem, finally do:</p>
+<pre><code>$ sudo make install
+$ sudo ln -s /usr/local/atlas-3.9.32 /usr/local/atlas</code></pre>
+<p>That&#8217;s it.</p>
+											</div><!-- .entry-content -->
+
+
+					<div class="entry-utility">
+						This entry was posted in <a href="http://okomestudio.net/biboroku/?cat=1" title="View all posts in Uncategorized" rel="category">Uncategorized</a> and tagged <a href="http://okomestudio.net/biboroku/?tag=admin" rel="tag">admin</a>, <a href="http://okomestudio.net/biboroku/?tag=atlas" rel="tag">ATLAS</a>, <a href="http://okomestudio.net/biboroku/?tag=computing" rel="tag">computing</a>, <a href="http://okomestudio.net/biboroku/?tag=debian" rel="tag">Debian</a>, <a href="http://okomestudio.net/biboroku/?tag=debiansqueeze" rel="tag">Debian/Squeeze</a>, <a href="http://okomestudio.net/biboroku/?tag=install-procedure" rel="tag">install procedure</a>, <a href="http://okomestudio.net/biboroku/?tag=linux" rel="tag">Linux</a>, <a href="http://okomestudio.net/biboroku/?tag=research-2" rel="tag">research</a>, <a href="http://okomestudio.net/biboroku/?tag=software" rel="tag">software</a>. Bookmark the <a href="http://okomestudio.net/biboroku/?p=1328" title="Permalink to ATLAS on Debian Squeeze (AMD64)" rel="bookmark">permalink</a>.											</div><!-- .entry-utility -->
+				</div><!-- #post-## -->
+
+				<div id="nav-below" class="navigation">
+					<div class="nav-previous"><a href="http://okomestudio.net/biboroku/?p=1302" rel="prev"><span class="meta-nav">&larr;</span> Installing IRAF version 2.15 on Debian Squeeze</a></div>
+					<div class="nav-next"><a href="http://okomestudio.net/biboroku/?p=1339" rel="next">FFTW on Debian Squeeze (AMD64) <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-below -->
+
+				
+			<div id="comments">
+
+
+			<h3 id="comments-title">3 Responses to <em>ATLAS on Debian Squeeze (AMD64)</em></h3>
+
+
+			<ol class="commentlist">
+					<li class="post pingback">
+		<p>Pingback: <a href='http://nomo17k.wordpress.com/2010/11/30/sextractor-on-debian-squeeze-amd64/' rel='external nofollow' class='url'>SExtractor on Debian Squeeze (AMD64) &laquo; Biboroku</a></p>
+	</li>
+	<li class="comment even thread-even depth-1" id="li-comment-121">
+		<div id="comment-121">
+		<div class="comment-author vcard">
+			<img alt='' src='http://1.gravatar.com/avatar/75b88d7c9e85be0a5a06ef7ffdf2aeae?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			<cite class="fn">Bruno</cite> <span class="says">says:</span>		</div><!-- .comment-author .vcard -->
+		
+		<div class="comment-meta commentmetadata"><a href="http://okomestudio.net/biboroku/?p=1328#comment-121">
+			December 30, 2010 at 7:15 pm</a>		</div><!-- .comment-meta .commentmetadata -->
+
+		<div class="comment-body"><p>Many thanks for the solution of the &#8220;hidden symbol `__powidf2&#8242; bug&#8221;.</p>
+</div>
+
+		<div class="reply">
+			<a rel='nofollow' class='comment-reply-link' href='/biboroku/?p=1328&#038;replytocom=121#respond' onclick='return addComment.moveForm("comment-121", "121", "respond", "1328")'>Reply</a>		</div><!-- .reply -->
+	</div><!-- #comment-##  -->
+
+	</li>
+	<li class="post pingback">
+		<p>Pingback: <a href='http://okomestudio.net/biboroku/?p=1344' rel='external nofollow' class='url'>SExtractor on Debian Squeeze (AMD64) | Biboroku</a></p>
+	</li>
+			</ol>
+
+
+
+								<div id="respond">
+				<h3 id="reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="/biboroku/?p=1328#respond" style="display:none;">Cancel reply</a></small></h3>
+									<form action="http://okomestudio.net/biboroku/wp-comments-post.php" method="post" id="commentform">
+																			<p class="comment-notes">Your email address will not be published. Required fields are marked <span class="required">*</span></p>							<p class="comment-form-author"><label for="author">Name</label> <span class="required">*</span><input id="author" name="author" type="text" value="" size="30" aria-required='true' /></p>
+<p class="comment-form-email"><label for="email">Email</label> <span class="required">*</span><input id="email" name="email" type="text" value="" size="30" aria-required='true' /></p>
+<p class="comment-form-url"><label for="url">Website</label><input id="url" name="url" type="text" value="" size="30" /></p>
+												<p class="comment-form-comment"><label for="comment">Comment</label><textarea id="comment" name="comment" cols="45" rows="8" aria-required="true"></textarea></p>						<p class="form-allowed-tags">You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:  <code>&lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </code></p>						<p class="form-submit">
+							<input name="submit" type="submit" id="submit" value="Post Comment" />
+							<input type='hidden' name='comment_post_ID' value='1328' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+						</p>
+						<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="fbd3514e6b" /></p>					</form>
+							</div><!-- #respond -->
+						
+</div><!-- #comments -->
+
+
+			</div><!-- #content -->
+		</div><!-- #container -->
+
+
+		<div id="primary" class="widget-area" role="complementary">
+			<ul class="xoxo">
+
+<li id="tag_cloud-3" class="widget-container widget_tag_cloud"><h3 class="widget-title">Tags</h3><div><a href='http://okomestudio.net/biboroku/?tag=admin' class='tag-link-21' title='53 topics' style='font-size: 22pt;'>admin</a>
+<a href='http://okomestudio.net/biboroku/?tag=astro' class='tag-link-22' title='14 topics' style='font-size: 16.6153846154pt;'>astro</a>
+<a href='http://okomestudio.net/biboroku/?tag=atlas' class='tag-link-23' title='2 topics' style='font-size: 9.76223776224pt;'>ATLAS</a>
+<a href='http://okomestudio.net/biboroku/?tag=bash' class='tag-link-24' title='1 topic' style='font-size: 8pt;'>Bash</a>
+<a href='http://okomestudio.net/biboroku/?tag=computing' class='tag-link-92' title='10 topics' style='font-size: 15.2447552448pt;'>computing</a>
+<a href='http://okomestudio.net/biboroku/?tag=debian' class='tag-link-15' title='35 topics' style='font-size: 20.3356643357pt;'>Debian</a>
+<a href='http://okomestudio.net/biboroku/?tag=debianlenny' class='tag-link-93' title='5 topics' style='font-size: 12.6993006993pt;'>Debian/Lenny</a>
+<a href='http://okomestudio.net/biboroku/?tag=debiansqueeze' class='tag-link-25' title='37 topics' style='font-size: 20.5314685315pt;'>Debian/Squeeze</a>
+<a href='http://okomestudio.net/biboroku/?tag=dropbox' class='tag-link-26' title='1 topic' style='font-size: 8pt;'>Dropbox</a>
+<a href='http://okomestudio.net/biboroku/?tag=ds9' class='tag-link-27' title='1 topic' style='font-size: 8pt;'>DS9</a>
+<a href='http://okomestudio.net/biboroku/?tag=emacs' class='tag-link-28' title='1 topic' style='font-size: 8pt;'>Emacs</a>
+<a href='http://okomestudio.net/biboroku/?tag=epson-perfection-v30' class='tag-link-29' title='1 topic' style='font-size: 8pt;'>Epson Perfection V30</a>
+<a href='http://okomestudio.net/biboroku/?tag=evernote' class='tag-link-30' title='1 topic' style='font-size: 8pt;'>Evernote</a>
+<a href='http://okomestudio.net/biboroku/?tag=fftw' class='tag-link-31' title='2 topics' style='font-size: 9.76223776224pt;'>FFTW</a>
+<a href='http://okomestudio.net/biboroku/?tag=firefox' class='tag-link-32' title='2 topics' style='font-size: 9.76223776224pt;'>Firefox</a>
+<a href='http://okomestudio.net/biboroku/?tag=hardware' class='tag-link-33' title='12 topics' style='font-size: 15.9300699301pt;'>hardware</a>
+<a href='http://okomestudio.net/biboroku/?tag=high-performance-computing' class='tag-link-34' title='1 topic' style='font-size: 8pt;'>high performance computing</a>
+<a href='http://okomestudio.net/biboroku/?tag=install-procedure' class='tag-link-35' title='53 topics' style='font-size: 22pt;'>install procedure</a>
+<a href='http://okomestudio.net/biboroku/?tag=japanese' class='tag-link-36' title='1 topic' style='font-size: 8pt;'>Japanese</a>
+<a href='http://okomestudio.net/biboroku/?tag=jwm' class='tag-link-37' title='1 topic' style='font-size: 8pt;'>JWM</a>
+<a href='http://okomestudio.net/biboroku/?tag=kernel' class='tag-link-38' title='1 topic' style='font-size: 8pt;'>kernel</a>
+<a href='http://okomestudio.net/biboroku/?tag=last-fm' class='tag-link-39' title='1 topic' style='font-size: 8pt;'>Last.fm</a>
+<a href='http://okomestudio.net/biboroku/?tag=latex' class='tag-link-40' title='1 topic' style='font-size: 8pt;'>LaTeX</a>
+<a href='http://okomestudio.net/biboroku/?tag=linux' class='tag-link-8' title='48 topics' style='font-size: 21.6083916084pt;'>Linux</a>
+<a href='http://okomestudio.net/biboroku/?tag=multimedia' class='tag-link-41' title='2 topics' style='font-size: 9.76223776224pt;'>multimedia</a>
+<a href='http://okomestudio.net/biboroku/?tag=music-2' class='tag-link-42' title='1 topic' style='font-size: 8pt;'>music</a>
+<a href='http://okomestudio.net/biboroku/?tag=network' class='tag-link-43' title='4 topics' style='font-size: 11.9160839161pt;'>network</a>
+<a href='http://okomestudio.net/biboroku/?tag=nevernote' class='tag-link-44' title='1 topic' style='font-size: 8pt;'>Nevernote</a>
+<a href='http://okomestudio.net/biboroku/?tag=nvidia-geforce-8800-gt' class='tag-link-45' title='1 topic' style='font-size: 8pt;'>NVIDIA GeForce 8800 GT</a>
+<a href='http://okomestudio.net/biboroku/?tag=os-x' class='tag-link-46' title='13 topics' style='font-size: 16.3216783217pt;'>OS X</a>
+<a href='http://okomestudio.net/biboroku/?tag=os-xleopard' class='tag-link-91' title='4 topics' style='font-size: 11.9160839161pt;'>OS X/Leopard</a>
+<a href='http://okomestudio.net/biboroku/?tag=os-xsnow-leopard' class='tag-link-47' title='8 topics' style='font-size: 14.3636363636pt;'>OS X/Snow Leopard</a>
+<a href='http://okomestudio.net/biboroku/?tag=privoxy' class='tag-link-48' title='1 topic' style='font-size: 8pt;'>privoxy</a>
+<a href='http://okomestudio.net/biboroku/?tag=programming' class='tag-link-49' title='4 topics' style='font-size: 11.9160839161pt;'>programming</a>
+<a href='http://okomestudio.net/biboroku/?tag=ps3' class='tag-link-50' title='1 topic' style='font-size: 8pt;'>PS3</a>
+<a href='http://okomestudio.net/biboroku/?tag=pyfits' class='tag-link-51' title='1 topic' style='font-size: 8pt;'>PyFITS</a>
+<a href='http://okomestudio.net/biboroku/?tag=python' class='tag-link-52' title='17 topics' style='font-size: 17.3986013986pt;'>Python</a>
+<a href='http://okomestudio.net/biboroku/?tag=reference' class='tag-link-54' title='6 topics' style='font-size: 13.3846153846pt;'>reference</a>
+<a href='http://okomestudio.net/biboroku/?tag=research-2' class='tag-link-55' title='10 topics' style='font-size: 15.2447552448pt;'>research</a>
+<a href='http://okomestudio.net/biboroku/?tag=sextractor' class='tag-link-58' title='3 topics' style='font-size: 10.9370629371pt;'>SExtractor</a>
+<a href='http://okomestudio.net/biboroku/?tag=software' class='tag-link-60' title='38 topics' style='font-size: 20.6293706294pt;'>software</a>
+<a href='http://okomestudio.net/biboroku/?tag=stellar-population-synthesis' class='tag-link-61' title='2 topics' style='font-size: 9.76223776224pt;'>stellar population synthesis</a>
+<a href='http://okomestudio.net/biboroku/?tag=t410s' class='tag-link-62' title='3 topics' style='font-size: 10.9370629371pt;'>T410s</a>
+<a href='http://okomestudio.net/biboroku/?tag=usb' class='tag-link-65' title='2 topics' style='font-size: 9.76223776224pt;'>USB</a>
+<a href='http://okomestudio.net/biboroku/?tag=web-browser' class='tag-link-67' title='3 topics' style='font-size: 10.9370629371pt;'>web browser</a></div>
+</li><li id="search-2" class="widget-container widget_search"><form role="search" method="get" id="searchform" action="http://okomestudio.net/biboroku/" >
+	<div><label class="screen-reader-text" for="s">Search for:</label>
+	<input type="text" value="" name="s" id="s" />
+	<input type="submit" id="searchsubmit" value="Search" />
+	</div>
+	</form></li>		<li id="recent-posts-2" class="widget-container widget_recent_entries">		<h3 class="widget-title">Recent Posts</h3>		<ul>
+				<li><a href="http://okomestudio.net/biboroku/?p=1636" title="SciPy Weave Bug in Debian Squeeze">SciPy Weave Bug in Debian Squeeze</a></li>
+				<li><a href="http://okomestudio.net/biboroku/?p=1629" title="Comparing the Efficiencies of Gaussian Convolution Routines">Comparing the Efficiencies of Gaussian Convolution Routines</a></li>
+				<li><a href="http://okomestudio.net/biboroku/?p=1582" title="Using NTP Server to Synchronize Time on Debian Squeeze">Using NTP Server to Synchronize Time on Debian Squeeze</a></li>
+				<li><a href="http://okomestudio.net/biboroku/?p=1457" title="Suppressing Warnings in PyFITS">Suppressing Warnings in PyFITS</a></li>
+				<li><a href="http://okomestudio.net/biboroku/?p=1445" title="Installing Firefox 4 Beta 9 on Debian Squeeze">Installing Firefox 4 Beta 9 on Debian Squeeze</a></li>
+				</ul>
+		</li><li id="recent-comments-2" class="widget-container widget_recent_comments"><h3 class="widget-title">Recent Comments</h3><ul id="recentcomments"><li class="recentcomments"><a href='http://topsy.com/trackback?url=http%3A%2F%2Fokomestudio.net%2Fbiboroku%2F%3Fp%3D931&#038;utm_source=pingback&#038;utm_campaign=L2' rel='external nofollow' class='url'>Tweets that mention Installing Kindle for PC on Debian Squeeze | Biboroku -- Topsy.com</a> on <a href="http://okomestudio.net/biboroku/?p=931#comment-230">Installing Kindle for PC on Debian Squeeze</a></li><li class="recentcomments">Bob on <a href="http://okomestudio.net/biboroku/?p=931#comment-220">Installing Kindle for PC on Debian Squeeze</a></li><li class="recentcomments"><a href='http://www.blueinkalchemy.com/' rel='external nofollow' class='url'>Josh</a> on <a href="http://okomestudio.net/biboroku/?p=931#comment-197">Installing Kindle for PC on Debian Squeeze</a></li><li class="recentcomments">Taro on <a href="http://okomestudio.net/biboroku/?p=931#comment-191">Installing Kindle for PC on Debian Squeeze</a></li><li class="recentcomments">Taro on <a href="http://okomestudio.net/biboroku/?p=1429#comment-190">Mounting an ext4 Partition over NFS on Mac OS X Snow Leopard</a></li></ul></li><li id="archives-2" class="widget-container widget_archive"><h3 class="widget-title">Archives</h3>		<ul>
+			<li><a href='http://okomestudio.net/biboroku/?m=201102' title='February 2011'>February 2011</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201101' title='January 2011'>January 2011</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201012' title='December 2010'>December 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201011' title='November 2010'>November 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201010' title='October 2010'>October 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201008' title='August 2010'>August 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201006' title='June 2010'>June 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201005' title='May 2010'>May 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201004' title='April 2010'>April 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201003' title='March 2010'>March 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201002' title='February 2010'>February 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=201001' title='January 2010'>January 2010</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200912' title='December 2009'>December 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200911' title='November 2009'>November 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200908' title='August 2009'>August 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200907' title='July 2009'>July 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200906' title='June 2009'>June 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200904' title='April 2009'>April 2009</a></li>
+	<li><a href='http://okomestudio.net/biboroku/?m=200903' title='March 2009'>March 2009</a></li>
+		</ul>
+</li><li id="meta-2" class="widget-container widget_meta"><h3 class="widget-title">Meta</h3>			<ul>
+						<li><a href="http://okomestudio.net/biboroku/wp-login.php">Log in</a></li>
+			<li><a href="http://okomestudio.net/biboroku/?feed=rss2" title="Syndicate this site using RSS 2.0">Entries <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://okomestudio.net/biboroku/?feed=comments-rss2" title="The latest comments to all posts in RSS">Comments <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://wordpress.org/" title="Powered by WordPress, state-of-the-art semantic personal publishing platform.">WordPress.org</a></li>
+						</ul>
+</li>			</ul>
+		</div><!-- #primary .widget-area -->
+
+	</div><!-- #main -->
+
+	<div id="footer" role="contentinfo">
+		<div id="colophon">
+
+
+
+			<div id="site-info">
+				<a href="http://okomestudio.net/biboroku/" title="Biboroku" rel="home">
+					Biboroku				</a>
+			</div><!-- #site-info -->
+
+			<div id="site-generator">
+								<a href="http://wordpress.org/"
+						title="Semantic Personal Publishing Platform" rel="generator">
+					Proudly powered by WordPress.				</a> <a href="http://www.simplescripts.com/script_details/install:WordPress" title="install WordPress">Install WordPress</a> <a href="http://www.bluehost.com" title="web hosting">web hosting</a>
+			</div><!-- #site-generator -->
+
+		</div><!-- #colophon -->
+	</div><!-- #footer -->
+
+</div><!-- #wrapper -->
+
+<!--stats_footer_test--><script src="http://stats.wordpress.com/e-201106.js" type="text/javascript"></script>
+<script type="text/javascript">
+st_go({blog:'18777665',v:'ext',post:'1328'});
+var load_cmc = function(){linktracker_init(18777665,1328,2);};
+if ( typeof addLoadEvent != 'undefined' ) addLoadEvent(load_cmc);
+else load_cmc();
+</script>
+</body>
+</html>
