@@ -1,0 +1,220 @@
+--- octave-3.4.0/scripts/pkg/pkg.m.orig	2011-02-08 10:00:51.000000000 +0000
++++ octave-3.4.0/scripts/pkg/pkg.m	2011-02-13 06:23:56.000000000 +0000
+@@ -514,13 +514,13 @@
+     if (verbose)
+       printf ("recreating package description from %s\n", dirlist{k});
+     endif
+-    if (exist (descfile, "file"))
++    if (exist (descfile, "file") == 2)
+       desc = get_description (descfile);
+       desc.dir = fullfile (prefix, dirlist{k});
+       desc.archprefix = fullfile (archprefix, cstrcat (desc.name, "-",
+                                   desc.version));
+       if (auto != 0)
+-        if (exist (fullfile (desc.dir, "packinfo", ".autoload"), "file"))
++        if (exist (fullfile (desc.dir, "packinfo", ".autoload"), "file") == 2)
+           unlink (fullfile (desc.dir, "packinfo", ".autoload"));
+         endif
+         if (auto < 0)
+@@ -530,7 +530,7 @@
+           fclose (fopen (fullfile (desc.dir, "packinfo", ".autoload"), "wt"));
+         endif
+       else
+-        if (exist (fullfile (desc.dir, "packinfo", ".autoload"), "file"))
++        if (exist (fullfile (desc.dir, "packinfo", ".autoload"), "file") == 2)
+           desc.autoload = 1;
+         else
+           desc.autoload = 0;
+@@ -598,7 +598,7 @@
+     if (exist (installdir, "dir"))
+       rm_rf (installdir);
+     endif
+-    if (exist (buildlist, "file"))
++    if (exist (buildlist, "file") == 2)
+       unlink (buildlist);
+     endif
+   end_unwind_protect
+@@ -644,7 +644,7 @@
+     for i = 1:length (files)
+       tgz = files{i};
+ 
+-      if (exist (tgz, "file"))
++      if (exist (tgz, "file") == 2)
+         ## Create a temporary directory.
+         tmpdir = tmpnam ();
+         tmpdirs{end+1} = tmpdir;
+@@ -674,13 +674,13 @@
+       endif
+ 
+       ## The filename pointed to an uncompressed package to begin with.
+-      if (exist (tgz, "dir"))
++      if (exist (tgz, "dir") == 7)
+         dirlist = {".", "..", tgz};
+       endif
+ 
+       if (exist (tgz, "file") || exist (tgz, "dir"))
+         ## The two first entries of dirlist are "." and "..".
+-        if (exist (tgz, "file"))
++        if (exist (tgz, "file") == 2)
+           packdir = fullfile (tmpdir, dirlist{3});
+         else
+           packdir = fullfile (pwd(), dirlist{3});
+@@ -979,7 +979,7 @@
+   for i = delete_idx
+     desc = installed_pkgs_lst{i};
+     ## If an 'on_uninstall.m' exist, call it!
+-    if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
++    if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file") == 2)
+       wd = pwd ();
+       cd (fullfile (desc.dir, "packinfo"));
+       on_uninstall (desc);
+@@ -1099,7 +1099,7 @@
+ 
+   index_file = fullfile (packdir, "packinfo", "INDEX");
+ 
+-  if (! exist (index_file, "file"))
++  if (exist (index_file, "file") != 2)
+     error ("could not find any INDEX file in directory %s, try 'pkg rebuild all' to generate missing INDEX files", packdir);
+   endif
+ 
+@@ -1189,7 +1189,7 @@
+       mkdir (fullfile (pack.name, "inst"));
+       copyfile (fullfile (pack.dir, "*"), fullfile (pack.name, "inst"));
+       movefile (fullfile (pack.name, "inst","packinfo", "*"), pack.name);
+-      if (exist (fullfile (pack.name, "inst","packinfo", ".autoload"), "file"))
++      if (exist (fullfile (pack.name, "inst","packinfo", ".autoload"), "file") == 2)
+         unlink (fullfile (pack.name, "inst","packinfo", ".autoload"));
+       endif
+       rmdir (fullfile (pack.name, "inst", "packinfo"));
+@@ -1202,26 +1202,26 @@
+       archdir = fullfile (pack.archprefix, cstrcat (pack.name, "-",
+                           pack.version), getarch ());
+       if (exist (archdir, "dir"))
+-        if (exist (fullfile (pack.name, "inst", "PKG_ADD"), "file"))
++        if (exist (fullfile (pack.name, "inst", "PKG_ADD"), "file") == 2)
+           unlink (fullfile (pack.name, "inst", "PKG_ADD"));
+         endif
+-        if (exist (fullfile (pack.name, "inst", "PKG_DEL"), "file"))
++        if (exist (fullfile (pack.name, "inst", "PKG_DEL"), "file") == 2)
+           unlink (fullfile (pack.name, "inst", "PKG_DEL"));
+         endif
+-        if (exist (fullfile (archdir, "PKG_ADD"), "file"))
++        if (exist (fullfile (archdir, "PKG_ADD"), "file") == 2)
+           movefile (fullfile (archdir, "PKG_ADD"),
+                     fullfile (pack.name, "PKG_ADD"));
+         endif
+-        if (exist (fullfile (archdir, "PKG_DEL"), "file"))
++        if (exist (fullfile (archdir, "PKG_DEL"), "file") == 2)
+           movefile (fullfile (archdir, "PKG_DEL"),
+                     fullfile (pack.name, "PKG_DEL"));
+         endif
+       else
+-        if (exist (fullfile (pack.name, "inst", "PKG_ADD"), "file"))
++        if (exist (fullfile (pack.name, "inst", "PKG_ADD"), "file") == 2)
+           movefile (fullfile (pack.name, "inst", "PKG_ADD"),
+                     fullfile (pack.name, "PKG_ADD"));
+         endif
+-        if (exist (fullfile (pack.name, "inst", "PKG_DEL"), "file"))
++        if (exist (fullfile (pack.name, "inst", "PKG_DEL"), "file") == 2)
+           movefile (fullfile (pack.name, "inst", "PKG_DEL"),
+                     fullfile (pack.name, "PKG_DEL"));
+         endif
+@@ -1259,7 +1259,7 @@
+ 
+ function prepare_installation (desc, packdir)
+   ## Is there a pre_install to call?
+-  if (exist (fullfile (packdir, "pre_install.m"), "file"))
++  if (exist (fullfile (packdir, "pre_install.m"), "file") == 2)
+     wd = pwd ();
+     try
+       cd (packdir);
+@@ -1298,7 +1298,7 @@
+             "INSTALLDIR"; desc.dir};
+     scenv = sprintf ("%s=\"%s\" ", cenv{:});
+     ## Configure.
+-    if (exist (fullfile (src, "configure"), "file"))
++    if (exist (fullfile (src, "configure"), "file") == 2)
+       flags = "";
+       if (isempty (getenv ("CC")))
+         flags = cstrcat (flags, " CC=\"", octave_config_info ("CC"), "\"");
+@@ -1325,7 +1325,7 @@
+     endif
+ 
+     ## Make.
+-    if (exist (fullfile (src, "Makefile"), "file"))
++    if (exist (fullfile (src, "Makefile"), "file") == 2)
+       [status, output] = shell (cstrcat (scenv, "make -C '", src, "'"));
+       if (status != 0)
+         rm_rf (desc.dir);
+@@ -1342,7 +1342,7 @@
+     archdir = fullfile (packdir, "inst", getarch ());
+ 
+     ## Get file names.
+-    if (exist (files, "file"))
++    if (exist (files, "file") == 2)
+       [fid, msg] = fopen (files, "r");
+       if (fid < 0)
+         error ("couldn't open %s: %s", files, msg);
+@@ -1472,7 +1472,7 @@
+ 
+     ## Add developer included PKG commands.
+     packdirnm = fullfile (packdir, nm);
+-    if (exist (packdirnm, "file"))
++    if (exist (packdirnm, "file") == 2)
+       fid = fopen (packdirnm, "rt");
+       if (fid >= 0)
+         while (! feof (fid))
+@@ -1600,7 +1600,7 @@
+ 
+   ## If the file ChangeLog exists, copy it.
+   changelog_file = fullfile (packdir, "ChangeLog");
+-  if (exist (changelog_file, "file"))
++  if (exist (changelog_file, "file") == 2)
+     [status, output] = copyfile (changelog_file, packinfo);
+     if (status != 1)
+       rm_rf (desc.dir);
+@@ -1611,7 +1611,7 @@
+ 
+   ## Is there an INDEX file to copy or should we generate one?
+   index_file = fullfile (packdir, "INDEX");
+-  if (exist(index_file, "file"))
++  if (exist(index_file, "file") == 2)
+     [status, output] = copyfile (index_file, packinfo);
+     if (status != 1)
+       rm_rf (desc.dir);
+@@ -1631,7 +1631,7 @@
+ 
+   ## Is there an 'on_uninstall.m' to install?
+   fon_uninstall = fullfile (packdir, "on_uninstall.m");
+-  if (exist (fon_uninstall, "file"))
++  if (exist (fon_uninstall, "file") == 2)
+     [status, output] = copyfile (fon_uninstall, packinfo);
+     if (status != 1)
+       rm_rf (desc.dir);
+@@ -1656,7 +1656,7 @@
+ 
+ function finish_installation (desc, packdir, global_install)
+   ## Is there a post-install to call?
+-  if (exist (fullfile (packdir, "post_install.m"), "file"))
++  if (exist (fullfile (packdir, "post_install.m"), "file") == 2)
+     wd = pwd ();
+     try
+       cd (packdir);
+@@ -1682,7 +1682,7 @@
+ function verify_directory (dir)
+   needed_files = {"COPYING", "DESCRIPTION"};
+   for f = needed_files
+-    if (! exist (fullfile (dir, f{1}), "file"))
++    if (exist (fullfile (dir, f{1}), "file") != 2)
+       error ("package is missing file: %s", f{1});
+     endif
+   endfor
+@@ -2086,7 +2086,7 @@
+   elseif (length (files) == 1 && strcmp (files{1}, "auto"))
+     idx = [];
+     for i = 1:length (installed_pkgs_lst)
+-      if (exist (fullfile (pdirs{i}, "packinfo", ".autoload"), "file"))
++      if (exist (fullfile (pdirs{i}, "packinfo", ".autoload"), "file") == 2)
+         idx (end + 1) = i;
+       endif
+     endfor
