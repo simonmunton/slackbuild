@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=linphone
+TARNAME=gtk+
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=3.4.0
+VERSION=2.24.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.linphone.org"
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gtk+2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +43,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/linphone-2.1.1.diff
+# patch -p1 < ${CWD}/gtk+-2.10.14.diff
+# patch -p1 < ${CWD}/gtk+2-nsplugin.diff
+ patch -p1 < ${CWD}/gtk+-2.22.0.diff
 )
 fi
 
@@ -57,12 +57,15 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+# add -ggdb to flags for debug
 CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --mandir=/usr/man \
+            --with-xinput=yes \
+            --enable-debug=minimal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,9 +80,29 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/doc/ortp/ortp* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-mv ${PKG}/usr/share/doc/mediastreamer/media* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir -p ${PKG}/usr/share/doc/{ortp,mediastreamer}
+mv ${PKG}/etc/gtk-2.0/im-multipress.conf ${PKG}/etc/gtk-2.0/im-multipress.conf.new
+doinst_config etc/gtk-2.0/im-multipress.conf.new
+
+mkdir -p ${PKG}/etc/profile.d
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.csh
+#!/bin/csh
+setenv GDK_USE_XFT 1
+EOF
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.sh
+#!/bin/sh
+GDK_USE_XFT=1
+export GDK_USE_XFT
+EOF
+
+chmod 755 ${PKG}/etc/profile.d/*
+
+#mkdir -p ${PKG}/etc/gtk-2.0
+touch ${PKG}/etc/gtk-2.0/gtk.immodules
+touch ${PKG}/etc/gtk-2.0/gdk-pixbuf.loaders
+
+#rm -f /usr/share/icons/*/icon-theme.cache 1> /dev/null 2> /dev/null
 
 #strip_binaries
 
@@ -96,17 +119,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Phone anywhere in the whole world by using the Internet"
-Linphone is mostly sip compliant. It works successfully with these
-implementations:
-    * eStara softphone (commercial software for windows)
-    * Pingtel phones (with DNS enabled and VLAN QOS support disabled).
-    * Hotsip, a free of charge phone for Windows.
-    * Vocal, an open source SIP stack from Vovida that includes a SIP 
-	proxy that works with linphone since version 0.7.1.
-    * Siproxd is a free sip proxy being developped by Thomas Ries.
-	Siproxd is simple to setup and works perfectly with linphone.
-    * Partysip aims to be a generic and fully functionnal SIP proxy.
+make_slack_desc << EOF "multi-platform toolkit for GUIs"
+This is GTK+, a multi-platform toolkit for creating graphical user
+interfaces.  Offering a complete set of widgets, GTK+ is suitable for
+projects ranging from small one-off projects to complete application
+suites.
 
 EOF
 
