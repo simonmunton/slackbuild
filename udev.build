@@ -65,13 +65,15 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 ./configure --prefix=/usr \
 	    --exec-prefix=/ \
+	    --sbindir=/sbin \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --with-rootlibdir=/lib${LIBDIRSUFFIX} \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
             --mandir=/usr/man \
-	    --with-rootlibdir=/lib \
 	    --libexecdir=/lib/udev \
-	    --libdir=/usr/lib \
-	    --enable-static
+	    --enable-static \
+	    --disable-introspection
 fi
 
 # make g-ir-scanner work
@@ -88,7 +90,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} EXTRAS="${EXTRAS}" sharepkgconfigdir=/usr/lib/pkgconfig
+make install DESTDIR=${PKG} EXTRAS="${EXTRAS}" sharepkgconfigdir=/usr/lib${LIBDIRSUFFIX}/pkgconfig
 
 #(cd ${PKG}/usr/lib
 # SONAME=`readlink libvolume_id.so`

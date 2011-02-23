@@ -69,11 +69,11 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 $CPUOPT=i686" \
-CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
 ./configure -confirm-license \
 	    -opensource \
-	    -prefix /usr/lib/qt \
+	    -prefix /usr/lib${LIBDIRSUFFIX}/qt \
             -qt-gif \
 	    -fast \
             -system-libpng \
@@ -83,7 +83,6 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 	    -system-sqlite \
             -plugin-sql-mysql \
             -plugin-sql-odbc \
-            -plugin-sql-psql \
             -plugin-sql-sqlite \
 	    -dbus \
 	    -webkit \
@@ -95,6 +94,8 @@ CXXFLAGS="-O2 -march=i486 $CPUOPT=i686" \
 	    -separate-debug-info \
             -stl \
             -v
+
+#            -plugin-sql-psql \
 
 #            -I /usr/include/mysql -L/usr/lib/mysql -R/usr/lib/mysql \
 #            -no-g++-exceptions \
@@ -113,13 +114,13 @@ fi
 
 make install INSTALL_ROOT=$PKG
 
-( cd $PKG/usr/lib
+( cd $PKG/usr/lib${LIBDIRSUFFIX}
 #mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
-ln -s qt $PKG/usr/lib/qt-$VERSION
+ln -s qt qt-$VERSION
 )
 
 # Link the shared libraries into /usr/lib:
-( cd $PKG/usr/lib
+( cd $PKG/usr/lib${LIBDIRSUFFIX}
   for file in qt-$VERSION/lib/*.so* ; do
     ln -sf $file .
   done
@@ -127,19 +128,16 @@ ln -s qt $PKG/usr/lib/qt-$VERSION
 
 # Add profile scripts
 mkdir -p ${PKG}/etc/profile.d
-cat ${CWD}/qt4.sh > ${PKG}/etc/profile.d/qt4.sh
-cat ${CWD}/qt4.csh > ${PKG}/etc/profile.d/qt4.csh
+sed -e "s#usr/lib/#usr/lib${LIBDIRSUFFIX}/#g" ${CWD}/qt4.sh > ${PKG}/etc/profile.d/qt4.sh
+sed -e "s#usr/lib/#usr/lib${LIBDIRSUFFIX}/#g" ${CWD}/qt4.csh > ${PKG}/etc/profile.d/qt4.csh
 chmod 755 ${PKG}/etc/profile.d/*
 
 # Put a ton of links to more "normal" places.  I'd just use a prefix of /usr, but it
 # creates a ton of new (and ambiguously named) /usr directories...
 mkdir -p $PKG/usr/bin
-( cd $PKG/usr/bin
-  for file in \
-    assistant designer linguist lrelease lupdate moc pixeltool qdbus \
-    qdbuscpp2xml qdbusviewer qdbusxml2cpp qmake qt3to4 qtconfig rcc uic uic3 ;
-  do
-    ln -sf /usr/lib/qt-$VERSION/bin/$file .
+( cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/bin
+  for file in * ; do
+    ( cd $PKG/usr/bin ; ln -sf /usr/lib${LIBDIRSUFFIX}/qt/bin/$file . )
   done
 )
 
@@ -153,19 +151,20 @@ mkdir -p $PKG/usr/bin
 #  done
 #)
 
-mkdir -p $PKG/usr/lib/pkgconfig
-(cd $PKG/usr/lib/qt/lib/pkgconfig
+mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig
+(cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/lib/pkgconfig
  for n in *
  do
-  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
-  ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$n $PKG/usr/lib/pkgconfig/$n
+#  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
+  ( cd $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig ; ln -sf /usr/lib${LIBDIRSUFFIX}/qt/lib/pkgconfig/$n . )
+#  ln -sf /usr/lib${LIBDIRSUFFIX}/qt-$VERSION/lib/pkgconfig/$n $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig/$n
  done
 
-cd $PKG/usr/lib/qt/lib
- for n in *.la *.prl
- do
-  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib/qt/@g" $n
- done
+#cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/lib
+# for n in *.la *.prl
+# do
+#  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
+# done
 )
 
 
@@ -195,7 +194,7 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 ( cd $PKG/usr/doc/$TARNAME-$VERSION
-  ln -sf /usr/lib/qt/doc/html .
+  ln -sf /usr/lib${LIBDIRSUFFIX}/qt/doc/html .
 )
 
 

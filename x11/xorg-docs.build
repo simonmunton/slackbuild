@@ -18,12 +18,14 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=noarch
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
+
+ARCH=noarch
 
 PKG=/tmp/package-${PKGNAME}
 
@@ -59,10 +61,11 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${PKGCFLAGS}" \
-CXXFLAGS="${PKGCFLAGS}" \
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --infodir=/usr/info \
@@ -72,8 +75,8 @@ CXXFLAGS="${PKGCFLAGS}" \
     	    --enable-html=no
       	      
 
-#cmake -DCMAKE_C_FLAGS:STRING="${PKGCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${PKGCFLAGS}" \
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \

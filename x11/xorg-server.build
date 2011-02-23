@@ -89,11 +89,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
-CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
 ./configure \
   --prefix=/usr \
   --sysconfdir=/etc \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
   --localstatedir=/var \
   --infodir=/usr/info \
   --mandir=/usr/man \
@@ -102,8 +103,8 @@ CXXFLAGS="-O2 -march=i486 ${CPUOPT}=i686" \
   --with-pic \
   --with-int10=x86emu \
   --with-default-font-path="/usr/share/fonts/TTF,/usr/share/fonts/OTF,/usr/share/fonts/Type1,/usr/share/fonts/misc,/usr/share/fonts/75dpi/:unscaled" \
-  --with-module-dir=/usr/lib/xorg/modules \
-  --with-dri-driver-path=/usr/lib/xorg/modules/dri \
+  --with-module-dir=/usr/lib${LIBDIRSUFFIX}/xorg/modules \
+  --with-dri-driver-path=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri \
   --with-xkb-path=/etc/X11/xkb \
   --with-xkb-output=/var/lib/xkb \
   --with-default-xkb-layout=gb \
@@ -145,14 +146,14 @@ rmdir ${PKG}/var/log
 
 # Fix xserver location:
 mkdir -p ${PKG}/etc/X11
-mv ${PKG}/usr/lib/xserver ${PKG}/etc/X11
-( cd ${PKG}/usr/lib ; ln -sf ../../etc/X11/xserver . )
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xserver ${PKG}/etc/X11
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX} ; ln -sf ../../etc/X11/xserver . )
 
 # While I hate to have X11 take over another generic-sounding
 # piece of prime filesystem real estate, this symlink will
 # direct (for now) proprietary X drivers into the correct
 # location:
-( cd ${PKG}/usr/lib
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
   rm -rf modules
   ln -sf xorg/modules .
 )
