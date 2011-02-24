@@ -501,7 +501,7 @@ fi
 # if usr/lib/gtk-2.0/*/loaders exists, run
 # gdk-pixbuf-query-loaders
 #
-if [ -d ${PKG}/usr/lib/gtk-2.0/*/loaders ]
+if [ -d ${PKG}/usr/lib${LIBDIRSUFFIX}/gtk-2.0/*/loaders ]
 then
   cat <<EOF >> ${PKG}/install/doinst.sh
 #
@@ -515,7 +515,7 @@ fi
 # if usr/lib/gtk-2.0/*/immodules exists, run
 # gtk-query-immodules-2.0
 #
-if [ -d ${PKG}/usr/lib/gtk-2.0/*/immodules -o -d ${PKG}/usr/lib/gtk-2.0/immodules ]
+if [ -d ${PKG}/usr/lib${LIBDIRSUFFIX}/gtk-2.0/*/immodules -o -d ${PKG}/usr/lib${LIBDIRSUFFIX}/gtk-2.0/immodules ]
 then
   cat <<EOF >> ${PKG}/install/doinst.sh
 #
@@ -529,7 +529,7 @@ fi
 # if usr/lib/pango/*/modules exists, run
 # gtk-query-immodules-2.0
 #
-if [ -d ${PKG}/usr/lib/pango/*/modules ]
+if [ -d ${PKG}/usr/lib${LIBDIRSUFFIX}/pango/*/modules ]
 then
   cat <<EOF >> ${PKG}/install/doinst.sh
 #
@@ -589,13 +589,13 @@ fi
 ##############################################################
 # warn if pkgconfig files contain references to old X11 dir or build dir
 #
-if [ -d ${PKG}/usr/lib/pkgconfig ]
+if [ -d ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig ]
 then
-  if grep /usr/X11 ${PKG}/usr/lib/pkgconfig/*pc 2>&1 > /dev/null
+  if grep /usr/X11 ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*pc 2>&1 > /dev/null
   then
     echo WARNING --- pkgconfig files contain reference to /usr/X11
   fi
-  if grep ${CWD} ${PKG}/usr/lib/pkgconfig/*pc 2>&1 > /dev/null
+  if grep ${CWD} ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*pc 2>&1 > /dev/null
   then
     echo WARNING --- pkgconfig files contain reference to build directory
   fi
@@ -636,11 +636,11 @@ fi
 ##############################################################
 # warn if vendor_perl modules exist as core modules on this sytem
 #
-if [ -d ${PKG}/usr/lib/perl5 ]
+if [ -d ${PKG}/usr/lib${LIBDIRSUFFIX}/perl5 ]
 then
-  for f in `(cd ${PKG}/usr/lib/perl5; find . | grep -E "/(site|vendor)_perl/" | sed -e 's@/\(site\|vendor\)_perl/@/@')`
+  for f in `(cd ${PKG}/usr/lib${LIBDIRSUFFIX}/perl5; find . | grep -E "/(site|vendor)_perl/" | sed -e 's@/\(site\|vendor\)_perl/@/@')`
   do
-    if [ -f /usr/lib/perl5/$f ]
+    if [ -f /usr/lib${LIBDIRSUFFIX}/perl5/$f ]
     then
       echo "WARNING --- files in site_perl/vendor_perl also in core on this system"
       break

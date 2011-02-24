@@ -18,7 +18,7 @@ WEBPAGE="ftp://ftp.kde.org/pub/kde/stable/apps/KDE4.x/admin/"
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=i686
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -56,7 +56,7 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 # This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib/qt
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
 export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
@@ -71,6 +71,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .. \
       2>&1 | tee ${TARNAME}.config
