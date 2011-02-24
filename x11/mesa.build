@@ -76,20 +76,20 @@ true
 	    --enable-gallium-svga \
 	    --enable-gallium-radeon \
 	    --enable-gallium-llvm \
+	    --enable-gallium-intel \
 	    --enable-xcb
 
 #	    --enable-gallium-nouveau
-#	    --enable-gallium-intel \
 #            --with-demos=xdemos \
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} linux-dri-x86 INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri || exit
-make ${NUM_JOBS} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri || exit
+make ${NUM_JOBS} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri || exit
 # Make some "demos":
 ( cd progs/xdemos
-  make -i INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri
+  make -i INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri
 )
 fi
 
@@ -99,7 +99,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri
+make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri
 
 # Install some "demos":
 ( cd progs/xdemos
@@ -109,9 +109,9 @@ make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xor
     ${PKG}/usr/bin
 )
 
-if [ -e ${PKG}/usr/lib/xorg/modules/drivers/radeon_drv.so ]
+if [ -e ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ]
 then
-  mv ${PKG}/usr/lib/xorg/modules/drivers/radeon_drv.so ${PKG}/usr/lib/xorg/modules/drivers/radeong_drv.so
+  mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeong_drv.so
 fi
 
 strip_binaries
