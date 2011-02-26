@@ -60,10 +60,13 @@ fix_perms
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 ./configure --prefix=/usr \
-	    --libdir=/usr/lib${LIBDIRSUFFIX}
+	    --mandir=/usr/man \
+	    --libdir=/usr/lib${LIBDIRSUFFIX} \
             --confdir=/etc/mplayer \
             --enable-gui \
-            --codecsdir=/usr/lib/codecs
+            --enable-menu \
+            --enable-largefiles \
+            --codecsdir=/usr/lib${LIBDIRSUFFIX}/codecs
 #            --enable-debug=3
 
 #cat <<EOF >> config.mak
@@ -83,16 +86,24 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install install-gui DESTDIR=${PKG}
 
+mkdir -p ${PKG}/etc/mplayer
 cp etc/*.conf ${PKG}/etc/mplayer
+mv ${PKG}/etc/mplayer/example.conf ${PKG}/etc/mplayer/mplayer.conf.new
 
-mkdir -p ${PKG}/usr/lib/codecs
+doinst_config etc/mplayer/mplayer.conf.new
+
+#mkdir -p ${PKG}/usr/share/{applications,pixmaps}
+#cp etc/*.desktop ${PKG}/usr/share/applications
+#cp etc/*.xpm ${PKG}/usr/share/pixmmaps
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/codecs
 tar xjf ${TARDIR}/codecs/${CODECS}.tar.bz2
-mv ${CODECS}/* ${PKG}/usr/lib/codecs
+mv ${CODECS}/* ${PKG}/usr/lib${LIBDIRSUFFIX}/codecs
 
-mkdir -p ${PKG}/usr/share/mplayer/font
-( cd ${PKG}/usr/share/mplayer/font; tar xjf ${TARDIR}/fonts/${FONT}.tar.bz2; ln -s */*14*/* . )
+#mkdir -p ${PKG}/usr/share/mplayer/font
+#( cd ${PKG}/usr/share/mplayer/font; tar xjf ${TARDIR}/fonts/${FONT}.tar.bz2; ln -s */*14*/* . )
 
 mkdir -p ${PKG}/usr/share/mplayer/skins
 ( cd ${PKG}/usr/share/mplayer/skins; tar xjf ${TARDIR}/skin/${SKIN}.tar.bz2; ln -s * default )
@@ -100,6 +111,35 @@ mkdir -p ${PKG}/usr/share/mplayer/skins
 ( cd ${PKG}/usr/bin; ln -s mplayer gmplayer )
 
 #strip_binaries
+
+# MPlayer will try to use one of the TrueType fonts present on the target
+# system for it's On Screen Display (OSD) font.
+# Slackware 11.0 ships with the Vera and DejaVu fonts, you may want to add
+# more fonts to this list. The first font found will be used by creating a
+# symbolic link "/usr/share/mplayer/subfont.ttf" to it.
+# The use of bitmapped fonts is considered deprecated, but you can still use
+# those if you want. Read http://www.mplayerhq.hu/DOCS/HTML/en/fonts-osd.html
+# if you want to know more about OSD font configuration.
+OSDFONTS="LiberationSans-Regular.ttf \
+          Arialuni.ttf arial.ttf \
+          DejaVuSans.ttf Vera.ttf"
+
+cat << EOF >> ${PKG}/install/doinst.sh
+# Installing a bitmap font is considered deprecated; use a TTF font instead.
+# We try to link to an installed TTF font at install time.
+# Configure a default TrueType font to use for the OSD :
+if [ ! -f usr/share/mplayer/subfont.ttf ]; then
+  for font in ${OSDFONTS}; do
+    if [ -f .${XPREF}/lib${LIBDIRSUFFIX}/X11/fonts/TTF/\${font} ]; then
+      ( cd usr/share/mplayer/
+        ln -sf ${XPREF}/lib${LIBDIRSUFFIX}/X11/fonts/TTF/\${font} subfont.ttf
+      )
+      break
+    fi
+  done
+fi
+
+EOF
 
 fix_links
 
