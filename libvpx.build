@@ -57,12 +57,20 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+if [ "${ARCH}" == "x86_64" ]
+then
+  TARGET=x86_64-linux-gcc
+else
+  TARGET=x86-linux-gcc
+fi
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-	--target=x86-linux-gcc \
+	--libdir=/usr/lib${LIBDIRSUFFIX} \
+	--target=${TARGET} \
 	--enable-pic \
 	--enable-vp8 \
 	--enable-psnr \

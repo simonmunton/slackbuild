@@ -62,7 +62,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} PREFIX=/usr || exit
+make ${NUM_JOBS} PREFIX=/usr CFLAGS="-fPIC" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -71,6 +71,11 @@ then
 fi
 
 make install PREFIX=/usr DESTDIR=${PKG}
+
+if [ "${LIBDIRSUFFIX}" != "" ]
+then
+  mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
+fi
 
 #strip_binaries
 

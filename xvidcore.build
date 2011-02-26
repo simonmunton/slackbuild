@@ -52,10 +52,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+if [ ${ARCH} != x86_64 ]
+then
+  SLKCFLAGS="-march=pentium4 ${CPUOPT}=pentium4"
+fi
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 (cd build/generic
-CFLAGS="-march=pentium4 ${CPUOPT}=pentium4 -Wall -O2 -fstrength-reduce -finline-functions -ffast-math -fomit-frame-pointer" \
+CFLAGS="${SLKCFLAGS} -Wall -O2 -fstrength-reduce -finline-functions -ffast-math -fomit-frame-pointer" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
@@ -81,11 +86,11 @@ make install DESTDIR=${PKG}
 
 strip_binaries
 
-mkdir -p ${PKG}/usr/lib/pkgconfig
-cat >> ${PKG}/usr/lib/pkgconfig/xvid.pc << EOF
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cat >> ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/xvid.pc << EOF
 prefix=/usr
 exec_prefix=\${prefix}
-libdir=/usr/lib
+libdir=/usr/lib${LIBDIRSUFFIX}
 includedir=\${prefix}/include
 
 Name: XviD
