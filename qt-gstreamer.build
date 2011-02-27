@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=mysql
+TARNAME=qt-gstreamer
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=5.1.53
+VERSION=0.10.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://gstreamer.freedesktop.org/wiki/QtGStreamer"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=mysql-embedded
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,41 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686 -fPIC"
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-	    --libdir=/usr/lib${LIBDIRSUFFIX} \
-	    --datadir=/usr/share \
-	    --sysconfdir=/etc/mysql \
-	    --libexecdir=/usr/sbin \
-	    --localstatedir=/var/lib/mysql \
-	    --without-docs \
-	    --without-man \
-	    --without-server \
-	    --with-embedded-server \
-	    --without-readline \
-	    --disable-shared \
-	    --with-charset=utf8 \
-	    --without-debug \
-	    --with-pthread \
-	    --without-ssl \
-	    --without-query-cache \
-	    --without-geometry \
-	    --with-pic
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#	    --with-mysqld-user=mysql \
-#	    --with-unix-socket-path=/var/run/mysql/mysql.sock \
-#    	    --enable-assembler \
-#    	    --with-raid \
-#            --enable-thread-safe-client \
-#            --without-bench \
-#            --with-extra-charsets=complex \
-#            --with-vio \
-#            --with-openssl
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 
 fi
 
@@ -103,8 +88,7 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mysql
-cp libmysqld/libmysqld.a ${PKG}/usr/lib${LIBDIRSUFFIX}/mysql
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -121,8 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "mysql embedded library"
-mysql embedded library
+make_slack_desc << EOF "QT bindings for gstreamer"
+QtGStreamer provides C++ bindings for GStreamer with a Qt-style API, 
+plus some helper classes for integrating GStreamer better in Qt 
+applications.
 
 EOF
 
