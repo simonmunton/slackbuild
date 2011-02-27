@@ -66,6 +66,12 @@ then
 #            --libdir=/usr/lib${LIBDIRSUFFIX} \
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
+if [ "${LIBDIRSUFFIX}" == "" ]
+then
+  WANT_LIB64="off"
+else
+  WANT_LIB64="on"
+fi
 
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -73,6 +79,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DWANT_LIB64=${WANT_LIB64} \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DPODOFO_BUILD_SHARED=True \
       .
