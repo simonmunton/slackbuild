@@ -67,7 +67,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} prefix=/usr LIBPATH=/usr/lib ZLIBLIB="-L/usr/lib -lm -lz" || exit
+make ${NUM_JOBS} prefix=/usr LIBPATH=/usr/lib${LIBDIRSUFFIX} ZLIBLIB="-L/usr/lib${LIBDIRSUFFIX} -lm -lz" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,9 +75,9 @@ then
   exit
 fi
 
-make install prefix=/usr LIBPATH=/usr/lib ZLIBLIB="-L/usr/lib -lm -lz" DESTDIR=${PKG}
+make install prefix=/usr LIBPATH=/usr/lib${LIBDIRSUFFIX} ZLIBLIB="-L/usr/lib${LIBDIRSUFFIX} -lm -lz" DESTDIR=${PKG}
 
-( cd ${PKG}/usr/lib
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
   if [ ! -e libpng.so.14 -a -e libpng14.so.14 ]
   then
     ln -sf libpng14.so.14 libpng.so.14
