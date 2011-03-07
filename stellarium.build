@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.10.5
+VERSION=0.10.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -56,11 +56,13 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:${PATH}
+PATH=/usr/lib${LIBDIRSUFFIX}/qt4/bin:${PATH}
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DCMAKE_INSTALL_PREFIX:STRING="/usr"
+cmake -DCMAKE_INSTALL_PREFIX:STRING="/usr" \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,15 +77,15 @@ fi
 
 make install DESTDIR=${PKG}
 
-(cd ${PKG}/usr/bin
- mv stellarium stellarium.bin
- cat > stellarium << EOF
-#!/bin/bash
-#
-LD_LIBRARY_PATH=/usr/lib/qt4/lib stellarium.bin "$@"
-EOF
- chmod +x stellarium
-)
+#(cd ${PKG}/usr/bin
+# mv stellarium stellarium.bin
+# cat > stellarium << EOF
+##!/bin/bash
+##
+#LD_LIBRARY_PATH=/usr/lib${LIBDIRSUFFIX}/qt4/lib stellarium.bin "$@"
+#EOF
+# chmod +x stellarium
+#)
 
 #strip_binaries
 
