@@ -58,6 +58,7 @@ CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix= \
 	    --bindir=/usr/bin \
+            --libdir=/lib${LIBDIRSUFFIX} \
 	    --includedir=/usr/include \
 	    --datadir=/usr/share \
 	    --mandir=/usr/man \
@@ -85,11 +86,11 @@ fi
 make install install-libs DESTDIR=${PKG}
 
 # Fix up package:
-mkdir -p ${PKG}/usr/lib
-mv ${PKG}/lib/pkgconfig ${PKG}/lib/*.so ${PKG}/lib/*.a ${PKG}/usr/lib
-( cd ${PKG}/usr/lib
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+mv ${PKG}/lib${LIBDIRSUFFIX}/pkgconfig ${PKG}/lib${LIBDIRSUFFIX}/*.so ${PKG}/lib${LIBDIRSUFFIX}/*.a ${PKG}/usr/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
   for i in *.so ; do 
-    ln -sf /lib/$(readlink $i) $i ; 
+    ln -sf /lib${LIBDIRSUFFIX}/$(readlink $i) $i ; 
   done
 )
 ( cd ${PKG}/sbin
