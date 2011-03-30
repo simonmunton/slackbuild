@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=r70732
+VERSION=r82058
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,7 +46,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/WebKit-r37126.diff
-# ./autogen.sh
+ ./autogen.sh
 )
 fi
 
@@ -61,13 +61,13 @@ then
 
 :
 
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 #	    --enable-introspection
 
 #	    --enable-mathml \
@@ -75,11 +75,11 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-WebKitTools/Scripts/build-webkit --prefix=/usr --gtk
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#WebKitTools/Scripts/build-webkit --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --gtk
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,7 +87,8 @@ then
   exit
 fi
 
-make -C WebKitBuild/Release install DESTDIR=${PKG}
+#make -C WebKitBuild/Release install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
 #strip_binaries
 

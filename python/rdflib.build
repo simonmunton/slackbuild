@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=doxygen
+TARNAME=rdflib
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/d
+TARSEP="-"
+TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=1.7.4
-VERSIONEXTRA=.src
+VERSION=3.1.0
+VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://rdflib.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -52,21 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-QTDIR=${QT4DIR}
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix /usr \
-            --with-doxywizard \
-            --english-only
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
-make docs ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,9 +89,10 @@ then
   exit
 fi
 
-make install INSTALL=${PKG}/usr MAN1DIR=man/man1
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,10 +107,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "documentation system"
-Doxygen is a documentation system for C++, C, Java, Objective-C, 
-Python, IDL (Corba and Microsoft flavors) and to some extent PHP, C#, 
-and D.
+make_slack_desc << EOF "RDF Library for Python"
+RDFLib is a Python library for working with RDF, a simple yet powerful 
+language for representing information. 
 
 EOF
 
