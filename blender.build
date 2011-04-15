@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.49b
+VERSION=2.57
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -49,7 +49,7 @@ fi
 
  mv user-config.py user-config.py.old
 
- (cd extern/xvidcore/src ; find . -type d -exec ln -s ../nasm.inc {} \; )
+# (cd extern/xvidcore/src ; find . -type d -exec ln -s ../nasm.inc {} \; )
 )
 fi
 
@@ -59,17 +59,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+mkdir b_build
+cd b_build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 true
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DPYTHON_VERSION=$PYTHON_VERSION \
+      ..
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+make ${NUM_JOBS} || exit
 
-scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 \
-                  BF_PYTHON_VERSION=${PYTHON_VERSION} BF_BUILDDIR=./build BF_INSTALLDIR=./install/linux2 || exit
+exit
+#scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 \
+#                  BF_PYTHON_VERSION=${PYTHON_VERSION} BF_BUILDDIR=./build BF_INSTALLDIR=./install/linux2 || exit
 
 install -d release/plugins/include
 install -m 644 source/blender/blenpluginapi/*.h release/plugins/include

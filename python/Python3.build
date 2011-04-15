@@ -1,0 +1,165 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=Python
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p/python
+#TAR_EXT=.tar.gz
+VERSION=3.2
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=python3
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# Location for Python site-packages:
+SITEPK=${PKG}/usr/lib${LIBDIRSUFFIX}/python3.2/site-packages
+# same as above without $PKG
+TOOLSDIR=/usr/lib${LIBDIRSUFFIX}/python3.2/site-packages
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --libdir=/usr/lib${LIBDIRSUFFIX} \
+	    --docdir=/usr/doc/python-${VERSION} \
+	    --with-threads \
+	    --enable-ipv6 \
+	    --enable-shared
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mv ${PKG}/usr/doc/Python-${VERSION} ${PKG}/usr/doc/python-${VERSION}
+
+make install DESTDIR=${PKG}
+
+# Install some python-demo files:
+cp -a Demo ${PKG}/usr/doc/python-${VERSION}
+
+# We'll install the python-tools under site-packages:
+mkdir -p ${SITEPK}
+cp -a Tools/* ${SITEPK}
+
+mv ${SITEPK}/README ${PKG}/usr/doc/python-${VERSION}/README.python-tools
+( cd ${PKG}/usr/doc/python-${VERSION}
+  ln -sf ${TOOLSDIR} Tools
+)
+# Make a few useful symlinks:
+mkdir -p ${PKG}/usr/bin
+( cd ${PKG}/usr/bin
+  ln -sf ${TOOLSDIR}/modulator/modulator.py modulator
+  ln -sf ${TOOLSDIR}/pynche/pynche pynche
+  ln -sf ${TOOLSDIR}/i18n/msgfmt.py .
+  ln -sf ${TOOLSDIR}/i18n/pygettext.py .
+)
+
+( cd ${PKG}/usr/bin
+  rm -f python
+  ln -sf python2.6 python
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+# Install docs:
+mkdir -p ${PKG}/usr/doc/python-${VERSION}/Documentation
+
+tar xf ${TARDIR}/python-${VERSION}-docs-text.tar.?z*
+mv python-${VERSION}-docs-text/* ${PKG}/usr/doc/python-${VERSION}/Documentation
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO Misc \
+  ${PKG}/usr/doc/python-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "object-oriented interpreted programming language"
+Python is an interpreted, interactive, object-oriented programming
+language that combines remarkable power with very clear syntax.  
+Python's basic power can be extended with your own modules written in
+C or C++.  Python is also adaptable as an extension language for
+existing applications.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
