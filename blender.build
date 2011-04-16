@@ -59,7 +59,7 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+PYTHON_VERSION=`python3 -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 mkdir b_build
 cd b_build
 
@@ -69,6 +69,8 @@ true
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
+      -DWITH_INSTALL_PORTABLE=off \
+      -DWITH_PYTHON_INSTALL=off \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
@@ -87,16 +89,6 @@ if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
 
-exit
-#scons ${NUM_JOBS} WITH_BF_OPENAL=1 WITH_BF_FFMPEG=1 WITH_BF_GAMEENGINE=1 WITH_BF_PLAYER=1 \
-#                  BF_PYTHON_VERSION=${PYTHON_VERSION} BF_BUILDDIR=./build BF_INSTALLDIR=./install/linux2 || exit
-
-install -d release/plugins/include
-install -m 644 source/blender/blenpluginapi/*.h release/plugins/include
-
-chmod +x release/plugins/bmake
-
-make -C release/plugins/
 
 fi
 
@@ -105,46 +97,66 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/share/blender/{.blender,plugins} ${PKG}/usr/bin
+make install DESTDIR=${PKG}
 
-cp install/linux2/blender ${PKG}/usr/bin/blender.bin
-cp install/linux2/blenderplayer ${PKG}/usr/bin
+mkdir -p ${PKG}/usr/share/blender/${VERSION}/plugins/include
+cp -p ../source/blender/blenpluginapi/*.h ${PKG}/usr/share/blender/${VERSION}/plugins/include
+cp -p ../source/blender/blenpluginapi/*.DEF ${PKG}/usr/share/blender/${VERSION}/plugins/include
+cp -pr ../release/plugins/* ${PKG}/usr/share/blender/${VERSION}/plugins/
 
-cp -pr release/scripts ${PKG}/usr/share/blender/.blender
-cp -p release/VERSION ${PKG}/usr/share/blender/.blender
-cp -pr bin/.blender/*  ${PKG}/usr/share/blender/.blender
-cp -p bin/.blender/.*  ${PKG}/usr/share/blender/.blender
-cp -pr release/plugins ${PKG}/usr/share/blender
-chmod +x ${PKG}/usr/share/blender/plugins/bmake
-mkdir -p ${PKG}/usr/share/blender/plugins/include
-cp source/blender/blenpluginapi/*.h ${PKG}/usr/share/blender/plugins/include
-cp release/text/* ${PKG}/usr/share/blender
+chmod +x ${PKG}/usr/share/blender/${VERSION}/plugins/bmake
+make -C ${PKG}/usr/share/blender/${VERSION}/plugins
+
+
+#mkdir -p ${PKG}/usr/share/blender ${PKG}/usr/bin ${PKG}/usr/man/man1
+#mkdir -p ${PKG}/usr/share/{pixmaps,applications}
+
+
+#cp bin/blender ${PKG}/usr/bin/blender.bin
+#cp bin/blenderplayer ${PKG}/usr/bin
+#cp -pr bin/* ${PKG}/usr/share/blender
+#mv ${PKG}/usr/share/blender/blender.1 ${PKG}/usr/man/man1
+#mv ${PKG}/usr/share/blender/blender.desktop ${PKG}/usr/share/applications
+cp -pr ../release/freedesktop/icons/128x128/blender.png ${PKG}/usr/share/pixmaps
+#mv ${PKG}/usr/share/blender/blender ${PKG}/usr/bin
+#mv ${PKG}/usr/share/blender/blenderplayer ${PKG}/usr/bin
+
+#cp -pr release/scripts ${PKG}/usr/share/blender/.blender
+#cp -p release/VERSION ${PKG}/usr/share/blender/.blender
+#cp -pr bin/.blender/*  ${PKG}/usr/share/blender/.blender
+#cp -p bin/.blender/.*  ${PKG}/usr/share/blender/.blender
+#cp -pr release/plugins ${PKG}/usr/share/blender
+#chmod +x ${PKG}/usr/share/blender/plugins/bmake
+#mkdir -p ${PKG}/usr/share/blender/plugins/include
+#cp source/blender/blenpluginapi/*.h ${PKG}/usr/share/blender/plugins/include
+#cp release/text/* ${PKG}/usr/share/blender
 
 #cp ${CWD}/blender-import-3ds-0.7.py ${PKG}/usr/share/blender/.blender/import-3ds-0.7.py
 #cp ${CWD}/blender-export-3ds-0.71.py ${PKG}/usr/share/blender/.blender/export-3ds-0.71.py
 
-mkdir -p ${PKG}/usr/share/{pixmaps,applications,mime/packages}
 
-cp ${CWD}/blender.png ${PKG}/usr/share/pixmaps/blender.png
-cp ${CWD}/blender.desktop ${PKG}/usr/share/applications/blender.desktop
-cp ${CWD}/blender.xml ${PKG}/usr/share/mime/packages/blender.xml
+#cp ${CWD}/blender.png ${PKG}/usr/share/pixmaps/blender.png
+#cp ${CWD}/blender.desktop ${PKG}/usr/share/applications/blender.desktop
+#cp ${CWD}/blender.xml ${PKG}/usr/share/mime/packages/blender.xml
 
-cp ${CWD}/blender-wrapper ${PKG}/usr/bin/blender
+#cp ${CWD}/blender-wrapper ${PKG}/usr/bin/blender
 #cat << EOF > ${PKG}/usr/bin/blender
 ##!/bin/bash
 ##
-#/usr/share/blender/blender $*
+#/usr/share/blender/blender "\$@"
 #EOF
 
 #cat << EOF > ${PKG}/usr/bin/blenderplayer
 ##!/bin/bash
 ##
-#/usr/share/blender/blenderplayer $@
+#/usr/share/blender/blenderplayer "\$@"
 #EOF
 
-chmod +x ${PKG}/usr/bin/*
+#chmod +x ${PKG}/usr/bin/*
 
-strip_binaries
+cd ..
+
+#strip_binaries
 
 fix_links
 
