@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=1.5
+VERSION=r3643
 VERSIONEXTRA=
 BUILD=1
 
@@ -64,7 +64,7 @@ then
 #CXXFLAGS="${SLKCFLAGS}" \
 #./configure --prefix=/usr \
 #            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 
@@ -80,9 +80,9 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-cd source/Irrlicht
-make ${NUM_JOBS} || exit
-cd ../..
+pushd source/Irrlicht
+make ${NUM_JOBS} sharedlib || exit
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,11 +90,17 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/{include/irrlicht,lib}
+mkdir -p ${PKG}/usr/{include/irrlicht,lib${LIBDIRSUFFIX}}
+pushd source/Irrlicht
+make install INSTALL_DIR=${PKG}/usr/lib${LIBDIRSUFFIX}
+popd
 
-cp -pr include/* ${PKG}/usr/include/irrlicht
-cp lib/Linux/libIrrlicht.a ${PKG}/usr/lib
+pushd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ln -s libIrrlicht.so.1.8.0-SVN libIrrlicht.so
+popd
+
+#cp -pr include/* ${PKG}/usr/include/irrlicht
+#cp lib/Linux/libIrrlicht.a ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 strip_binaries
 
