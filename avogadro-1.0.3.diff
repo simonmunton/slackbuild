@@ -1,0 +1,33 @@
+--- avogadro-1.0.3/libavogadro/src/CMakeLists.txt.orig	2011-04-25 06:22:18.000000000 +0100
++++ avogadro-1.0.3/libavogadro/src/CMakeLists.txt	2011-04-27 06:49:30.000000000 +0100
+@@ -129,7 +129,7 @@
+   )
+ 
+   message(STATUS "Setting new boost python libraries")
+-  set(AVO_LINK_LIBRARIES ${AVO_LINK_LIBRARIES} ${PYTHON_LIBRARIES}
++  set(AVO_LINK_LIBRARIES ${AVO_LINK_LIBRARIES} ${PYTHON_LIBRARIES} -lutil
+                          ${Boost_LIBRARIES})
+   set(libavogadro_HDRS ${libavogadro_HDRS} ${python_HDRS})
+ endif(ENABLE_PYTHON AND ALL_PYTHON_FOUND)
+--- avogadro-1.0.3/libavogadro/src/engines/ringengine.cpp.orig	2011-04-25 06:22:18.000000000 +0100
++++ avogadro-1.0.3/libavogadro/src/engines/ringengine.cpp	2011-04-27 06:49:38.000000000 +0100
+@@ -87,6 +87,7 @@
+     if (m_alpha > 0.999) return true;
+ 
+     Color *map = colorMap();
++    if (!map) map = pd->colorMap();
+     map->setAlpha(m_alpha);
+     // Special case for everything up to 7 membered rings.
+     QList<Fragment *> rings = const_cast<Molecule *>(pd->molecule())->rings();
+--- avogadro-1.0.3/libavogadro/src/engines/surfaceengine.cpp.orig	2011-04-25 06:22:18.000000000 +0100
++++ avogadro-1.0.3/libavogadro/src/engines/surfaceengine.cpp	2011-04-27 06:49:38.000000000 +0100
+@@ -233,7 +233,8 @@
+         index = m_settingsWidget->orbital1Combo->count();
+ 
+       // Now figure out the mesh type and add it to the map
+-      Cube::Type cubeType = m_molecule->cubeById(mesh->cube())->cubeType();
++      Cube *c = m_molecule->cubeById(mesh->cube());
++      Cube::Type cubeType = c ? c->cubeType() : Cube::None;
+       QString comboText;
+       if (cubeType == Cube::VdW) {
+         comboText = tr("Van der Waals, isosurface = %L1",
