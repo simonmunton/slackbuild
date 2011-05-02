@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=0.5.10
+VERSION=0.7.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -121,7 +121,7 @@ export CFLAGS="${SLKCFLAGS}"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all wpa_gui || exit
+make ${NUM_JOBS} all wpa_gui-qt4 || exit
 
 # Make man pages if needed
 (cd doc/docbook
@@ -142,8 +142,29 @@ fi
 cp wpa_supplicant.conf wpa_supplicant.conf.sample
 
 # Install binaries
-mkdir -p ${PKG}/usr/sbin
-cp wpa_supplicant wpa_passphrase wpa_cli wpa_gui/wpa_gui ${PKG}/usr/sbin/
+mkdir -p ${PKG}/usr/bin ${PKG}/usr/sbin
+cp wpa_supplicant wpa_passphrase wpa_cli ${PKG}/usr/sbin/
+cp wpa_gui-qt4/wpa_gui ${PKG}/usr/bin/
+
+# Install dbus configuration file:
+mkdir -p ${PKG}/etc/dbus-1/system.d/
+cp dbus-wpa_supplicant.conf ${PKG}/etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
+
+# Install a .desktop file for wpa_gui:
+mkdir -p ${PKG}/usr/share/applications
+cat <<EOT > ${PKG}/usr/share/applications/wpa_gui.desktop
+[Desktop Entry]
+Name=wpa_gui
+Comment[en]=Wpa_supplicant management
+Exec=kdesu wpa_gui
+Icon=wpa_gui
+Type=Application
+Categories=Qt;Network;
+EOT
+
+# The icon used for the menu (converted from the wpa_gui.svg in the source)
+mkdir -p ${PKG}/usr/share/pixmaps
+cp -a ${CWD}/wpa_gui.png ${PKG}/usr/share/pixmaps/
 
 # Install man pages
 for m in 5 8; do
@@ -170,20 +191,19 @@ fast_reauth=1
 network={
   scan_ssid=0
   ssid="your_essid_here"
-  proto=WPA
+  proto=WPA RSN
   key_mgmt=WPA-PSK
   pairwise=CCMP TKIP
   group=CCMP TKIP WEP104 WEP40
-  psk=your_psk_here
+  psk=your_64_char_psk_here
+  priority=10
 }
 
 # Plaintext connection (no WPA, no IEEE 802.1X),
 # nice for hotel/airport types of WiFi network.
-# You'll need a recent version of wireless-tools for this!
 network={
-  ssid="any"
   key_mgmt=NONE
-  priority=2
+  priority=0
 }
 EOF
 
@@ -191,9 +211,6 @@ EOF
 chmod 600 ${PKG}/etc/wpa_supplicant.conf.new
 
 doinst_config etc/wpa_supplicant.conf.new
-
-mkdir -p ${PKG}/etc/dbus-1/system.d
-cp dbus-wpa_supplicant.conf ${PKG}/etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
 doinst_config etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
 
 mkdir -p ${PKG}/usr/share/dbus-1/services
