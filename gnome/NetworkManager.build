@@ -6,7 +6,7 @@ TARNAME=NetworkManager
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.8.1
+VERSION=0.8.4.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -63,7 +63,11 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --mandir=/usr/man \
 	    --with-crypto=gnutls \
 	    --with-docs
+	    --with-pppd-plugin-dir=/usr/lib${LIBDIRSUFFIX}/pppd/2.4.5 \
+	    --with-dhcpcd=/sbin/dhcpcd \
+	    --with-dhclient=yes
 
+#	    --without-resolvconf \
 #	    --with-dhcp-client=dhcpcd
 fi
 
@@ -99,6 +103,7 @@ mkdir -p ${PKG}/var/lib/dhclient
 cat  >> ${PKG}/etc/NetworkManager/nm-system-settings.conf.new << EOF
 [main]
 plugins=keyfile
+dhcp=dhcpcd
 #no-auto-default=mac_addr
 
 [keyfile]
