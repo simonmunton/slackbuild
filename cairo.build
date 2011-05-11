@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/c/cairo
 #TAR_EXT=.tar.gz
 VERSION=1.10.2
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/cairo.libpng14.diff
+ patch -p1 < ${CWD}/cairo-1.10.0-buggy_gradients.patch
 )
 fi
 
@@ -57,25 +57,33 @@ then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --mandir=/usr/man \
+            --sysconfdir=/etc \
+            --disable-gtk-doc \
+            --disable-quartz \
+            --disable-static \
+            --disable-win32 \
+            --disable-trace \
+            --enable-xlib \
             --enable-ps \
             --enable-pdf \
-            --enable-glitz \
+            --enable-svg \
+            --enable-tee \
+            --enable-gobject \
 
-
-#            --enable-xml \
-#            --enable-qt \
-#            --enable-xcb \
-#            --enable-script \
-#            --enable-gl \
-#            --enable-drm \
-#            --enable-xlib-xcb \
-#            --enable-xcb-drm \
-#            --enable-xcb \
-#            --enable-drm-xr \
-#            --enable-directfb \
+# None of these are 'stable' yet...
+#  --enable-qt \
+#  --enable-gl \
+#  --enable-drm \
+#  --enable-xcb \
+#  --enable-xlib-xcb \
+#  --enable-xcb-drm \
+#  --enable-drm-xr \
+# Skipping this, because it causes a dependency on the specific
+# version of binutils installed at compile time:
+#  --enable-trace
 
 fi
 

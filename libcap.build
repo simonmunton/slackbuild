@@ -6,7 +6,7 @@ TARNAME=libcap
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.10
+VERSION=2.20
 VERSIONEXTRA=
 BUILD=1
 
@@ -71,7 +71,28 @@ then
   exit
 fi
 
-make install FAKEROOT=${PKG}
+make install FAKEROOT=${PKG} RAISE_SETFCAP=no man_prefix=/usr
+
+# Static libs are better placed under /usr:
+if [ -r ${PKG}/lib${LIBDIRSUFFIX}/libcap.a ]; then
+  mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+  mv ${PKG}/lib${LIBDIRSUFFIX}/libcap.a $PKG/usr/lib${LIBDIRSUFFIX}
+fi
+
+# Add included scripts
+( cd contrib || exit 1
+  for file in pcaps4convenience pcaps4server pcaps4suid0 ; do
+    install -m 0755 -D $file ${PKG}/usr/sbin/$file
+  done
+)
+
+# glibc already has the capget/capset manpage
+rm -rf ${PKG}/usr/man/man2
+
+cat << EOF >> ${PKG}/install/doinst.sh
+#
+sbin/setcap cap_setfcap=i sbin/setcap
+EOF
 
 #strip_binaries
 
@@ -83,7 +104,12 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  CHANGELOG License License pgp.keys.asc doc/capability.notes \
+  progs/quicktest.sh \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp -a ${CWD}/libcap-capfaq-0.2.txt ${PKG}/usr/doc/${TARNAME}-${VERSION}/capfaq-0.2.txt
+cp -a ${CWD}/libcap-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
 
 fix_docs
 
