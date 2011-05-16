@@ -2,14 +2,14 @@
 #
 . build_funcs
 
-TARNAME=empathy
+TARNAME=apg
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.0.1
+VERSION=2.2.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/apg-gen-rand-pass.patch
 )
 fi
 
@@ -59,20 +59,21 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-compile-warnings=yes
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -80,7 +81,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} cliserv standalone || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +89,20 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+
+install -D apg ${PKG}/usr/bin/apg
+install -D apgbfm ${PKG}/usr/bin/apgbfm
+install -D apgd ${PKG}/usr/sbin/apgd
+install -D -m 644 doc/man/apg.1 ${PKG}/usr/man/man1/apg.1
+install -D -m 644 doc/man/apgbfm.1 ${PKG}/usr/man/man1/apgbfm.1
+install -D -m 644 doc/man/apgd.8 ${PKG}/usr/man/man8/apgd.8
+install -D -m 644 ${CWD}/apg.xinetd ${PKG}/etc/xinetd.d/apgd
+ 
+## add a service for apg if it doesn't already exist
+#if ! grep -q ^pwdgen /etc/services; then
+#    echo -e 'pwdgen\t\t129/tcp\t\t\t# PWDGEN service' >> /etc/services
+#fi
 
 strip_binaries
 
@@ -105,13 +119,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "reusable instant messaging widgets and GNOME client"
-Empathy consists of a rich set of reusable instant messaging widgets, 
-and a GNOME client using those widgets. It uses Telepathy and Nokia's 
-Mission Control, and reuses Gossip's UI. The main goal is to permit 
-desktop integration by providing libempathy and libempathy-gtk 
-libraries. libempathy-gtk is a set of powerful widgets that can be 
-embedded into any GNOME application.
+make_slack_desc << EOF "Automated Password Generator for random password generation"
+APG (Automated Password Generator) is the tool set for random password
+generation. This standalone version generates some random words of
+required type and prints them to standard output.
 
 EOF
 
