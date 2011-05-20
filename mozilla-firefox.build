@@ -20,6 +20,9 @@ PKGNAME=mozilla-firefox
 #BUILD_SUFFIX=
 #ARCH=noarch
 
+case `uname -m` in
+    x86_64) VERSION=${VERSION}_x86_64 ;;
+esac
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
@@ -35,14 +38,14 @@ fi
 
 pre_configure
 
-mkdir -p ${PKG}/usr/lib
-( cd ${PKG}/usr/lib
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
   tar xf ${FULL_TARNAME} || exit 1
   mv firefox firefox-${VERSION}-GB
   ln -sf firefox-${VERSION}-GB firefox
   cd firefox-${VERSION}-GB
 
-  sed -i -e 's@/usr/local/lib@/usr/lib@g' firefox
+  sed -i -e "s@/usr/local/lib@/usr/lib${LIBDIRSUFFIX}@g" firefox
 
 #  zcat ${CWD}/mozilla-firefox-mimeTypes-fix.diff.gz | patch -p1 --verbose --suffix=.orig || exit 1
 #  if [ ! $? = 0 ]; then
@@ -59,9 +62,9 @@ if [ ! $? = 0 ]; then
 fi
 mkdir -p ${PKG}/usr/bin
 ( cd ${PKG}/usr/bin
-  ln -sf /usr/lib/firefox/firefox .
+  ln -sf /usr/lib${LIBDIRSUFFIX}/firefox/firefox .
 )
-mkdir -p ${PKG}/usr/lib/mozilla/plugins
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 mkdir -p ${PKG}/usr/share/applications
 cat ${CWD}/mozilla-firefox.desktop > ${PKG}/usr/share/applications/mozilla-firefox.desktop
 mkdir -p ${PKG}/usr/share/pixmaps
@@ -70,7 +73,7 @@ cat ${CWD}/mozilla-firefox.png > ${PKG}/usr/share/pixmaps/firefox.png
 # These files/directories are usually created if Firefox is run as root, which on many
 # systems might (and possibly should) be never.  Therefore, if we don't see them we'll
 # put stubs in place to prevent startup errors.
-( cd ${PKG}/usr/lib/firefox-${VERSION}-GB
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}/firefox-${VERSION}-GB
   if [ -d extensions/talkback\@mozilla.org ]; then
     if [ ! -r extensions/talkback\@mozilla.org/chrome.manifest ]; then
       echo > extensions/talkback\@mozilla.org/chrome.manifest
