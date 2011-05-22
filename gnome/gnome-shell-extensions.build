@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gnumeric
+TARNAME=gnome-shell-extensions
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=1.10.15
+VERSION=3.0.2
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -62,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,11 +105,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "spreadsheet for GNOME"
-This is Gnumeric, a spreadsheet for GNOME. It aims to be a drop in
-replacement for proprietary spreadsheets. It provides import/export
-from MS Excel files and many other formats (csv, latex, xbase,
-applix, quattro pro, OpenOffice, planperfect).
+make_slack_desc << EOF "GNOME Shell Extensions"
+GNOME Shell Extensions is a collection of extensions providing 
+additional and optional functionality to GNOME Shell.
 
 EOF
 
