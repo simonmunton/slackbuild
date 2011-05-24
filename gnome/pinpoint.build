@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=evolution-data-server
+TARNAME=pinpoint
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=3.0.2.1
+VERSION=0.1.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,28 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-LDFLAGS="-L/usr/lib/seamonkey -lnssutil3 -lplds4" \
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --enable-gtk-doc \
-            --with-krb5=/usr \
-            --with-openldap=yes \
-            --enable-gnome-keyring \
-            --enable-smime
-fi
+	    --mandir=/usr/man
 
-MAKE_OPTS="GTKDOC_REBASE=gtkdoc-rebase"
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} ${MAKE_OPTS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,9 +88,9 @@ then
   exit
 fi
 
-make install ${MAKE_OPTS} DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -101,11 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "database for desktop-wide information"
-The Evolution Data Server provides a single database for common,
-desktop-wide information, such as a user's address book or calendar
-events. It is also a dependency of the clock applet from the
-gnome-applets package, 2.10 release.
+make_slack_desc << EOF "simple presentation tool"
+Pinpoint a simple presentation tool that hopes to avoid audience death 
+by bullet point and instead encourage presentations containing 
+beautiful images and small amounts of concise text in slides.
 
 EOF
 
