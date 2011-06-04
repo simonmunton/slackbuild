@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=dri2proto
+TARNAME=gsasl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/proto
+TARDIR=~/tmp/gnu/gsasl
 #TAR_EXT=.tar.gz
-VERSION=20110604
+VERSION=1.6.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.gnu.org/software/gsasl/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=noarch
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -46,10 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- if [ ! -f configure ]
- then
-   ./autogen.sh
- fi
 )
 fi
 
@@ -68,17 +64,15 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -111,15 +105,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-dri2proto is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "Simple Authentication and Security Layer framework"
+GNU SASL is an implementation of the Simple Authentication and 
+Security Layer framework and a few common SASL mechanisms. SASL is 
+used by network servers (e.g., IMAP, SMTP) to request authentication 
+from clients, and in clients to authenticate against servers. 
 
 EOF
 
