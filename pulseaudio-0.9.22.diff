@@ -1,5 +1,5 @@
 --- pulseaudio-0.9.22/configure.ac.orig	2010-11-26 00:45:43.000000000 +0000
-+++ pulseaudio-0.9.22/configure.ac	2011-06-05 22:14:33.045000586 +0100
++++ pulseaudio-0.9.22/configure.ac	2011-06-05 22:26:06.000000000 +0100
 @@ -516,7 +516,7 @@
          [x11=auto])
  
@@ -9,8 +9,8 @@
          HAVE_X11=1,
          [
              HAVE_X11=0
---- pulseaudio-0.9.22/src/pulsecore/x11prop.c.orig	2011-06-05 22:14:28.926000585 +0100
-+++ pulseaudio-0.9.22/src/pulsecore/x11prop.c	2011-06-05 22:14:33.046000586 +0100
+--- pulseaudio-0.9.22/src/pulsecore/x11prop.c.orig	2010-11-26 00:45:23.000000000 +0000
++++ pulseaudio-0.9.22/src/pulsecore/x11prop.c	2011-06-05 22:26:06.000000000 +0100
 @@ -30,7 +30,6 @@
  #include <pulsecore/macro.h>
  
@@ -19,20 +19,20 @@
  
  #define PA_XCB_FORMAT 8
  
-@@ -50,7 +49,6 @@
+@@ -50,28 +49,43 @@
  
  void pa_x11_set_prop(xcb_connection_t *xcb, int screen, const char *name, const char *data) {
      xcb_screen_t *xs;
--    xcb_intern_atom_cookie_t cookie;
-     xcb_intern_atom_reply_t *reply;
+-    xcb_atom_t a;
++    xcb_intern_atom_reply_t *reply;
  
      pa_assert(xcb);
-@@ -58,26 +56,36 @@
+     pa_assert(name);
      pa_assert(data);
  
      if ((xs = screen_of_display(xcb, screen))) {
--        cookie = xcb_intern_atom(xcb, 0, strlen(name), name);
--        reply = xcb_intern_atom_reply(xcb, cookie, NULL);
+-        a = xcb_atom_get(xcb, name);
+-        xcb_change_property(xcb, XCB_PROP_MODE_REPLACE, xs->root, a, STRING, PA_XCB_FORMAT, (int) strlen(data), (const void*) data);
 +        reply = xcb_intern_atom_reply(xcb,
 +                                      xcb_intern_atom(xcb, 0, strlen(name), name),
 +                                      NULL);
@@ -41,8 +41,7 @@
 +            xcb_change_property(xcb, XCB_PROP_MODE_REPLACE, xs->root, reply->atom,
 +                                XCB_ATOM_STRING, PA_XCB_FORMAT,
 +                                (int) strlen(data), (const void*) data);
- 
--        xcb_change_property(xcb, XCB_PROP_MODE_REPLACE, xs->root, reply->atom, XCB_ATOM_STRING, PA_XCB_FORMAT, (int) strlen(data), (const void*) data);
++
 +            free(reply);
 +        }
      }
@@ -50,17 +49,15 @@
  
  void pa_x11_del_prop(xcb_connection_t *xcb, int screen, const char *name) {
      xcb_screen_t *xs;
--    xcb_intern_atom_cookie_t cookie;
-     xcb_intern_atom_reply_t *reply;
+-    xcb_atom_t a;
++    xcb_intern_atom_reply_t *reply;
  
      pa_assert(xcb);
      pa_assert(name);
  
      if ((xs = screen_of_display(xcb, screen))) {
--        cookie = xcb_intern_atom(xcb, 0, strlen(name), name);
--        reply = xcb_intern_atom_reply(xcb, cookie, NULL);
--
--        xcb_delete_property(xcb, xs->root, reply->atom);
+-        a = xcb_atom_get(xcb, name);
+-        xcb_delete_property(xcb, xs->root, a);
 +        reply = xcb_intern_atom_reply(xcb,
 +                                      xcb_intern_atom(xcb, 0, strlen(name), name),
 +                                      NULL);
@@ -72,20 +69,20 @@
      }
  }
  
-@@ -87,7 +95,6 @@
+@@ -81,7 +95,7 @@
      xcb_get_property_cookie_t req;
      xcb_get_property_reply_t* prop = NULL;
      xcb_screen_t *xs;
--    xcb_intern_atom_cookie_t cookie;
-     xcb_intern_atom_reply_t *reply;
+-    xcb_atom_t a;
++    xcb_intern_atom_reply_t *reply;
  
      pa_assert(xcb);
-@@ -106,10 +113,15 @@
+     pa_assert(name);
+@@ -99,9 +113,15 @@
          xs = screen_of_display(xcb, 0);
  
      if (xs) {
--        cookie = xcb_intern_atom(xcb, 0, strlen(name), name);
--        reply = xcb_intern_atom_reply(xcb, cookie, NULL);
+-        a = xcb_atom_get(xcb, name);
 +        reply = xcb_intern_atom_reply(xcb,
 +                                      xcb_intern_atom(xcb, 0, strlen(name), name),
 +                                      NULL);
@@ -93,7 +90,8 @@
 +        if (!reply)
 +            goto finish;
  
-         req = xcb_get_property(xcb, 0, xs->root, reply->atom, XCB_ATOM_STRING, 0, (uint32_t)(l-1));
+-        req = xcb_get_property(xcb, 0, xs->root, a, STRING, 0, (uint32_t)(l-1));
++        req = xcb_get_property(xcb, 0, xs->root, reply->atom, XCB_ATOM_STRING, 0, (uint32_t)(l-1));
 +        free(reply);
          prop = xcb_get_property_reply(xcb, req, NULL);
  
