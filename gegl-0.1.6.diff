@@ -1,3 +1,38 @@
+--- gegl-0.1.6/operations/external/ff-load.c.orig	2011-06-05 13:56:13.000000000 +0100
++++ gegl-0.1.6/operations/external/ff-load.c	2011-06-05 14:11:52.857872286 +0100
+@@ -69,6 +69,7 @@
+ {
+   switch (err)
+     {
++#if 0
+     case AVERROR_NUMEXPECTED:
+       g_warning ("%s: Incorrect image filename syntax.\n"
+                  "Use '%%d' to specify the image number:\n"
+@@ -76,12 +77,15 @@
+                  "  for img001.jpg, img002.jpg, ..., use 'img%%03d.jpg'.\n",
+                  filename);
+       break;
++#endif
+     case AVERROR_INVALIDDATA:
+       g_warning ("%s: Error while parsing header\n", filename);
+       break;
++#if 0
+     case AVERROR_NOFMT:
+       g_warning ("%s: Unknown format\n", filename);
+       break;
++#endif
+     default:
+       g_warning ("%s: Error while opening file\n", filename);
+       break;
+@@ -278,7 +282,7 @@
+       for (i = 0; i< p->ic->nb_streams; i++)
+         {
+           AVCodecContext *c = p->ic->streams[i]->codec;
+-          if (c->codec_type == CODEC_TYPE_VIDEO)
++          if (c->codec_type == AVMEDIA_TYPE_VIDEO)
+             {
+               p->video_st = p->ic->streams[i];
+               p->video_stream = i;
 --- gegl-0.1.6/docs/Makefile.in.orig	2011-02-13 18:15:29.000000000 +0000
 +++ gegl-0.1.6/docs/Makefile.in	2011-04-16 11:46:46.000000000 +0100
 @@ -345,7 +345,7 @@

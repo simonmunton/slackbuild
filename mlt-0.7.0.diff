@@ -1,0 +1,214 @@
+--- mlt-0.7.0/src/modules/avformat/producer_avformat.c.orig	2011-03-28 03:28:07.000000000 +0100
++++ mlt-0.7.0/src/modules/avformat/producer_avformat.c	2011-06-05 14:38:30.923872450 +0100
+@@ -154,7 +154,7 @@
+ 		fprintf( stderr, "---\naudio_codecs:\n" );
+ 		AVCodec *codec = NULL;
+ 		while ( ( codec = av_codec_next( codec ) ) )
+-			if ( codec->decode && codec->type == CODEC_TYPE_AUDIO )
++			if ( codec->decode && codec->type == AVMEDIA_TYPE_AUDIO )
+ 				fprintf( stderr, "  - %s\n", codec->name );
+ 		fprintf( stderr, "...\n" );
+ 		skip = 1;
+@@ -164,7 +164,7 @@
+ 		fprintf( stderr, "---\nvideo_codecs:\n" );
+ 		AVCodec *codec = NULL;
+ 		while ( ( codec = av_codec_next( codec ) ) )
+-			if ( codec->decode && codec->type == CODEC_TYPE_VIDEO )
++			if ( codec->decode && codec->type == AVMEDIA_TYPE_VIDEO )
+ 				fprintf( stderr, "  - %s\n", codec->name );
+ 		fprintf( stderr, "...\n" );
+ 		skip = 1;
+@@ -268,7 +268,7 @@
+ 		// Determine the type and obtain the first index of each type
+ 		switch( codec_context->codec_type )
+ 		{
+-			case CODEC_TYPE_VIDEO:
++			case AVMEDIA_TYPE_VIDEO:
+ 				if ( *video_index < 0 )
+ 					*video_index = i;
+ 				mlt_properties_set( meta_media, key, "video" );
+@@ -314,7 +314,7 @@
+ 				}
+ #endif
+ 				break;
+-			case CODEC_TYPE_AUDIO:
++			case AVMEDIA_TYPE_AUDIO:
+ 				if ( *audio_index < 0 )
+ 					*audio_index = i;
+ 				mlt_properties_set( meta_media, key, "audio" );
+@@ -826,7 +826,7 @@
+ 		  i < context->nb_streams;
+ 		  i++ )
+ 	{
+-		if ( context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
++		if ( context->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+ 		{
+ 			AVCodecContext *codec_context = context->streams[i]->codec;
+ 			AVCodec *codec = avcodec_find_decoder( codec_context->codec_id );
+@@ -1140,7 +1140,7 @@
+ 				while ( ret >= 0 && toscan-- > 0 )
+ 				{
+ 					ret = av_read_frame( context, &pkt );
+-					if ( ret >= 0 && ( pkt.flags & PKT_FLAG_KEY ) && pkt.stream_index == self->video_index )
++					if ( ret >= 0 && ( pkt.flags & AV_PKT_FLAG_KEY ) && pkt.stream_index == self->video_index )
+ 					{
+ 						mlt_log_verbose( MLT_PRODUCER_SERVICE(producer), "first_pts %lld dts %lld pts_dts_delta %d\n", pkt.pts, pkt.dts, (int)(pkt.pts - pkt.dts) );
+ 						self->first_pts = pkt.pts;
+@@ -1382,7 +1382,7 @@
+ 						got_picture = 0;
+ 					}
+ 				}
+-				mlt_log_debug( MLT_PRODUCER_SERVICE(producer), " got_pic %d key %d\n", got_picture, pkt.flags & PKT_FLAG_KEY );
++				mlt_log_debug( MLT_PRODUCER_SERVICE(producer), " got_pic %d key %d\n", got_picture, pkt.flags & AV_PKT_FLAG_KEY );
+ 			}
+ 
+ 			// Now handle the picture if we have one
+@@ -1709,11 +1709,11 @@
+ 	{
+ 		// Get the last video stream
+ 		for ( index = context->nb_streams - 1;
+-			  index >= 0 && context->streams[ index ]->codec->codec_type != CODEC_TYPE_VIDEO;
++			  index >= 0 && context->streams[ index ]->codec->codec_type != AVMEDIA_TYPE_VIDEO;
+ 			  index-- );
+ 		mlt_properties_set_int( properties, "video_index", index );
+ 	}
+-	if ( context && index > -1 && context->streams[ index ]->codec->codec_type != CODEC_TYPE_VIDEO )
++	if ( context && index > -1 && context->streams[ index ]->codec->codec_type != AVMEDIA_TYPE_VIDEO )
+ 	{
+ 		// Invalidate the video stream
+ 		index = -1;
+@@ -2031,7 +2031,7 @@
+ 
+ 			// We only deal with audio from the selected audio index
+ 			if ( ret >= 0 && pkt.data && pkt.size > 0 && ( pkt.stream_index == self->audio_index ||
+-				 ( self->audio_index == INT_MAX && context->streams[ pkt.stream_index ]->codec->codec_type == CODEC_TYPE_AUDIO ) ) )
++				 ( self->audio_index == INT_MAX && context->streams[ pkt.stream_index ]->codec->codec_type == AVMEDIA_TYPE_AUDIO ) ) )
+ 			{
+ 				int channels2 = self->audio_index == INT_MAX ? self->audio_codec[pkt.stream_index]->channels : *channels;
+ 				ret = decode_audio( self, &ignore, pkt, channels2, *samples, real_timecode, fps );
+@@ -2205,12 +2205,12 @@
+ 	if ( context && index >= (int) context->nb_streams && index < INT_MAX )
+ 	{
+ 		for ( index = context->nb_streams - 1;
+-			  index >= 0 && context->streams[ index ]->codec->codec_type != CODEC_TYPE_AUDIO;
++			  index >= 0 && context->streams[ index ]->codec->codec_type != AVMEDIA_TYPE_AUDIO;
+ 			  index-- );
+ 		mlt_properties_set_int( properties, "audio_index", index );
+ 	}
+ 	if ( context && index > -1 && index < INT_MAX &&
+-		 context->streams[ index ]->codec->codec_type != CODEC_TYPE_AUDIO )
++		 context->streams[ index ]->codec->codec_type != AVMEDIA_TYPE_AUDIO )
+ 	{
+ 		index = self->audio_index;
+ 		mlt_properties_set_int( properties, "audio_index", index );
+@@ -2239,7 +2239,7 @@
+ 		mlt_properties_set_int( frame_properties, "channels", self->total_channels );
+ 		for ( index = 0; index < context->nb_streams; index++ )
+ 		{
+-			if ( context->streams[ index ]->codec->codec_type == CODEC_TYPE_AUDIO )
++			if ( context->streams[ index ]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+ 				audio_codec_init( self, index, properties );
+ 		}
+ 	}
+--- mlt-0.7.0/src/modules/avformat/consumer_avformat.c.orig	2011-03-28 03:28:07.000000000 +0100
++++ mlt-0.7.0/src/modules/avformat/consumer_avformat.c	2011-06-05 14:40:27.045872465 +0100
+@@ -246,7 +246,7 @@
+ 		mlt_properties_set_data( properties, "acodec", codecs, 0, (mlt_destructor) mlt_properties_close, NULL );
+ 		mlt_properties_set_data( doc, "audio_codecs", codecs, 0, NULL, NULL );
+ 		while ( ( codec = av_codec_next( codec ) ) )
+-			if ( codec->encode && codec->type == CODEC_TYPE_AUDIO )
++			if ( codec->encode && codec->type == AVMEDIA_TYPE_AUDIO )
+ 			{
+ 				snprintf( key, sizeof(key), "%d", mlt_properties_count( codecs ) );
+ 				mlt_properties_set( codecs, key, codec->name );
+@@ -266,7 +266,7 @@
+ 		mlt_properties_set_data( properties, "vcodec", codecs, 0, (mlt_destructor) mlt_properties_close, NULL );
+ 		mlt_properties_set_data( doc, "video_codecs", codecs, 0, NULL, NULL );
+ 		while ( ( codec = av_codec_next( codec ) ) )
+-			if ( codec->encode && codec->type == CODEC_TYPE_VIDEO )
++			if ( codec->encode && codec->type == AVMEDIA_TYPE_VIDEO )
+ 			{
+ 				snprintf( key, sizeof(key), "%d", mlt_properties_count( codecs ) );
+ 				mlt_properties_set( codecs, key, codec->name );
+@@ -425,10 +425,10 @@
+ 		AVCodecContext *c = st->codec;
+ 
+ 		// Establish defaults from AVOptions
+-		avcodec_get_context_defaults2( c, CODEC_TYPE_AUDIO );
++		avcodec_get_context_defaults2( c, AVMEDIA_TYPE_AUDIO );
+ 
+ 		c->codec_id = codec_id;
+-		c->codec_type = CODEC_TYPE_AUDIO;
++		c->codec_type = AVMEDIA_TYPE_AUDIO;
+ 		c->sample_fmt = SAMPLE_FMT_S16;
+ 
+ #if 0 // disabled until some audio codecs are multi-threaded
+@@ -476,8 +476,8 @@
+ 		c->time_base = ( AVRational ){ 1, c->sample_rate };
+ 		c->channels = channels;
+ 
+-		if ( mlt_properties_get( properties, "alang" ) != NULL )
+-			strncpy( st->language, mlt_properties_get( properties, "alang" ), sizeof( st->language ) );
++//		if ( mlt_properties_get( properties, "alang" ) != NULL )
++//			strncpy( st->language, mlt_properties_get( properties, "alang" ), sizeof( st->language ) );
+ 	}
+ 	else
+ 	{
+@@ -572,10 +572,10 @@
+ 		AVCodecContext *c = st->codec;
+ 
+ 		// Establish defaults from AVOptions
+-		avcodec_get_context_defaults2( c, CODEC_TYPE_VIDEO );
++		avcodec_get_context_defaults2( c, AVMEDIA_TYPE_VIDEO );
+ 
+ 		c->codec_id = codec_id;
+-		c->codec_type = CODEC_TYPE_VIDEO;
++		c->codec_type = AVMEDIA_TYPE_VIDEO;
+ 		
+ 		// Setup multi-threading
+ 		int thread_count = mlt_properties_get_int( properties, "threads" );
+@@ -1374,7 +1374,7 @@
+ 							mlt_log_debug( MLT_CONSUMER_SERVICE( consumer ), "audio stream %d pkt pts %lld frame pts %lld",
+ 								stream->index, pkt.pts, codec->coded_frame->pts );
+ 						}
+-						pkt.flags |= PKT_FLAG_KEY;
++						pkt.flags |= AV_PKT_FLAG_KEY;
+ 						pkt.stream_index = stream->index;
+ 						pkt.data = audio_outbuf;
+ 
+@@ -1485,7 +1485,7 @@
+ 						AVPacket pkt;
+ 						av_init_packet(&pkt);
+ 
+-						pkt.flags |= PKT_FLAG_KEY;
++						pkt.flags |= AV_PKT_FLAG_KEY;
+ 						pkt.stream_index= video_st->index;
+ 						pkt.data= (uint8_t *)output;
+ 						pkt.size= sizeof(AVPicture);
+@@ -1516,7 +1516,7 @@
+ 								pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, video_st->time_base );
+ 							mlt_log_debug( MLT_CONSUMER_SERVICE( consumer ), "video pkt pts %lld frame pts %lld", pkt.pts, c->coded_frame->pts );
+ 							if( c->coded_frame && c->coded_frame->key_frame )
+-								pkt.flags |= PKT_FLAG_KEY;
++								pkt.flags |= AV_PKT_FLAG_KEY;
+ 							pkt.stream_index= video_st->index;
+ 							pkt.data= video_outbuf;
+ 							pkt.size= out_size;
+@@ -1600,7 +1600,7 @@
+ 			// Write the compressed frame in the media file
+ 			if ( c->coded_frame && c->coded_frame->pts != AV_NOPTS_VALUE )
+ 				pkt.pts = av_rescale_q( c->coded_frame->pts, c->time_base, audio_st[0]->time_base );
+-			pkt.flags |= PKT_FLAG_KEY;
++			pkt.flags |= AV_PKT_FLAG_KEY;
+ 			pkt.stream_index = audio_st[0]->index;
+ 			pkt.data = audio_outbuf;
+ 			if ( av_interleaved_write_frame( oc, &pkt ) != 0 )
+@@ -1627,7 +1627,7 @@
+ 			if ( c->coded_frame && c->coded_frame->pts != AV_NOPTS_VALUE )
+ 				pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, video_st->time_base );
+ 			if( c->coded_frame && c->coded_frame->key_frame )
+-				pkt.flags |= PKT_FLAG_KEY;
++				pkt.flags |= AV_PKT_FLAG_KEY;
+ 			pkt.stream_index = video_st->index;
+ 			pkt.data = video_outbuf;
+ 

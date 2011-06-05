@@ -1,3 +1,105 @@
+--- OpenCV-2.1.0/src/highgui/cvcap_ffmpeg.cpp.orig	2010-04-06 02:24:44.000000000 +0100
++++ OpenCV-2.1.0/src/highgui/cvcap_ffmpeg.cpp	2011-06-05 15:07:23.568872635 +0100
+@@ -464,7 +464,7 @@
+         AVCodecContext *enc = &ic->streams[i]->codec;
+ #endif
+ 
+-        if( CODEC_TYPE_VIDEO == enc->codec_type && video_stream < 0) {
++        if( AVMEDIA_TYPE_VIDEO == enc->codec_type && video_stream < 0) {
+             AVCodec *codec = avcodec_find_decoder(enc->codec_id);
+             if (!codec ||
+             avcodec_open(enc, codec) < 0)
+@@ -543,9 +543,9 @@
+     		}
+ 
+ #if LIBAVFORMAT_BUILD > 4628
+-        avcodec_decode_video(video_st->codec,
++        avcodec_decode_video2(video_st->codec,
+                              picture, &got_picture,
+-                             packet.data, packet.size);
++                             &packet);
+ #else
+         avcodec_decode_video(&video_st->codec,
+                              picture, &got_picture,
+@@ -798,16 +798,16 @@
+ static const char * icvFFMPEGErrStr(int err)
+ {
+     switch(err) {
+-    case AVERROR_NUMEXPECTED:
+-		return "Incorrect filename syntax";
++//    case AVERROR_NUMEXPECTED:
++//		return "Incorrect filename syntax";
+     case AVERROR_INVALIDDATA:
+ 		return "Invalid data in header";
+-    case AVERROR_NOFMT:
+-		return "Unknown format";
+-    case AVERROR_IO:
+-		return "I/O error occurred";
+-    case AVERROR_NOMEM:
+-		return "Memory allocation error";
++//    case AVERROR_NOFMT:
++//		return "Unknown format";
++//    case AVERROR_IO:
++//		return "I/O error occurred";
++//    case AVERROR_NOMEM:
++//		return "Memory allocation error";
+     default:
+ 		break;
+     }
+@@ -891,7 +891,7 @@
+ #endif
+ 
+ #if LIBAVFORMAT_BUILD > 4621
+-	c->codec_id = av_guess_codec(oc->oformat, NULL, oc->filename, NULL, CODEC_TYPE_VIDEO);
++	c->codec_id = av_guess_codec(oc->oformat, NULL, oc->filename, NULL, AVMEDIA_TYPE_VIDEO);
+ #else
+ 	c->codec_id = oc->oformat->video_codec;
+ #endif
+@@ -903,7 +903,7 @@
+     //if(codec_tag) c->codec_tag=codec_tag;
+ 	codec = avcodec_find_encoder(c->codec_id);
+ 
+-	c->codec_type = CODEC_TYPE_VIDEO;
++	c->codec_type = AVMEDIA_TYPE_VIDEO;
+ 
+ 	/* put sample parameters */
+ 	c->bit_rate = bitrate;
+@@ -990,7 +990,7 @@
+         AVPacket pkt;
+         av_init_packet(&pkt);
+ 
+-        pkt.flags |= PKT_FLAG_KEY;
++        pkt.flags |= AV_PKT_FLAG_KEY;
+         pkt.stream_index= video_st->index;
+         pkt.data= (uint8_t *)picture;
+         pkt.size= sizeof(AVPicture);
+@@ -1010,7 +1010,7 @@
+ 			pkt.pts = c->coded_frame->pts;
+ #endif
+             if(c->coded_frame->key_frame)
+-                pkt.flags |= PKT_FLAG_KEY;
++                pkt.flags |= AV_PKT_FLAG_KEY;
+             pkt.stream_index= video_st->index;
+             pkt.data= outbuf;
+             pkt.size= out_size;
+@@ -1207,7 +1207,7 @@
+ 	av_register_all ();
+ 
+ 	/* auto detect the output format from the name and fourcc code. */
+-	fmt = guess_format(NULL, filename, NULL);
++	fmt = av_guess_format(NULL, filename, NULL);
+ 	if (!fmt)
+         return false;
+ 
+@@ -1230,7 +1230,7 @@
+ #endif
+ 
+     // alloc memory for context
+-	oc = av_alloc_format_context();
++	oc = avformat_alloc_context();
+ 	assert (oc);
+ 
+ 	/* set file name */
 --- OpenCV-2.1.0/CMakeLists.txt.orig	2010-04-06 02:24:37.000000000 +0100
 +++ OpenCV-2.1.0/CMakeLists.txt	2011-02-26 22:33:35.473998586 +0000
 @@ -467,8 +467,8 @@
