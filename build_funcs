@@ -685,6 +685,20 @@ done
 }
 
 
+fix_pkgconfig_libdir()
+{
+if [ -n "${LIBDIRSUFFIX}" -a -d ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig ]
+then
+ (cd ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+  for f in *.pc
+  do
+    sed -i "/^libdir.*lib\$/ s@/lib@/lib${LIBDIRSUFFIX}@" $f
+  done
+ )
+fi
+}
+
+
 doinst_config()
 {
 if ! grep -q "^config() {$" ${PKG}/install/doinst.sh
