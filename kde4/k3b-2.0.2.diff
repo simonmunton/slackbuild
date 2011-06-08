@@ -1,0 +1,78 @@
+--- k3b-2.0.2/plugins/decoder/ffmpeg/k3bffmpegwrapper.cpp.orig	2011-01-15 20:47:29.000000000 +0000
++++ k3b-2.0.2/plugins/decoder/ffmpeg/k3bffmpegwrapper.cpp	2011-06-08 07:26:24.000000000 +0100
+@@ -109,7 +109,7 @@
+ #else
+     ::AVCodecContext* codecContext =  d->formatContext->streams[0]->codec;
+ #endif
+-    if( codecContext->codec_type != CODEC_TYPE_AUDIO ) {
++    if( codecContext->codec_type != AVMEDIA_TYPE_AUDIO ) {
+         kDebug() << "(K3bFFMpegFile) not a simple audio stream: " << m_filename;
+         return false;
+     }
+@@ -225,8 +225,10 @@
+ QString K3bFFMpegFile::title() const
+ {
+     // FIXME: is this UTF8 or something??
+-    if( d->formatContext->title[0] != '\0' )
+-        return QString::fromLocal8Bit( d->formatContext->title );
++    AVMetadataTag *title = av_metadata_get( d-formatContext->metadata, "title", NULL, 0);
++    if( title && title->value )
++//    if( d->formatContext->title[0] != '\0' )
++        return QString::fromLocal8Bit( title->value );
+     else
+         return QString();
+ }
+@@ -235,8 +237,10 @@
+ QString K3bFFMpegFile::author() const
+ {
+     // FIXME: is this UTF8 or something??
+-    if( d->formatContext->author[0] != '\0' )
+-        return QString::fromLocal8Bit( d->formatContext->author );
++    AVMetadataTag *author = av_metadata_get( d-formatContext->metadata, "author", NULL, 0);
++    if( author && author->value )
++//    if( d->formatContext->author[0] != '\0' )
++        return QString::fromLocal8Bit( author->value );
+     else
+         return QString();
+ }
+@@ -245,8 +249,10 @@
+ QString K3bFFMpegFile::comment() const
+ {
+     // FIXME: is this UTF8 or something??
+-    if( d->formatContext->comment[0] != '\0' )
+-        return QString::fromLocal8Bit( d->formatContext->comment );
++    AVMetadataTag *comment = av_metadata_get( d-formatContext->metadata, "comment", NULL, 0);
++    if( comment && comment->value )
++//    if( d->formatContext->comment[0] != '\0' )
++        return QString::fromLocal8Bit( comment->value );
+     else
+         return QString();
+ }
+@@ -306,10 +312,16 @@
+         d->outputBufferPos = d->alignedOutputBuffer;
+         d->outputBufferSize = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+ 
++        AVPacket pkt;
++        av_init_packet( &pkt );
++        pkt.data = d->packetData;
++        pkt.size = d->packetSize;
++
++
+ #if LIBAVCODEC_VERSION_MAJOR < 52
+         int len = ::avcodec_decode_audio(
+ #else
+-        int len = ::avcodec_decode_audio2(
++        int len = ::avcodec_decode_audio3(
+ #endif
+ #ifdef FFMPEG_BUILD_PRE_4629
+             &d->formatContext->streams[0]->codec,
+@@ -318,7 +330,8 @@
+ #endif
+             (short*)d->alignedOutputBuffer,
+             &d->outputBufferSize,
+-            d->packetData, d->packetSize );
++            &pkt);
++//            d->packetData, d->packetSize );
+ 
+         if( d->packetSize <= 0 || len < 0 )
+             ::av_free_packet( &d->packet );
