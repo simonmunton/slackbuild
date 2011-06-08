@@ -1,0 +1,152 @@
+--- DVDStyler-1.8.3/src/mediatrc_ffmpeg.cpp.orig	2011-03-10 20:08:22.000000000 +0000
++++ DVDStyler-1.8.3/src/mediatrc_ffmpeg.cpp	2011-06-08 22:41:58.000000000 +0100
+@@ -411,7 +411,7 @@
+ 			frame_rate.num = rfps;
+ 			frame_rate.den = rfps_base;
+ 
+-			enc->rate_emu = rate_emu;
++//			enc->rate_emu = rate_emu;
+ 			if (disableVideo)
+ 				st->discard = AVDISCARD_ALL;
+ 			break;
+@@ -508,7 +508,7 @@
+ 	/* check filename in case of an image number is expected */
+ 	if (oc->oformat->flags & AVFMT_NEEDNUMBER) {
+ 		if (!av_filename_number_test(oc->filename)) {
+-			PrintError(fileName, AVERROR_NUMEXPECTED);
++//			PrintError(fileName, AVERROR_NUMEXPECTED);
+ 			return false;
+ 		}
+ 	}
+@@ -542,18 +542,18 @@
+ 
+ void wxFfmpegMediaTranscoder::PrintError(const wxString& msg, int err) {
+ 	switch (err) {
+-	case AVERROR_NUMEXPECTED:
+-		wxLogError(wxT("%s: Incorrect image filename syntax.\n"
+-				"Use '%%d' to specify the image number:\n"
+-				"  for img1.jpg, img2.jpg, ..., use 'img%%d.jpg';\n"
+-				"  for img001.jpg, img002.jpg, ..., use 'img%%03d.jpg'."), msg.c_str());
+-		break;
++//	case AVERROR_NUMEXPECTED:
++//		wxLogError(wxT("%s: Incorrect image filename syntax.\n"
++//				"Use '%%d' to specify the image number:\n"
++//				"  for img1.jpg, img2.jpg, ..., use 'img%%d.jpg';\n"
++//				"  for img001.jpg, img002.jpg, ..., use 'img%%03d.jpg'."), msg.c_str());
++//		break;
+ 	case AVERROR_INVALIDDATA:
+ 		wxLogError(wxT("%s: Error while parsing header"), msg.c_str());
+ 		break;
+-	case AVERROR_NOFMT:
+-		wxLogError(wxT("%s: Unknown format"), msg.c_str());
+-		break;
++//	case AVERROR_NOFMT:
++//		wxLogError(wxT("%s: Unknown format"), msg.c_str());
++//		break;
+ 	case AVERROR(EIO):
+ 		wxLogError(wxT("%s: I/O error occured\n"
+ 				"Usually that means that input file is truncated and/or corrupted."), msg.c_str());
+@@ -580,7 +580,7 @@
+ 		}
+ 		if(*p == -1
+ 		   && !(   st->codec->codec_id==CODEC_ID_MJPEG
+-				&& st->codec->strict_std_compliance <= FF_COMPLIANCE_INOFFICIAL
++				&& st->codec->strict_std_compliance <= FF_COMPLIANCE_UNOFFICIAL
+ 				&& (   st->codec->pix_fmt == PIX_FMT_YUV420P
+ 					|| st->codec->pix_fmt == PIX_FMT_YUV422P)))
+ 			st->codec->pix_fmt = codec->pix_fmts[0];
+@@ -1863,7 +1863,7 @@
+ 				}
+ 			}
+ 		}
+-		
++#if 0		
+ 		// frame rate emulation
+ 		if (ist->st->codec->rate_emu) {
+ 			int64_t pts = av_rescale((int64_t) ist->frame * ist->st->codec->time_base.num, 1000000, ist->st->codec->time_base.den);
+@@ -1873,7 +1873,7 @@
+ 			
+ 			ist->frame++;
+ 		}
+-		
++#endif		
+ 		// if output time reached then transcode raw format, encode packets and output them
+ 		if (start_time == 0 || ist->pts >= start_time) {
+ 			for (i=0; i<nb_ostreams; i++) {
+@@ -2293,7 +2293,7 @@
+ 			pkt.size= ret;
+ 			if(enc->coded_frame && enc->coded_frame->pts != (int64_t) AV_NOPTS_VALUE)
+ 				pkt.pts= av_rescale_q(enc->coded_frame->pts, enc->time_base, ost->st->time_base);
+-			pkt.flags |= PKT_FLAG_KEY;
++			pkt.flags |= AV_PKT_FLAG_KEY;
+ 			if (!WriteFrame(s, &pkt, ost->st->codec, bitstream_filters[ost->file_index][pkt.stream_index]))
+ 				return false;
+ 			
+@@ -2567,7 +2567,7 @@
+ 			} else
+ 				big_picture.quality = (int) ost->st->quality;
+ 			if (!me_threshold)
+-				big_picture.pict_type = 0;
++				big_picture.pict_type = (enum AVPictureType) 0;
+ //			big_picture.pts = AV_NOPTS_VALUE;
+ 			big_picture.pts= ost->sync_opts;
+ //			big_picture.pts= av_rescale(ost->sync_opts, AV_TIME_BASE*(int64_t)enc->time_base.num, enc->time_base.den);
+--- DVDStyler-1.8.3/src/mediatrc_ffmpeg.h.orig	2011-02-13 18:49:58.000000000 +0000
++++ DVDStyler-1.8.3/src/mediatrc_ffmpeg.h	2011-06-08 20:52:15.000000000 +0100
+@@ -103,15 +103,15 @@
+ 			int nb_ostreams, int is_last_report);
+     AVFormatContext *input_files[MAX_FILES];
+     int64_t input_files_ts_offset[MAX_FILES];
+-	double input_files_ts_scale[MAX_FILES][MAX_STREAMS];
++	double input_files_ts_scale[MAX_FILES][MAX_STREAMS_];
+     int nb_input_files;
+ 
+     AVFormatContext *output_files[MAX_FILES];
+-	AVCodec *output_codecs[MAX_FILES*MAX_STREAMS];
++	AVCodec *output_codecs[MAX_FILES*MAX_STREAMS_];
+     int nb_output_files;
+ 	int nb_ocodecs;
+ 
+-    AVStreamMap stream_maps[MAX_FILES*MAX_STREAMS];
++    AVStreamMap stream_maps[MAX_FILES*MAX_STREAMS_];
+ 	int nb_stream_maps;
+ 
+     AVMetaDataMap meta_data_maps[MAX_FILES];
+--- DVDStyler-1.8.3/src/mediaenc_ffmpeg.cpp.orig	2011-04-02 18:14:55.000000000 +0100
++++ DVDStyler-1.8.3/src/mediaenc_ffmpeg.cpp	2011-06-08 20:47:16.000000000 +0100
+@@ -141,7 +141,7 @@
+     
+     AVCodecContext* c = m_videoStm->codec;
+     c->codec_id = (CodecID) codecId;
+-    c->codec_type = CODEC_TYPE_VIDEO;
++    c->codec_type = AVMEDIA_TYPE_VIDEO;
+     c->bit_rate = videoBitrate * 1000;
+     wxSize frameSize = GetFrameSize(videoFormat);
+     c->width = frameSize.GetWidth();
+@@ -176,7 +176,7 @@
+     
+     AVCodecContext* c = m_audioStm->codec;
+     c->codec_id = (CodecID) codecId;
+-    c->codec_type = CODEC_TYPE_AUDIO;
++    c->codec_type = AVMEDIA_TYPE_AUDIO;
+     c->bit_rate = 64000;
+     c->sample_rate = 48000;
+     c->sample_fmt = SAMPLE_FMT_S16;
+@@ -339,7 +339,7 @@
+     AVCodecContext* c = m_audioStm->codec;
+     pkt.size= avcodec_encode_audio(c, m_audioOutbuf, AUDIO_BUF_SIZE, m_samples);
+     pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, m_audioStm->time_base);
+-    pkt.flags |= PKT_FLAG_KEY;
++    pkt.flags |= AV_PKT_FLAG_KEY;
+     pkt.stream_index= m_audioStm->index;
+     pkt.data= m_audioOutbuf;
+ 
+@@ -365,7 +365,7 @@
+ 
+         pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, m_videoStm->time_base);
+         if(c->coded_frame->key_frame)
+-            pkt.flags |= PKT_FLAG_KEY;
++            pkt.flags |= AV_PKT_FLAG_KEY;
+         pkt.stream_index = m_videoStm->index;
+         pkt.data = m_videoOutbuf;
+         pkt.size = out_size;
