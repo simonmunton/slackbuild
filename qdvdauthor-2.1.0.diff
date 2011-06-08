@@ -1,0 +1,159 @@
+--- qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.cpp.orig	2010-01-09 14:01:14.000000000 +0000
++++ qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.cpp	2011-06-08 20:43:46.000000000 +0100
+@@ -106,7 +106,7 @@
+   bool bHasAudio = false;
+   bool bHasVideo = false;
+   for  ( iStreamID=0; iStreamID < (int)m_pFormatCtx->nb_streams; iStreamID++ )  {
+-    if ( m_pFormatCtx->streams[iStreamID]->codec->codec_type == CODEC_TYPE_VIDEO )  {
++    if ( m_pFormatCtx->streams[iStreamID]->codec->codec_type == AVMEDIA_TYPE_VIDEO )  {
+       if ( bHasVideo )
+         continue;
+       // Get a pointer to the codec context for the first video stream
+@@ -141,7 +141,7 @@
+       m_pVideoCodecCtx = pCodecCtx;
+       m_iVideoStreamID = iStreamID;
+     }
+-    else if ( m_pFormatCtx->streams[iStreamID]->codec->codec_type == CODEC_TYPE_AUDIO )  {
++    else if ( m_pFormatCtx->streams[iStreamID]->codec->codec_type == AVMEDIA_TYPE_AUDIO )  {
+       if ( bHasAudio )
+         continue;
+       // Get a pointer to the codec context for the first audio stream
+@@ -782,7 +782,7 @@
+ //  if ( pOutputAudioStream->codec->coded_frame && pOutputAudioStream->codec->coded_frame->pts != AV_NOPTS_VALUE )
+     m_pPacket->pts  = av_rescale_q ( pOutputAudioStream->codec->coded_frame->pts, pOutputAudioStream->codec->time_base, pOutputAudioStream->time_base );
+ 
+-  m_pPacket->flags       |= PKT_FLAG_KEY;
++  m_pPacket->flags       |= AV_PKT_FLAG_KEY;
+   m_pPacket->stream_index = pOutputAudioStream->index;
+   m_pPacket->data         = m_pAudioBuffer;
+ 
+@@ -817,7 +817,7 @@
+       m_pPacket->pts = av_rescale_q ( pOutputVideoStream->codec->coded_frame->pts, pOutputVideoStream->codec->time_base, pOutputVideoStream->time_base );
+ 
+       if ( pOutputVideoStream->codec->coded_frame->key_frame )
+-           m_pPacket->flags  |= PKT_FLAG_KEY;
++           m_pPacket->flags  |= AV_PKT_FLAG_KEY;
+       m_pPacket->stream_index = pOutputVideoStream->index;
+       m_pPacket->data         = m_pVideoBuffer;
+       m_pPacket->size         = m_iVideoOutSize;
+@@ -905,7 +905,7 @@
+           m_pPacket->pts = av_rescale_q ( pOutputVideoStream->codec->coded_frame->pts, pOutputVideoStream->codec->time_base, pOutputVideoStream->time_base );
+ 
+           if ( pOutputVideoStream->codec->coded_frame->key_frame )
+-               m_pPacket->flags  |= PKT_FLAG_KEY;
++               m_pPacket->flags  |= AV_PKT_FLAG_KEY;
+           m_pPacket->stream_index = pOutputVideoStream->index;
+           m_pPacket->data         = m_pVideoBuffer;
+           m_pPacket->size         = iOutSize;
+@@ -933,7 +933,7 @@
+ //      if ( pOutputAudioStream->codec->coded_frame && pOutputAudioStream->codec->coded_frame->pts != AV_NOPTS_VALUE )
+         m_pPacket->pts = av_rescale_q ( pOutputAudioStream->codec->coded_frame->pts, pOutputAudioStream->codec->time_base, pOutputAudioStream->time_base );
+ 
+-      m_pPacket->flags       |= PKT_FLAG_KEY;
++      m_pPacket->flags       |= AV_PKT_FLAG_KEY;
+       m_pPacket->stream_index = pOutputAudioStream->index;
+       m_pPacket->data         = m_pAudioBuffer;
+ 
+@@ -1204,9 +1204,9 @@
+ {
+   Encoder::initStream ( qsFileName, videoFormat, audioFormat, iFrames );
+   endStream ( );
+-  AVOutputFormat *pOutputFormat = guess_format ( "dvd", NULL, NULL );
++  AVOutputFormat *pOutputFormat = av_guess_format ( "dvd", NULL, NULL );
+   if ( audioFormat == afUndef )
+-    pOutputFormat = guess_format ( NULL, (const char *)qsFileName.toUtf8 ( ), NULL );
++    pOutputFormat = av_guess_format ( NULL, (const char *)qsFileName.toUtf8 ( ), NULL );
+ 
+   if ( ! pOutputFormat )
+     return false;
+@@ -1378,7 +1378,7 @@
+ 
+   AVCodecContext *pVideo  = m_pVideoStream->codec;
+   pVideo->codec_id        = (CodecID)iCodecID;
+-  pVideo->codec_type      = CODEC_TYPE_VIDEO;
++  pVideo->codec_type      = AVMEDIA_TYPE_VIDEO;
+   pVideo->bit_rate        = iBitrate * 1024;
+   pVideo->width           = 720;
+ //pVideo->dtg_active_format = FF_DTG_AFD_4_3; only used for decoding
+@@ -1548,7 +1548,7 @@
+ 
+   AVCodecContext *pAudio = m_pAudioStream->codec;
+   pAudio->codec_id       = (CodecID)iCodecID;
+-  pAudio->codec_type     = CODEC_TYPE_AUDIO;
++  pAudio->codec_type     = AVMEDIA_TYPE_AUDIO;
+   pAudio->sample_fmt     = SAMPLE_FMT_S16;
+   pAudio->bit_rate       = 448000;
+   pAudio->sample_rate    = 48000;
+@@ -1626,7 +1626,7 @@
+ 
+   pAudioCodec->frame_number++;
+   pkt.pts  = av_rescale_q ( pAudioCodec->coded_frame->pts, pAudioCodec->time_base, m_pAudioStream->time_base );
+-  pkt.flags       |= PKT_FLAG_KEY;
++  pkt.flags       |= AV_PKT_FLAG_KEY;
+   pkt.stream_index = m_pAudioStream->index;
+   pkt.data         = m_pAudioBuffer;
+ 
+@@ -1654,7 +1654,7 @@
+ 
+     pkt.pts= av_rescale_q ( pVideo->coded_frame->pts, pVideo->time_base, m_pVideoStream->time_base );
+     if ( pVideo->coded_frame->key_frame )
+-      pkt.flags     |= PKT_FLAG_KEY;
++      pkt.flags     |= AV_PKT_FLAG_KEY;
+ 
+     pkt.stream_index = m_pVideoStream->index;
+     pkt.data         = m_pVideoBuffer;
+--- qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.h.orig	2010-01-09 14:01:14.000000000 +0000
++++ qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.h	2011-06-08 20:41:24.000000000 +0100
+@@ -32,6 +32,10 @@
+ #include <QList>
+ #include <QMutex>
+ 
++#define __STDC_CONSTANT_MACROS
++#include <stdint.h>
++#undef __STDC_CONSTANT_MACROS
++
+ #include <libavutil/avutil.h>
+ 
+ #if ( LIBAVUTIL_VERSION_MAJOR >= 50 )
+--- qdvdauthor-2.1.0/test/test_ipc/main.cpp.orig	2010-01-09 14:01:14.000000000 +0000
++++ qdvdauthor-2.1.0/test/test_ipc/main.cpp	2010-01-09 14:01:14.000000000 +0000
+@@ -8,8 +8,14 @@
+ #define BUFLEN 512
+ 
+ 
++int main_1 ( int argc, char **argv )
++{
++	
++
++	exit ( 0 );
++}
+ 
+-int main( int argc, char ** argv )
++int main ( int argc, char ** argv )
+ {
+ 	int iWait;
+ 	int iRead;
+@@ -64,9 +70,9 @@
+ 		// the child process can then read and write its stdin and stdout and never know it is
+ 		// actually communicating through a pipe to another process.
+ printf ("Child still here ... <%d>\n", iWhich);
+-		execlp("more","more","main.cpp",NULL);
+-		flush();
+-//		system ("more main.cpp");
++//		execlp ("more","more","main.cpp",NULL);
++//		fflush ( stdout );
++		system ("more main.cpp");
+ 		exit (0);
+ 	}
+ 	else	{	/* parent process */
+@@ -87,8 +93,8 @@
+ 		pid_t thePid = 0;
+ 		while (read(fromChild,buf, BUFLEN))	{
+ //		while (thePid != iWhich)	{
+-			sleep (1);
+-			read(fromChild,buf, BUFLEN);
++		//	sleep (1);
++		//	read(fromChild,buf, BUFLEN);
+ printf ("iWait !!!<%d> iWhich<%d>\n", iWait, iWhich);
+ 			thePid = waitpid(iWhich, &iWait, WNOHANG);
+ 			printf ("Parent:<%d> <%s>\n", (int)thePid, (char *)buf);
