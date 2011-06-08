@@ -1,5 +1,5 @@
---- blender-r36358/intern/audaspace/ffmpeg/AUD_FFMPEGReader.cpp.orig	2011-04-22 15:48:26.000000000 +0100
-+++ blender-r36358/intern/audaspace/ffmpeg/AUD_FFMPEGReader.cpp	2011-06-05 16:54:06.521873322 +0100
+--- blender-r36358/intern/audaspace/ffmpeg/AUD_FFMPEGReader.cpp.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/intern/audaspace/ffmpeg/AUD_FFMPEGReader.cpp	2011-06-08 19:22:39.000000000 +0100
 @@ -64,15 +64,15 @@
  
  		// read samples from the packet
@@ -32,70 +32,8 @@
  			&& (m_stream < 0))
  		{
  			m_stream=i;
---- blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.cpp.orig	2011-06-05 16:57:40.378873301 +0100
-+++ blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.cpp	2011-06-05 17:24:59.610873509 +0100
-@@ -368,9 +368,13 @@
- 				BLI_remlink(&video->m_packetCacheBase, cachePacket);
- 				// use m_frame because when caching, it is not used in main thread
- 				// we can't use currentFrame directly because we need to convert to RGB first
--				avcodec_decode_video(video->m_codecCtx, 
-+				AVPacket pkt;
-+				av_init_packet (&pkt);
-+				pkt.data = cachePacket->packet.data;
-+				pkt.size = cachePacket->packet.size;
-+				avcodec_decode_video2(video->m_codecCtx, 
- 					video->m_frame, &frameFinished, 
--					cachePacket->packet.data, cachePacket->packet.size);
-+					&pkt);
- 				if(frameFinished) 
- 				{
- 					AVFrame * input = video->m_frame;
-@@ -641,7 +645,7 @@
- 	if (m_captRate <= 0.f)
- 		m_captRate = defFrameRate;
- 	sprintf(rateStr, "%f", m_captRate);
--	av_parse_video_frame_rate(&frameRate, rateStr);
-+	av_parse_video_rate(&frameRate, rateStr);
- 	// populate format parameters
- 	// need to specify the time base = inverse of rate
- 	formatParams.time_base.num = frameRate.den;
-@@ -924,10 +928,10 @@
- 			{
- 				if (packet.stream_index == m_videoStream) 
- 				{
--					avcodec_decode_video(
-+					avcodec_decode_video2(
- 						m_codecCtx, 
- 						m_frame, &frameFinished, 
--						packet.data, packet.size);
-+						&packet);
- 					if (frameFinished)
- 					{
- 						m_curPosition = (long)((packet.dts-startTs) * (m_baseFrameRate*timeBase) + 0.5);
-@@ -999,9 +1003,9 @@
- 	{
- 		if(packet.stream_index == m_videoStream) 
- 		{
--			avcodec_decode_video(m_codecCtx, 
-+			avcodec_decode_video2(m_codecCtx, 
- 				m_frame, &frameFinished, 
--				packet.data, packet.size);
-+				&packet);
- 			// remember dts to compute exact frame number
- 			dts = packet.dts;
- 			if (frameFinished && !posFound) 
---- blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.h.orig	2011-04-22 15:48:59.000000000 +0100
-+++ blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.h	2011-06-05 17:26:17.726873518 +0100
-@@ -34,6 +34,7 @@
- #include <libavformat/avformat.h>
- #include <libavcodec/avcodec.h>
- #include <libavutil/rational.h>
-+#include <libavutil/parseutils.h>
- #include <libswscale/swscale.h>
- #include "DNA_listBase.h"
- #include "BLI_threads.h"
---- blender-r36358/source/blender/blenkernel/intern/writeffmpeg.c.orig	2011-04-22 15:49:17.000000000 +0100
-+++ blender-r36358/source/blender/blenkernel/intern/writeffmpeg.c	2011-06-05 17:28:01.783873529 +0100
+--- blender-r36358/source/blender/blenkernel/intern/writeffmpeg.c.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/source/blender/blenkernel/intern/writeffmpeg.c	2011-06-08 19:30:54.000000000 +0100
 @@ -163,7 +163,7 @@
  	}
  
@@ -222,6 +160,21 @@
  		}
  		packet.stream_index = video_stream->index;
  		packet.data = video_buffer;
+@@ -1101,12 +1101,12 @@
+ 	switch (o->type) {
+ 	case FF_OPT_TYPE_INT:
+ 	case FF_OPT_TYPE_INT64:
+-		val.i = o->default_val;
++		val.i = o->default_val.i64;
+ 		idp_type = IDP_INT;
+ 		break;
+ 	case FF_OPT_TYPE_DOUBLE:
+ 	case FF_OPT_TYPE_FLOAT:
+-		val.f = o->default_val;
++		val.f = o->default_val.dbl;
+ 		idp_type = IDP_FLOAT;
+ 		break;
+ 	case FF_OPT_TYPE_STRING:
 @@ -1311,12 +1311,13 @@
  		break;
  
@@ -261,8 +214,8 @@
  	else if(rd->imtype == R_THEORA) {
  		if(rd->ffcodecdata.codec != CODEC_ID_THEORA) {
  			ffmpeg_set_preset(rd, FFMPEG_PRESET_THEORA);
---- blender-r36358/source/blender/makesrna/intern/rna_scene.c.orig	2011-04-22 15:49:23.000000000 +0100
-+++ blender-r36358/source/blender/makesrna/intern/rna_scene.c	2011-06-05 16:50:42.979873289 +0100
+--- blender-r36358/source/blender/makesrna/intern/rna_scene.c.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/source/blender/makesrna/intern/rna_scene.c	2011-06-08 19:22:39.000000000 +0100
 @@ -2135,7 +2135,7 @@
  		{CODEC_ID_HUFFYUV, "HUFFYUV", 0, "HuffYUV", ""},
  		{CODEC_ID_DVVIDEO, "DV", 0, "DV", ""},
@@ -272,8 +225,8 @@
  		{CODEC_ID_THEORA, "THEORA", 0, "Theora", ""},
  		{CODEC_ID_FLV1, "FLASH", 0, "Flash Video", ""},
  		{CODEC_ID_FFV1, "FFV1", 0, "FFmpeg video codec #1", ""},
---- blender-r36358/source/blender/imbuf/intern/anim_movie.c.orig	2011-04-22 15:49:25.000000000 +0100
-+++ blender-r36358/source/blender/imbuf/intern/anim_movie.c	2011-06-05 17:29:15.269873526 +0100
+--- blender-r36358/source/blender/imbuf/intern/anim_movie.c.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/source/blender/imbuf/intern/anim_movie.c	2011-06-08 19:22:39.000000000 +0100
 @@ -566,7 +566,7 @@
  	videoStream=-1;
  	for(i=0; i<pFormatCtx->nb_streams; i++)
@@ -308,3 +261,74 @@
  
  			if (seek_by_bytes && preseek_count > 0) {
  				preseek_count--;
+--- blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.cpp.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.cpp	2011-06-08 19:37:58.000000000 +0100
+@@ -182,7 +182,7 @@
+ 	{
+ 		if(formatCtx->streams[i] &&
+ 			get_codec_from_stream(formatCtx->streams[i]) && 
+-			(get_codec_from_stream(formatCtx->streams[i])->codec_type==CODEC_TYPE_VIDEO))
++			(get_codec_from_stream(formatCtx->streams[i])->codec_type==AVMEDIA_TYPE_VIDEO))
+ 		{
+ 			videoStream=i;
+ 			break;
+@@ -368,9 +368,13 @@
+ 				BLI_remlink(&video->m_packetCacheBase, cachePacket);
+ 				// use m_frame because when caching, it is not used in main thread
+ 				// we can't use currentFrame directly because we need to convert to RGB first
+-				avcodec_decode_video(video->m_codecCtx, 
++				AVPacket pkt;
++				av_init_packet (&pkt);
++				pkt.data = cachePacket->packet.data;
++				pkt.size = cachePacket->packet.size;
++				avcodec_decode_video2(video->m_codecCtx, 
+ 					video->m_frame, &frameFinished, 
+-					cachePacket->packet.data, cachePacket->packet.size);
++					&pkt);
+ 				if(frameFinished) 
+ 				{
+ 					AVFrame * input = video->m_frame;
+@@ -641,7 +645,7 @@
+ 	if (m_captRate <= 0.f)
+ 		m_captRate = defFrameRate;
+ 	sprintf(rateStr, "%f", m_captRate);
+-	av_parse_video_frame_rate(&frameRate, rateStr);
++	av_parse_video_rate(&frameRate, rateStr);
+ 	// populate format parameters
+ 	// need to specify the time base = inverse of rate
+ 	formatParams.time_base.num = frameRate.den;
+@@ -924,10 +928,10 @@
+ 			{
+ 				if (packet.stream_index == m_videoStream) 
+ 				{
+-					avcodec_decode_video(
++					avcodec_decode_video2(
+ 						m_codecCtx, 
+ 						m_frame, &frameFinished, 
+-						packet.data, packet.size);
++						&packet);
+ 					if (frameFinished)
+ 					{
+ 						m_curPosition = (long)((packet.dts-startTs) * (m_baseFrameRate*timeBase) + 0.5);
+@@ -999,9 +1003,9 @@
+ 	{
+ 		if(packet.stream_index == m_videoStream) 
+ 		{
+-			avcodec_decode_video(m_codecCtx, 
++			avcodec_decode_video2(m_codecCtx, 
+ 				m_frame, &frameFinished, 
+-				packet.data, packet.size);
++				&packet);
+ 			// remember dts to compute exact frame number
+ 			dts = packet.dts;
+ 			if (frameFinished && !posFound) 
+--- blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.h.orig	2011-06-08 19:22:25.000000000 +0100
++++ blender-r36358/source/gameengine/VideoTexture/VideoFFmpeg.h	2011-06-08 19:22:39.000000000 +0100
+@@ -34,6 +34,7 @@
+ #include <libavformat/avformat.h>
+ #include <libavcodec/avcodec.h>
+ #include <libavutil/rational.h>
++#include <libavutil/parseutils.h>
+ #include <libswscale/swscale.h>
+ #include "DNA_listBase.h"
+ #include "BLI_threads.h"
