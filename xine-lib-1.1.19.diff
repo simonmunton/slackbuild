@@ -1,0 +1,130 @@
+--- xine-lib-1.1.19/src/post/planar/pp.c.orig	2010-03-09 22:17:05.000000000 +0000
++++ xine-lib-1.1.19/src/post/planar/pp.c	2011-06-08 06:22:49.000000000 +0100
+@@ -76,8 +76,8 @@
+ 
+   /* libpostproc specific stuff */
+   int                pp_flags;
+-  pp_context_t      *pp_context;
+-  pp_mode_t         *pp_mode;
++  pp_context        *pp_context;
++  pp_mode           *pp_mode;
+ 
+   pthread_mutex_t    lock;
+ };
+--- xine-lib-1.1.19/src/combined/ffmpeg/ff_video_decoder.c.orig	2010-03-10 19:07:15.000000000 +0000
++++ xine-lib-1.1.19/src/combined/ffmpeg/ff_video_decoder.c	2011-06-09 20:18:42.000000000 +0100
+@@ -116,8 +116,8 @@
+ 
+   int               pp_quality;
+   int               pp_flags;
+-  pp_context_t     *pp_context;
+-  pp_mode_t        *pp_mode;
++  pp_context       *pp_context;
++  pp_mode          *pp_mode;
+ 
+   /* mpeg-es parsing */
+   mpeg_parser_t    *mpeg_parser;
+@@ -1055,12 +1055,17 @@
+     }
+ 
+     /* skip decoding b frames if too late */
+-    this->context->hurry_up = (this->skipframes > 0);
++    this->context->skip_frame = (this->skipframes > 0) ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
+ 
+     lprintf("avcodec_decode_video: size=%d\n", this->mpeg_parser->buffer_size);
+-    len = avcodec_decode_video (this->context, this->av_frame,
+-                                &got_picture, this->mpeg_parser->chunk_buffer,
+-                                this->mpeg_parser->buffer_size);
++    {
++    AVPacket pkt;
++    av_init_packet( &pkt );
++    pkt.data = this->mpeg_parser->chunk_buffer;
++    pkt.size = this->mpeg_parser->buffer_size;
++    len = avcodec_decode_video2 (this->context, this->av_frame,
++                                &got_picture, &pkt);
++    }
+     lprintf("avcodec_decode_video: decoded_size=%d, got_picture=%d\n",
+             len, got_picture);
+     len = current - buf->content - offset;
+@@ -1112,7 +1117,7 @@
+ 
+     } else {
+ 
+-      if (this->context->hurry_up) {
++      if (this->context->skip_frame) {
+         /* skipped frame, output a bad frame */
+         img = this->stream->video_out->get_frame (this->stream->video_out,
+                                                   this->bih.biWidth,
+@@ -1304,13 +1309,17 @@
+         got_picture = 0;
+       } else {
+         /* skip decoding b frames if too late */
+-        this->context->hurry_up = (this->skipframes > 0);
++        this->context->skip_frame = (this->skipframes > 0) ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
+ 
+         lprintf("buffer size: %d\n", this->size);
+-        len = avcodec_decode_video (this->context, this->av_frame,
+-                                    &got_picture, &chunk_buf[offset],
+-                                    this->size);
+-
++        {
++        AVPacket pkt;
++        av_init_packet( &pkt );
++        pkt.data = &chunk_buf[offset];
++        pkt.size = this->size;
++        len = avcodec_decode_video2 (this->context, this->av_frame,
++                                    &got_picture, &pkt);
++        }
+ #ifdef AVCODEC_HAS_REORDERED_OPAQUE
+         /* reset consumed pts value */
+         this->context->reordered_opaque = ff_tag_pts(this, 0);
+--- xine-lib-1.1.19/src/combined/ffmpeg/ff_audio_decoder.c.orig	2010-03-23 15:41:49.000000000 +0000
++++ xine-lib-1.1.19/src/combined/ffmpeg/ff_audio_decoder.c	2011-06-08 06:30:32.000000000 +0100
+@@ -285,12 +285,15 @@
+ 
+     if (!this->output_open) {
+       if (!this->audio_bits || !this->audio_sample_rate || !this->audio_channels) {
++        AVPacket pkt;
++        av_init_packet( &pkt );
++        pkt.data = &this->buf[0];
++        pkt.size = this->size;
+         decode_buffer_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+-        avcodec_decode_audio2 (this->context,
++        avcodec_decode_audio3 (this->context,
+                               (int16_t *)this->decode_buffer,
+                               &decode_buffer_size,
+-                              &this->buf[0],
+-                              this->size);
++                              &pkt);
+ 	this->audio_bits = this->context->bits_per_sample;
+ 	this->audio_sample_rate = this->context->sample_rate;
+ 	this->audio_channels = this->context->channels;
+@@ -310,12 +313,15 @@
+ 
+       offset = 0;
+       while (this->size>0) {
++        AVPacket pkt;
++        av_init_packet( &pkt );
++        pkt.data = &this->buf[offset];
++        pkt.size = this->size;
+         decode_buffer_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+-        bytes_consumed = avcodec_decode_audio2 (this->context,
++        bytes_consumed = avcodec_decode_audio3 (this->context,
+                                                (int16_t *)this->decode_buffer,
+                                                &decode_buffer_size,
+-                                               &this->buf[offset],
+-                                               this->size);
++                                               &pkt);
+ 
+         if (bytes_consumed<0) {
+           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+--- xine-lib-1.1.19/src/video_out/xxmc.h.orig	2010-03-09 22:17:05.000000000 +0000
++++ xine-lib-1.1.19/src/video_out/xxmc.h	2011-06-08 06:02:12.000000000 +0100
+@@ -79,6 +79,7 @@
+ #include <X11/extensions/Xvlib.h>
+ #ifdef HAVE_VLDXVMC
+   #include <X11/extensions/vldXvMC.h>
++  #include <X11/extensions/XvMClib.h>
+ #else
+   #include <X11/extensions/XvMClib.h>
+   #include <X11/extensions/XvMC.h>
