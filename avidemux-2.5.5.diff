@@ -1,0 +1,51 @@
+--- avidemux-2.5.5/build/avidemux/ADM_libraries/ffmpeg/config.mak.orig	2011-06-09 06:42:49.000000000 +0100
++++ avidemux-2.5.5/build/avidemux/ADM_libraries/ffmpeg/config.mak	2011-06-09 06:42:49.000000000 +0100
+@@ -60,7 +60,7 @@
+ EXTRALIBS=-lva -lm -pthread -lbz2 -lz 
+ INSTALL=install
+ LIBTARGET=
+-SLIBNAME=$(SLIBPREF)$(FULLNAME)$(SLIBSUF)
++SLIBNAME=$(SLIBPREF)ADM5$(FULLNAME)$(SLIBSUF)
+ SLIBNAME_WITH_VERSION=$(SLIBNAME).$(LIBVERSION)
+ SLIBNAME_WITH_MAJOR=$(SLIBNAME).$(LIBMAJOR)
+ SLIB_CREATE_DEF_CMD=
+--- avidemux-2.5.5/avidemux/ADM_libraries/ffmpeg/common.mak.orig	2011-04-26 23:58:23.000000000 +0100
++++ avidemux-2.5.5/avidemux/ADM_libraries/ffmpeg/common.mak	2011-06-09 06:41:59.000000000 +0100
+@@ -84,7 +84,7 @@
+ FFLIBS    := $(FFLIBS-yes) $(FFLIBS)
+ TESTPROGS += $(TESTPROGS-yes)
+ 
+-FFEXTRALIBS := $(addprefix -l,$(addsuffix $(BUILDSUF),$(FFLIBS))) $(EXTRALIBS)
++FFEXTRALIBS := $(addprefix -lADM5,$(addsuffix $(BUILDSUF),$(FFLIBS))) $(EXTRALIBS)
+ FFLDFLAGS   := $(addprefix -L$(BUILD_ROOT)/lib,$(ALLFFLIBS)) $(LDFLAGS)
+ 
+ EXAMPLES  := $(addprefix $(SUBDIR),$(addsuffix -example$(EXESUF),$(EXAMPLES)))
+--- avidemux-2.5.5/plugins/ADM_videoEncoder/ADM_vidEnc_x264/encoder.cpp.orig	2010-10-03 17:54:51.000000000 +0100
++++ avidemux-2.5.5/plugins/ADM_videoEncoder/ADM_vidEnc_x264/encoder.cpp	2011-06-09 07:20:17.000000000 +0100
+@@ -489,7 +489,7 @@
+ 	printf("[x264] analyse.inter = %d\n", x264Param->analyse.inter);
+ 	printf("[x264] b_cabac = %d\n", x264Param->b_cabac);
+ #if X264_BUILD > 101
+-	printf("[x264] i_open_gop = %d\n", x264Param->i_open_gop);
++	printf("[x264] b_open_gop = %d\n", x264Param->b_open_gop);
+ #endif
+ 	printf("[x264] b_interlaced = %d\n", x264Param->b_interlaced);
+ #if X264_BUILD > 88
+--- avidemux-2.5.5/plugins/ADM_videoEncoder/ADM_vidEnc_x264/x264Options.cpp.orig	2010-12-31 21:23:09.000000000 +0000
++++ avidemux-2.5.5/plugins/ADM_videoEncoder/ADM_vidEnc_x264/x264Options.cpp	2011-06-09 07:28:04.000000000 +0100
+@@ -420,13 +420,13 @@
+ #if X264_BUILD > 101
+ unsigned int x264Options::getOpenGopMode(void)
+ {
+-	return _param.i_open_gop;
++	return _param.b_open_gop;
+ }
+ 
+ void x264Options::setOpenGopMode(unsigned int openGopMode)
+ {
+ 	if (openGopMode < 3)
+-		_param.i_open_gop = openGopMode;
++		_param.b_open_gop = openGopMode;
+ }
+ #endif
+ 
