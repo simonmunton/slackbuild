@@ -1,0 +1,100 @@
+--- gmerlin-avdecoder-1.1.0/lib/demux_ffmpeg.c.orig	2011-01-07 16:59:57.000000000 +0000
++++ gmerlin-avdecoder-1.1.0/lib/demux_ffmpeg.c	2011-06-09 22:17:14.000000000 +0100
+@@ -583,7 +583,7 @@
+ #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(52, 29, 0)
+   register_protocol(&bgav_protocol);
+ #else
+-  av_register_protocol(&bgav_protocol);
++  av_register_protocol2(&bgav_protocol, sizeof bgav_protocol);
+ #endif
+   
+ #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(52, 26, 0)
+@@ -629,13 +629,13 @@
+     {
+     switch(avfc->streams[i]->codec->codec_type)
+       {
+-      case CODEC_TYPE_AUDIO:
++      case AVMEDIA_TYPE_AUDIO:
+         init_audio_stream(ctx, avfc->streams[i], i);
+         break;
+-      case CODEC_TYPE_VIDEO:
++      case AVMEDIA_TYPE_VIDEO:
+         init_video_stream(ctx, avfc->streams[i], i);
+         break;
+-      case CODEC_TYPE_SUBTITLE:
++      case AVMEDIA_TYPE_SUBTITLE:
+         break;
+       default:
+         break;
+@@ -653,17 +653,30 @@
+   ctx->stream_description = bgav_sprintf(TRD("%s (via ffmpeg)"),
+                                          priv->avfc->iformat->long_name);
+ 
++  {
++  AVMetadataTag *md;
++
+   /* Metadata */
+-  if(avfc->title[0])
+-    ctx->tt->cur->metadata.title = bgav_strdup(avfc->title);
+-  if(avfc->author[0])
+-    ctx->tt->cur->metadata.author = bgav_strdup(avfc->author);
+-  if(avfc->copyright[0])
+-    ctx->tt->cur->metadata.copyright = bgav_strdup(avfc->copyright);
+-  if(avfc->album[0])
+-    ctx->tt->cur->metadata.album = bgav_strdup(avfc->album);
+-  if(avfc->genre[0])
+-    ctx->tt->cur->metadata.genre = bgav_strdup(avfc->genre);
++  md = av_metadata_get( avfc->metadata, "title", NULL, 0 );
++  if ( md && md->value )
++    ctx->tt->cur->metadata.title = bgav_strdup(md->value);
++
++  md = av_metadata_get( avfc->metadata, "author", NULL, 0 );
++  if ( md && md->value )
++    ctx->tt->cur->metadata.author = bgav_strdup(md->value);
++
++  md = av_metadata_get( avfc->metadata, "copyright", NULL, 0 );
++  if ( md && md->value )
++    ctx->tt->cur->metadata.copyright = bgav_strdup(md->value);
++
++  md = av_metadata_get( avfc->metadata, "album", NULL, 0 );
++  if ( md && md->value )
++    ctx->tt->cur->metadata.album = bgav_strdup(md->value);
++
++  md = av_metadata_get( avfc->metadata, "genre", NULL, 0 );
++  if ( md && md->value )
++    ctx->tt->cur->metadata.genre = bgav_strdup(md->value);
++  }
+   
+   return 1;
+   }
+@@ -739,7 +752,7 @@
+     s->data.video.palette_changed = 1;
+     }
+   
+-  if(pkt.flags&PKT_FLAG_KEY)
++  if(pkt.flags&AV_PKT_FLAG_KEY)
+     PACKET_SET_KEYFRAME(p);
+   bgav_stream_done_packet_write(s, p);
+   
+--- gmerlin-avdecoder-1.1.0/lib/video_ffmpeg.c.orig	2011-01-07 16:59:57.000000000 +0000
++++ gmerlin-avdecoder-1.1.0/lib/video_ffmpeg.c	2011-06-09 22:20:25.000000000 +0100
+@@ -116,8 +116,8 @@
+ 
+ #ifdef HAVE_LIBPOSTPROC
+   int do_pp;
+-  pp_context_t *pp_context;
+-  pp_mode_t    *pp_mode;
++  pp_context *pp_context;
++  pp_mode    *pp_mode;
+ #endif
+ 
+ #ifdef HAVE_LIBSWSCALE
+@@ -836,7 +836,7 @@
+   if(s->action == BGAV_STREAM_PARSE)
+     return 1;
+   
+-  priv->ctx->codec_type = CODEC_TYPE_VIDEO;
++  priv->ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+   
+   priv->ctx->bit_rate = 0;
+ 
