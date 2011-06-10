@@ -1,5 +1,16 @@
+--- gpac-0.4.5/configure.orig	2008-12-02 18:04:42.000000000 +0000
++++ gpac-0.4.5/configure	2011-06-10 07:27:27.000000000 +0100
+@@ -732,7 +732,7 @@
+ #look for FFMPEG support
+ cat > $TMPC << EOF
+ #include <stddef.h>
+-#include <ffmpeg/avcodec.h>
++#include <libavcodec/avcodec.h>
+ int main( void ) { return 0; }
+ EOF
+ 
 --- gpac-0.4.5/src/media_tools/img.c.orig	2008-12-01 17:39:36.000000000 +0000
-+++ gpac-0.4.5/src/media_tools/img.c	2010-06-17 06:51:41.000000000 +0100
++++ gpac-0.4.5/src/media_tools/img.c	2011-06-10 07:06:45.000000000 +0100
 @@ -551,7 +551,7 @@
  	/* Allocate/initialize the image information data.  REQUIRED */
  	info_ptr = png_create_info_struct(png_ptr);
@@ -9,3 +20,189 @@
  		return GF_IO_ERR;
  	}
  	
+--- gpac-0.4.5/modules/ffmpeg_in/ffmpeg_demux.c.orig	2008-11-28 17:21:48.000000000 +0000
++++ gpac-0.4.5/modules/ffmpeg_in/ffmpeg_demux.c	2011-06-10 20:07:54.000000000 +0100
+@@ -233,10 +233,10 @@
+     for(i = 0; i < ctx->nb_streams; i++) {
+         AVCodecContext *enc = ctx->streams[i]->codec;
+         switch(enc->codec_type) {
+-        case CODEC_TYPE_AUDIO:
++        case AVMEDIA_TYPE_AUDIO:
+             if (!has_audio) has_audio = 1;
+             break;
+-        case CODEC_TYPE_VIDEO:
++        case AVMEDIA_TYPE_VIDEO:
+             if (!has_video) has_video= 1;
+             break;
+         default:
+@@ -531,10 +531,10 @@
+ 
+ 	switch (i) {
+ 	case 0: e = GF_OK; break;
+-	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
++//	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
+ 	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
+-	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
+-	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
++//	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
++//	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
+ 	default: e = GF_SERVICE_ERROR; goto err_exit;
+ 	}
+ 
+@@ -552,13 +552,13 @@
+     for (i = 0; i < ffd->ctx->nb_streams; i++) {
+         AVCodecContext *enc = ffd->ctx->streams[i]->codec;
+         switch(enc->codec_type) {
+-        case CODEC_TYPE_AUDIO:
++        case AVMEDIA_TYPE_AUDIO:
+             if ((ffd->audio_st<0) && (ffd->service_type!=1)) {
+ 				ffd->audio_st = i;
+ 				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
+ 			}
+             break;
+-        case CODEC_TYPE_VIDEO:
++        case AVMEDIA_TYPE_VIDEO:
+             if ((ffd->video_st<0) && (ffd->service_type!=2)) {
+ 				ffd->video_st = i;
+ 				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
+--- gpac-0.4.5/modules/ffmpeg_in/ffmpeg_in.h.orig	2008-10-20 12:04:40.000000000 +0100
++++ gpac-0.4.5/modules/ffmpeg_in/ffmpeg_in.h	2011-06-10 07:31:11.000000000 +0100
+@@ -56,14 +56,14 @@
+ 
+ 
+ /*include FFMPEG APIs*/
+-#include <ffmpeg/avformat.h>
++#include <libavformat/avformat.h>
+ 
+ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
+ 
+ 
+ #if LIBAVCODEC_VERSION_INT > ((52<<16)+(0<<8)+0)
+ #define FFMPEG_SWSCALE
+-#include <ffmpeg/swscale.h>
++#include <libswscale/swscale.h>
+ #endif
+ 
+ /*FFMPEG decoder module */
+--- gpac-0.4.5/modules/ffmpeg_in/ffmpeg_decode.c.orig	2008-11-28 17:26:06.000000000 +0000
++++ gpac-0.4.5/modules/ffmpeg_in/ffmpeg_decode.c	2011-06-10 20:06:44.000000000 +0100
+@@ -111,7 +111,7 @@
+ 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+ 		codec_id = gf_bs_read_u32(bs);
+ 		if (ffd->st==GF_STREAM_AUDIO) {
+-			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_AUDIO;
+ 			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
+ 			ffd->ctx->channels = gf_bs_read_u16(bs);
+ 			ffd->ctx->frame_size = gf_bs_read_u16(bs);
+@@ -121,7 +121,7 @@
+ 			/*ffmpeg specific*/
+ 			ffd->ctx->block_align = gf_bs_read_u16(bs);
+ 		} else if (ffd->st==GF_STREAM_VISUAL) {
+-			ffd->ctx->codec_type = CODEC_TYPE_VIDEO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+ 			ffd->ctx->width = gf_bs_read_u16(bs);
+ 			ffd->ctx->height = gf_bs_read_u16(bs);
+ 		}
+@@ -138,7 +138,7 @@
+ 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+ 		codec_id = gf_bs_read_u32(bs);
+ 		if (ffd->st==GF_STREAM_AUDIO) {
+-			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_AUDIO;
+ 			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
+ 			ffd->ctx->channels = gf_bs_read_u16(bs);
+ 			ffd->ctx->frame_size = gf_bs_read_u16(bs);
+@@ -151,7 +151,7 @@
+ 			  ffd->ctx->frame_size = 160;
+ 			}
+ 		} else if (ffd->st==GF_STREAM_VISUAL) {
+-			ffd->ctx->codec_type = CODEC_TYPE_VIDEO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+ 			ffd->ctx->width = gf_bs_read_u16(bs);
+ 			ffd->ctx->height = gf_bs_read_u16(bs);
+ 		}
+@@ -163,7 +163,7 @@
+ 	else {
+ 		u32 codec_id = 0;
+ 		if (ffd->st==GF_STREAM_VISUAL) {
+-			ffd->ctx->codec_type = CODEC_TYPE_VIDEO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+ 			switch (ffd->oti) {
+ 			case 0x20:
+ 				codec_id = CODEC_ID_MPEG4;
+@@ -190,7 +190,7 @@
+ 				break;
+ 			}
+ 		} else if (ffd->st==GF_STREAM_AUDIO) {
+-			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
++			ffd->ctx->codec_type = AVMEDIA_TYPE_AUDIO;
+ 			switch (ffd->oti) {
+ 			case 0x69:
+ 			case 0x6B:
+@@ -241,7 +241,7 @@
+ 
+ 	/*setup audio streams*/
+ 	if (ffd->st==GF_STREAM_AUDIO) {
+-		if ((ffd->codec->type == CODEC_ID_MP3LAME) || (ffd->codec->type == CODEC_ID_MP2)) {
++		if ((ffd->codec->type == CODEC_ID_MP3) || (ffd->codec->type == CODEC_ID_MP2)) {
+ 			ffd->ctx->frame_size = (ffd->ctx->sample_rate > 24000) ? 1152 : 576;
+ 		}
+ 		/*may be 0 (cfg not known yet)*/
+@@ -412,20 +412,23 @@
+ 
+ 	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
+ #if 1
+-	if (!ffd->ctx->hurry_up) {
++	if (!ffd->ctx->skip_frame) {
+ 		switch (mmlevel) {
+ 		case GF_CODEC_LEVEL_SEEK:
+ 		case GF_CODEC_LEVEL_DROP:
+ 			/*skip as much as possible*/
+-			ffd->ctx->hurry_up = 5;
++			ffd->ctx->skip_idct = AVDISCARD_ALL;
++			ffd->ctx->skip_frame = AVDISCARD_NONREF;
+ 			break;
+ 		case GF_CODEC_LEVEL_VERY_LATE:
+ 		case GF_CODEC_LEVEL_LATE:
+ 			/*skip B-frames*/
+-			ffd->ctx->hurry_up = 1;
++			ffd->ctx->skip_idct = AVDISCARD_DEFAULT;
++			ffd->ctx->skip_frame = AVDISCARD_NONREF;
+ 			break;
+ 		default:
+-			ffd->ctx->hurry_up = 0;
++			ffd->ctx->skip_idct = AVDISCARD_DEFAULT;
++			ffd->ctx->skip_frame = AVDISCARD_DEFAULT;
+ 			break;
+ 		}
+ 	}
+@@ -451,7 +454,8 @@
+ 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
+ 		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
+ 
+-		ffd->ctx->hurry_up = 0;
++		ffd->ctx->skip_frame = AVDISCARD_DEFAULT;
++		ffd->ctx->skip_idct = AVDISCARD_DEFAULT;
+ 
+ 		if (ffd->ctx->frame_size < gotpic) ffd->ctx->frame_size = gotpic;
+ 
+@@ -552,7 +556,8 @@
+ 				}
+ 			}
+ 		}
+-		ffd->ctx->hurry_up = 0;
++		ffd->ctx->skip_frame = AVDISCARD_DEFAULT;
++		ffd->ctx->skip_idct = AVDISCARD_DEFAULT;
+ 		/*recompute outsize in case on-the-fly change*/
+ 		if ((w != ffd->ctx->width) || (h != ffd->ctx->height)) {
+ 			outsize = ffd->ctx->width * ffd->ctx->height * 3;
+@@ -643,7 +648,7 @@
+         	                NULL, NULL, NULL);
+ 			
+ 			if (ffd->sws_ctx)
+-				sws_scale(ffd->sws_ctx, ffd->frame->data, ffd->frame->linesize, 0, ffd->ctx->height->codec->height, pict.data, pict.linesize);
++				sws_scale(ffd->sws_ctx, ffd->frame->data, ffd->frame->linesize, 0, ffd->ctx->height, pict.data, pict.linesize);
+ 
+ #endif
+ 
