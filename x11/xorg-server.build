@@ -145,9 +145,12 @@ rmdir ${PKG}/var/log
 #rmdir ${PKG}/var
 
 # Fix xserver location:
-mkdir -p ${PKG}/etc/X11
-mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xserver ${PKG}/etc/X11
-( cd ${PKG}/usr/lib${LIBDIRSUFFIX} ; ln -sf ../../etc/X11/xserver . )
+if [ -e ${PKG}/usr/lib${LIBDIRSUFFIX}/xserver ]
+then
+ mkdir -p ${PKG}/etc/X11
+ mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xserver ${PKG}/etc/X11
+ ( cd ${PKG}/usr/lib${LIBDIRSUFFIX} ; ln -sf ../../etc/X11/xserver . )
+fi
 
 # While I hate to have X11 take over another generic-sounding
 # piece of prime filesystem real estate, this symlink will
