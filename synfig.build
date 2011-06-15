@@ -6,7 +6,7 @@ TARNAME=synfig
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s/synfig
 #TAR_EXT=.tar.gz
-VERSION=0.62.02
+VERSION=0.63.00
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/synfig-0.62.01.diff
+ patch -p1 -b -z .orig < ${CWD}/synfig-0.63.00.diff
 )
 fi
 
@@ -54,13 +54,15 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+CPPFLAGS="-I/usr/include/ImageMagick -D__STDC_CONSTANT_MACROS" \
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --with-libavcodec
 fi
 
 if [ ${DO_MAKE} == "yes" ]
