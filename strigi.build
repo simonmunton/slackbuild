@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.7.2
+VERSION=0.7.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -58,7 +58,14 @@ PATH=/usr/lib/qt4/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake . -DENABLE_INOTIFY:BOOL=ON -DENABLE_DBUS:BOOL=ON -DENABLE_EXPAT:BOOL=ON -DCMAKE_INSTALL_PREFIX=/usr
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DENABLE_INOTIFY:BOOL=ON \
+      -DENABLE_DBUS:BOOL=ON \
+      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,6 +80,7 @@ fi
 
 make install DESTDIR=${PKG}
 
+make_debug_files
 #strip_binaries
 
 fix_links
