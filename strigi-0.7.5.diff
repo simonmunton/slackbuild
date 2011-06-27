@@ -1,0 +1,119 @@
+--- strigi-0.7.5/libstreamanalyzer/plugins/endplugins/ffmpegendanalyzer.cpp.orig	2011-06-02 10:29:26.000000000 +0100
++++ strigi-0.7.5/libstreamanalyzer/plugins/endplugins/ffmpegendanalyzer.cpp	2011-06-27 14:03:18.000000000 +0100
+@@ -348,7 +348,7 @@
+     if ((size = in->size()) >= 0)
+       ar.addValue(factory->durationProperty, (uint32_t)(size/(fc->bit_rate/8)));
+   }
+-  if(fc->nb_streams==1 && fc->streams[0]->codec->codec_type == CODEC_TYPE_AUDIO) {
++  if(fc->nb_streams==1 && fc->streams[0]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+     ar.addValue(factory->typeProperty, NFO "Audio");
+     ar.addValue(factory->typeProperty, NMM_DRAFT "MusicPiece");
+   } else {
+@@ -359,7 +359,7 @@
+     const AVStream &stream = *fc->streams[i];
+     const AVCodecContext &codec = *stream.codec;
+     
+-    if (codec.codec_type == CODEC_TYPE_AUDIO || codec.codec_type == CODEC_TYPE_VIDEO) {
++    if (codec.codec_type == AVMEDIA_TYPE_AUDIO || codec.codec_type == AVMEDIA_TYPE_VIDEO) {
+       const string streamuri = ar.newAnonymousUri();
+       ar.addValue(factory->hasPartProperty, streamuri);
+       ar.addTriplet(streamuri, partOfPropertyName, ar.path());
+@@ -370,8 +370,10 @@
+         outs << (stream.duration * stream.time_base.num / stream.time_base.den);
+         ar.addTriplet(streamuri, durationPropertyName,outs.str());
+       }
+-      if (size_t len = strlen(stream.language)) {
+-        ar.addTriplet(streamuri, languagePropertyName, string(stream.language, len));
++      AVMetadataTag *language = av_metadata_get( stream.metadata, "language", NULL, 0 );
++      if (language && language->value)
++      if (size_t len = strlen(language->value)) {
++        ar.addTriplet(streamuri, languagePropertyName, string(language->value, len));
+       }
+       const AVCodec *p = avcodec_find_decoder(codec.codec_id);
+       if (p) {
+@@ -408,7 +410,7 @@
+         ar.addTriplet(streamuri, bitratePropertyName, outs.str());
+       }
+ 
+-      if (codec.codec_type == CODEC_TYPE_AUDIO) {
++      if (codec.codec_type == AVMEDIA_TYPE_AUDIO) {
+         
+         ar.addTriplet(streamuri, typePropertyName, audioClassName);
+         if (codec.channels) {
+@@ -459,35 +461,55 @@
+ 
+   // Tags
+   
+-  if (int32_t len = strlen(fc->title)) {
+-    ar.addValue(factory->titleProperty, string(fc->title, len) );
+-  }
+-  if (int32_t len = strlen(fc->author)) {
++  AVMetadataTag *title = av_metadata_get( fc->metadata, "title", NULL, 0);
++  if (title && title->value)
++  if (int32_t len = strlen(title->value)) {
++    ar.addValue(factory->titleProperty, string(title->value, len) );
++  }
++  AVMetadataTag *author = av_metadata_get( fc->metadata, "author", NULL, 0);
++  if (author && author->value)
++  if (int32_t len = strlen(author->value)) {
+     const string creatoruri = ar.newAnonymousUri();
+     ar.addValue(factory->creatorProperty, creatoruri);
+     ar.addTriplet(creatoruri, typePropertyName, contactClassName);
+-    ar.addTriplet(creatoruri, fullnamePropertyName, string(fc->author, len) );
+-  }
+-  if (int32_t len = strlen(fc->copyright)) {
+-    ar.addValue(factory->copyrightProperty, string(fc->copyright, len) );
+-  }
+-  if (int32_t len = strlen(fc->comment)) {
+-    ar.addValue(factory->commentProperty, string(fc->comment, len) );
++    ar.addTriplet(creatoruri, fullnamePropertyName, string(author->value, len) );
+   }
+-  if (int32_t len = strlen(fc->album)) {
++  AVMetadataTag *copyright = av_metadata_get( fc->metadata, "copyright", NULL, 0);
++  if (copyright && copyright->value)
++  if (int32_t len = strlen(copyright->value)) {
++    ar.addValue(factory->copyrightProperty, string(copyright->value, len) );
++  }
++  AVMetadataTag *comment = av_metadata_get( fc->metadata, "comment", NULL, 0);
++  if (comment && comment->value)
++  if (int32_t len = strlen(comment->value)) {
++    ar.addValue(factory->commentProperty, string(comment->value, len) );
++  }
++  AVMetadataTag *album1 = av_metadata_get( fc->metadata, "album", NULL, 0);
++  if (album1 && album1->value)
++  if (int32_t len = strlen(album1->value)) {
+     const string album = ar.newAnonymousUri();
+     ar.addValue(factory->albumProperty, album);
+     ar.addTriplet(album, typePropertyName, albumClassName);
+-    ar.addTriplet(album, titlePropertyName, string(fc->album, len) );
+-  }
+-  if (int32_t len = strlen(fc->genre)) {
+-    ar.addValue(factory->genreProperty, string(fc->genre, len) );
+-  }
+-  if (fc->track) {
+-    ar.addValue(factory->trackProperty, fc->track);
++    ar.addTriplet(album, titlePropertyName, string(album1->value, len) );
+   }
+-  if (fc->year) {
+-    ar.addValue(factory->createdProperty, fc->year);
++  AVMetadataTag *genre = av_metadata_get( fc->metadata, "genre", NULL, 0);
++  if (genre && genre->value)
++  if (int32_t len = strlen(genre->value)) {
++    ar.addValue(factory->genreProperty, string(genre->value, len) );
++  }
++  AVMetadataTag *track = av_metadata_get( fc->metadata, "track", NULL, 0);
++  int i_track;
++  if (track && track->value)
++    i_track = atoi (track->value);
++  if (i_track) {
++    ar.addValue(factory->trackProperty, i_track);
++  }
++  AVMetadataTag *year = av_metadata_get( fc->metadata, "year", NULL, 0);
++  int i_year;
++  if (year && year->value)
++    i_year = atoi (year->value);
++  if (i_year) {
++    ar.addValue(factory->createdProperty, i_year);
+   }
+ 
+   av_close_input_stream(fc);
