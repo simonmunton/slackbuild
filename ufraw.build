@@ -2,19 +2,16 @@
 #
 . build_funcs
 
-TARNAME=curl
+TARNAME=ufraw
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=7.21.7
+VERSION=0.18
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://curl.haxx.se/"
-
-# Uncomment to build a no-SSL version:
-#SSLOPT=--without-ssl
+WEBPAGE="http://ufraw.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -48,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/curl-7.19.7.diff
- ./buildconf
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -69,16 +65,14 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-ca-bundle=/usr/share/curl/ca-bundle.crt \
-	    ${SSLOPT} \
-	    --enable-versioned-symbols
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -96,12 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/share/curl
-bzip2 -d -c ${CWD}/curl-cacert.pem.bz2 > ${PKG}/usr/share/curl/ca-bundle.crt
-
 strip_binaries
-
-strip -g ${PKG}/usr/lib/libcurl.a
 
 fix_links
 
@@ -110,29 +99,21 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO CHANGES UPGRADE \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-( cd docs
-#  rm -rf Makefile* curl-config.1 curl-config.html curl.1 curl.html libcurl
-  cp -a \
-    BUGS CONTRIBUTE FAQ FEATURES INSTALL INTERNALS MANUAL README.win32 RESOURCES THANKS TODO examples \
-    ${PKG}/usr/doc/${TARNAME}-${VERSION}
-)
-
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "command line URL data transfer tool"
-Curl is a command line tool for transferring data specified with URL
-syntax.  The command is designed to work without user interaction or
-any kind of interactivity.   Curl offers a busload of useful tricks
-like proxy support, user authentication, ftp upload, HTTP post,  SSL
-(https:) connections, cookies, file transfer resume and more.
-
-libcurl is a library that Curl uses to do its job. It is readily
-available to be used by your software, too.
+make_slack_desc << EOF " utility to read and manipulate raw images"
+The Unidentified Flying Raw (UFRaw) is a utility to read and 
+manipulate raw images from digital cameras. It can be used on its own 
+or as a Gimp plug-in. It reads raw images using Dave Coffin's raw 
+conversion utility - DCRaw. UFRaw supports color management workflow 
+based on Little CMS, allowing the user to apply ICC color profiles. 
+For Nikon users UFRaw has the advantage that it can read the camera's 
+tone curves. Even if you don't own a Nikon, you can still apply a 
+Nikon curve to your images.
 
 EOF
 
