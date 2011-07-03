@@ -1,0 +1,48 @@
+--- wxsvg-1.0.10/src/mediadec_ffmpeg.cpp.orig	2011-06-13 20:42:06.000000000 +0100
++++ wxsvg-1.0.10/src/mediadec_ffmpeg.cpp	2011-07-03 14:01:04.000000000 +0100
+@@ -50,9 +50,9 @@
+ 	case AVERROR_INVALIDDATA:
+ 		wxLogError(wxT("%s: Error while parsing header"), msg.c_str());
+ 		break;
+-	case AVERROR_NOFMT:
+-		wxLogError(wxT("%s: Unknown format"), msg.c_str());
+-		break;
++//	case AVERROR_NOFMT:
++//		wxLogError(wxT("%s: Unknown format"), msg.c_str());
++//		break;
+ 	case AVERROR(EIO):
+ 		wxLogError(wxT("%s: I/O error occured\n"
+ 				"Usually that means that input file is truncated and/or corrupted."), msg.c_str());
+@@ -106,7 +106,7 @@
+ 	for (int i=0; i<(int)m_formatCtx->nb_streams; i++) {
+ 		AVStream *st = m_formatCtx->streams[i];
+ 		AVCodecContext *enc = st->codec;
+-		if (enc->codec_type == CODEC_TYPE_VIDEO) {
++		if (enc->codec_type == AVMEDIA_TYPE_VIDEO) {
+ 			if (st->sample_aspect_ratio.num)
+ 				frame_aspect_ratio = av_q2d(st->sample_aspect_ratio);
+ 			else if (enc->sample_aspect_ratio.num)
+@@ -124,11 +124,11 @@
+ 	if (m_formatCtx == NULL || streamIndex >= m_formatCtx->nb_streams)
+ 		return stUNKNOWN;
+ 	switch (m_formatCtx->streams[streamIndex]->codec->codec_type) {
+-	case CODEC_TYPE_VIDEO:
++	case AVMEDIA_TYPE_VIDEO:
+ 		return stVIDEO;
+-	case CODEC_TYPE_AUDIO:
++	case AVMEDIA_TYPE_AUDIO:
+ 		return stAUDIO;
+-	case CODEC_TYPE_SUBTITLE:
++	case AVMEDIA_TYPE_SUBTITLE:
+ 		return stSUBTITLE;
+ 	default:
+ 		break;
+@@ -167,7 +167,7 @@
+ 	// find the first video stream
+ 	m_videoStream = -1;
+ 	for (int i=0; i<(int)m_formatCtx->nb_streams; i++) {
+-		if (m_formatCtx->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO) {
++		if (m_formatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+ 			m_videoStream = i;
+ 			break;
+ 		}

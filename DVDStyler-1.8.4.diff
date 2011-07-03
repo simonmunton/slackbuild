@@ -1,0 +1,106 @@
+--- DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp.orig	2011-05-15 14:23:34.000000000 +0100
++++ DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp	2011-07-03 20:42:08.000000000 +0100
+@@ -31,6 +31,7 @@
+ #include <libavutil/fifo.h>
+ #include <libavfilter/avfilter.h>
+ #include <libavfilter/avfiltergraph.h>
++#include <libavfilter/avcodec.h>
+ #endif
+ }
+ 
+@@ -750,7 +751,7 @@
+ 	/* check filename in case of an image number is expected */
+ 	if (oc->oformat->flags & AVFMT_NEEDNUMBER) {
+ 		if (!av_filename_number_test(oc->filename)) {
+-			PrintError(fileName, AVERROR_NUMEXPECTED);
++//			PrintError(fileName, AVERROR_NUMEXPECTED);
+ 			return false;
+ 		}
+ 	}
+@@ -784,18 +785,18 @@
+ 
+ void wxFfmpegMediaTranscoder::PrintError(const wxString& msg, int err) {
+ 	switch (err) {
+-	case AVERROR_NUMEXPECTED:
+-		wxLogError(wxT("%s: Incorrect image filename syntax.\n"
+-				"Use '%%d' to specify the image number:\n"
+-				"  for img1.jpg, img2.jpg, ..., use 'img%%d.jpg';\n"
+-				"  for img001.jpg, img002.jpg, ..., use 'img%%03d.jpg'."), msg.c_str());
+-		break;
++//	case AVERROR_NUMEXPECTED:
++//		wxLogError(wxT("%s: Incorrect image filename syntax.\n"
++//				"Use '%%d' to specify the image number:\n"
++//				"  for img1.jpg, img2.jpg, ..., use 'img%%d.jpg';\n"
++//				"  for img001.jpg, img002.jpg, ..., use 'img%%03d.jpg'."), msg.c_str());
++//		break;
+ 	case AVERROR_INVALIDDATA:
+ 		wxLogError(wxT("%s: Error while parsing header"), msg.c_str());
+ 		break;
+-	case AVERROR_NOFMT:
+-		wxLogError(wxT("%s: Unknown format"), msg.c_str());
+-		break;
++//	case AVERROR_NOFMT:
++//		wxLogError(wxT("%s: Unknown format"), msg.c_str());
++//		break;
+ 	case AVERROR(EIO):
+ 		wxLogError(wxT("%s: I/O error occured\n"
+ 				"Usually that means that input file is truncated and/or corrupted."), msg.c_str());
+@@ -821,7 +822,7 @@
+ 		}
+ 		if(*p == -1
+ 		   && !(   st->codec->codec_id==CODEC_ID_MJPEG
+-				&& st->codec->strict_std_compliance <= FF_COMPLIANCE_INOFFICIAL
++				&& st->codec->strict_std_compliance <= FF_COMPLIANCE_UNOFFICIAL
+ 				&& (   st->codec->pix_fmt == PIX_FMT_YUV420P
+ 					|| st->codec->pix_fmt == PIX_FMT_YUV422P)))
+ 			st->codec->pix_fmt = codec->pix_fmts[0];
+@@ -2170,10 +2171,7 @@
+                     if (ist->st->sample_aspect_ratio.num) sar = ist->st->sample_aspect_ratio;
+                     else                                  sar = ist->st->codec->sample_aspect_ratio;
+                     // add it to be filtered
+-                    av_vsrc_buffer_add_frame2(ost->input_video_filter, &picture,
+-                                             ist->pts,
+-                                             sar, ist->st->codec->width, ist->st->codec->height,
+-                                             ist->st->codec->pix_fmt, "0:0");
++                    av_vsrc_buffer_add_frame(ost->input_video_filter, &picture);
+                 }
+             }
+         }
+@@ -2619,7 +2617,7 @@
+ 			pkt.size= ret;
+ 			if(enc->coded_frame && enc->coded_frame->pts != (int64_t) AV_NOPTS_VALUE)
+ 				pkt.pts= av_rescale_q(enc->coded_frame->pts, enc->time_base, ost->st->time_base);
+-			pkt.flags |= PKT_FLAG_KEY;
++			pkt.flags |= AV_PKT_FLAG_KEY;
+ 			if (!WriteFrame(s, &pkt, ost->st->codec, ost->bitstream_filters))
+ 				return false;
+ 			
+@@ -2787,7 +2785,7 @@
+ 			// handles sameq here. This is not correct because it may not be a global option
+ 			big_picture.quality = same_quality ? (int) ist->st->quality : (int) ost->st->quality;
+ 			if (!me_threshold)
+-				big_picture.pict_type = 0;
++				big_picture.pict_type = (enum AVPictureType) 0;
+ //			big_picture.pts = AV_NOPTS_VALUE;
+ 			big_picture.pts= ost->sync_opts;
+ //			big_picture.pts= av_rescale(ost->sync_opts, AV_TIME_BASE*(int64_t)enc->time_base.num, enc->time_base.den);
+--- DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp.orig	2011-05-02 21:58:07.000000000 +0100
++++ DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp	2011-07-03 14:10:43.000000000 +0100
+@@ -339,7 +339,7 @@
+     AVCodecContext* c = m_audioStm->codec;
+     pkt.size= avcodec_encode_audio(c, m_audioOutbuf, AUDIO_BUF_SIZE, m_samples);
+     pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, m_audioStm->time_base);
+-    pkt.flags |= PKT_FLAG_KEY;
++    pkt.flags |= AV_PKT_FLAG_KEY;
+     pkt.stream_index= m_audioStm->index;
+     pkt.data= m_audioOutbuf;
+ 
+@@ -365,7 +365,7 @@
+ 
+         pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, m_videoStm->time_base);
+         if(c->coded_frame->key_frame)
+-            pkt.flags |= PKT_FLAG_KEY;
++            pkt.flags |= AV_PKT_FLAG_KEY;
+         pkt.stream_index = m_videoStm->index;
+         pkt.data = m_videoOutbuf;
+         pkt.size = out_size;
