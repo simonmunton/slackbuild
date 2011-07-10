@@ -1,0 +1,103 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=fonts_ms_vista
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/fonts
+#TAR_EXT=.tar.gz
+VERSION=1.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+pre_configure
+
+DESTDIR=usr/share/fonts/truetype/MS
+
+mkdir -p ${PKG}/${DESTDIR}
+
+(cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+ mv ${TARNAME}-*/*{TTF,TTC} ${PKG}/${DESTDIR}
+ mv ${TARNAME}-*/* .
+ rmdir ${TARNAME}-*
+ chmod -x,+X *
+)
+
+touch ${PKG}/${DESTDIR}/{fonts.dir,fonts.scale}
+
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+if [ -x usr/X11R6/bin/mkfontscale ]; then
+  echo "Creating font.scale:  /usr/X11R6/bin/mkfontscale"
+  usr/X11R6/bin/mkfontscale ${DESTDIR}
+fi
+if [ -x usr/X11R6/bin/mkfontdir ]; then
+  echo "Creating font.dir:  /usr/X11R6/bin/mkfontdir"
+  usr/X11R6/bin/mkfontdir ${DESTDIR}
+fi
+if [ -x usr/X11R6/bin/fc-cache ]; then
+  echo "Updating X font indexes:  /usr/X11R6/bin/fc-cache"
+  usr/X11R6/bin/fc-cache
+fi
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mkdir -p ${PKG}/install
+cat <<EOF > ${PKG}/install/slack-desc
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|'
+# on the right side marks the last column you can put a character in.  You must
+# make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':'.
+
+          |-----handy-ruler------------------------------------------------------|
+${PKGNAME}: ${PKGNAME} ${VERSION}
+${PKGNAME}:
+${PKGNAME}: 
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+${PKGNAME}:
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
