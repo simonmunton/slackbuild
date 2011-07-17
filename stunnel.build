@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=4.33
+VERSION=4.39
 VERSIONEXTRA=
 BUILD=1
 
@@ -66,6 +66,10 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
 	    --mandir=/usr/man \
+	    --datadir=/usr/share \
+	    --sbindir=/usr/sbin \
+	    --bindir=/usr/bin \
+	    --localstatedir=/var \
 
 
 #	    --libdir=/usr/lib \
@@ -96,7 +100,7 @@ fi
 mkdir -p ${PKG}/var/run/stunnel
 
 # This will produce a useless key.
-make install DESTDIR=${PKG} pkglibdir=/usr/lib
+make install DESTDIR=${PKG} pkglibdir=/usr/lib${LIBDIRSUFFIX}
 
 # Get rid of key, so nobody tries to use it:
 rm -f ${PKG}/etc/stunnel/stunnel.pem
@@ -115,6 +119,14 @@ mv ${PKG}/usr/man/man8/stunnel.fr.8 ${PKG}/usr/man/fr/man8/stunnel.8
 # The 4.15 version of stunnel caused some bizarre perms, so
 # we'll protect against that:
 chmod 0755 ${PKG}/var/lib
+
+# This used to be installed in /usr/sbin, so it would probably be nice to
+# link from there:
+mkdir -p ${PKG}/usr/sbin
+( cd ${PKG}/usr/sbin
+  ln -sf ../bin/stunnel .
+  ln -sf ../bin/stunnel3 .
+)
 
 strip_binaries
 
