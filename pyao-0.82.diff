@@ -1,0 +1,29 @@
+--- pyao-0.82/src/aomodule.h.orig	2003-07-24 07:58:07.000000000 +0100
++++ pyao-0.82/src/aomodule.h	2011-07-18 07:20:13.000000000 +0100
+@@ -9,6 +9,7 @@
+ typedef struct {
+   PyObject_HEAD
+   ao_device *dev;
++  uint_32 driver_id;
+ } ao_Object;
+ 
+ static PyObject *Py_aoError;
+--- pyao-0.82/src/aomodule.c.orig	2003-07-24 07:52:59.000000000 +0100
++++ pyao-0.82/src/aomodule.c	2011-07-18 07:21:32.000000000 +0100
+@@ -143,6 +143,7 @@
+ 
+   retobj = (ao_Object *) PyObject_NEW(ao_Object, &ao_Type);
+   retobj->dev = dev;
++  retobj->driver_id = driver_id;
+   return (PyObject *) retobj;
+ }
+ 
+@@ -184,7 +185,7 @@
+ 
+     /* It's a method */
+     ao_Object *ao_self = (ao_Object *) self;
+-    info = ao_driver_info(ao_self->dev->driver_id);
++    info = ao_driver_info(ao_self->driver_id);
+ 
+   } else {
+ 
