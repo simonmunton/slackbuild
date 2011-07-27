@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libsigc++
+TARNAME=nas
 TARNAMEEXTRA=
-TARDIR=~/tmp/gnome
+TARSEP="-"
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=2.2.10
-VERSIONEXTRA=
+VERSION=1.9.3
+VERSIONEXTRA=.src
 BUILD=1
+
+WEBPAGE="http://radscan.com/nas.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -52,20 +55,34 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+xmkmf
+
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} World || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,15 +90,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install install.man DESTDIR=${PKG}
 
-mv $PKG/usr/share/doc/libsigc-2.0/docs $PKG/usr/doc/$PKGNAME-$VERSION
-rmdir -p $PKG/usr/share/doc/libsigc-2.0
-
-mv $PKG/usr/share/doc/libsigc++-2.0/* $PKG/usr/doc/$PKGNAME-$VERSION
-rmdir -p $PKG/usr/share/doc/libsigc++-2.0
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,15 +107,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Typesafe Signal Framework for C++"
-This library implements a full callback system for use in widget
-libraries, abstract interfaces, and general programming. Originally
-part of the Gtk-- widget set, libsigc++ is now a seperate library to
-provide for more general use. It is the most complete library of its
-kind with the ablity to connect an abstract callback to a class
-method, function, or function object. It contains adaptor classes for
-connection of dissimilar callbacks and has an ease of use unmatched 
-by other C++ callback libraries.
+make_slack_desc << EOF "Network Audio System"
+The Network Audio System is a network transparent, client/server 
+audio transport system. It can be described as the audio equivalent 
+of an X server. 
 
 EOF
 
