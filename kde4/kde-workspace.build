@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=kde-workspace
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/k/kde-4.7.0
+#TAR_EXT=.tar.gz
+VERSION=4.7.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p0 < ${CWD}/kdebase-workspace-4.3.5-CVE-2010-0436.diff
+# patch -p1 < ${CWD}/kdebase-workspace-4.6.0.diff
+ cd ksplash/ksplashx/themes/default/1280x1024
+ SZ=`identify background.png | cut -d\  -f 3`
+ if [ "$SZ" != "1280x1204" ]
+ then
+   convert -size 1280x1024 xc:none background.png -geometry +2+0 -composite background.png -composite background.png -geometry +1+0 -composite new.png
+   mv new.png background.png
+#   cp ${CWD}/kdebase-workspace-background.png .
+ fi
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
+mkdir -p ${PKG}/etc/X11/xinit
+cat ${CWD}/kdebase-workspace/xinit/xinitrc.kde > ${PKG}/etc/X11/xinit/xinitrc.kde
+chmod 0755 ${PKG}/etc/X11/xinit/xinitrc.kde
+
+# Setup config files for KDM:
+${PKG}/usr/bin/genkdmconf --no-old --no-old-scripts --no-backup --in ${PKG}/usr/share/config/kdm
+
+# Not allowing root to login at the console is just plain silly.  If they
+# have physical access to the machine, what's the point of trying to stop
+# this?  Even the kdmrc file says this is supposed to be the default.
+sed -i 's/AllowRootLogin=false/AllowRootLogin=true/' \
+  ${PKG}/usr/share/config/kdm/kdmrc
+mv ${PKG}/usr/share/config/kdm/kdmrc ${PKG}/usr/share/config/kdm/kdmrc.new
+
+cp -a ${PKG}/usr/share/config/kdm/Xsession ${PKG}/usr/share/config/kdm/Xsession.orig
+cat ${CWD}/kdebase-workspace/config/Xsession | sed -e "s#/lib#/lib#" \
+  > ${PKG}/usr/share/config/kdm/Xsession
+mv ${PKG}/usr/share/config/kdm/backgroundrc ${PKG}/usr/share/config/kdm/backgroundrc.new
+
+# Move the KDM files someplace FHS compliant:
+mkdir -p ${PKG}/etc
+mv ${PKG}/usr/share/config/kdm ${PKG}/etc
+( cd ${PKG}/usr/share/config ; ln -sf ../../../etc/kdm . )
+
+doinst_config etc/kdm/backgroundrc.new
+doinst_config etc/kdm/kdmrc.new
+
+make_debug_files
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "the KDE Workspace"
+The KDE Workspace (kdebase-workspace) package consists of what is
+essentially the KDE workspace presented to the user
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

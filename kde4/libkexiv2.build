@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
 TARNAME=libkexiv2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/k/kde-4.7.0
 #TAR_EXT=.tar.gz
-VERSION=r1136443
+VERSION=4.7.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.kipi-plugins.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/libkexiv2-r1136443.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,16 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -72,7 +73,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      . \
+      .. \
       2>&1 | tee ${TARNAME}.config
 fi
 
@@ -88,8 +89,9 @@ fi
 
 make install DESTDIR=${PKG}
 
-make_debug_files
+cd ..
 
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -106,9 +108,6 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "wrapper around Exiv2 library"
-This library is a part of Kipi-Plugins project 
-(http://www.kipi-plugins.org)
-
 Libkexiv2 is a wrapper around Exiv2 library to manipulate pictures
 metadata as EXIF and IPTC.
 
