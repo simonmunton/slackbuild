@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ruby
+TARNAME=libunique
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=1.9.2-p290
+VERSION=1.1.6
 VERSIONEXTRA=
-BUILD=1
+BUILD=3
 
-WEBPAGE="http://www.ruby-lang.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libunique1
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+#mv unique-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -65,14 +65,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-            --mandir=/usr/man \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --datadir=/usr/share \
-            --docdir=/usr/doc/ruby-$VERSION \
-            --enable-shared \
-            --enable-pthread \
-            --enable-install-doc
-
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -96,20 +89,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-# This symlink is needed by things that include ruby/config.h.
-( cd ${PKG}/usr/include/
-  if [ ! -e ruby -a -d ruby-*/*-*/ruby ]; then
-    ln -s ruby-*/*-*/ruby .
-  fi
-)
-
-# These include files are no longer installed as of ruby-1.9.1, but
-# kdebindings will not compile without them.  Try to remove these
-# from the package later if the situation changes.
-mkdir -p ${PKG}/usr/include/ruby-$(echo ${VERSION} | cut -f 1 -d -)/ruby
-cp -a node.h version.h revision.h \
-  ${PKG}/usr/include/ruby-$(echo ${VERSION} | cut -f 1 -d -)/ruby
-
 strip_binaries
 
 fix_links
@@ -120,19 +99,16 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  *GPL* LEGAL ToDo \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Interpreted object-oriented scripting language"
-Ruby is an interpreted scripting language for quick and easy
-object-oriented programming.  It has many features to process text
-files and to do system management tasks (as in Perl).  It is simple,
-straight-forward, and extensible.
-
-Visit the Ruby project online at http://www.ruby-lang.org/
+make_slack_desc << EOF "single instance application library"
+LibUnique is a library for writing single instance applications, that 
+is applications that are run once and every further call to the same 
+binary either exits immediately or sends a command to the running 
+instance.
 
 EOF
 

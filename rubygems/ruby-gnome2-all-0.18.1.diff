@@ -1,0 +1,45 @@
+--- ruby-gnome2-all-0.18.1/gtkglext/src/rbgtkglext.c.orig	2008-10-23 14:24:03.000000000 +0100
++++ ruby-gnome2-all-0.18.1/gtkglext/src/rbgtkglext.c	2011-08-13 20:54:33.000000000 +0100
+@@ -39,19 +39,19 @@
+     rb_scan_args(argc, argv, "01", &argary);
+ 
+     if (NIL_P(argary)) {
+-        gargc = RARRAY(rb_argv)->len;
++        gargc = RARRAY_LEN(rb_argv);
+         argary = rb_argv;
+     } else {
+         Check_Type(argary, T_ARRAY);
+-        gargc = RARRAY(argary)->len;
++        gargc = RARRAY_LEN(argary);
+     }
+ 
+     gargv = ALLOCA_N(char*, gargc + 1);
+-    gargv[0] = RVAL2CSTR(rb_progname);
++    gargv[0] = RVAL2CSTR(rb_argv0);
+ 
+     for (i = 0; i < gargc; ++i) {
+-        if (TYPE(RARRAY(argary)->ptr[i]) == T_STRING)
+-            gargv[i+1] = RVAL2CSTR(RARRAY(argary)->ptr[i]);
++        if (TYPE(RARRAY_PTR(argary)[i]) == T_STRING)
++            gargv[i+1] = RVAL2CSTR(RARRAY_PTR(argary)[i]);
+         else
+             gargv[i+1] = "";
+     }
+--- ruby-gnome2-all-0.18.1/gtkglext/src/rbgdkglconfig.c.orig	2008-10-23 14:24:03.000000000 +0100
++++ ruby-gnome2-all-0.18.1/gtkglext/src/rbgdkglconfig.c	2011-08-13 20:39:57.000000000 +0100
+@@ -27,12 +27,12 @@
+ #define RARRAY_TO_ATTRIB_ARRAY(rb_array, array) \
+     do { \
+         int i, len; \
+-        len = RARRAY(rb_array)->len; \
+-        array = ALLOCA_N(int, RARRAY(rb_array)->len+1); \
++        len = RARRAY_LEN(rb_array); \
++        array = ALLOCA_N(int, RARRAY_LEN(rb_array)+1); \
+         for (i=0; i<len; ++i) { \
+             int type; \
+             VALUE val; \
+-            val = RARRAY(rb_array)->ptr[i]; \
++            val = RARRAY_PTR(rb_array)[i]; \
+             type = TYPE(val); \
+             if ((type == T_FIXNUM) || (type == T_BIGNUM)) \
+                 array[i] = NUM2INT(val); \

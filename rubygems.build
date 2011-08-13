@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=ruby
+TARNAME=rubygems
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=1.9.2-p290
+VERSION=1.8.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.ruby-lang.org/"
+WEBPAGE="http://rubygems.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -59,26 +59,21 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-            --mandir=/usr/man \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --datadir=/usr/share \
-            --docdir=/usr/doc/ruby-$VERSION \
-            --enable-shared \
-            --enable-pthread \
-            --enable-install-doc
-
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -86,7 +81,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -94,21 +90,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-# This symlink is needed by things that include ruby/config.h.
-( cd ${PKG}/usr/include/
-  if [ ! -e ruby -a -d ruby-*/*-*/ruby ]; then
-    ln -s ruby-*/*-*/ruby .
-  fi
-)
-
-# These include files are no longer installed as of ruby-1.9.1, but
-# kdebindings will not compile without them.  Try to remove these
-# from the package later if the situation changes.
-mkdir -p ${PKG}/usr/include/ruby-$(echo ${VERSION} | cut -f 1 -d -)/ruby
-cp -a node.h version.h revision.h \
-  ${PKG}/usr/include/ruby-$(echo ${VERSION} | cut -f 1 -d -)/ruby
+#make install DESTDIR=${PKG}
+ruby setup.rb --destdir=${PKG}
 
 strip_binaries
 
@@ -120,19 +103,13 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  *GPL* LEGAL ToDo \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Interpreted object-oriented scripting language"
-Ruby is an interpreted scripting language for quick and easy
-object-oriented programming.  It has many features to process text
-files and to do system management tasks (as in Perl).  It is simple,
-straight-forward, and extensible.
-
-Visit the Ruby project online at http://www.ruby-lang.org/
+make_slack_desc << EOF "RubyGems is a package management framework for Ruby"
+RubyGems is a package management framework for Ruby.
 
 EOF
 
