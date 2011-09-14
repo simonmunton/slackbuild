@@ -1,0 +1,244 @@
+--- qtiplot-0.9.8.8/qtiplot/src/matrix/MatrixModel.cpp.orig	2011-07-01 01:06:08.000000000 +0100
++++ qtiplot-0.9.8.8/qtiplot/src/matrix/MatrixModel.cpp	2011-09-08 07:15:07.000000000 +0100
+@@ -45,7 +45,7 @@
+ #include <stdlib.h>
+ 
+ #ifdef HAVE_ALGLIB
+-	#include <spline2d.h>
++	#include <interpolation.h>
+ #endif
+ 
+ MatrixModel::MatrixModel(int rows, int cols, QObject *parent)
+@@ -1026,7 +1026,7 @@
+ #ifdef HAVE_ALGLIB
+ 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+ 
+-	ap::real_2d_array oldValues, newValues;
++	alglib::real_2d_array oldValues, newValues;
+ 	oldValues.setlength(d_rows, d_cols);
+ 	newValues.setlength(rows, cols);
+ 
+--- qtiplot-0.9.8.8/qtiplot/src/analysis/dialogs/GriddingDialog.h.orig	2010-09-27 08:12:45.000000000 +0100
++++ qtiplot-0.9.8.8/qtiplot/src/analysis/dialogs/GriddingDialog.h	2011-09-08 06:20:36.000000000 +0100
+@@ -71,7 +71,7 @@
+ 
+ 	QString d_col_name;
+ 	int d_nodes;
+-	ap::real_2d_array xy;
++	alglib::real_2d_array xy;
+ 
+ 	QPushButton* buttonFit;
+ 	QPushButton* buttonCancel;
+--- qtiplot-0.9.8.8/qtiplot/src/analysis/dialogs/GriddingDialog.cpp.orig	2010-10-04 14:26:36.000000000 +0100
++++ qtiplot-0.9.8.8/qtiplot/src/analysis/dialogs/GriddingDialog.cpp	2011-09-08 06:20:36.000000000 +0100
+@@ -41,7 +41,7 @@
+ #include <QComboBox>
+ #include <QLayout>
+ 
+-#include <idwint.h>
++#include <interpolation.h>
+ 
+ GriddingDialog::GriddingDialog(Table* t, const QString& colName, int nodes, QWidget* parent, Qt::WFlags fl )
+ 	: QDialog( parent, fl ),
+@@ -365,7 +365,7 @@
+ 	Matrix* m = app->newMatrix(rows, cols);
+ 	m->setCoordinates(xmin, xmax, ymin, ymax);
+ 
+-	idwinterpolant z;
++	alglib::idwinterpolant z;
+ 	switch (boxMethod->currentIndex()){
+ 		case 0:
+ 			idwbuildmodifiedshepardr(xy, d_nodes, 2, boxRadius->value(), z);
+@@ -378,7 +378,7 @@
+ 		break;
+ 	}
+ 
+-	ap::real_1d_array p;
++	alglib::real_1d_array p;
+ 	p.setlength(2);
+ 	for (int i = 0; i < rows; i++){
+ 		p(1) = ymin + i*ystep;
+@@ -435,7 +435,7 @@
+ 	double xstep = fabs(xmax - xmin)/(cols - 1);
+ 	double ystep = fabs(ymax - ymin)/(rows - 1);
+ 
+-	idwinterpolant z;
++	alglib::idwinterpolant z;
+ 	switch (boxMethod->currentIndex()){
+ 		case 0:
+ 			idwbuildmodifiedshepardr(xy, d_nodes, 2, boxRadius->value(), z);
+@@ -448,7 +448,7 @@
+ 		break;
+ 	}
+ 
+-	ap::real_1d_array p;
++	alglib::real_1d_array p;
+ 	p.setlength(2);
+ 
+ 	double **data_matrix = Matrix::allocateMatrixData(cols, rows);
+--- qtiplot-0.9.8.8/qtiplot/qtiplot.pro.orig	2011-09-02 15:57:42.000000000 +0100
++++ qtiplot-0.9.8.8/qtiplot/qtiplot.pro	2011-09-08 06:20:36.000000000 +0100
+@@ -159,7 +159,7 @@
+   				    qtiUtil.py \
+   				    qti_wordlist.txt \
+ 
+-  	unix: pythonconfig.path = /usr/local/qtiplot
++  	unix: pythonconfig.path = /usr/share/qtiplot
+   	win32: pythonconfig.path = $$INSTALLBASE
+   	DEFINES += PYTHON_CONFIG_PATH="\\\"$$replace(pythonconfig.path," ","\ ")\\\"
+   }
+--- qtiplot-0.9.8.8/build.conf.orig	2011-09-08 06:20:36.000000000 +0100
++++ qtiplot-0.9.8.8/build.conf	2011-09-08 06:20:36.000000000 +0100
+@@ -0,0 +1,152 @@
++isEmpty( QTI_ROOT ) {
++  message( "each file including this config needs to set QTI_ROOT to the dir containing this file!" )
++}
++
++##########################################################
++##     System specific configuration
++##########################################################
++
++# Global include path which is always added at the end of the INCLUDEPATH
++SYS_INCLUDEPATH = /usr/lib/qt/include/QtAssistant /opt/local/include
++# Global lib path and libs which is ls always added at the end of LIBS
++SYS_LIBS = -lQtAssistantClient -L/opt/local/lib
++
++##########################################################
++## zlib (http://www.zlib.net/)
++##########################################################
++
++# include path. leave it blank to use SYS_INCLUDE
++#ZLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/zlib/
++
++##########################################################
++## muParser (http://muparser.sourceforge.net/)
++##########################################################
++
++# include path. leave it blank to use SYS_INCLUDE
++#MUPARSER_INCLUDEPATH = $$QTI_ROOT/3rdparty/muparser/include
++# link statically against a copy in 3rdparty/
++#MUPARSER_LIBS = $$QTI_ROOT/3rdparty/muparser/lib/libmuparser.a
++# or dynamically against a system-wide installation
++MUPARSER_LIBS = -lmuparser
++
++##########################################################
++## GNU Sientific Library (http://www.gnu.org/software/gsl/)
++##########################################################
++
++# include path. leave it blank to use SYS_INCLUDE
++#GSL_INCLUDEPATH = $$QTI_ROOT/3rdparty/gsl/include
++# link statically against a copy in 3rdparty/
++#GSL_LIBS = $$QTI_ROOT/3rdparty/gsl/lib/libgsl.a \
++#           $$QTI_ROOT/3rdparty/gsl/lib/libgslcblas.a
++# or dynamically against a system-wide installation
++GSL_LIBS = -lgsl -lgslcblas
++
++##########################################################
++## QWT - use local copy till upstream catches up
++# http://qwt.sourceforge.net/index.html
++##########################################################
++
++# include path.
++QWT_INCLUDEPATH = $$QTI_ROOT/3rdparty/qwt/src
++# link locally against a copy in 3rdparty/
++QWT_LIBS = $$QTI_ROOT/3rdparty/qwt/lib/libqwt.a
++
++##########################################################
++## QwtPlot3D - use local copy till upstream catches up
++# http://qwtplot3d.sourceforge.net/
++##########################################################
++
++# include path.
++QWT3D_INCLUDEPATH = $$QTI_ROOT/3rdparty/qwtplot3d/include
++# link locally against a copy in 3rdparty/
++win32:QWT3D_LIBS = $$QTI_ROOT/3rdparty/qwtplot3d/lib/qwtplot3d.dll
++unix:QWT3D_LIBS = $$QTI_ROOT/3rdparty/qwtplot3d/lib/libqwtplot3d.a
++
++##########################################################
++## libpng - optional. you don't have to set these variables
++##########################################################
++
++# include path. leave it blank to use SYS_INCLUDE
++#LIBPNG_INCLUDEPATH = $$QTI_ROOT/3rdparty/libpng/
++# link statically against a copy in 3rdparty/
++#LIBPNG_LIBS = $$QTI_ROOT/3rdparty/libpng/libpng.a
++# or dynamically against a system-wide installation
++LIBPNG_LIBS = -lpng
++
++##########################################################
++## QTeXEngine - optional. you don't have to set these variables
++# http://soft.proindependent.com/qtexengine/
++##########################################################
++
++# include path.
++#TEX_ENGINE_INCLUDEPATH = $$QTI_ROOT/3rdparty/QTeXEngine/src
++# link locally against a copy in 3rdparty/
++#TEX_ENGINE_LIBS = $$QTI_ROOT/3rdparty/QTeXEngine/libQTeXEngine.a
++
++##########################################################
++## ALGLIB (2.6) - optional. you don't have to set these variables
++# http://www.alglib.net/
++##########################################################
++
++# include path.
++#ALGLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/alglib/
++# link locally against a copy in 3rdparty/
++#ALGLIB_LIBS = $$QTI_ROOT/3rdparty/alglib/libalglib.a
++ALGLIB_INCLUDEPATH = /usr/include/alglib
++ALGLIB_LIBS = -lalglib
++
++##########################################################
++## TAMUANOVA - optional. you don't have to set these variables
++# http://www.stat.tamu.edu/~aredd/tamuanova/
++##########################################################
++
++# include path.
++#TAMUANOVA_INCLUDEPATH = $$QTI_ROOT/3rdparty/tamu_anova/
++# link locally against a copy in 3rdparty/
++#TAMUANOVA_LIBS = $$QTI_ROOT/3rdparty/tamu_anova/libtamuanova.a
++TAMUANOVA_INCLUDEPATH = /usr/include/tamu_anova/
++TAMUANOVA_LIBS = -ltamuanova
++
++##########################################################
++## python - only used if python is needed
++##########################################################
++
++# the python interpreter to use
++# (unix only, windows will use what ever is configured to execute .py files!)
++PYTHON = python
++
++##########################################################
++## Qt tools - allows to use specific versions
++##########################################################
++
++LUPDATE = lupdate
++LRELEASE = lrelease
++
++############################################################
++##  Target specific configuration: configure Qtiplot itself
++############################################################
++
++contains( TARGET, qtiplot ) {
++  # building without muParser doesn't work yet
++  SCRIPTING_LANGS += muParser
++  SCRIPTING_LANGS += Python
++
++  # a console displaying output of scripts; particularly useful on Windows
++  # where running QtiPlot from a terminal is inconvenient
++  DEFINES         += SCRIPTING_CONSOLE
++
++  #DEFINES         += QTIPLOT_DEMO
++
++  # Uncomment the following line if you want to perform a custom installation using the *.path variables defined in ./qtiplot.pro.
++  CONFIG          += CustomInstall
++
++  # Uncomment the following line if you want to build QtiPlot as a browser plugin (not working on Internet Explorer).
++  #CONFIG          += BrowserPlugin
++  
++  CONFIG          += release
++  #CONFIG          += debug
++  
++  # Uncomment the following line if you want to link statically against Qt.
++  #CONFIG           += StaticBuild
++  #win32: CONFIG   += console
++}

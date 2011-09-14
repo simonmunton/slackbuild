@@ -6,7 +6,7 @@ TARNAME=FreeImage
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=3110
+VERSION=3151
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,6 +45,7 @@ fi
  #patch -p1 < ${CWD}/
 
  sed -i -e 's/-o root -g root//' -e 's/ldconfig//' Makefile.gnu
+ sed -i -e 's/-o root -g root//' -e 's/ldconfig//' Makefile.fip
 )
 fi
 
@@ -64,6 +65,10 @@ then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 make ${NUM_JOBS} || exit
+
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+make ${NUM_JOBS} -f Makefile.fip || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,7 +78,8 @@ fi
 
 mkdir -p ${PKG}/usr/{include,lib}
 
-make install DESTDIR=${PKG} INCDIR=${PKG}/usr/include INSTALLDIR=${PKG}/usr/lib
+make install DESTDIR=${PKG} INCDIR=${PKG}/usr/include INSTALLDIR=${PKG}/usr/lib${LIBDIRSUFFIX}
+make -f Makefile.fip install DESTDIR=${PKG} INCDIR=${PKG}/usr/include INSTALLDIR=${PKG}/usr/lib${LIBDIRSUFFIX}
 
 #strip_binaries
 
