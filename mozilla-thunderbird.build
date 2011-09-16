@@ -38,14 +38,14 @@ fi
 
 pre_configure
 
-mkdir -p ${PKG}/usr/lib
-( cd ${PKG}/usr/lib
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
   tar xf ${FULL_TARNAME} || exit 1
   mv thunderbird thunderbird-${VERSION}-GB
   ln -sf thunderbird-${VERSION}-GB thunderbird
   cd thunderbird-${VERSION}-GB
 
-  sed -i -e 's@/usr/local/lib@/usr/lib@g' thunderbird
+  sed -i -e "s@/usr/local/lib@/usr/lib${LIBDIRSUFFIX}@g" thunderbird
 
 #  cat $CWD/mozilla-thunderbird-firefox.diff | patch -p1 --verbose --backup --suffix=.orig || exit 1
 #  if [ ! $? = 0 ]; then
@@ -58,7 +58,7 @@ if [ ! $? = 0 ]; then
 fi
 mkdir -p ${PKG}/usr/bin
 ( cd ${PKG}/usr/bin
-  ln -sf /usr/lib/thunderbird/thunderbird .
+  ln -sf /usr/lib${LIBDIRSUFFIX}/thunderbird/thunderbird .
 )
 mkdir -p ${PKG}/usr/share/applications
 cat ${CWD}/mozilla-thunderbird.desktop > ${PKG}/usr/share/applications/mozilla-thunderbird.desktop
@@ -68,7 +68,7 @@ cat ${CWD}/mozilla-thunderbird.png > ${PKG}/usr/share/pixmaps/thunderbird.png
 # These files/directories are usually created if Thunderbird is run as root, which on many
 # systems might (and possibly should) be never.  Therefore, if we don't see them we'll
 # put stubs in place to prevent startup errors.
-( cd ${PKG}/usr/lib/thunderbird-${VERSION}-GB
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}/thunderbird-${VERSION}-GB
   if [ -d chrome ]; then
     if [ ! -r chrome/app-chrome.manifest ]; then
       echo > chrome/app-chrome.manifest

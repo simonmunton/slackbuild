@@ -59,8 +59,8 @@ then
 fi
 
 (cd ${PKG}
- mkdir -p usr/lib
- cd usr/lib
+ mkdir -p usr/lib${LIBDIRSUFFIX}
+ cd usr/lib${LIBDIRSUFFIX}
  echo yes | sh ${FULL_TARNAME} -noregister >& /dev/null
 
  f=`echo jdk*`
@@ -70,12 +70,13 @@ fi
  cd ../..
  mkdir -p etc/profile.d
  cp -a ${CWD}/jdk.{sh,csh} etc/profile.d
+ sed -i "s@usr/lib@usr/lib${LIBDIRSUFFIX}@" etc/profile.d/jdk.{sh,csh}
  chmod 755 etc/profile.d/*
 
- mkdir -p usr/lib/mozilla/plugins
+ mkdir -p usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 
- ( cd usr/lib/mozilla/plugins
-   ln -sf /usr/lib/java/jre/plugin/i386/ns7/libjavaplugin_oji.so libjavaplugin_oji.so
+ ( cd usr/lib${LIBDIRSUFFIX}/mozilla/plugins
+   ln -sf /usr/lib${LIBDIRSUFFIX}${LIBDIRSUFFIX}/java/jre/plugin/i386/ns7/libjavaplugin_oji.so libjavaplugin_oji.so
  )
 )
 
