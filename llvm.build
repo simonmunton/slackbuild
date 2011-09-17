@@ -46,6 +46,11 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+
+ if [ ! -n "${LIBDIRSUFFIX}" ]
+ then
+   sed -i "/^PROJ_libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.config.in
+ fi
 )
 fi
 
@@ -93,13 +98,13 @@ fi
 
 make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib
+sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 mv ${PKG}/usr/docs/llvm/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 rmdir -p ${PKG}/usr/docs/llvm
 
-rm ${PKG}/usr/lib/LLVMHello*
+rm ${PKG}/usr/lib${LIBDIRSUFFIX}/LLVMHello*
 
 strip_binaries
 
