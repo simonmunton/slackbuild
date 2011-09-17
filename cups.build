@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/cups-1.5.0.diff
 )
 fi
 
@@ -60,12 +60,20 @@ then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
             --disable-pam \
-	    --disable-ssl
+	    --disable-ssl \
+	    --docdir=/usr/doc \
+
+#	    --enable-ssl \
+#	    --enable-openssl=yes \
+#	    --enable-gnutls=no \
+#	    --enable-cdsassl=no \
+#	    --without-php \
 
 #--prefix=/usr \
 #            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 fi
@@ -91,7 +99,7 @@ make install BUILDROOT=${PKG}
 # so you'll have to install it yourself.  It's easy to do.
 
 # However, this will get you the most useful SMB support for free.
-( cd ${PKG}/usr/lib/cups/backend
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}/cups/backend
   if [ ! -e smb ]; then
     ln -sf /usr/bin/smbspool smb
   fi

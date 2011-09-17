@@ -1,0 +1,58 @@
+--- digikam-2.1.1/extra/libkvkontakte/CMakeLists.txt.orig	2011-09-14 07:19:07.000000000 +0100
++++ digikam-2.1.1/extra/libkvkontakte/CMakeLists.txt	2011-09-17 06:57:24.505012765 +0100
+@@ -12,7 +12,7 @@
+ set(LIBKVKONTAKTE_VERSION_ID "0x0${LIBKVKONTAKTE_VERSION_MAJOR}0${LIBKVKONTAKTE_VERSION_MINOR}0${LIBKVKONTAKTE_VERSION_PATCH}")
+ 
+ # set up install directories. INCLUDE_INSTALL_DIR and LIB_INSTALL_DIR must not be absolute paths
+-set(LIB_INSTALL_DIR_SUFFIX "" CACHE STRING "The directories where to install libraries to")
++set(LIB_INSTALL_DIR_SUFFIX "${LIB_SUFFIX}" CACHE STRING "The directories where to install libraries to")
+ set(LIB_INSTALL_DIR lib${LIB_INSTALL_DIR_SUFFIX} )
+ set(CMAKECONFIG_INSTALL_DIR ${LIB_INSTALL_DIR}/cmake/LibKVkontakte )
+ 
+--- digikam-2.1.0/extra/kipi-plugins/removeredeyes/detection/locators/haarclassifier/haarclassifierlocator.cpp.orig	2011-09-07 10:44:39.000000000 +0100
++++ digikam-2.1.0/extra/kipi-plugins/removeredeyes/detection/locators/haarclassifier/haarclassifierlocator.cpp	2011-09-12 20:18:37.000000000 +0100
+@@ -212,7 +212,7 @@
+                  0);
+ 
+     // fill the mask
+-    cvFillImage(i_mask, 0);
++    cvSet( i_mask, cvColorToScalar(0, cvGetElemType(i_mask)), 0 );
+     d->red_eyes = 0;
+ 
+     for (int i = 0; i < blobs.GetNumBlobs(); ++i)
+@@ -237,8 +237,8 @@
+     d->redMask  = cvCreateImage(cvGetSize(d->original), d->original->depth, 1);
+ 
+     // reset masks
+-    cvFillImage(d->aChannel, 0);
+-    cvFillImage(d->redMask, 0);
++    cvSet( d->aChannel, cvColorToScalar(0, cvGetElemType(d->aChannel)), 0 );
++    cvSet( d->redMask, cvColorToScalar(0, cvGetElemType(d->redMask)), 0 );
+ }
+ 
+ void HaarClassifierLocator::clearBuffers()
+--- digikam-2.0.0/core/libs/widgets/common/ditemtooltip.cpp.orig	2011-07-28 00:28:09.000000000 +0100
++++ digikam-2.0.0/core/libs/widgets/common/ditemtooltip.cpp	2011-08-06 16:26:41.000000000 +0100
+@@ -65,18 +65,18 @@
+     headEnd     = QString("</b></center></font></nobr></td></tr>");
+ 
+     cellBeg     = QString("<tr><td><nobr><font size=\"-1\" color=\"%1\" face=\"%2\">")
+-                  .arg(kapp->palette().color(QPalette::Text).name())
++                  .arg(kapp->palette().color(QPalette::ToolTipText).name())
+                   .arg(font.family());
+     cellMid     = QString("</font></nobr></td><td><nobr><font size=\"-1\" color=\"%1\" face=\"%2\">")
+-                  .arg(kapp->palette().color(QPalette::Text).name())
++                  .arg(kapp->palette().color(QPalette::ToolTipText).name())
+                   .arg(font.family());
+     cellEnd     = QString("</font></nobr></td></tr>");
+ 
+     cellSpecBeg = QString("<tr><td><nobr><font size=\"-1\" color=\"%1\" face=\"%2\">")
+-                  .arg(kapp->palette().color(QPalette::Text).name())
++                  .arg(kapp->palette().color(QPalette::ToolTipText).name())
+                   .arg(font.family());
+     cellSpecMid = QString("</font></nobr></td><td><nobr><font size=\"-1\" color=\"%1\" face=\"%2\"><i>")
+-                  .arg(kapp->palette().color(QPalette::Text).name())
++                  .arg(kapp->palette().color(QPalette::ToolTipText).name())
+                   .arg(font.family());
+     cellSpecEnd = QString("</i></font></nobr></td></tr>");
+ }
