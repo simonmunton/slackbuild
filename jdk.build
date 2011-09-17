@@ -76,22 +76,27 @@ fi
  mkdir -p usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 
  ( cd usr/lib${LIBDIRSUFFIX}/mozilla/plugins
-   ln -sf /usr/lib${LIBDIRSUFFIX}${LIBDIRSUFFIX}/java/jre/plugin/i386/ns7/libjavaplugin_oji.so libjavaplugin_oji.so
+   if [ ! -n "${LIBDIRSUFFIX}" ]
+   then
+     ln -sf /usr/lib${LIBDIRSUFFIX}/java/jre/plugin/i386/ns7/libjavaplugin_oji.so libjavaplugin_oji.so
+   else
+     ln -sf /usr/lib${LIBDIRSUFFIX}/java/jre/lib/amd64/libnpjp2.so .
+   fi
  )
 )
 
 cat > ${PKG}/install/doinst.sh << EOF
 # Clean up a potential upgrade mess caused by changing the
 # installation directory to /usr/lib/java/:
-if [ -L usr/lib/java ]; then
-  rm -rf usr/lib/java
-  mkdir -p usr/lib/java/man
-  mkdir -p usr/lib/java/jre/lib/i386/server
-  mkdir -p usr/lib/java/jre/javaws
-  mkdir -p usr/lib/java/jre/bin
-  mkdir -p usr/lib/java/bin
-  mkdir -p usr/lib/java/jre/lib/i386/client
-  mkdir -p usr/lib/mozilla/plugins
+if [ -L usr/lib${LIBDIRSUFFIX}/java ]; then
+  rm -rf usr/lib${LIBDIRSUFFIX}/java
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/man
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/jre/lib/i386/server
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/jre/javaws
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/jre/bin
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/bin
+  mkdir -p usr/lib${LIBDIRSUFFIX}/java/jre/lib/i386/client
+  mkdir -p usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 fi
 if [ -L ControlPanel ]; then
   rm -f ControlPanel
