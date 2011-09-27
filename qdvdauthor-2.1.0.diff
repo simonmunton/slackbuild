@@ -1,3 +1,14 @@
+--- qdvdauthor-2.1.0/qrender/server.cpp.orig	2010-01-09 14:01:14.000000000 +0000
++++ qdvdauthor-2.1.0/qrender/server.cpp	2011-09-24 07:48:22.000000000 +0100
+@@ -42,7 +42,7 @@
+   m_qsLogFileName = qsLogFileName;
+ }
+ 
+-void Server::slotRenderExited ( Render::Render *pRender )
++void Server::slotRenderExited ( Render *pRender )
+ {
+   m_logger.iLOG ( "Server::slotRenderExited \n" );
+   m_listOfRenderTasks.removeAll ( pRender );
 --- qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.cpp.orig	2010-01-09 14:01:14.000000000 +0000
 +++ qdvdauthor-2.1.0/qrender/engine/ffmpeg_enc.cpp	2011-06-08 20:43:46.000000000 +0100
 @@ -106,7 +106,7 @@
@@ -115,45 +126,3 @@
  #include <libavutil/avutil.h>
  
  #if ( LIBAVUTIL_VERSION_MAJOR >= 50 )
---- qdvdauthor-2.1.0/test/test_ipc/main.cpp.orig	2010-01-09 14:01:14.000000000 +0000
-+++ qdvdauthor-2.1.0/test/test_ipc/main.cpp	2010-01-09 14:01:14.000000000 +0000
-@@ -8,8 +8,14 @@
- #define BUFLEN 512
- 
- 
-+int main_1 ( int argc, char **argv )
-+{
-+	
-+
-+	exit ( 0 );
-+}
- 
--int main( int argc, char ** argv )
-+int main ( int argc, char ** argv )
- {
- 	int iWait;
- 	int iRead;
-@@ -64,9 +70,9 @@
- 		// the child process can then read and write its stdin and stdout and never know it is
- 		// actually communicating through a pipe to another process.
- printf ("Child still here ... <%d>\n", iWhich);
--		execlp("more","more","main.cpp",NULL);
--		flush();
--//		system ("more main.cpp");
-+//		execlp ("more","more","main.cpp",NULL);
-+//		fflush ( stdout );
-+		system ("more main.cpp");
- 		exit (0);
- 	}
- 	else	{	/* parent process */
-@@ -87,8 +93,8 @@
- 		pid_t thePid = 0;
- 		while (read(fromChild,buf, BUFLEN))	{
- //		while (thePid != iWhich)	{
--			sleep (1);
--			read(fromChild,buf, BUFLEN);
-+		//	sleep (1);
-+		//	read(fromChild,buf, BUFLEN);
- printf ("iWait !!!<%d> iWhich<%d>\n", iWait, iWhich);
- 			thePid = waitpid(iWhich, &iWait, WNOHANG);
- 			printf ("Parent:<%d> <%s>\n", (int)thePid, (char *)buf);

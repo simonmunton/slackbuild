@@ -1,0 +1,95 @@
+--- mc-4.7.5.4/src/viewer/display.c.orig	2011-09-12 10:33:00.000000000 +0100
++++ mc-4.7.5.4/src/viewer/display.c	2011-09-26 22:10:00.000000000 +0100
+@@ -164,8 +164,24 @@
+                 );
+         }
+     }
++    if (width > 62)
++    {
++        char buffer[BUF_TINY];
++        widget_move (view, top, width - 54);
++        if (!view->hex_mode)
++        {
++            off_t line, col;
++            mcview_offset_to_coord (view, &line, &col, view->dpy_start);
++            size_trunc_len (buffer, 5, mcview_get_filesize (view), 0, panels_options.kilobyte_si);
++            tty_printf ("Line %" PRIuMAX " Col %" PRIuMAX , (uintmax_t) line+1,
++                        (uintmax_t) (view->text_wrap_mode ? col : view->dpy_text_column)
++                );
++        }
++    }
+     widget_move (view, top, left);
+-    if (width > 40)
++    if (width > 62)
++        tty_print_string (str_fit_to_term (file_label, width - 56, J_LEFT_FIT));
++    else if (width > 40)
+         tty_print_string (str_fit_to_term (file_label, width - 34, J_LEFT_FIT));
+     else
+         tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
+--- mc-4.7.5.4/src/editor/editwidget.c.orig	2011-09-12 10:33:00.000000000 +0100
++++ mc-4.7.5.4/src/editor/editwidget.c	2011-09-26 22:10:00.000000000 +0100
+@@ -311,6 +311,12 @@
+             int cmd, ch;
+             cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++            if (parm == KEY_BTAB) {
++                edit_execute_key_command (e, cmd, '\t');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++             }
++
+             /* The user may override the access-keys for the menu bar. */
+             if (edit_translate_key (e, parm, &cmd, &ch))
+             {
+--- mc-4.7.5.4/misc/syntax/php.syntax.orig	2011-02-08 11:46:09.000000000 +0000
++++ mc-4.7.5.4/misc/syntax/php.syntax	2011-09-26 22:10:00.000000000 +0100
+@@ -3151,4 +3151,5 @@
+ 
+ context ' ' brightgreen
+     spellcheck
++    keyword \\\\ brightcyan
+     keyword \\' brightcyan
+--- mc-4.7.5.4/misc/mc.keymap.orig	2011-09-12 10:32:59.000000000 +0100
++++ mc-4.7.5.4/misc/mc.keymap	2011-09-27 07:07:10.000000000 +0100
+@@ -161,6 +161,10 @@
+ 
+ SelectCodepage = alt-e
+ 
++EditExtMode =
++
++[edit:xmap]
++
+ [viewer]
+ ViewHelp = f1
+ ViewToggleWrapMode = f2
+@@ -250,7 +254,7 @@
+ CmdUnselect = kpminus
+ CmdReverseSelection = kpasterisk
+ CmdDialogList = alt-prime
+-ExtMap1 =
++ExtMap1 = ctrl-x
+ 
+ [main:xmap]
+ CmdChmod = c
+--- mc-4.7.5.4/misc/mc.keymap.default.orig	2011-09-12 10:32:59.000000000 +0100
++++ mc-4.7.5.4/misc/mc.keymap.default	2011-09-27 07:06:06.000000000 +0100
+@@ -161,6 +161,10 @@
+ 
+ SelectCodepage = alt-e
+ 
++EditExtMode =
++
++[edit:xmap]
++
+ [viewer]
+ ViewHelp = f1
+ ViewToggleWrapMode = f2
+@@ -250,7 +254,7 @@
+ CmdUnselect = kpminus
+ CmdReverseSelection = kpasterisk
+ CmdDialogList = alt-prime
+-ExtMap1 =
++ExtMap1 = ctrl-x
+ 
+ [main:xmap]
+ CmdChmod = c

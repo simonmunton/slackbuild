@@ -1,5 +1,5 @@
---- DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp.orig	2011-05-15 14:23:34.000000000 +0100
-+++ DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp	2011-07-03 20:42:08.000000000 +0100
+--- DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp.orig	2011-09-26 19:44:33.000000000 +0100
++++ DVDStyler-1.8.4/src/mediatrc_ffmpeg.cpp	2011-09-26 19:52:40.000000000 +0100
 @@ -31,6 +31,7 @@
  #include <libavutil/fifo.h>
  #include <libavfilter/avfilter.h>
@@ -8,6 +8,24 @@
  #endif
  }
  
+@@ -250,7 +251,7 @@
+     FFSinkContext *priv = (FFSinkContext*) ctx->priv;
+     int pix_fmts[] = { priv->pix_fmt, PIX_FMT_NONE };
+ 
+-    avfilter_set_common_formats(ctx, avfilter_make_format_list(pix_fmts));
++    avfilter_set_common_pixel_formats(ctx, avfilter_make_format_list(pix_fmts));
+     return 0;
+ }
+ 
+@@ -356,7 +357,7 @@
+         inputs->pad_idx = 0;
+         inputs->next    = NULL;
+ 
+-        if ((ret = avfilter_graph_parse(ost->graph, ost->avfilter, inputs, outputs, NULL)) < 0)
++        if ((ret = avfilter_graph_parse(ost->graph, ost->avfilter, &inputs, &outputs, NULL)) < 0)
+             return ret;
+         av_freep(&ost->avfilter);
+     } else {
 @@ -750,7 +751,7 @@
  	/* check filename in case of an image number is expected */
  	if (oc->oformat->flags & AVFMT_NEEDNUMBER) {
@@ -62,10 +80,19 @@
 -                                             ist->pts,
 -                                             sar, ist->st->codec->width, ist->st->codec->height,
 -                                             ist->st->codec->pix_fmt, "0:0");
-+                    av_vsrc_buffer_add_frame(ost->input_video_filter, &picture);
++                    av_vsrc_buffer_add_frame(ost->input_video_filter, &picture, AV_VSRC_BUF_FLAG_OVERWRITE);
                  }
              }
          }
+@@ -2232,7 +2230,7 @@
+ 							break;
+ 						case AVMEDIA_TYPE_VIDEO:
+                             if (ost->picref->video)
+-                                ost->st->codec->sample_aspect_ratio = ost->picref->video->pixel_aspect;
++                                ost->st->codec->sample_aspect_ratio = ost->picref->video->sample_aspect_ratio;
+ 							if (!DoVideoOut(os, ost, ist, &picture, &frame_size, bit_buffer_size, bit_buffer))
+ 								return false;
+ //							if (vstats_filename && frame_size)
 @@ -2619,7 +2617,7 @@
  			pkt.size= ret;
  			if(enc->coded_frame && enc->coded_frame->pts != (int64_t) AV_NOPTS_VALUE)
@@ -84,8 +111,8 @@
  //			big_picture.pts = AV_NOPTS_VALUE;
  			big_picture.pts= ost->sync_opts;
  //			big_picture.pts= av_rescale(ost->sync_opts, AV_TIME_BASE*(int64_t)enc->time_base.num, enc->time_base.den);
---- DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp.orig	2011-05-02 21:58:07.000000000 +0100
-+++ DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp	2011-07-03 14:10:43.000000000 +0100
+--- DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp.orig	2011-09-26 19:44:33.000000000 +0100
++++ DVDStyler-1.8.4/src/mediaenc_ffmpeg.cpp	2011-09-26 19:44:43.000000000 +0100
 @@ -339,7 +339,7 @@
      AVCodecContext* c = m_audioStm->codec;
      pkt.size= avcodec_encode_audio(c, m_audioOutbuf, AUDIO_BUF_SIZE, m_samples);
