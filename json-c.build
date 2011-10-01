@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pavucontrol
+TARNAME=json-c
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p/pulseaudio
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=1.0
+VERSION=0.9
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://oss.metaparadigm.com/json-c/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -62,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,11 +105,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "volume control for PulseAudio"
-PulseAudio Volume Control (pavucontrol) is a simple GTK based volume
-control tool ("mixer") for the PulseAudio sound server. In contrast 
-to classic mixer tools this one allows you to control both the volume 
-of hardware devices and of each playback stream seperately.
+make_slack_desc << EOF "A JSON implementation in C"
+JSON-C implements a reference counting object model that allows you 
+to easily construct JSON objects in C, output them as JSON formatted 
+strings and parse JSON formatted strings back into the C 
+representation of JSON objects.
 
 EOF
 
