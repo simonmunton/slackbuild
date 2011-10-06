@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gtk+
+TARNAME=tclap
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=2.24.6
+VERSION=1.2.1
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://tclap.sourceforge.net/"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gtk+2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,9 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gtk+-2.10.14.diff
-# patch -p1 < ${CWD}/gtk+2-nsplugin.diff
- patch -p1 < ${CWD}/gtk+-2.22.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,18 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-# add -ggdb to flags for debug
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-            --mandir=/usr/man \
-            --with-xinput=yes \
-            --enable-debug=minimal
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,31 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/etc/gtk-2.0/im-multipress.conf ${PKG}/etc/gtk-2.0/im-multipress.conf.new
-doinst_config etc/gtk-2.0/im-multipress.conf.new
-
-mkdir -p ${PKG}/etc/profile.d
-
-cat <<EOF > ${PKG}/etc/profile.d/gtk+.csh
-#!/bin/csh
-setenv GDK_USE_XFT 1
-EOF
-
-cat <<EOF > ${PKG}/etc/profile.d/gtk+.sh
-#!/bin/sh
-GDK_USE_XFT=1
-export GDK_USE_XFT
-EOF
-
-chmod 755 ${PKG}/etc/profile.d/*
-
-#mkdir -p ${PKG}/etc/gtk-2.0
-touch ${PKG}/etc/gtk-2.0/gtk.immodules
-touch ${PKG}/etc/gtk-2.0/gdk-pixbuf.loaders
-
-#rm -f /usr/share/icons/*/icon-theme.cache 1> /dev/null 2> /dev/null
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -120,11 +105,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "multi-platform toolkit for GUIs"
-This is GTK+, a multi-platform toolkit for creating graphical user
-interfaces.  Offering a complete set of widgets, GTK+ is suitable for
-projects ranging from small one-off projects to complete application
-suites.
+make_slack_desc << EOF "Templatized C++ Command Line Parser Library"
+TCLAP is a small, flexible library that provides a simple interface 
+for defining and accessing command line arguments. It was intially 
+inspired by the user friendly CLAP libary. The difference is that this 
+library is templatized, so the argument class is type independent. 
+Type independence avoids identical-except-for-type objects, such as 
+IntArg, FloatArg, and StringArg. While the library is not strictly 
+compliant with the GNU or POSIX standards, it is close. 
 
 EOF
 
