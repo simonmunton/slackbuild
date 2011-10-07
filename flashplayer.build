@@ -20,6 +20,10 @@ PKGNAME=flashplayer
 #BUILD_SUFFIX=
 #ARCH=noarch
 
+case `uname -m` in
+    x86_64) VERSIONEXTRA=_linux.x86_64 ;;
+esac
+
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
@@ -95,10 +99,15 @@ fi
 
 #make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/lib/mozilla/plugins
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 
-cp -p libflashplayer.so ${PKG}/usr/lib/mozilla/plugins
+cp -p libflashplayer.so ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 cp -pr usr ${PKG}
+if [ -n "${LIBDIRSUFFIX}" ]
+then
+  mv ${PKG}/usr/lib/* ${PKG}/usr/lib${LIBDIRSUFFIX}
+  rm -rf ${PKG}/usr/lib
+fi
 
 strip_binaries
 
