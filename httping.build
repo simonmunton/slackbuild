@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=rekonq
+TARNAME=httping
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=0.8.0
+VERSION=1.5.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://rekonq.kde.org/"
+WEBPAGE="http://www.vanheusden.com/httping/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/httping-1.5.2.diff
 )
 fi
 
@@ -55,26 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -106,12 +104,15 @@ cp -a \
 
 fix_docs
 
+rmdir -p ${PKG}/usr/share
+
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "webkit based web browser for KDE"
-Rekonq is a web browser for KDE based on WebKit. It first focuses on 
-being a light, fast & clean way to access to net. Its development is 
-doubly based on using the new amazing features offered by the WebKit 
-rendering engine and on the rock solid network KDE technologies.
+make_slack_desc << EOF "ping for http requests"
+Httping is like 'ping' but for http-requests.
+Give it an url, and it'll show you how long it takes to connect, send 
+a request and retrieve the reply (only the headers). Be aware that 
+the transmission across the network also takes time! So it measures 
+the latency of the webserver + network.
 
 EOF
 

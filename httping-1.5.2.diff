@@ -1,0 +1,17 @@
+--- httping-1.5.2/mssl.c.orig	2011-08-03 17:08:08.000000000 +0100
++++ httping-1.5.2/mssl.c	2011-10-15 19:31:15.000000000 +0100
+@@ -32,11 +32,12 @@
+ {
+ 	int rc = SSL_shutdown(ssl_h);
+ 
+-	if (!rc)
++	if (rc > 0)
+ 	{
+ 		shutdown(socket_h, 1);
+ 
+-		rc = SSL_shutdown(ssl_h);
++		if (rc == 2)
++			rc = SSL_shutdown(ssl_h);
+ 	}
+ 
+ 	/* rc == 0 means try again but it seems to be fine
