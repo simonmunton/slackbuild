@@ -73,35 +73,35 @@ then
   exit
 fi
 
-mkdir -p  ${PKG}/usr/lib
+mkdir -p  ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 # Build the static dlamch, dsecnd, lsame, second, slamch bits
 pushd INSTALL
 make clean
-make NOOPT="-funroll-all-loops -Os" OPTS="-funroll-all-loops -O3" || exit
+make NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3" || exit
 # dlamch.o dsecnd.o lsame.o second.o slamch.o
 popd
 
 # Build the static lapack library
 pushd SRC
 make clean
-make FFLAGS="-funroll-all-loops -O3" OPTS="-funroll-all-loops -O3" || exit
+make NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3" || exit
 popd
-cp lapack.a ${PKG}/usr/lib/liblapack.a
+cp lapack.a ${PKG}/usr/lib${LIBDIRSUFFIX}/liblapack.a
 
 # Build the shared dlamch, dsecnd, lsame, second, slamch bits
 pushd INSTALL
 make clean
-make NOOPT="-funroll-all-loops -Os -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" || exit
+make NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" || exit
 #        dlamch.o dsecnd.o lsame.o second.o slamch.o
 popd
 
 # Build the shared lapack library
 pushd SRC
 make clean
-make FFLAGS="-funroll-all-loops -O3 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" shared || exit
-cp liblapack.so.${VERSION} ${PKG}/usr/lib
-(cd ${PKG}/usr/lib
+make NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" shared || exit
+cp liblapack.so.${VERSION} ${PKG}/usr/lib${LIBDIRSUFFIX}
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
  ln -s liblapack.so.${VERSION} liblapack.so
 )
 popd
@@ -118,7 +118,7 @@ pushd SRC
 #make clean
 make FFLAGS="-funroll-all-loops -O3 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" || exit
 popd
-cp lapack.a ${PKG}/usr/lib/liblapack_pic.a
+cp lapack.a ${PKG}/usr/lib${LIBDIRSUFFIX}/liblapack_pic.a
 
 #strip_binaries
 
