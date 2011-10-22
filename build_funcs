@@ -2,6 +2,7 @@
 #
 CWD=`pwd`
 
+DO_CHECK_VERSION=no
 DO_CONFIGURE=yes
 DO_MAKE=yes
 DO_INSTALL=yes
@@ -12,7 +13,7 @@ NUM_JOBS="-j 1"
 # separate word. The quotes around `$@' are essential!
 # We need OPTS as the `eval set --' would nuke the return value of getopt.
 
-OPTS=`getopt -o cmij: --long disable-configure,disable-make,disable-install,num-jobs: \
+OPTS=`getopt -o cmij:v --long disable-configure,disable-make,disable-install,num-jobs,check-version: \
      -n "$0" -- "$@"`
 
 # Note the quotes around `$OPTS': they are essential!
@@ -24,6 +25,7 @@ while true ; do
     -m|--disable-make)       DO_MAKE=no; shift ;;
     -i|--disable-install)    DO_INSTALL=no; shift ;;
     -j|--num-jobs)	     NUM_JOBS="-j $2"; shift 2 ;;
+    -v|--check-version)	     DO_CHECK_VERSION=yes; shift ;;
     --) shift ; break ;;
   esac
 done
@@ -143,6 +145,34 @@ then
 fi
 
 guess_tar_prog ${TAR_EXT}
+
+if [ $DO_CHECK_VERSION == "yes" ]
+then
+  echo "Current build version is ${VERSION}${VERSIONEXTRA}"
+
+  TARNAME_BASE=${FULL_TARNAME%${VERSION}*}
+
+  if [ -e ${FULL_TARNAME} ]
+  then
+    for f in `ls -t ${TARNAME_BASE}*`
+    do
+      if [ $f -nt ${FULL_TARNAME} ]
+      then
+        echo "$f (newer)"
+      else
+        if [ $f != ${FULL_TARNAME} ]
+        then
+          echo "$f (older)"
+        fi
+      fi
+    done
+  else
+    echo ${FULL_TARNAME} not found, consider following:
+    ls -1 -t ${TARNAME_BASE}*
+  fi
+
+  exit
+fi
 }
 
 
