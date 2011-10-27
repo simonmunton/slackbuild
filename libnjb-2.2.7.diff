@@ -1,0 +1,45 @@
+--- libnjb-2.2.7/src/protocol3.c.orig	2011-06-25 12:59:03.000000000 +0100
++++ libnjb-2.2.7/src/protocol3.c	2011-10-26 21:50:00.000000000 +0100
+@@ -2604,7 +2604,7 @@
+ 	  if (njb_debug(0x07))
+ 	    printf("END OF PLAYLIST\n");
+ 	  read_again = 0;
+-	} else {
++	} else if (remain == 2) {
+ 	  if (njb_debug(0x07))
+ 	    printf("READ AGAIN\n");
+ 	  read_again++;
+@@ -2618,6 +2618,7 @@
+ 	  track = NJB_Playlist_Track_New(trackid);
+ 	  NJB_Playlist_Addtrack(pl, track, NJB_PL_END);
+ 	  metastarted = 0;
++	  get_statusword = 1;
+ 	} else {
+ 	  /*
+ 	   * Zeroframe outside normal metadata terminate the playlist
+@@ -2635,6 +2636,14 @@
+ 		 "%04x (remain %04x)\n",
+ 		 framelen, frameid, i, remain);
+ 
++	if (metastarted && trackid > 0) {
++	  if (njb_debug(0x07))
++	    printf("Length 0 terminator, adding track 0x%08x to "
++		   "playlist list\n", trackid);
++	  track = NJB_Playlist_Track_New(trackid);
++	  NJB_Playlist_Addtrack(pl, track, NJB_PL_END);
++	}
++
+ 	/* Recognize track ID */
+ 	if (frameid == NJB3_POSTID_FRAME_ID) {
+ 	  /* We detected the start of a track tag */
+@@ -2652,8 +2661,8 @@
+ 		 frameid, framelen);
+ 	}
+ 	/* Increase the counter */
+-	i += framelen;
+-	remain -= framelen;
++	i += framelen+2;
++	remain -= framelen+2;
+       }
+     }
+ 
