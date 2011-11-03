@@ -1,14 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=synfig
+TARNAME=kid3
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/s/synfig
+TARSEP="-"
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.63.01
+VERSION=2.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/synfig-0.63.00.diff
+ patch -p1 < ${CWD}/kid3-2.0.diff
 )
 fi
 
@@ -52,17 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CPPFLAGS="-I/usr/include/ImageMagick -D__STDC_CONSTANT_MACROS" \
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-libavcodec
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,6 +89,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -92,17 +107,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "vector based 2D animation package"
-synfig is a vector based 2D animation package. It is designed to be
-capable of producing feature-film quality animation. It eliminates the
-need for tweening, preventing the need to hand-draw each frame. synfig
-features spatial and temporal resolution independence (sharp and 
-smooth at any resolution or framerate), high dynamic range images, 
-and a flexible plugin system.
-
-This package contains the renderer used to convert synfig .sif files 
-to raster images, videos and other formats. 
-
+make_slack_desc << EOF
 EOF
 
 post_install
