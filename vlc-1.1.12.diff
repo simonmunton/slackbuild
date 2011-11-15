@@ -1,0 +1,107 @@
+--- vlc-1.1.12/modules/demux/avformat/demux.c.orig	2011-07-12 19:11:24.000000000 +0100
++++ vlc-1.1.12/modules/demux/avformat/demux.c	2011-11-15 14:09:55.000000000 +0000
+@@ -68,7 +68,7 @@
+  *****************************************************************************/
+ struct demux_sys_t
+ {
+-    ByteIOContext   io;
++    AVIOContext    *io;
+     int             io_buffer_size;
+     uint8_t        *io_buffer;
+ 
+@@ -198,7 +198,7 @@
+                     (int64_t (*) (URLContext *, int64_t, int))IOSeek;
+     p_sys->url.prot->url_close = 0;
+     p_sys->url.prot->next = 0;
+-    init_put_byte( &p_sys->io, p_sys->io_buffer, p_sys->io_buffer_size,
++    p_sys->io = avio_alloc_context( p_sys->io_buffer, p_sys->io_buffer_size,
+                    0, &p_sys->url, IORead, NULL, IOSeek );
+ 
+     stream_Control( p_demux->s, STREAM_CAN_SEEK, &b_can_seek );
+@@ -209,15 +209,15 @@
+        init_put_byte defaults io.is_streamed=0, so thats why we set them after it
+        */
+        p_sys->url.is_streamed = 1;
+-       p_sys->io.is_streamed = 1;
++       p_sys->io->is_streamed = 1;
+ #if defined(AVIO_SEEKABLE_NORMAL)
+-       p_sys->io.seekable = 0;
++       p_sys->io->seekable = 0;
+ #endif
+     }
+ 
+ 
+     /* Open it */
+-    if( av_open_input_stream( &p_sys->ic, &p_sys->io, p_demux->psz_path,
++    if( av_open_input_stream( &p_sys->ic, p_sys->io, p_demux->psz_path,
+                               p_sys->fmt, NULL ) )
+     {
+         msg_Err( p_demux, "av_open_input_stream failed" );
+@@ -521,6 +521,8 @@
+     if( p_sys->p_title )
+         vlc_input_title_Delete( p_sys->p_title );
+ 
++    av_free (p_sys->io);
++
+     free( p_sys->io_buffer );
+     free( p_sys );
+ }
+--- vlc-1.1.12/modules/demux/avformat/mux.c.orig	2011-07-12 19:11:24.000000000 +0100
++++ vlc-1.1.12/modules/demux/avformat/mux.c	2011-11-15 14:24:56.000000000 +0000
+@@ -55,7 +55,7 @@
+  *****************************************************************************/
+ struct sout_mux_sys_t
+ {
+-    ByteIOContext   io;
++    AVIOContext    *io;
+     int             io_buffer_size;
+     uint8_t        *io_buffer;
+ 
+@@ -150,24 +150,29 @@
+                     (int64_t (*) (URLContext *, int64_t, int))IOSeek;
+     p_sys->url.prot->url_close = 0;
+     p_sys->url.prot->next = 0;
+-    init_put_byte( &p_sys->io, p_sys->io_buffer, p_sys->io_buffer_size,
++    p_sys->io = avio_alloc_context( p_sys->io_buffer, p_sys->io_buffer_size,
+                    1, &p_sys->url, NULL, IOWrite, IOSeek );
+ 
+     memset( ap, 0, sizeof(*ap) );
+     if( av_set_parameters( p_sys->oc, ap ) < 0 )
+     {
+         msg_Err( p_mux, "invalid encoding parameters" );
++        av_free( p_sys->io );
+         av_free( p_sys->oc );
+         free( p_sys->io_buffer );
+         free( p_sys );
+         return VLC_EGENERIC;
+     }
+ 
++#if 1
++    p_sys->oc->pb = p_sys->io;
++#else
+ #if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(0<<8)+0)
+     p_sys->oc->pb = &p_sys->io;
+ #else
+     p_sys->oc->pb = p_sys->io;
+ #endif
++#endif
+     p_sys->oc->nb_streams = 0;
+ 
+     p_sys->b_write_header = true;
+@@ -198,6 +203,7 @@
+         av_free( p_sys->oc->streams[i]->codec );
+         av_free( p_sys->oc->streams[i] );
+     }
++    av_free( p_sys->io );
+     av_free( p_sys->oc );
+ 
+     free( p_sys->io_buffer );
+@@ -384,7 +390,7 @@
+         }
+ 
+ #if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(0<<8)+0)
+-        put_flush_packet( p_sys->oc->pb );
++        avio_flush( p_sys->oc->pb );
+ #else
+         put_flush_packet( &p_sys->oc->pb );
+ #endif
