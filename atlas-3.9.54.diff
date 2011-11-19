@@ -1,0 +1,37 @@
+--- atlas-3.9.54/CONFIG/src/atlcomp.txt.orig	2011-11-16 22:12:09.000000000 +0000
++++ atlas-3.9.54/CONFIG/src/atlcomp.txt	2011-11-19 07:24:43.000000000 +0000
+@@ -58,11 +58,16 @@
+ MACH=Atom OS=ALL LVL=1000 COMPS=icc,gcc
+    'gcc' '-O'
+ # PPRO,PII,PIII,P4,P4E,K7,HAMMER
+-MACH=PPRO,PII,PIII,P4,P4E,K7,HAMMER OS=ALL LVL=1000 COMPS=f77
++MACH=P4,P4E OS=ALL LVL=1000 COMPS=f77
++   'gfortran' '-fomit-frame-pointer -march=pentium4 -mfpmath=sse -O2 -falign-loops=4'
++MACH=P4,P4E OS=ALL LVL=1000 COMPS=smc,dmc,skc,dkc,icc,gcc
++   'gcc' '-fomit-frame-pointer -march=pentium4 -mfpmath=sse -O2 -falign-loops=4'
++#
++MACH=PPRO,PII,PIII,K7,HAMMER OS=ALL LVL=1000 COMPS=f77
+    'gfortran' '-fomit-frame-pointer -mfpmath=387 -O2 -falign-loops=4'
+ MACH=PPRO,PII,PIII,P4,P4E,K7,HAMMER OS=Win9x,WinNT LVL=1005 COMPS=smc,dmc,skc,dkc,icc
+    'gcc-4' '-fomit-frame-pointer -mfpmath=387 -O2 -falign-loops=4'
+-MACH=PPRO,PII,PIII,P4,P4E,K7,HAMMER OS=ALL LVL=1000 COMPS=smc,dmc,skc,dkc,icc,gcc
++MACH=PPRO,PII,PIII,K7,HAMMER OS=ALL LVL=1000 COMPS=smc,dmc,skc,dkc,icc,gcc
+    'gcc' '-fomit-frame-pointer -mfpmath=387 -O2 -falign-loops=4'
+ # CoreSolo,CoreDuo
+ MACH=CoreSolo,CoreDuo OS=WinNT,Win9x LVL=1005 COMPS=smc,dmc,skc,dkc,icc
+--- atlas-3.9.54/makes/Make.lib.orig	2011-11-16 22:12:08.000000000 +0000
++++ atlas-3.9.54/makes/Make.lib	2011-11-18 06:47:43.000000000 +0000
+@@ -46,11 +46,11 @@
+ # These are a bunch of different ways to attempt to build a .so, try them all
+ #
+ LDTRY:
+-	$(LD) $(LDFLAGS) -shared -soname $(LIBINSTdir)/$(outso) -o $(outso) \
++	$(LD) $(LDFLAGS) -shared -soname $(outso) -o $(outso) \
+            -rpath-link $(LIBINSTdir) \
+            --whole-archive $(libas) --no-whole-archive $(LIBS)
+ GCCTRY:
+-	$(GOODGCC) -shared -o $(outso) -Wl,"rpath-link $(LIBINSTdir)" \
++	$(GOODGCC) -shared -o $(outso) -Wl,"-rpath-link,$(LIBINSTdir)" \
+            -Wl,--whole-archive $(libas) -Wl,--no-whole-archive $(LIBS)
+ #
+ # TRYALL is going to just try a bunch of library combinations that may work
