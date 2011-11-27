@@ -6,7 +6,7 @@ TARNAME=kwave
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.8.6
+VERSION=0.8.7
 VERSIONEXTRA=-1
 BUILD=1
 
@@ -52,9 +52,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake .
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -69,6 +80,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
