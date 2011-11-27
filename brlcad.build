@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=7.18.4
+VERSION=7.20.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -48,12 +48,12 @@ fi
 # patch -p1 < ${CWD}/brlcad-7.16.4.diff
 # patch -p0 <  ${TARDIR}/brlcad-rel-7-16-8-r1.patch
  #./autogen.sh
- sed -i -e 's@-I$(top_srcdir)/src/other/tcl/generic@-I/usr/include/tcl-private/generic@' \
-	-e 's@-I$(top_srcdir)/src/other/tcl/unix@-I/usr/include/tcl-private/unix@' \
-	-e 's@-I$(top_srcdir)/src/other/t[^ ]*@@' \
-	src/bwish/Makefile.in src/libtclcad/Makefile.in
+# sed -i -e 's@-I$(top_srcdir)/src/other/tcl/generic@-I/usr/include/tcl-private/generic@' \
+#	-e 's@-I$(top_srcdir)/src/other/tcl/unix@-I/usr/include/tcl-private/unix@' \
+#	-e 's@-I$(top_srcdir)/src/other/t[^ ]*@@' \
+#	src/bwish/Makefile.in src/libtclcad/Makefile.in
 
- rm src/other/tcl/unix/tclConfig.sh src/other/tk/unix/tkConfig.sh
+# rm src/other/tcl/unix/tclConfig.sh src/other/tk/unix/tkConfig.sh
 )
 fi
 
@@ -63,16 +63,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/opt/brlcad \
-            --sysconfdir=/etc \
-            --localstatedir=/var/lib \
-	    --mandir=/opt/brlcad/man \
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/opt/brlcad \
+#            --sysconfdir=/etc \
+#            --localstatedir=/var/lib \
+#	    --mandir=/opt/brlcad/man \
+#
+##	    --with-cppflags="-I/usr/include/tcl-private/generic"
 
-#	    --with-cppflags="-I/usr/include/tcl-private/generic"
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/opt/brlcad \
+      -DMAN_INSTALL_DIR=/opt/brlcad/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -86,6 +100,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 
