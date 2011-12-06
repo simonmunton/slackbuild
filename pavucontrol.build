@@ -55,13 +55,20 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if ! pkg-config gtk+-3.0
+then
+  DISGTK3=--disable-gtk3
+fi
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    ${DISGTK3}
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
