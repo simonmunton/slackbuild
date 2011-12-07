@@ -1,0 +1,138 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=OpenCV
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/o
+#TAR_EXT=.tar.gz
+VERSION=2.1.0
+VERSIONEXTRA=
+BUILD=4
+
+WEBPAGE="http://opencv.willowgarage.com/wiki/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=opencv
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/OpenCV-2.1.0.diff
+# patch -p1 < ${CWD}/OpenCV-2.3.1.diff
+# autoreconf
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="${SLKCFLAGS}"
+PKGCPPFLAGS="-I/usr/include/OpenEXR"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#CPPFLAGS="-I/usr/include/OpenEXR" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man \
+#	    --disable-static \
+#	    --enable-python \
+#	    --enable-apps \
+#	    --with-quicktime=no \
+#	    --with-xine
+
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CPP_FLAGS:STRING="${PKGCPPFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -D:USE_IPP=ON \
+      -DWITH_XINE:BOOL=On \
+      .
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+sanitise_la_files ${PKG}/usr/lib
+
+sed -i -e 's/HAVE_CONFIG_H/HAVE_OPENCV_CONFIG_H/' ${PKG}/usr/include/opencv/cxmisc.h
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "Intel(R) Open Source Computer Vision Library"
+This is the Intel(R) Open Source Computer Vision Library, a collection
+of algorithms for image processing and computer vision.
+
+The package contains libraries, headers, documentation and sample 
+applications.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
