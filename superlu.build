@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pgf
+TARNAME=superlu
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/p
+TARSEP="_"
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=6.11.24
-VERSIONEXTRA=-src
-BUILD=2
+VERSION=4.3
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://www.libpgf.org"
+WEBPAGE="http://crd-legacy.lbl.gov/~xiaoye/SuperLU/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+mv SuperLU_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,11 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/pgf-6.11.24.diff
-
- . ./autogen.sh
- mv include/FreeImage.h include/FreeImage.h.x
- mv include/FreeImagePlus.h include/FreeImagePlus.h.x
+ patch -p1 < ${CWD}/superlu-4.3.diff
 )
 fi
 
@@ -63,19 +59,21 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -93,6 +91,14 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir ${PKG}/usr/{include,lib}
+cp SRC/s*.h ${PKG}/usr/include
+cp lib/*.a ${PKG}/usr/lib
+(cd ${PKG}/usr/lib
+ ln -s libsuperlu*.a libsuperlu.a
+)
+chmod -x ${PKG}/usr/include/*
+
 strip_binaries
 
 fix_links
@@ -102,15 +108,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* NEWS PLANS README* TODO DOC/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PGF (Progressive Graphics File) console application"
-pgf is a console application for working with PGF (Progresive 
-Graphics File) images.
+make_slack_desc << EOF "linear equation solver library"
+SuperLU is a general purpose library for the direct solution of large, 
+sparse, nonsymmetric systems of linear equations on high performance 
+machines.
+
+The library routines will perform an LU decomposition with partial 
+pivoting and triangular system solves through forward and back 
+substitution. 
 
 EOF
 

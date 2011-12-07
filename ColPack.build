@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pgf
+TARNAME=ColPack
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=6.11.24
-VERSIONEXTRA=-src
-BUILD=2
+VERSION=1.0.4
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://www.libpgf.org"
+WEBPAGE="http://www.cscapes.org/coloringpage/software.htm"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,11 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/pgf-6.11.24.diff
-
- . ./autogen.sh
- mv include/FreeImage.h include/FreeImage.h.x
- mv include/FreeImagePlus.h include/FreeImagePlus.h.x
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -76,6 +72,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -93,6 +90,11 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/usr/{include/ColPack,lib}
+cp build/include/* ${PKG}/usr/include/ColPack
+chmod -x ${PKG}/usr/include/ColPack/*
+cp build/lib/* ${PKG}/usr/lib
+
 strip_binaries
 
 fix_links
@@ -108,9 +110,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PGF (Progressive Graphics File) console application"
-pgf is a console application for working with PGF (Progresive 
-Graphics File) images.
+make_slack_desc << EOF "Graph Coloring for Computing Derivatives"
+ColPack is a package comprising of implementations of algorithms for 
+the specialized vertex coloring problems discussed in the previous 
+section as well as algorithms for a variety of related supporting 
+tasks in derivative computation.
 
 EOF
 
