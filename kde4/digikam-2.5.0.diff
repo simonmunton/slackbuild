@@ -1,0 +1,66 @@
+--- digikam-2.5.0/core/utilities/setup/setupplugins.cpp.orig	2012-01-03 00:32:01.000000000 +0000
++++ digikam-2.5.0/core/utilities/setup/setupplugins.cpp	2012-01-04 07:14:24.000000000 +0000
+@@ -6,8 +6,8 @@
+  * Date        : 2004-01-02
+  * Description : setup Kipi plugins tab.
+  *
+- * Copyright (C) 2004-2011 by Gilles Caulier <caulier dot gilles at gmail dot com>
+- * Copyright (C) 2011 by Andi Clemens <andi dot clemens at googlemail dot com>
++ * Copyright (C) 2004-2012 by Gilles Caulier <caulier dot gilles at gmail dot com>
++ * Copyright (C) 2011-2012 by Andi Clemens <andi dot clemens at googlemail dot com>
+  *
+  * This program is free software; you can redistribute it
+  * and/or modify it under the terms of the GNU General
+@@ -100,6 +100,11 @@
+ 
+     panel->setLayout(mainLayout);
+ 
++#if KIPI_VERSION < 0x010400
++    d->checkAllBtn->setVisible(false);
++    d->clearBtn->setVisible(false);
++#endif
++
+     initPlugins();
+ 
+     // --------------------------------------------------------
+@@ -158,14 +163,18 @@
+ void SetupPlugins::slotCheckAll()
+ {
+     QApplication::setOverrideCursor(Qt::WaitCursor);
++#if KIPI_VERSION >= 0x010400
+     d->kipiConfig->slotCheckAll();
++#endif
+     QApplication::restoreOverrideCursor();
+ }
+ 
+ void SetupPlugins::slotClear()
+ {
+     QApplication::setOverrideCursor(Qt::WaitCursor);
++#if KIPI_VERSION >= 0x010400
+     d->kipiConfig->slotClear();
++#endif
+     QApplication::restoreOverrideCursor();
+ }
+ }  // namespace Digikam
+--- digikam-2.5.0/extra/kipi-plugins/removeredeyes/detection/locators/haarclassifier/haarclassifierlocator.cpp.orig	2012-01-03 00:31:38.000000000 +0000
++++ digikam-2.5.0/extra/kipi-plugins/removeredeyes/detection/locators/haarclassifier/haarclassifierlocator.cpp	2012-01-03 21:42:17.000000000 +0000
+@@ -212,7 +212,7 @@
+                  0);
+ 
+     // fill the mask
+-    cvFillImage(i_mask, 0);
++    cvSet( i_mask, cvColorToScalar(0, cvGetElemType(i_mask)), 0 );
+     d->red_eyes = 0;
+ 
+     for (int i = 0; i < blobs.GetNumBlobs(); ++i)
+@@ -237,8 +237,8 @@
+     d->redMask  = cvCreateImage(cvGetSize(d->original), d->original->depth, 1);
+ 
+     // reset masks
+-    cvFillImage(d->aChannel, 0);
+-    cvFillImage(d->redMask, 0);
++    cvSet( d->aChannel, cvColorToScalar(0, cvGetElemType(d->aChannel)), 0 );
++    cvSet( d->redMask, cvColorToScalar(0, cvGetElemType(d->redMask)), 0 );
+ }
+ 
+ void HaarClassifierLocator::clearBuffers()
