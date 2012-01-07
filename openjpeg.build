@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=v1_3
-VERSIONEXTRA=
+VERSION=v1_4
+VERSIONEXTRA=_sources_r697
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.openjpeg.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv OpenJPEG_${VERSION} ${TARNAME}-${VERSION}
+mv openjpeg_${VERSION}* ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/openjpeg-v1_3.diff
+# patch -p1 < ${CWD}/openjpeg-v1_3.diff
 )
 fi
 
@@ -65,6 +65,10 @@ then
        -DLIB_SUFFIX="${LIBDIRSUFFIX}" \
        -DBUILD_SHARED_LIBS=ON \
        -DCMAKE_SHARED_LINKER_FLAGS="-lm" \
+       -DBUILD_MJ2:bool=on \
+       -DBUILD_JPWL:bool=on \
+       -DBUILD_JP3D:bool=on \
+       -DOPENJPEG_INSTALL_LIB_DIR="lib${LIBDIRSUFFIX}" \
        ..
 )
 fi
@@ -87,16 +91,6 @@ LDFLAGS=-lm \
 make install DESTDIR=${PKG}
 )
 
-mkdir -p ${PKG}/usr/include
-mv ${PKG}/openjpeg/* ${PKG}/usr/include
-rm -rf ${PKG}/openjpeg
-
-mkdir -p ${PKG}/usr/man/man1
-cp ${CWD}/openjpeg_image_to_j2k.1 ${PKG}/usr/man/man1/image_to_j2k.1
-cp ${CWD}/openjpeg_index_create.1 ${PKG}/usr/man/man1/index_create.1
-cp ${CWD}/openjpeg_j2k_to_image.1 ${PKG}/usr/man/man1/j2k_to_image.1
-
-
 #strip_binaries
 
 fix_links
@@ -104,6 +98,9 @@ fix_links
 compress_manpages
 
 compress_info
+
+mv ${PKG}/usr/share/doc/openjpeg*/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir -p ${PKG}/usr/share/doc/openjpeg*
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
