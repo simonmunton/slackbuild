@@ -2,20 +2,19 @@
 #
 . build_funcs
 
-TARNAME=musepack
-TARNAMEEXTRA=_src
+TARNAME=libcuefile
+TARNAMEEXTRA=
 TARSEP="_"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=r475
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.musepack.net/"
+WEBPAGE="http://www.musepack.net"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=musepack
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
@@ -37,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv musepack_src* ${TARNAME}-${VERSION}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -81,9 +80,6 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} mppenc16 || exit
-#make ${NUM_JOBS} mppenc24 || exit
-#make ${NUM_JOBS} mppenc32 || exit
 make ${NUM_JOBS} || exit
 fi
 
@@ -94,9 +90,9 @@ fi
 
 make install DESTDIR=${PKG}
 
-rm -rf ${PKG}/usr/include/mpc/.svn
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
-cp -p libmpcdec/*.so ${PKG}/usr/lib${LIBDIRSUFFIX}
+mkdir -p ${PKG}/usr/include
+cp -pr include/* ${PKG}/usr/include
+chmod -R -x,+X ${PKG}/usr/include/*
 
 strip_binaries
 
@@ -113,10 +109,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "musepack decoder library"
-libmpcdec is a library that decodes musepack compressed audio data. 
-Musepack is a free, high performance, high quality lossy audio 
-compression codec.
+make_slack_desc << EOF "CUE file library"
+CUE file library
 
 EOF
 
