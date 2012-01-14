@@ -3,8 +3,10 @@
 . build_funcs
 
 TARNAME=ghostscript
+#TARNAME=gnu-ghostscript
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
+#TARDIR=~/tmp/gnu/ghostscript
 #TAR_EXT=.tar.gz
 VERSION=9.04
 VERSIONEXTRA=
@@ -12,7 +14,7 @@ BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=ghostscript
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -50,6 +52,23 @@ fi
 # patch -p1 < ${CWD}/ghostscript-bitcmyk.patch
 # patch -p1 < ${CWD}/ghostscript-pdf2dsc.patch
 # patch -p1 < ${CWD}/ghostscript.fix_black_page.diff
+
+ patch -p1 < ${CWD}/ghostscript-020110812~46b4ee6-pxl-landscape.patch
+ patch -p1 < ${CWD}/ghostscript-020110812~d9e044e-lips4v-fix.patch
+ patch -p1 < ${CWD}/ghostscript-020110815-eb6b631-cups-raster-generate-cups-rgbw.patch
+ patch -p1 < ${CWD}/ghostscript-020110815-05b517b-gdevcups-c-eliminate-compiler-warning.patch
+ patch -p1 < ${CWD}/ghostscript-020110815-1920f21-cups-raster-set-default-color-profiles.patch
+ patch -p1 < ${CWD}/ghostscript-020110816-d8da050-cups-raster-improve-black-recognition-on-cmyk-to-rgbw.patch
+ patch -p1 < ${CWD}/ghostscript-020110816-781b738-cups-raster-fix-segfaults-on-color-model-change.patch
+ patch -p1 < ${CWD}/ghostscript-020110817-766df64-cups-raster-suppress-warnings.patch
+ patch -p1 < ${CWD}/ghostscript-1001_dont-crash-when-not-finding-icc-profile.patch
+ patch -p1 < ${CWD}/ghostscript-020111005-d5f1e72-clist-fix-for-rgbw-color-mode.patch
+ patch -p1 < ${CWD}/ghostscript-020111114-4258227-lzw-encode-filter-fix.patch
+ patch -p1 < ${CWD}/ghostscript-029111114-08dc129-ps2write-truetype-fix.patch
+ patch -p1 < ${CWD}/ghostscript-020111122-5cce070-ps2write-postscript-duplex-command-insertion.patch
+ patch -p1 < ${CWD}/ghostscript-020111122-cd8f397-ps2write-fix-handling-of-format-4-cmap-subtables-in-truetype-fonts.patch
+ patch -p1 < ${CWD}/ghostscript-020111209-5359a2d-do-not-use-hexadecimal-names-for-type42-charstrings-and-encoding.patch
+ patch -p1 < ${CWD}/ghostscript-020111125-979f218-ps2write-fix-conversion-of-escaped-string-to-hex-string.patch
 )
 fi
 
@@ -61,6 +80,7 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+libtoolize -f
 (cd ijs
  if [ ! -r configure ]; then
    sh autogen.sh
@@ -91,11 +111,13 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --with-ijs \
 	    --with-gimp-print \
 	    --with-omni \
+	    --with-install-cups \
 	    --with-x
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+make clean
 make ${NUM_JOBS} || exit
 (cd ijs
  make ${NUM_JOBS} || exit
@@ -140,6 +162,10 @@ if [ -r ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ]; then
 fi
 
 cp -a examples/cjk ${PKG}/usr/share/ghostscript/${VERSION}/examples/
+
+mkdir -p ${PKG}/usr/share/cups/mime
+mv ${PKG}/etc/cups/*.convs ${PKG}/usr/share/cups/mime
+rmdir -p ${PKG}/etc/cups
 
 strip_binaries
 

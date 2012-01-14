@@ -175,7 +175,7 @@
  	if (!connect_impl())
  		return(SOCKET_CANT_CONNECT);
 --- d4x-2.5.7.1/main/httpd.cc.orig	2006-04-05 20:01:41.000000000 +0100
-+++ d4x-2.5.7.1/main/httpd.cc	2011-02-05 18:54:44.000000000 +0000
++++ d4x-2.5.7.1/main/httpd.cc	2012-01-11 21:59:53.000000000 +0000
 @@ -124,10 +124,24 @@
  	if (tmp==NULL) return(NULL);
  	tmp=skip_spaces(tmp+1);
@@ -227,6 +227,17 @@
  	tString *temp=answer->last();
  	if (!temp) return -1;
  	fsize_t rvalue=0;
+@@ -394,6 +411,10 @@
+ };
+ 
+ std::string tHttpDownload::make_name(){
++//printf( "path %s, file %s\n", ADDR.path.c_str(), ADDR.file.c_str());
++	if (ADDR.file.empty())
++	return hexed_string((ADDR.path+std::string("/"))+(ADDR.params.empty()?std::string():std::string("?")+ADDR.params));
++	else
+ 	return hexed_string((ADDR.path/ADDR.file)+(ADDR.params.empty()?std::string():std::string("?")+ADDR.params));
+ };
+ 
 --- d4x-2.5.7.1/main/socket.h.orig	2006-04-05 20:41:08.000000000 +0100
 +++ d4x-2.5.7.1/main/socket.h	2011-02-09 07:26:13.000000000 +0000
 @@ -50,8 +50,8 @@

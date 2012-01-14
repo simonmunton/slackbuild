@@ -1,0 +1,114 @@
+--- a/base/opdfread.h
++++ b/base/opdfread.h
+@@ -1829,6 +1829,8 @@
+ "nseg2 add/idroff etab 2 index nseg2 getinterval def\n",
+ "pop\n",
+ "/firstcode startc 0 getu16 16#ff00 and dup 16#f000 ne{pop 0}if def\n",
++"/lastcode firstcode def\n",
++"/striptopbyte false def\n",
+ "/putglyph{\n",
+ "glyphs code 3 -1 roll put/code code 1 add def\n",
+ "}bind def\n",
+@@ -1836,11 +1838,18 @@
+ "/i2 exch def\n",
+ "/scode startc i2 getu16 def\n",
+ "/ecode endc i2 getu16 def\n",
+-"numcodes scode firstcode sub\n",
+-"exch sub 0 .max ecode scode sub 1 add add\n",
+-"exch 1 index add exch\n",
+-"numcodes add/numcodes exch def\n",
+-"}for array def\n",
++"ecode lastcode gt {\n",
++"/lastcode ecode def\n",
++"}if\n",
++"}for pop\n",
++"firstcode 16#f000 ge lastcode firstcode sub 255 le and {\n",
++"lastcode 255 and\n",
++"/striptopbyte true def\n",
++"} {\n",
++"lastcode\n",
++"}ifelse\n",
++"1 add\n",
++"array def\n",
+ "glyphs length 1024 ge{\n",
+ ".array1024z 0 1024 glyphs length 1023 sub{glyphs exch 2 index putinterval}for\n",
+ "glyphs dup length 1024 sub 3 -1 roll\n",
+@@ -1865,9 +1874,19 @@
+ "}if\n",
+ "idroff i2 getu16 dup 0 eq{\n",
+ "pop scode delta add 65535 and 1 ecode delta add 65535 and\n",
++"striptopbyte {\n",
++"/code scode 255 and def\n",
++"} {\n",
++"/code scode def\n",
++"} ifelse\n",
+ "{putglyph}for\n",
+ "}{\n",
+ "/gloff exch 14 nseg2 3 mul add 2 add i2 add add def\n",
++"striptopbyte {\n",
++"/code scode 255 and def\n",
++"} {\n",
++"/code scode def\n",
++"} ifelse\n",
+ "0 1 ecode scode sub{\n",
+ "2 mul gloff add etab exch getu16\n",
+ "dup 0 ne{delta add 65535 and}if putglyph\n",
+--- a/lib/opdfread.ps
++++ b/lib/opdfread.ps
+@@ -2319,6 +2319,7 @@
+                 % idiosyncratic fonts that start at 0xf000:
+     pop
+     /firstcode startc 0 getu16 16#ff00 and dup 16#f000 ne { pop 0 } if def
++    /striptopbyte false def
+     /putglyph {
+       glyphs code 3 -1 roll put /code code 1 add def
+     } bind def
+@@ -2328,14 +2329,20 @@
+       /i2 exch def
+       /scode startc i2 getu16 def
+       /ecode endc i2 getu16 def
+-      numcodes scode firstcode sub
+-                % Hack for fonts that have only 0x0000 and 0xf000 ranges
+-      %dup 16#e000 ge { 255 and } if
+-      % the previous line is obstructive to CJK fonts, so it was removed
+-      exch sub 0 .max ecode scode sub 1 add add
+-      exch 1 index add exch
+-      numcodes add /numcodes exch def
+-    } for array def
++      ecode lastcode gt {
++        /lastcode ecode def
++      } if
++    } for pop
++    % If the glyph range is within 0x..00 to 0x..FF, make sure that we strip
++    % off any top bytes.
++    firstcode 16#f000 ge lastcode firstcode sub 255 le and {
++      lastcode 255 and
++      /striptopbyte true def
++    } {
++      lastcode
++    }ifelse
++    1 add
++    array def
+     % prefill the array with 0's faster than a { 0 putglyph } repeat
+     glyphs length 1024 ge {
+       .array1024z 0 1024 glyphs length 1023 sub { glyphs exch 2 index putinterval } for
+@@ -2365,9 +2372,19 @@
+       } if
+       idroff i2 getu16 dup 0 eq {
+         pop scode delta add 65535 and 1 ecode delta add 65535 and
++        striptopbyte {
++          /code scode 255 and def
++        } {
++          /code scode def
++        } ifelse
+         { putglyph } for
+       } {       % The +2 is for the 'reserved pad'.
+         /gloff exch 14 nseg2 3 mul add 2 add i2 add add def
++        striptopbyte {
++          /code scode 255 and def
++        } {
++          /code scode def
++        } ifelse
+         0 1 ecode scode sub {
+           2 mul gloff add etab exch getu16
+           dup 0 ne { delta add 65535 and } if putglyph

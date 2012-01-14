@@ -1,0 +1,31 @@
+--- a/base/gstrans.c
++++ b/base/gstrans.c
+@@ -585,6 +585,8 @@
+        go ahead and take care of that now */
+     if (icc_manager->smask_profiles == NULL) {
+         code = gsicc_initialize_iccsmask(icc_manager);
++        if (code < 0)
++            return(code);
+     }
+     /* A new soft mask group,  make sure the profiles are set */
+     if_debug0('v', "[v]pushing soft mask color sending\n");
+--- a/Resource/Init/gs_lev2.ps
++++ b/Resource/Init/gs_lev2.ps
+@@ -639,7 +639,7 @@
+ 
+ //systemdict /ICCProfilesDir .knownget {
+   % Set the directory sepcified by the command line option
+-  mark exch /ICCProfilesDir exch .dicttomark .setuserparams
++  mark exch /ICCProfilesDir exch .dicttomark .setuserparams2
+ } {
+   % First see if the current value is valid so we don't have to guess
+   mark .currentuserparams .dicttomark /ICCProfilesDir get
+@@ -654,7 +654,7 @@
+         .file_name_separator concatstrings
+         dup (default_gray.icc) concatstrings status {
+           pop pop pop pop
+-          mark exch /ICCProfilesDir exch .dicttomark .setuserparams
++          mark exch /ICCProfilesDir exch .dicttomark .setuserparams2
+           exit
+         } {
+           pop
