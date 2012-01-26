@@ -101,6 +101,14 @@ case "$1" in
 	# Mount devpts
 	mount_devpts
 
+	  # Create rootdev rules
+	  DEVICENUMBER=$( /bin/stat -c %d / )
+	  MAJORNUMBER=$(($DEVICENUMBER / 256))
+	  MINORNUMBER=$(($DEVICENUMBER % 256))
+
+	  mkdir -p /run/udev/rules.d
+	  echo 'ACTION=="add|change", SUBSYSTEM=="block", ENV{MAJOR}=="'$MAJORNUMBER'", ENV{MINOR}=="'$MINORNUMBER'", SYMLINK+="root"' > /run/udev/rules.d/61-dev-root-link.rules
+
 	# Start udevd.
 	/sbin/udevd --daemon 2>/dev/null
 
@@ -123,14 +131,6 @@ case "$1" in
 
 	  # Add the static nodes to $UDEV_ROOT:
 	  cp --preserve=all --recursive --remove-destination /lib/udev/devices/* $UDEV_ROOT
-	  
-	  # Create rootdev rules
-	  DEVICENUMBER=$( /bin/stat -c %d / )
-	  MAJORNUMBER=$(($DEVICENUMBER / 256))
-	  MINORNUMBER=$(($DEVICENUMBER % 256))
-
-	  mkdir -p /run/udev/rules.d
-	  echo 'ACTION=="add|change", SUBSYSTEM=="block", ENV{MAJOR}=="'$MAJORNUMBER'", ENV{MINOR}=="'$MINORNUMBER'", SYMLINK+="root"' > /run/udev/rules.d/61-dev-root-link.rules
 
 	fi
 
