@@ -1,0 +1,138 @@
+--- synfig-0.63.04/configure.orig	2012-02-08 19:32:36.000000000 +0000
++++ synfig-0.63.04/configure	2012-02-09 19:06:43.000000000 +0000
+@@ -16977,12 +16977,12 @@
+ fi
+ 
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OptimizeImageTransparency in -lMagick" >&5
+-$as_echo_n "checking for OptimizeImageTransparency in -lMagick... " >&6; }
++$as_echo_n "checking for OptimizeImageTransparency in -lMagickCore... " >&6; }
+ if ${ac_cv_lib_Magick_OptimizeImageTransparency+:} false; then :
+   $as_echo_n "(cached) " >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS="-lMagick  $LIBS"
++LIBS="-lMagickCore  $LIBS"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+--- synfig-0.63.04/src/modules/mod_libavcodec/trgt_av.cpp.orig	2012-02-08 19:31:48.000000000 +0000
++++ synfig-0.63.04/src/modules/mod_libavcodec/trgt_av.cpp	2012-02-09 19:04:05.000000000 +0000
+@@ -116,14 +116,14 @@
+     picture = avcodec_alloc_frame();
+     if (!picture)
+         return NULL;
+-    size = avpicture_get_size(pix_fmt, width, height);
++    size = avpicture_get_size((enum ::PixelFormat) pix_fmt, width, height);
+     picture_buf = (uint8_t *)malloc(size);
+     if (!picture_buf) {
+         av_free(picture);
+         return NULL;
+     }
+     avpicture_fill((AVPicture *)picture, picture_buf,
+-                   pix_fmt, width, height);
++                   (enum ::PixelFormat) pix_fmt, width, height);
+     return picture;
+ }
+ 
+@@ -441,7 +441,7 @@
+ 		if( context->coded_frame )
+ 			pkt.pts = context->coded_frame->pts;
+ 		if( context->coded_frame && context->coded_frame->key_frame)
+-			pkt.flags |= PKT_FLAG_KEY;
++			pkt.flags |= AV_PKT_FLAG_KEY;
+ 
+ 		//kluge for raw picture format (they said they'd fix)
+ 		if (formatc->oformat->flags & AVFMT_RAWPICTURE)
+@@ -463,7 +463,7 @@
+ 				if( context->coded_frame )
+ 					pkt.pts = context->coded_frame->pts;
+ 				if( context->coded_frame && context->coded_frame->key_frame)
+-					pkt.flags |= PKT_FLAG_KEY;
++					pkt.flags |= AV_PKT_FLAG_KEY;
+ 
+ 				ret = av_write_frame(formatc, &pkt);
+ 
+@@ -567,17 +567,17 @@
+ 		if (typestring)
+ 		{
+ 			//formatptr guess_format(type, filename, MIME type)
+-			format = guess_format(typestring,NULL,NULL);
++			format = av_guess_format(typestring,NULL,NULL);
+ 		}
+ 		else
+ 		{
+-			format = guess_format(NULL, filename, NULL);
++			format = av_guess_format(NULL, filename, NULL);
+ 		}
+ 
+ 		if(!format)
+ 		{
+ 			synfig::warning("Unable to Guess the output, defaulting to mpeg");
+-			format = guess_format("mpeg", NULL, NULL);
++			format = av_guess_format("mpeg", NULL, NULL);
+ 		}
+ 
+ 		if(!format)
+@@ -753,7 +753,7 @@
+ 
+ 		context = st->codec;
+ 		context->codec_id = (CodecID)codec_id;
+-		context->codec_type = CODEC_TYPE_VIDEO;
++		context->codec_type = AVMEDIA_TYPE_VIDEO;
+ 
+ 		//PARAMETERS MUST BE PASSED IN SOMEHOW (ANOTHER FUNCTION PARAMETER???)
+ 
+@@ -800,7 +800,7 @@
+ 
+ 		context = stream->codec;
+ 		context->codec_id = (CodecID)codec_id;
+-		context->codec_type = CODEC_TYPE_AUDIO;
++		context->codec_type = AVMEDIA_TYPE_AUDIO;
+ 
+ 		/* put sample parameters */
+ 		context->bit_rate = 64000;
+--- synfig-0.63.04/src/modules/mod_magickpp/trgt_magickpp.cpp.orig	2012-02-08 19:31:48.000000000 +0000
++++ synfig-0.63.04/src/modules/mod_magickpp/trgt_magickpp.cpp	2012-02-09 19:04:05.000000000 +0000
+@@ -53,16 +53,16 @@
+ /* === M E T H O D S ======================================================= */
+ 
+ template <class Container>
+-MagickLib::Image* copy_image_list(Container& container)
++MagickCore::Image* copy_image_list(Container& container)
+ {
+ 	typedef typename Container::iterator Iter;
+-	MagickLib::Image* previous = 0;
+-	MagickLib::Image* first = NULL;
+-	MagickLib::ExceptionInfo exceptionInfo;
+-	MagickLib::GetExceptionInfo(&exceptionInfo);
++	MagickCore::Image* previous = 0;
++	MagickCore::Image* first = NULL;
++	MagickCore::ExceptionInfo exceptionInfo;
++	MagickCore::GetExceptionInfo(&exceptionInfo);
+ 	for (Iter iter = container.begin(); iter != container.end(); ++iter)
+ 	{
+-		MagickLib::Image* current;
++		MagickCore::Image* current;
+ 
+ 		try
+ 		{
+@@ -86,8 +86,8 @@
+ 
+ magickpp_trgt::~magickpp_trgt()
+ {
+-	MagickLib::ExceptionInfo exceptionInfo;
+-	MagickLib::GetExceptionInfo(&exceptionInfo);
++	MagickCore::ExceptionInfo exceptionInfo;
++	MagickCore::GetExceptionInfo(&exceptionInfo);
+ 
+ 	try
+ 	{
+@@ -126,7 +126,7 @@
+ 			//   when we destroy our container, the image is re-freed, failing an assertion
+ 
+ 			synfig::info("copying image list");
+-			MagickLib::Image *image_list = copy_image_list(images);
++			MagickCore::Image *image_list = copy_image_list(images);
+ 
+ 			synfig::info("clearing old image list");
+ 			images.clear();
