@@ -2,26 +2,23 @@
 #
 . build_funcs
 
-TARNAME=xclipboard
+TARNAME=MesaGLW
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/app
+TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
-VERSION=1.1.2
+VERSION=20120215
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=mesaglw
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -45,7 +42,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/Mesa-7.9.1.diff
+
+ ./autogen.sh
 )
 fi
 
@@ -55,29 +54,19 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
+true
+
+#(cd configs && rm -f current && ln -s linux-dri-x86 current)
+
+#make realclean
+
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+            --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -101,21 +90,24 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/{RELNOTES,relnotes}*
+
+cp -a \
+  docs/RELNOTES-${VERSION} docs/relnotes-${VERSION}.html docs/relnotes.html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-xclipboard is part of X11.
+make_slack_desc <<EOF "a 3-D graphics library"
+Mesa is a 3-D graphics library with an API very similar to that of
+another well-known 3-D graphics library.  :-)  The Mesa libraries are
+used by X to provide both software and hardware accelerated graphics.
 
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+Mesa was written by Brian Paul.
 
 EOF
 
