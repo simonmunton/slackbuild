@@ -1,0 +1,37 @@
+--- vlc-2.0.0/modules/services_discovery/upnp.cpp.orig	2011-12-22 10:38:28.000000000 +0000
++++ vlc-2.0.0/modules/services_discovery/upnp.cpp	2012-02-19 14:39:20.000000000 +0000
+@@ -179,7 +179,7 @@
+     if ( !p_parent ) return NULL;
+     if ( !psz_tag_name_ ) return NULL;
+ 
+-    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, psz_tag_name_ );
++    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, (char *)psz_tag_name_ );
+     if ( !p_node_list ) return NULL;
+ 
+     IXML_Node* p_element = ixmlNodeList_item( p_node_list, 0 );
+@@ -203,14 +203,14 @@
+     if ( !psz_tag_name_ ) return NULL;
+     if ( !psz_attribute_ ) return NULL;
+ 
+-    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, psz_tag_name_ );
++    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, (char *) psz_tag_name_ );
+     if ( !p_node_list ) return NULL;
+ 
+     IXML_Node* p_element = ixmlNodeList_item( p_node_list, 0 );
+     ixmlNodeList_free( p_node_list );
+     if ( !p_element ) return NULL;
+ 
+-    return ixmlElement_getAttribute( (IXML_Element*) p_element, psz_attribute_ );
++    return ixmlElement_getAttribute( (IXML_Element*) p_element, (char *) psz_attribute_ );
+ }
+ 
+ /*
+@@ -238,7 +238,7 @@
+ 
+     const char* psz_result_string = ixmlNode_getNodeValue( p_text_node );
+ 
+-    IXML_Document* p_browse_doc = ixmlParseBuffer( psz_result_string );
++    IXML_Document* p_browse_doc = ixmlParseBuffer( (char *) psz_result_string );
+ 
+     return p_browse_doc;
+ }
