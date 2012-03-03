@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=font-util
+TARNAME=glimpse
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/font
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.3.0
+VERSION=4.18.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://webglimpse.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -64,18 +64,15 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static \
-	    --with-mapdir=/usr/share/fonts/util
-
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -91,7 +88,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install prefix=${PKG}/usr
 
 strip_binaries
 
@@ -108,15 +105,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-font-util is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "GLobal IMPlicit SEarch system"
+Glimpse (which stands for GLobal IMPlicit SEarch) is a popular UNIX 
+indexing and query system that allows you to search through a large 
+set of files very quickly. Glimpse supports most of agrep's options 
+(agrep is our powerful version of grep) including approximate matching 
+(e.g., finding misspelled words), Boolean queries, and even some 
+limited forms of regular expressions. It is used in the same way, 
+except that you don't have to specify file names. So, if you are 
+looking for a needle anywhere in your file system, all you have to do 
+is say glimpse needle and all lines containing needle will appear 
+preceded by the file name.
 
 EOF
 
