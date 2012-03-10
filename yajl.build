@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=libksane
+TARNAME=yajl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.8.1
+TARDIR=~/tmp/new/y
 #TAR_EXT=.tar.gz
-VERSION=4.8.1
+VERSION=2.0.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://lloyd.github.com/yajl/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,26 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -107,9 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SANE Library interface for KDE"
-This library is a part of Kipi-Plugins project 
-(http://www.kipi-plugins.org)
+make_slack_desc << EOF "Yet Another JSON Library"
+Yet Another JSON Library. YAJL is a small event-driven (SAX-style) 
+JSON parser written in ANSI C, and a small validating JSON generator. 
+YAJL is released under the ISC license.
 
 EOF
 
