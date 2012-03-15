@@ -1,0 +1,24 @@
+--- gnucash-2.4.10/src/app-utils/gnc-sx-instance-model.c.orig	2012-02-06 00:24:13.000000000 +0000
++++ gnucash-2.4.10/src/app-utils/gnc-sx-instance-model.c	2012-03-15 20:42:02.000000000 +0000
+@@ -811,13 +811,19 @@
+ 
+         removed_cb_data.hash = new_instances->variable_names;
+         removed_cb_data.list = NULL;
+-        g_hash_table_foreach(existing->variable_names, (GHFunc)_find_unreferenced_vars, &removed_cb_data);
++        if (existing->variable_names != NULL)
++        {
++            g_hash_table_foreach(existing->variable_names, (GHFunc)_find_unreferenced_vars, &removed_cb_data);
++        }
+         removed_var_names = removed_cb_data.list;
+         g_debug("%d removed variables", g_list_length(removed_var_names));
+ 
+         added_cb_data.hash = existing->variable_names;
+         added_cb_data.list = NULL;
+-        g_hash_table_foreach(new_instances->variable_names, (GHFunc)_find_unreferenced_vars, &added_cb_data);
++        if (new_instances->variable_names != NULL)
++        {
++            g_hash_table_foreach(new_instances->variable_names, (GHFunc)_find_unreferenced_vars, &added_cb_data);
++        }
+         added_var_names = added_cb_data.list;
+         g_debug("%d added variables", g_list_length(added_var_names));
+ 
