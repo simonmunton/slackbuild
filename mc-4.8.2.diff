@@ -1,0 +1,62 @@
+--- mc-4.8.2/src/filemanager/panel.c.orig	2012-03-19 15:47:17.000000000 +0000
++++ mc-4.8.2/src/filemanager/panel.c	2012-03-30 21:06:25.000000000 +0100
+@@ -3590,7 +3590,7 @@
+     /* sort on clicked column; don't handle wheel events */
+     if (mouse_down && (local.buttons & (GPM_B_UP | GPM_B_DOWN)) == 0 && local.y == 2)
+     {
+-        mouse_sort_col (event, panel);
++        mouse_sort_col (&local, panel);
+         return MOU_NORMAL;
+     }
+ 
+--- mc-4.8.2/src/viewer/display.c.orig	2012-03-19 15:47:17.000000000 +0000
++++ mc-4.8.2/src/viewer/display.c	2012-03-20 20:31:55.000000000 +0000
+@@ -169,8 +169,24 @@
+                 );
+         }
+     }
++    if (width > 62)
++    {
++        char buffer[BUF_TINY];
++        widget_move (view, top, width - 54);
++        if (!view->hex_mode)
++        {
++            off_t line, col;
++            mcview_offset_to_coord (view, &line, &col, view->dpy_start);
++            size_trunc_len (buffer, 5, mcview_get_filesize (view), 0, panels_options.kilobyte_si);
++            tty_printf ("Line %" PRIuMAX " Col %" PRIuMAX , (uintmax_t) line+1,
++                        (uintmax_t) (view->text_wrap_mode ? col : view->dpy_text_column)
++                );
++        }
++    }
+     widget_move (view, top, left);
+-    if (width > 40)
++    if (width > 62)
++        tty_print_string (str_fit_to_term (file_label, width - 56, J_LEFT_FIT));
++    else if (width > 40)
+         tty_print_string (str_fit_to_term (file_label, width - 34, J_LEFT_FIT));
+     else
+         tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
+--- mc-4.8.2/src/editor/editwidget.c.orig	2012-03-19 15:47:17.000000000 +0000
++++ mc-4.8.2/src/editor/editwidget.c	2012-03-20 20:31:55.000000000 +0000
+@@ -320,6 +320,12 @@
+             int cmd, ch;
+             cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++            if (parm == KEY_BTAB) {
++                edit_execute_key_command (e, cmd, '\t');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++             }
++
+             /* The user may override the access-keys for the menu bar. */
+             if (macro_index == -1 && edit_execute_macro (e, parm))
+             {
+--- mc-4.8.2/misc/syntax/php.syntax.orig	2011-11-27 14:11:03.000000000 +0000
++++ mc-4.8.2/misc/syntax/php.syntax	2012-03-20 20:31:55.000000000 +0000
+@@ -3151,4 +3151,5 @@
+ 
+ context ' ' brightgreen
+     spellcheck
++    keyword \\\\ brightcyan
+     keyword \\' brightcyan
