@@ -72,7 +72,7 @@ LIBS="--layout=system"
 OPTS="link=shared runtime-link=shared"
 
 export EXPAT_INCLUDE=/usr/include
-export EXPAT_LIBPATH=/usr/lib
+export EXPAT_LIBPATH=/usr/lib${LIBDIRSUFFIX}
 
 if [ ${DO_MAKE} == "yes" ]
 then
@@ -89,12 +89,12 @@ then
 fi
 
 #make install prefix=${PKG}/usr LIBS="$LIBS" 
-INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib --includedir=${PKG}/usr/include"
+INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
 
 ./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS}                variant=release threading=single install
 ./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=mt   variant=release threading=multi  install
 
-INSTALL_OPTS="--prefix=${PKGDBG}/usr --exec-prefix=${PKGDBG}/usr --libdir=${PKGDBG}/usr/lib --includedir=${PKGDBG}/usr/include"
+INSTALL_OPTS="--prefix=${PKGDBG}/usr --exec-prefix=${PKGDBG}/usr --libdir=${PKGDBG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKGDBG}/usr/include"
 
 ./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=d    variant=debug   threading=single install
 ./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=mt-d variant=debug   threading=multi  install
@@ -108,11 +108,11 @@ rm -rf ${PKGDBG}/usr/include
 #	    INCLUDEDIR=${PKG}/usr/include
 
 # no static libs
-rm ${PKG}/usr/lib/*.a
+rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
 
 #(cd ${PKG}/usr/include; ln -s boost*/boost boost)
 
-(cd ${PKG}/usr/lib
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
  for f in `ls | grep -v ${VERSION%_*}`
  do
     inode=`ls -li "${f}" | awk '{print $1}'`
