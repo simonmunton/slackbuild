@@ -1,0 +1,40 @@
+#!/bin/bash
+
+eval `grep -E "^(TARNAME|TARNAMEEXTRA|TARDIR|TARSEP|VERSION|VERSIONEXTRA|FULL_TARNAME[0-9]*|XFCE_VER)=" $1`
+
+: ${FULL_TARNAME:=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP:--}${VERSION}${VERSIONEXTRA}}
+TARNAME_BASE=${FULL_TARNAME%${VERSION}*}
+
+#echo ${FULL_TARNAME}
+#echo ${TARNAME_BASE}
+
+if [ -f ${FULL_TARNAME}.tar.gz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tar.gz
+elif [ -f ${FULL_TARNAME}.tgz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tgz
+elif [ -f ${FULL_TARNAME}.tar.bz2 ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tar.bz2
+elif [ -f ${FULL_TARNAME}.tbz ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.tbz
+elif [ -f ${FULL_TARNAME}.zip ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.zip
+elif [ -f ${FULL_TARNAME}.7z ]
+then
+  FULL_TARNAME=${FULL_TARNAME}.7z
+fi
+
+echo "Current build version is ${VERSION}${VERSIONEXTRA}"
+
+for f in ${FULL_TARNAME} ${FULL_TARNAME1} ${FULL_TARNAME2}
+do
+if [ ! -e ${f} ]
+then
+  mkdir -p `dirname ${f}`
+  scp -p intrepid:${f}* `dirname ${f}`
+fi
+done
