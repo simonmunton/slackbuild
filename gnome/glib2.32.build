@@ -2,7 +2,7 @@
 #
 . build_funcs
 
-TARNAME=glib-networking
+TARNAME=glib
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
@@ -11,11 +11,9 @@ VERSION=2.32.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=glib2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,8 +53,6 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -64,17 +60,10 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --mandir=/usr/man \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+            --enable-debug=minimal \
+            --enable-static
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,7 +78,17 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+# Install profile scripts:
+mkdir -p ${PKG}/etc/profile.d/
+cp -a ${CWD}/glib2.sh ${PKG}/etc/profile.d/libglib2.sh.new
+cp -a ${CWD}/glib2.csh ${PKG}/etc/profile.d/libglib2.csh.new
+chmod 755 ${PKG}/etc/profile.d/*
+
+doinst_same_perm etc/profile.d/libglib2.sh
+doinst_same_perm etc/profile.d/libglib2.csh
+doinst_config etc/profile.d/libglib2.sh.new etc/profile.d/libglib2.csh.new
+
+#strip_binaries
 
 fix_links
 
@@ -104,8 +103,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Network-related giomodules for glib"
-Network-related giomodules for glib
+make_slack_desc << EOF "library of C routines"
+GLib is a library which includes support routines for C such as lists,
+trees, hashes, memory allocation, and many other things.
+
 EOF
 
 post_install

@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=glib-networking
+TARNAME=libindicator
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.32.1
+VERSION=0.5.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://launchpad.net/libindicator"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libindicator3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -65,13 +65,15 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --with-gtk=3
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -89,6 +91,8 @@ fi
 
 make install DESTDIR=${PKG}
 
+sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
+
 strip_binaries
 
 fix_links
@@ -104,8 +108,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Network-related giomodules for glib"
-Network-related giomodules for glib
+make_slack_desc << EOF "Indicators symbols and functions"
+A set of symbols and convience functions that all indicators would 
+like to use. Not of real use outside of the Ayatana indicators project.
+
 EOF
 
 post_install
