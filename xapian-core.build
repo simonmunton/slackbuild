@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=rekonq
+TARNAME=xapian-core
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=0.9.2
+VERSION=1.2.9
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://rekonq.kde.org/"
+WEBPAGE="http://xapian.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,26 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -107,11 +105,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "webkit based web browser for KDE"
-Rekonq is a web browser for KDE based on WebKit. It first focuses on 
-being a light, fast & clean way to access to net. Its development is 
-doubly based on using the new amazing features offered by the WebKit 
-rendering engine and on the rock solid network KDE technologies.
+make_slack_desc << EOF "Open Source Search Engine Library"
+Xapian is an Open Source Search Engine Library, released under the 
+GPL. It's written in C++, with bindings to allow use from Perl, 
+Python, PHP, Java, Tcl, C#, Ruby and Lua (so far!)
+
+Xapian is a highly adaptable toolkit which allows developers to easily 
+add advanced indexing and search facilities to their own applications. 
+It supports the Probabilistic Information Retrieval model and also 
+supports a rich set of boolean query operators.
 
 EOF
 
