@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=0.7.3
+VERSION=1.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -131,6 +131,7 @@ make ${NUM_JOBS} all wpa_gui-qt4 || exit
  fi
 )
 
+make -C wpa_gui-qt4/icons
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -148,7 +149,7 @@ cp wpa_gui-qt4/wpa_gui ${PKG}/usr/bin/
 
 # Install dbus configuration file:
 mkdir -p ${PKG}/etc/dbus-1/system.d/
-cp dbus-wpa_supplicant.conf ${PKG}/etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
+cp dbus/dbus-wpa_supplicant.conf ${PKG}/etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
 
 # Install a .desktop file for wpa_gui:
 mkdir -p ${PKG}/usr/share/applications
@@ -164,7 +165,12 @@ EOT
 
 # The icon used for the menu (converted from the wpa_gui.svg in the source)
 mkdir -p ${PKG}/usr/share/pixmaps
+if [ -e wpa_gui-qt4/icons/hicolor/64x64/apps/wpa_gui.png ]
+then
+cp -a wpa_gui-qt4/icons/hicolor/64x64/apps/wpa_gui.png ${PKG}/usr/share/pixmaps/
+else
 cp -a ${CWD}/wpa_gui.png ${PKG}/usr/share/pixmaps/
+fi
 
 # Install man pages
 for m in 5 8; do
