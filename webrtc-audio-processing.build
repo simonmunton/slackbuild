@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=raptor2
+TARNAME=webrtc-audio-processing
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=2.0.7
+VERSION=0.1
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://www.freedesktop.org/software/pulseaudio/webrtc-audio-processing/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -62,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,15 +105,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "RDF parser and serializer library"
-Raptor is a free software / Open Source C library that provides a set
-of parsers and serializers that generate Resource Description Framework
-(RDF) triples by parsing syntaxes or serialize the triples into a
-syntax. The supported parsing syntaxes are RDF/XML, N-Triples, TRiG,
-Turtle, RSS tag soup including all versions of RSS, Atom 1.0 and 0.3,
-GRDDL and microformats for HTML, XHTML and XML. The serializing
-syntaxes are RDF/XML (regular, and abbreviated), N-Triples, RSS 1.0,
-Atom 1.0 and Adobe XMP.
+make_slack_desc << EOF "WebRTC AudioProcessing module"
+WebRTC AudioProcessing module
 
 EOF
 
