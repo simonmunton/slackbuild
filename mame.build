@@ -11,7 +11,7 @@ VERSION=0146s
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://mamedev.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -39,6 +39,7 @@ mkdir ${TARNAME}-${VERSION}
 cd ${TARNAME}-${VERSION}
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 unzip mame.zip
+rm mame.zip
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 cd ..
 
@@ -84,7 +85,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} NOWERROR=1 || exit
+make ${NUM_JOBS} NOWERROR=1 OPTIMIZE=2 || exit
+#make -j4 DEBUG=1 NOWERROR=1 MAP=1 SYMBOLS=1 OPTIMIZE=2
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -109,7 +111,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "Multiple Arcade Machine Emulator"
+MAME stands for Multiple Arcade Machine Emulator. When used in 
+conjunction with images of the original arcade game's ROM and disk 
+data, MAME attempts to reproduce that game as faithfully as possible 
+on a more modern general-purpose computer. MAME can currently emulate 
+several thousand different classic arcade video games from the late 
+1970s through the modern era.
+
 EOF
 
 post_install
