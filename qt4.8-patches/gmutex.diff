@@ -1,0 +1,82 @@
+--- qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/GNUmakefile.list.am.orig	2012-04-26 20:46:14.000000000 +0100
++++ qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/GNUmakefile.list.am	2012-05-29 19:54:07.000000000 +0100
+@@ -438,7 +438,6 @@
+ 	Source/JavaScriptCore/wtf/gobject/GRefPtr.h \
+ 	Source/JavaScriptCore/wtf/gobject/GTypedefs.h \
+ 	Source/JavaScriptCore/wtf/gtk/MainThreadGtk.cpp \
+-	Source/JavaScriptCore/wtf/gtk/ThreadingGtk.cpp \
+ 	Source/JavaScriptCore/wtf/HashCountedSet.h \
+ 	Source/JavaScriptCore/wtf/HashFunctions.h \
+ 	Source/JavaScriptCore/wtf/HashIterators.h \
+--- qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/ThreadingPrimitives.h.orig	2012-04-26 20:46:13.000000000 +0100
++++ qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/ThreadingPrimitives.h	2012-05-29 19:56:09.000000000 +0100
+@@ -44,8 +44,6 @@
+ 
+ #if USE(PTHREADS)
+ #include <pthread.h>
+-#elif PLATFORM(GTK)
+-#include "GOwnPtr.h"
+ #endif
+ 
+ #if PLATFORM(QT)
+@@ -66,10 +64,6 @@
+ typedef void* PlatformReadWriteLock;
+ #endif
+ typedef pthread_cond_t PlatformCondition;
+-#elif PLATFORM(GTK)
+-typedef GOwnPtr<GMutex> PlatformMutex;
+-typedef void* PlatformReadWriteLock; // FIXME: Implement.
+-typedef GOwnPtr<GCond> PlatformCondition;
+ #elif PLATFORM(QT)
+ typedef QT_PREPEND_NAMESPACE(QMutex)* PlatformMutex;
+ typedef void* PlatformReadWriteLock; // FIXME: Implement.
+--- qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GOwnPtr.h.orig	2012-04-26 20:46:14.000000000 +0100
++++ qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GOwnPtr.h	2012-05-29 19:58:24.000000000 +0100
+@@ -35,8 +35,6 @@
+ template <typename T> inline void freeOwnedGPtr(T* ptr);
+ template<> void freeOwnedGPtr<GError>(GError*);
+ template<> void freeOwnedGPtr<GList>(GList*);
+-template<> void freeOwnedGPtr<GCond>(GCond*);
+-template<> void freeOwnedGPtr<GMutex>(GMutex*);
+ template<> void freeOwnedGPtr<GPatternSpec>(GPatternSpec*);
+ template<> void freeOwnedGPtr<GDir>(GDir*);
+ 
+--- qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GOwnPtr.cpp.orig	2012-04-26 20:46:14.000000000 +0100
++++ qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GOwnPtr.cpp	2012-05-29 19:58:04.000000000 +0100
+@@ -37,18 +37,6 @@
+     g_list_free(ptr);
+ }
+ 
+-template <> void freeOwnedGPtr<GCond>(GCond* ptr)
+-{
+-    if (ptr)
+-        g_cond_free(ptr);
+-}
+-
+-template <> void freeOwnedGPtr<GMutex>(GMutex* ptr)
+-{
+-    if (ptr)
+-        g_mutex_free(ptr);
+-}
+-
+ template <> void freeOwnedGPtr<GPatternSpec>(GPatternSpec* ptr)
+ {
+     if (ptr)
+--- qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GTypedefs.h.orig	2012-04-26 20:46:14.000000000 +0100
++++ qt-everywhere-opensource-src-4.8.2/src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject/GTypedefs.h	2012-05-29 19:57:28.000000000 +0100
+@@ -39,7 +39,6 @@
+ typedef struct _GAsyncResult GAsyncResult;
+ typedef struct _GCancellable GCancellable;
+ typedef struct _GCharsetConverter GCharsetConverter;
+-typedef struct _GCond GCond;
+ typedef struct _GDir GDir;
+ typedef struct _GdkAtom* GdkAtom;
+ typedef struct _GdkCursor GdkCursor;
+@@ -52,7 +51,6 @@
+ typedef struct _GHashTable GHashTable;
+ typedef struct _GInputStream GInputStream;
+ typedef struct _GList GList;
+-typedef struct _GMutex GMutex;
+ typedef struct _GPatternSpec GPatternSpec;
+ typedef struct _GPollableOutputStream GPollableOutputStream;
+ typedef struct _GSocketClient GSocketClient;
