@@ -6,7 +6,7 @@ TARNAME=Tk
 TARNAMEEXTRA=
 TARDIR=~/tmp/cpan/MINICPAN/authors/id/S/SR/SREZIC
 #TAR_EXT=.tar.gz
-VERSION=804.028
+VERSION=804.030
 VERSIONEXTRA=
 BUILD=1
 
@@ -37,12 +37,16 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < $CWD/
 
- find . -type f -exec perl -pi -e \
-'s,^(#!)(/usr/local)?/bin/perl\b,$1perl, if ($. == 1)' {} \;
-chmod -x pod/Popup.pod Tixish/lib/Tk/balArrow.xbm
+# find . -type f -exec perl -pi -e \
+#'s,^(#!)(/usr/local)?/bin/perl\b,$1perl, if ($. == 1)' {} \;
+#chmod -x pod/Popup.pod Tixish/lib/Tk/balArrow.xbm
+for f in `grep '^#!/usr/local/' * -rl`
+do
+  sed -i 's@^#!/usr/local/bin/perl@#!/usr/bin/perl@' "$f"
+done
 
 # fix for widget as docs
- patch -p0 < $CWD/Tk-widget.patch
+# patch -p0 < $CWD/Tk-widget.patch
 
 #perl -pi -e \
 #'s,\@demopath\@,%{_datadir}/doc/%{name}-%{version}/demos,g' \
