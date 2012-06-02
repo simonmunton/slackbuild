@@ -101,6 +101,22 @@ case `uname -m` in
     ;;
 esac
 
+
+# MINICPAN
+if [[ ${FULL_TARNAME} =~ MINICPAN ]]
+then
+  TARNAME_X=${FULL_TARNAME##*/}
+  for f in `find ~/tmp/cpan/MINICPAN/authors/id -regex ".*/${TARNAME_X}[^-]+"`
+  do
+    f=${f%%.tar.bz2}
+    f=${f%%.tar.gz}
+    f=${f%%.tgz}
+    FULL_TARNAME=$f
+    TAR_EXT=
+  done
+fi
+
+
 # if TAR_EXT not set, try and guess it
 #
 if [ "x${TAR_EXT}" == "x" ]
@@ -151,26 +167,48 @@ then
   echo "Current build version is ${VERSION}${VERSIONEXTRA}"
 
   TARNAME_BASE=${FULL_TARNAME%${VERSION}*}
+  TARNAME_X=${TARNAME_BASE##*/}
 
-  if [ -e ${FULL_TARNAME} ]
+  if [[ ${TARNAME_BASE} =~ MINICPAN ]]
   then
-    for f in `ls -t ${TARNAME_BASE}*`
-    do
-      if [ $f -nt ${FULL_TARNAME} ]
-      then
-        echo "$f (newer)"
-      else
-        if [ $f != ${FULL_TARNAME} ]
+    if [ -e ${FULL_TARNAME} ]
+    then
+      for f in `find ~/tmp/cpan/MINICPAN/authors/id -regex ".*/${TARNAME_X}[^-]+"`
+      do
+        if [ $f -nt ${FULL_TARNAME} ]
         then
-          echo "$f (older)"
+          echo "$f (newer)"
+        else
+          if [ $f != ${FULL_TARNAME} ]
+          then
+            echo "$f (older)"
+          fi
         fi
-      fi
-    done
+      done
+    else
+      echo ${FULL_TARNAME} not found, consider following:
+      find ~/tmp/cpan/MINICPAN/authors/id -regex ".*/${TARNAME_X}[^-]+"
+    fi
   else
-    echo ${FULL_TARNAME} not found, consider following:
-    ls -1 -t ${TARNAME_BASE}*
+    if [ -e ${FULL_TARNAME} ]
+    then
+      for f in `ls -t ${TARNAME_BASE}*`
+      do
+        if [ $f -nt ${FULL_TARNAME} ]
+        then
+          echo "$f (newer)"
+        else
+          if [ $f != ${FULL_TARNAME} ]
+          then
+            echo "$f (older)"
+          fi
+        fi
+      done
+    else
+      echo ${FULL_TARNAME} not found, consider following:
+      ls -1 -t ${TARNAME_BASE}*
+    fi
   fi
-
   exit
 fi
 }
