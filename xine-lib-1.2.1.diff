@@ -1,0 +1,77 @@
+--- xine-lib-1.2.1/src/combined/ffmpeg/ff_video_decoder.c.orig	2012-02-04 00:41:43.000000000 +0000
++++ xine-lib-1.2.1/src/combined/ffmpeg/ff_video_decoder.c	2012-06-03 08:05:21.000000000 +0100
+@@ -127,7 +127,9 @@
+ 
+   yuv_planes_t      yuv;
+ 
++#ifdef AVPaletteControl
+   AVPaletteControl  palette_control;
++#endif
+ 
+ #ifdef LOG
+   enum PixelFormat  debug_fmt;
+@@ -215,7 +217,9 @@
+   /* We should really keep track of the ages of xine frames (see
+    * avcodec_default_get_buffer in libavcodec/utils.c)
+    * For the moment tell ffmpeg that every frame is new (age = bignumber) */
++#ifdef AVFRAMEAGE
+   av_frame->age = 256*256*256*64;
++#endif
+ 
+   av_frame->type= FF_BUFFER_TYPE_USER;
+ 
+@@ -1023,7 +1027,9 @@
+     memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+       buf->decoder_info[2]);
+ 
+-  } else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
++  }
++#ifdef AVPaletteControl
++  else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
+     unsigned int i;
+ 
+     palette_entry_t *demuxer_palette;
+@@ -1042,7 +1048,9 @@
+     }
+     decoder_palette->palette_changed = 1;
+ 
+-  } else if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
++  }
++#endif
++  else if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
+     int i;
+ 
+     lprintf("BUF_SPECIAL_RV_CHUNK_TABLE\n");
+@@ -1758,7 +1766,9 @@
+   this->av_frame          = avcodec_alloc_frame();
+   this->context           = avcodec_alloc_context();
+   this->context->opaque   = this;
++#ifdef AVPaletteControl
+   this->context->palctrl  = NULL;
++#endif
+ 
+   this->decoder_ok        = 0;
+   this->decoder_init_mode = 1;
+--- xine-lib-1.2.1/src/video_out/video_out_opengl.c.orig	2012-02-04 00:41:43.000000000 +0000
++++ xine-lib-1.2.1/src/video_out/video_out_opengl.c	2012-06-03 08:10:09.000000000 +0100
+@@ -1482,6 +1482,20 @@
+         XUnlockDisplay (this->display);
+       }
+     } else {
++
++      if (!frame->rgb_dst) {
++        if (frame->format == XINE_IMGFMT_YV12) {
++          _x_blend_yuv(frame->vo_frame.base, overlay,
++                       frame->width, frame->height, frame->vo_frame.pitches,
++                       &this->alphablend_extra_data);
++        } else {
++          _x_blend_yuy2(frame->vo_frame.base[0], overlay,
++                        frame->width, frame->height, frame->vo_frame.pitches[0],
++                        &this->alphablend_extra_data);
++        }
++        return;
++      }
++
+       if (!overlay->rgb_clut || !overlay->hili_rgb_clut)
+         opengl_overlay_clut_yuv2rgb (this, overlay, frame);
+ 
