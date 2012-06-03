@@ -1,0 +1,48 @@
+
+
+FILES="
+    xfce4-dev-tools
+    libxfce4util
+    xfconf
+    libxfce4ui
+    garcon
+    exo
+    xfce4-panel
+    Thunar
+    xfce4-settings
+    xfce4-session
+    xfdesktop
+    xfwm4
+    xfce4-appfinder
+    gtk-xfce-engine
+    thunar-volman
+    tumbler
+    xfce4-power-manager
+    orage
+    ristretto
+    Terminal
+    xfce4-mixer
+    xfce4-notifyd
+    xfce4-screenshooter
+"
+
+#    mousepad
+
+for f in $FILES
+do
+  if [ ! -e /tmp/$f.built ]
+  then
+    ./$f.build -j5
+
+#  echo "now install $f"
+#  read junk
+
+    su -c "upgradepkg --install-new --reinstall /tmp/packages/xfce-$f*"
+
+    touch /tmp/$f.built
+  fi
+
+done
+
+echo alldone
+
