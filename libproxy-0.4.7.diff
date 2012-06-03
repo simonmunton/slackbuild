@@ -1,0 +1,50 @@
+--- libproxy-0.4.7/libproxy/url.cpp.orig	2011-06-06 22:44:37.000000000 +0100
++++ libproxy-0.4.7/libproxy/url.cpp	2012-06-03 00:36:14.000000000 +0100
+@@ -32,6 +32,7 @@
+ #include <cstdio>  // For sscanf()
+ #include <cstdlib>    // For atoi()
+ #include <sys/stat.h> // For stat()
++#include <unistd.h>
+ #include <algorithm> // For transform()
+ 
+ #ifdef WIN32
+--- libproxy-0.4.7/libproxy/modules/pacrunner_webkit.cpp.orig	2011-06-06 22:44:37.000000000 +0100
++++ libproxy-0.4.7/libproxy/modules/pacrunner_webkit.cpp	2012-06-03 00:49:59.000000000 +0100
+@@ -17,6 +17,7 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+  ******************************************************************************/
+ 
++#include <unistd.h>
+ #include "../extension_pacrunner.hpp"
+ using namespace libproxy;
+ 
+--- libproxy-0.4.7/libproxy/modules/config_sysconfig.cpp.orig	2011-06-06 22:44:37.000000000 +0100
++++ libproxy-0.4.7/libproxy/modules/config_sysconfig.cpp	2012-06-03 00:37:25.000000000 +0100
+@@ -18,6 +18,8 @@
+  ******************************************************************************/
+ 
+ #include <sys/stat.h>
++#include <unistd.h>
++#include <sys/types.h>
+ #include <cstdlib>
+ #include <map>
+ #include <fstream>
+--- libproxy-0.4.7/libproxy/modules/pacrunner_mozjs.cpp.orig	2011-06-06 22:44:37.000000000 +0100
++++ libproxy-0.4.7/libproxy/modules/pacrunner_mozjs.cpp	2012-06-03 01:06:39.000000000 +0100
+@@ -17,6 +17,7 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+  ******************************************************************************/
+ 
++#include <unistd.h>
+ #include <cstring> // ?
+ 
+ #include "../extension_pacrunner.hpp"
+@@ -85,7 +86,7 @@
+ 	if (!gethostname(hostname, 1023)) {
+ 		JSString *myhost = JS_NewStringCopyN(cx, hostname, strlen(hostname));
+ 		jsval arg = STRING_TO_JSVAL(myhost);
+-		return dnsResolve_(cx, 1, &arg);
++		return dnsResolve_(cx, arg, vp);
+ 	}
+ 	JS_free(cx, hostname);
+ 	JS_SET_RVAL(cx, vp, JSVAL_NULL);
