@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.6.3
+VERSION=0.14.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -25,6 +25,9 @@ FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTR
 
 pre_unpack
 
+FULL_TARNAME1=${TARDIR}/${TARNAME}-demosaic-pack-GPL2${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME2=${TARDIR}/${TARNAME}-demosaic-pack-GPL3${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
 PKG=/tmp/package-${PKGNAME}
 
 if [ ! -f ${FULL_TARNAME} ]
@@ -37,6 +40,11 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+(cd ${TARNAME}-${VERSION}
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME1}
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME2}
+)
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -57,13 +65,30 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
+	    --enable-demosaic-pack-gpl2=./${TARNAME}-demosaic-pack-GPL2${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} \
+	    --enable-demosaic-pack-gpl3=./${TARNAME}-demosaic-pack-GPL3${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
 make ${NUM_JOBS} || exit
 fi
 

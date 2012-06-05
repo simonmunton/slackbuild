@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=lensfun
+TARNAME=WebKit
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=0.2.5
-VERSIONEXTA=
+VERSION=r119340
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://lensfun.berlios.de/"
+WEBPAGE="http://webkit.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=WebKit2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -33,8 +33,10 @@ then
   exit
 fi
 
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+if [ ! -d WebKit2/${TARNAME}-${VERSION} ]
+then
+mkdir WebKit2
+cd WebKit2
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
@@ -45,29 +47,42 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/WebKit-r37126.diff
+ ./autogen.sh
 )
+cd ..
 fi
 
 pre_configure
 
-cd ${TARNAME}-${VERSION}
+cd WebKit2/${TARNAME}-${VERSION}
 
 fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+
+:
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-introspection
 
+#	    --enable-mathml \
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#WebKitTools/Scripts/build-webkit --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --gtk
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,6 +90,7 @@ then
   exit
 fi
 
+#make -C WebKitBuild/Release install DESTDIR=${PKG}
 make install DESTDIR=${PKG}
 
 #strip_binaries
@@ -92,11 +108,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "photographic lens correction library"
-This package provides a database of photographic lenses and a library 
-that allows advanced access to the database including functions to 
-correct images based on intimate knowledge of lens characteristics 
-and calibration data.
+make_slack_desc << EOF "open source web browser engine"
+WebKit is an open source web browser engine. WebKit is also the name 
+of the Mac OS X system framework version of the engine that's used by 
+Safari, Dashboard, Mail, and many other OS X applications. WebKit's 
+HTML and JavaScript code began as a branch of the KHTML and KJS 
+libraries from KDE.
 
 EOF
 
