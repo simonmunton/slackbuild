@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=kdenlive
+TARNAME=libbluray
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/k
+TARSEP="-"
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.9.2
+VERSION=0.2.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://www.videolan.org/developers/libbluray.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,9 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kdenlive-0.7.8.diff
-# automake
-# ./bootstrap
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -54,19 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX="/usr" \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      .
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#            --mandir=/usr/man
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,9 +105,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "A non-linear video editor for KDE"
-Kdenlive is a non-linear video editor for GNU/Linux, which supports
-DV, HDV and AVCHD (not complete yet) editing.
+make_slack_desc << EOF "Bluray playback library"
+Bluray playback library
 
 EOF
 
