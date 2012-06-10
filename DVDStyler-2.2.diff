@@ -1,0 +1,281 @@
+--- DVDStyler-2.2/src/mediatrc_ffmpeg.cpp.orig	2012-04-29 20:28:04.000000000 +0100
++++ DVDStyler-2.2/src/mediatrc_ffmpeg.cpp	2012-06-09 23:06:27.000000000 +0100
+@@ -27,6 +27,7 @@
+ #include <libavcodec/avcodec.h>
+ #include <libavfilter/avfilter.h>
+ #include <libavfilter/avfiltergraph.h>
++#include <libavfilter/avcodec.h>
+ #include <libavfilter/vsrc_buffer.h>
+ }
+ 
+@@ -34,7 +35,7 @@
+ #define VIDEO_BUF_SIZE 1835008
+ #define QSCALE_NONE -99999
+ #define MAX_AUDIO_PACKET_SIZE (128 * 1024)
+-#define MAKE_SFMT_PAIR(a,b) ((a)+SAMPLE_FMT_NB*(b))
++#define MAKE_SFMT_PAIR(a,b) ((a)+AV_SAMPLE_FMT_NB*(b))
+ 
+ #ifndef FF_ARRAY_ELEMS
+ #define FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
+@@ -67,7 +68,7 @@
+     AVSinkContext *priv = (AVSinkContext *)ctx->priv;
+     enum PixelFormat pix_fmts[] = { priv->pix_fmt, PIX_FMT_NONE };
+ 
+-    avfilter_set_common_formats(ctx, avfilter_make_format_list((const int*)pix_fmts));
++    avfilter_set_common_pixel_formats(ctx, avfilter_make_format_list((const int*)pix_fmts));
+     return 0;
+ }
+ 
+@@ -273,7 +274,7 @@
+         inputs->pad_idx = 0;
+         inputs->next    = NULL;
+ 
+-        if ((ret = avfilter_graph_parse(ost->graph, ost->avfilter, inputs, outputs, NULL)) < 0)
++        if ((ret = avfilter_graph_parse(ost->graph, ost->avfilter, &inputs, &outputs, NULL)) < 0)
+             return ret;
+         av_freep(&ost->avfilter);
+     } else {
+@@ -350,7 +351,7 @@
+ 	frame_aspect_ratio = 0;
+ 	frame_pix_fmt = PIX_FMT_NONE;
+ 	frame_bits_per_raw_sample = 0;
+-	audio_sample_fmt = SAMPLE_FMT_NONE;
++	audio_sample_fmt = AV_SAMPLE_FMT_NONE;
+ 	max_frames[0] = INT_MAX;
+ 	max_frames[1] = INT_MAX;
+ 	max_frames[2] = INT_MAX;
+@@ -369,7 +370,7 @@
+ 	me_threshold = 0;
+ 	intra_dc_precision = 8;
+ 	loop_input = 0;
+-	loop_output = AVFMT_NOOUTPUTLOOP;
++//	loop_output = AVFMT_NOOUTPUTLOOP;
+ 	qp_hist = 0;
+ 	
+ 	intra_only = 0;
+@@ -610,7 +611,7 @@
+ 		opt_programid = 0;
+ 	}
+ 
+-	ic->loop_input = loop_input;
++//	ic->loop_input = loop_input;
+ 
+ 	/* If not enough info to get the stream parameters, we decode the
+ 	 first frames to get it. (used in mpeg case for example) */
+@@ -740,7 +741,7 @@
+ 		return false;
+ 	}
+ 	
+-	oc->preload= (int)(mux_preload*AV_TIME_BASE);
++//	oc->preload= (int)(mux_preload*AV_TIME_BASE);
+ 	oc->max_delay= (int)(mux_max_delay*AV_TIME_BASE);
+ 	oc->flags |= AVFMT_FLAG_NONBLOCK;
+ 
+@@ -906,7 +907,7 @@
+ 
+ void choose_sample_fmt(AVStream *st, AVCodec *codec) {
+ 	if (codec && codec->sample_fmts){
+-		const enum SampleFormat *p= codec->sample_fmts;
++		const enum AVSampleFormat *p= codec->sample_fmts;
+ 		for (; *p!=-1; p++){
+ 			if(*p == st->codec->sample_fmt)
+ 				break;
+@@ -950,7 +951,7 @@
+ 	case AVMEDIA_TYPE_VIDEO: {
+ 		VideoFormat videoFormat = (VideoFormat) format;
+ 		if (videoFormat == vfCOPY) {
+-			st->stream_copy = 1;
++//			st->stream_copy = 1;
+ 			return NULL;
+ 		}
+ 		st->codec->codec_id = CODEC_ID_MPEG2VIDEO;
+@@ -959,7 +960,7 @@
+ 	case AVMEDIA_TYPE_AUDIO: {
+ 		AudioFormat audioFormat = (AudioFormat) format;
+ 		if (audioFormat == afCOPY) {
+-			st->stream_copy = 1;
++//			st->stream_copy = 1;
+ 			return NULL;
+ 		}
+ 		st->codec->codec_id = audioFormat == afMP2 ? CODEC_ID_MP2 : CODEC_ID_AC3;
+@@ -968,7 +969,7 @@
+ 	case AVMEDIA_TYPE_SUBTITLE: {
+ 		SubtitleFormat subtitleFormat = (SubtitleFormat) format;
+ 		if (subtitleFormat == sfCOPY) {
+-			st->stream_copy = 1;
++//			st->stream_copy = 1;
+ 			return NULL;
+ 		}
+ 		st->codec->codec_id = CODEC_ID_DVD_SUBTITLE;
+@@ -1081,8 +1082,8 @@
+ 			video_enc->gop_size = 0;
+ 		if (video_qscale || same_quant) {
+ 			video_enc->flags |= CODEC_FLAG_QSCALE;
+-			st->quality = FF_QP2LAMBDA * video_qscale;
+-			video_enc->global_quality = (int) st->quality;
++//			st->quality = FF_QP2LAMBDA * video_qscale;
++			video_enc->global_quality = FF_QP2LAMBDA * video_qscale; //(int) st->quality;
+ 		}
+ 
+ 		if (intra_matrix)
+@@ -1174,8 +1175,8 @@
+ 		
+ 		if (audio_qscale > QSCALE_NONE) {
+ 			audio_enc->flags |= CODEC_FLAG_QSCALE;
+-			st->quality = FF_QP2LAMBDA * audio_qscale;
+-			audio_enc->global_quality = (int) st->quality;
++//			st->quality = FF_QP2LAMBDA * audio_qscale;
++			audio_enc->global_quality = FF_QP2LAMBDA * audio_qscale; //(int) st->quality;
+ 		}
+         if (audio_channels)
+             audio_enc->channels = audio_channels;
+@@ -1471,7 +1472,7 @@
+ 		codec->bits_per_raw_sample= icodec->bits_per_raw_sample;
+ 		codec->chroma_sample_location = icodec->chroma_sample_location;
+ 
+-		if (ost->st->stream_copy) {
++		if (0 /*ost->st->stream_copy */) {
+ 			uint64_t extra_size = (uint64_t)icodec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE;
+ 			
+ 			if (extra_size > INT_MAX) {
+@@ -1769,8 +1770,8 @@
+ 					ost->file_index, ost->index);
+ 			//if (ost->sync_ist != &input_streams[ost->source_index])
+ 			//	msg += wxString::Format(wxT(" [sync #%d.%d]"), ost->sync_ist->file_index, ost->sync_ist->st->index);
+-			if (ost->st->stream_copy)
+-				msg += wxT(" (copy)");
++//			if (ost->st->stream_copy)
++//				msg += wxT(" (copy)");
+ 			wxLogMessage(msg);
+ 		}
+ 	}
+@@ -1970,8 +1971,8 @@
+ 		for (i = 0; i < nb_output_streams; i++) {
+ 			ost = &output_streams[i];
+ 			if (ost) {
+-				if (ost->st->stream_copy)
+-					av_freep(&ost->st->codec->extradata);
++//				if (ost->st->stream_copy)
++//					av_freep(&ost->st->codec->extradata);
+ 				if (ost->logfile) {
+ 					fclose(ost->logfile);
+ 					ost->logfile = NULL;
+@@ -2084,7 +2085,7 @@
+ 				avcodec_get_frame_defaults(&picture);
+ 				
+ 				ret = avcodec_decode_video2(ist->st->codec, &picture, &got_output, &avpkt);
+-				ist->st->quality= picture.quality;
++//				ist->st->quality= picture.quality;
+ 				if (ret < 0)
+ 					return false;
+ 				if (!got_output) {
+@@ -2145,8 +2146,8 @@
+ 						picture.sample_aspect_ratio = ist->st->sample_aspect_ratio;
+ 					//picture.pts = ist->pts;
+ 
+-					av_vsrc_buffer_add_frame(ost->input_video_filter, &picture,
+-						ist->pts, picture.sample_aspect_ratio);
++					av_vsrc_buffer_add_frame(ost->input_video_filter, &picture, 0);
++//						ist->pts, picture.sample_aspect_ratio);
+ 				}
+ 			}
+ 		}
+@@ -2259,7 +2260,7 @@
+ 							break;
+ 						case AVMEDIA_TYPE_VIDEO:
+                             if (ost->picref->video)
+-                                ost->st->codec->sample_aspect_ratio = ost->picref->video->pixel_aspect;
++                                ost->st->codec->sample_aspect_ratio = ost->picref->video->sample_aspect_ratio;
+ 							if (!DoVideoOut(os, ost, ist, &picture, &frame_size, bit_buffer_size, bit_buffer))
+ 								return false;
+ //							if (vstats_filename && frame_size)
+@@ -2537,7 +2538,7 @@
+ 			ost->resample = NULL;
+ 			ost->audio_resample = 0;
+ 		} else {
+-			if (dec->sample_fmt != SAMPLE_FMT_S16)
++			if (dec->sample_fmt != AV_SAMPLE_FMT_S16)
+ 				wxLogWarning(wxT("Warning, using s16 intermediate sample format for resampling"));
+ 			ost->resample = av_audio_resample_init(enc->channels, dec->channels,
+ 					enc->sample_rate, dec->sample_rate,
+@@ -2858,7 +2859,7 @@
+ 			}
+ 			
+ 			// handles sameq here. This is not correct because it may not be a global option
+-			big_picture.quality = same_quant ? (int) ist->st->quality : (int) ost->st->quality;
++//			big_picture.quality = same_quant ? (int) ist->st->quality : (int) ost->st->quality;
+ 			if (!me_threshold)
+ 				big_picture.pict_type = (AVPictureType) 0;
+ 			big_picture.pts= ost->sync_opts;
+@@ -2992,11 +2993,11 @@
+ 		float q = -1;
+ 		ost = &ost_table[i];
+ 		enc = ost->st->codec;
+-		if (!ost->st->stream_copy && enc->coded_frame)
++		if (/*!ost->st->stream_copy &&*/ enc->coded_frame)
+ 			q = enc->coded_frame->quality/(float)FF_QP2LAMBDA;
+ 		if (vid && enc->codec_type == AVMEDIA_TYPE_VIDEO) {
+ 			msg += wxString::Format(wxT("q=%2.1f "),
+-					!ost->st->stream_copy ?	enc->coded_frame->quality/(float)FF_QP2LAMBDA : -1);
++					!0/*ost->st->stream_copy*/ ?	enc->coded_frame->quality/(float)FF_QP2LAMBDA : -1);
+ 		}
+ 		if (!vid && enc->codec_type == AVMEDIA_TYPE_VIDEO) {
+ 			float t = (av_gettime()-timer_start) / 1000000.0;
+@@ -3004,7 +3005,7 @@
+ 			frame_number = ost->frame_number;
+ 			msg += wxString::Format(wxT("frame=%5d fps=%3d q=%3.1f "),
+ 			frame_number, (t>1)?(int)(frame_number/t+0.5) : 0,
+-					!ost->st->stream_copy ? enc->coded_frame->quality/(float)FF_QP2LAMBDA : -1);
++					!0/*ost->st->stream_copy*/ ? enc->coded_frame->quality/(float)FF_QP2LAMBDA : -1);
+ 			if (is_last_report)
+ 				msg += wxString::Format(wxT("L"));
+ 			if (qp_hist) {
+--- DVDStyler-2.2/src/mediatrc_ffmpeg.h.orig	2012-03-04 17:36:10.000000000 +0000
++++ DVDStyler-2.2/src/mediatrc_ffmpeg.h	2012-06-09 22:31:18.000000000 +0100
+@@ -138,7 +138,7 @@
+     float frame_aspect_ratio;
+     PixelFormat frame_pix_fmt;
+     int frame_bits_per_raw_sample;
+-    SampleFormat audio_sample_fmt;
++    AVSampleFormat audio_sample_fmt;
+     int max_frames[4];
+     AVRational frame_rate;
+     float video_qscale;
+--- DVDStyler-2.2/src/mediaenc_ffmpeg.cpp.orig	2012-03-04 17:36:10.000000000 +0000
++++ DVDStyler-2.2/src/mediaenc_ffmpeg.cpp	2012-06-09 22:29:23.000000000 +0100
+@@ -93,10 +93,10 @@
+ 	if (!addAudioStream(outputFormat->audio_codec))
+ 		return false;
+ 
+-	if (av_set_parameters(m_outputCtx, NULL) < 0) {
+-		wxLogError(wxT("Invalid output format parameters"));
+-		return false;
+-	}
++//	if (av_set_parameters(m_outputCtx, NULL) < 0) {
++//		wxLogError(wxT("Invalid output format parameters"));
++//		return false;
++//	}
+ 	av_dump_format(m_outputCtx, 0, (const char*) fileName.fn_str(), 1);
+ 	m_outputCtx->packet_size = 2048;
+ 	
+@@ -108,16 +108,16 @@
+ 		return false;
+ 
+ 	// open the output file
+-	if (avio_open(&m_outputCtx->pb, fileName.mb_str(), URL_WRONLY) < 0) {
++	if (avio_open(&m_outputCtx->pb, fileName.mb_str(), AVIO_FLAG_WRITE) < 0) {
+ 		wxLogError(wxT("Could not open '%s'"), fileName.c_str());
+ 		return false;
+ 	}
+ 	// write the stream header
+ 	m_outputCtx->packet_size = 2048;
+-	m_outputCtx->mux_rate = 10080000;
+-	m_outputCtx->preload = (int) (0.5 * AV_TIME_BASE);
++//	m_outputCtx->mux_rate = 10080000;
++//	m_outputCtx->preload = (int) (0.5 * AV_TIME_BASE);
+ 	m_outputCtx->max_delay = (int) (0.7 * AV_TIME_BASE);
+-	av_write_header(m_outputCtx);
++	avformat_write_header(m_outputCtx, NULL);
+ 	return true;
+ }
+ 
