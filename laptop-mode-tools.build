@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.50
+VERSION=1.61
 VERSIONEXTRA=
 BUILD=1
 
@@ -89,10 +89,36 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALL=install
+make install DESTDIR=${PKG} INSTALL=install INIT_D=${PKG}/etc/rc.d MAN_D=/usr/man
 
-mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
-mv ${PKG}/etc/rc.d/laptop-mode ${PKG}/etc/rc.d/rc.laptop-mode
+mv ${PKG}/etc/udev ${PKG}/lib
+
+[ "${LIBDIRSUFFIX}" = "64" ] && mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
+
+mv ${PKG}/etc/rc.d/laptop-mode ${PKG}/etc/rc.d/rc.laptop-mode.new
+doinst_same_perm etc/rc.d/rc.laptop-mode
+doinst_config etc/rc.d/rc.laptop-mode.new
+
+for f in `find $PKG/etc/laptop-mode -name '*.conf'`
+do
+  mv $f $f.new
+  doinst_config ${f#$PKG/}.new
+done
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+run=\`grep "/etc/rc.d/rc.laptop-mode" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start laptop-mode" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.laptop-mode ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.laptop-mode restart" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+fi
+EOF
 
 strip_binaries
 
