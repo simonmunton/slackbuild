@@ -3,12 +3,12 @@
 . build_funcs
 
 TARNAME=skype
-TARNAMEEXTRA=
-TARSEP="-"
+TARNAMEEXTRA=-ubuntu
+TARSEP="_"
 TARDIR=~/tmp/new/s
-#TAR_EXT=.tar.gz
-VERSION=2.2.0.25
-VERSIONEXTRA=
+TAR_EXT=.deb
+VERSION=4.0.0.7
+VERSIONEXTRA=-1_i386
 BUILD=1
 
 WEBPAGE="http://www.skype.com"
@@ -20,6 +20,9 @@ PKGNAME=skype
 #BUILD_SUFFIX=
 #ARCH=noarch
 
+case `uname -m` in
+    x86_64) VERSIONEXTRA=-1_amd64 ;;
+esac
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
@@ -35,7 +38,9 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mkdir ${TARNAME}-${VERSION}
+
+#${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
@@ -73,22 +78,24 @@ then
   exit
 fi
 
+dpkg -x ${FULL_TARNAME} ${PKG}
+
 #make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/bin
-mkdir -p ${PKG}/usr/share/skype
-mkdir -p ${PKG}/usr/share/applications
-mkdir -p ${PKG}/etc/dbus-1/system.d
+#mkdir -p ${PKG}/usr/bin
+#mkdir -p ${PKG}/usr/share/skype
+#mkdir -p ${PKG}/usr/share/applications
+#mkdir -p ${PKG}/etc/dbus-1/system.d
 
-cp skype ${PKG}/usr/bin
-cp -r avatars lang sounds ${PKG}/usr/share/skype
-cp -r icons ${PKG}/usr/share
-cp skype.desktop ${PKG}/usr/share/applications
-cp skype.conf ${PKG}/etc/dbus-1/system.d
+#cp skype ${PKG}/usr/bin
+#cp -r avatars lang sounds ${PKG}/usr/share/skype
+#cp -r icons ${PKG}/usr/share
+#cp skype.desktop ${PKG}/usr/share/applications
+#cp skype.conf ${PKG}/etc/dbus-1/system.d
 
-(cd ${PKG}/usr/share
- ln -s SkypeBlue_48x48.png skype.png
-)
+#(cd ${PKG}/usr/share
+# ln -s SkypeBlue_48x48.png skype.png
+#)
 
 (cd ${PKG}/usr/bin
  mv skype skype.bin
