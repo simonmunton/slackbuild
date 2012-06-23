@@ -1,0 +1,62 @@
+--- autotrace-0.31.1/input-png.c.orig	2002-10-10 21:44:14.000000000 +0100
++++ autotrace-0.31.1/input-png.c	2012-06-23 11:14:47.000000000 +0100
+@@ -42,7 +42,7 @@
+ 
+ static void handle_warning(png_structp png, const at_string message) {
+         LOG1("PNG warning: %s", message);
+-	at_exception_warning((at_exception_type *)png->error_ptr,
++	at_exception_warning((at_exception_type *)png_get_error_ptr(png),
+ 			     message);
+ 	/* at_exception_fatal((at_exception_type *)at_png->error_ptr,
+ 	   "PNG warning"); */
+@@ -50,7 +50,7 @@
+ 
+ static void handle_error(png_structp png, const at_string message) {
+ 	LOG1("PNG error: %s", message);
+-	at_exception_fatal((at_exception_type *)png->error_ptr,
++	at_exception_fatal((at_exception_type *)png_get_error_ptr(png),
+ 			   message);
+ 	/* at_exception_fatal((at_exception_type *)at_png->error_ptr,
+ 	   "PNG error"); */
+@@ -152,13 +152,14 @@
+ 	int row;
+ 	png_color_16p original_bg;
+ 	png_color_16  my_bg;
++	png_bytepp row_pointers;
+ 
+ 	png_read_info(png_ptr, info_ptr);
+ 
+ 	png_set_strip_16(png_ptr);
+ 	png_set_packing(png_ptr);
+-	if ((png_ptr->bit_depth < 8) ||
+-	    (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE) ||
++	if ((png_get_bit_depth(png_ptr, info_ptr) < 8) ||
++	    (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_PALETTE) ||
+ 	    (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)))
+ 		png_set_expand(png_ptr);
+ 
+@@ -184,17 +185,18 @@
+ 	png_read_update_info(png_ptr, info_ptr);
+ 
+ 
+-	info_ptr->row_pointers = (png_bytepp)png_malloc(png_ptr,
+-							info_ptr->height * sizeof(png_bytep));
++	row_pointers = (png_bytepp)png_malloc(png_ptr,
++						png_get_image_height(png_ptr, info_ptr) * sizeof(png_bytep));
++	png_set_rows(png_ptr, info_ptr, row_pointers);
+ #ifdef PNG_FREE_ME_SUPPORTED
+ 	info_ptr->free_me |= PNG_FREE_ROWS;
+ #endif
+-	for (row = 0; row < (int)info_ptr->height; row++)
+-		info_ptr->row_pointers[row] = (png_bytep)png_malloc(png_ptr,
++	for (row = 0; row < (int)png_get_image_height(png_ptr, info_ptr); row++)
++		row_pointers[row] = (png_bytep)png_malloc(png_ptr,
+ 								    png_get_rowbytes(png_ptr, info_ptr));
+ 	
+-	png_read_image(png_ptr, info_ptr->row_pointers);
+-	info_ptr->valid |= PNG_INFO_IDAT;
++	png_read_image(png_ptr, row_pointers);
++//	info_ptr->valid |= PNG_INFO_IDAT;
+ 	png_read_end(png_ptr, info_ptr);
+ 	return png_get_rows(png_ptr, info_ptr);
+ }

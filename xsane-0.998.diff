@@ -1,0 +1,130 @@
+--- xsane-0.998/src/Makefile.in.orig	2005-12-21 21:20:24.000000000 +0000
++++ xsane-0.998/src/Makefile.in	2008-03-29 09:51:00.000000000 +0000
+@@ -23,6 +23,8 @@
+ configdir = ${sysconfdir}/sane.d
+ sanedatadir = ${datadir}/sane
+ xsanedocdir = ${datadir}/sane/xsane/doc
++desktopappdir = @datadir@/applications
++pixmapdir = @datadir@/pixmaps
+ 
+ MKINSTALLDIRS = @MKINSTALLDIRS@
+ INSTALL = @INSTALL@
+@@ -63,37 +65,43 @@
+ all: $(PROGRAMS)
+ 
+ install: $(PROGRAMS)
+-	$(MKINSTALLDIRS) $(bindir) $(sbindir) $(datadir) $(sanedatadir) $(xsanedocdir) $(sanedatadir)/xsane
++	$(MKINSTALLDIRS) $(DESTDIR)$(bindir) $(DESTDIR)$(sbindir) $(DESTDIR)$(datadir) $(DESTDIR)$(sanedatadir) $(DESTDIR)$(xsanedocdir) $(DESTDIR)$(sanedatadir)/xsane $(DESTDIR)$(desktopappdir) $(DESTDIR)$(pixmapdir)
+ 	@for program in $(BINPROGS); do \
+-	  $(INSTALL_PROGRAM) $${program} $(bindir)/$${program}; \
++	  $(INSTALL_PROGRAM) $${program} $(DESTDIR)$(bindir)/$${program}; \
+ 	done
+-	$(INSTALL_DATA) $(srcdir)/xsane-style.rc $(sanedatadir)/xsane/xsane-style.rc
+-	$(INSTALL_DATA) $(srcdir)/xsane-startimage.pnm $(sanedatadir)/xsane/xsane-startimage.pnm
+-	$(INSTALL_DATA) $(srcdir)/xsane-calibration.pnm $(sanedatadir)/xsane/xsane-calibration.pnm
+-	$(INSTALL_DATA) $(srcdir)/xsane-logo.xpm $(sanedatadir)/xsane/xsane-logo.xpm
+-	$(INSTALL_DATA) $(srcdir)/xsane-gpl.txt $(sanedatadir)/xsane/xsane-gpl.txt
+-	$(INSTALL_DATA) $(srcdir)/xsane-eula.txt $(sanedatadir)/xsane/xsane-eula.txt
++	$(INSTALL_DATA) $(srcdir)/xsane-style.rc $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc
++	$(INSTALL_DATA) $(srcdir)/xsane-startimage.pnm $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm
++	$(INSTALL_DATA) $(srcdir)/xsane-calibration.pnm $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm
++	$(INSTALL_DATA) $(srcdir)/xsane-logo.xpm $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm
++	$(INSTALL_DATA) $(srcdir)/xsane-gpl.txt $(DESTDIR)$(sanedatadir)/xsane/xsane-gpl.txt
++	$(INSTALL_DATA) $(srcdir)/xsane-eula.txt $(DESTDIR)$(sanedatadir)/xsane/xsane-eula.txt
++	$(INSTALL_DATA) $(srcdir)/xsane.desktop $(DESTDIR)$(desktopappdir)/xsane.desktop
++	$(INSTALL_DATA) $(srcdir)/xsane.xpm $(DESTDIR)$(pixmapdir)/xsane.xpm
+ 	@for logo in *-logo.xpm; do \
+-	  echo installing $(sanedatadir)/xsane/$${logo}; \
+-	  $(INSTALL_DATA) $(srcdir)/$${logo} $(sanedatadir)/xsane/$${logo}; \
++	  echo installing $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
++	  $(INSTALL_DATA) $(srcdir)/$${logo} $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
+ 	done 
+ 
+ uninstall:
+ 	@for program in $(BINPROGS); do \
+-	  echo uninstalling $(bindir)/$${program}...; \
+-	  rm -f $(bindir)/$${program}; \
++	  echo uninstalling $(DESTDIR)$(bindir)/$${program}...; \
++	  rm -f $(DESTDIR)$(bindir)/$${program}; \
+ 	done
+-	echo uninstalling $(sanedatadir)/xsane/xsane-style.rc...
+-	rm -f $(sanedatadir)/xsane/xsane-style.rc
+-	echo uninstalling $(sanedatadir)/xsane/xsane-startimage.pnm...
+-	rm -f $(sanedatadir)/xsane/xsane-startimage.pnm
+-	echo uninstalling $(sanedatadir)/xsane/xsane-calibration.pnm...
+-	rm -f $(sanedatadir)/xsane/xsane-calibration.pnm
+-	echo uninstalling $(sanedatadir)/xsane/xsane-logo.xpm...
+-	rm -f $(sanedatadir)/xsane/xsane-logo.xpm
++	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc...
++	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc
++	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm...
++	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm
++	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm...
++	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm
++	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm...
++	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm
++	echo uninstalling $(DESTDIR)$(desktopappdir)/xsane.desktop
++	rm -f $(DESTDIR)$(desktopappdir)/xsane.desktop
++	echo uninstalling $(DESTDIR)$(pixmapdir)/xsane.xpm
++	rm -f $(DESTDIR)$(pixmapdir)/xsane.xpm
+ 	@for logo in *-logo.xpm; do \
+-	  echo uninstalling $(sanedatadir)/xsane/$${logo}; \
+-	  rm -f $(sanedatadir)/xsane/$${logo}; \
++	  echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
++	  rm -f $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
+ 	done 
+ 
+ xsane: $(XSANE_OBJS) $(LIBLIB)
+@@ -108,7 +116,7 @@
+ 	rm -rf .libs
+ 
+ distclean: clean
+-	rm -f Makefile $(PROGRAMS)
++	rm -f Makefile $(PROGRAMS) 
+ 
+ depend:
+ 	makedepend $(INCLUDES) *.c
+@@ -138,6 +146,7 @@
+ xsane-back-gtk.o: xsane-front-gtk.h
+ xsane-back-gtk.o: xsane-preferences.h
+ xsane-back-gtk.o: xsane-gamma.h
++xsane-back-gtk.o: xsane-text.h
+ 
+ xsane-front-gtk.o: xsane.h
+ xsane-front-gtk.o: xsane-back-gtk.h
+@@ -146,6 +155,7 @@
+ xsane-front-gtk.o: xsane-save.h
+ xsane-front-gtk.o: xsane-gamma.h
+ xsane-front-gtk.o: xsane-setup.h
++xsane-front-gtk.o: xsane-text.h
+ 
+ xsane-batch-scan.o: xsane.h
+ xsane-batch-scan.o: xsane-scan.h
+@@ -230,6 +240,7 @@
+ xsane-multipage-project.o: xsane-preferences.h
+ xsane-multipage-project.o: xsane-multipage-project.h
+ xsane-multipage-project.o: xsane-text.h
++xsane-multipage-project.o: xsane-save.h
+ 
+ xsane-fax-project.o: xsane.h
+ xsane-fax-project.o: xsane-back-gtk.h
+--- xsane-0.998/src/xsane-save.c.orig	2010-11-16 21:06:00.000000000 +0000
++++ xsane-0.998/src/xsane-save.c	2012-06-23 08:22:06.000000000 +0100
+@@ -4910,7 +4910,7 @@
+     return -1; /* error */
+   }
+ 
+-  if (setjmp(png_ptr->jmpbuf))
++  if (setjmp(png_jmpbuf(png_ptr)))
+   {
+     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
+     xsane_back_gtk_error(buf, TRUE);
+@@ -5100,7 +5100,7 @@
+     return -1; /* error */
+   }
+ 
+-  if (setjmp(png_ptr->jmpbuf))
++  if (setjmp(png_jmpbuf(png_ptr)))
+   {
+     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
+     xsane_back_gtk_error(buf, TRUE);
