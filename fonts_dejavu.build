@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=2.26
+VERSION=2.33
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://dejavu-fonts.org/wiki/Main_Page"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -70,14 +70,20 @@ then
   exit
 fi
 
-DESTDIR=usr/share/fonts/TTF
+DESTDIR=usr/share/fonts/truetype/ttf-dejavu
 
 mkdir -p ${PKG}/${DESTDIR}
+
+mkdir -p ${PKG}/etc/fonts/{conf.avail,conf.d}
 
 (cd ${PKG}/usr/doc
  ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
  mv ${TARNAME}${TARNAMEEXTRA}-${VERSION}/ttf/*ttf ${PKG}/${DESTDIR}
  rm -rf ${TARNAME}${TARNAMEEXTRA}-${VERSION}/ttf
+ mv ${TARNAME}${TARNAMEEXTRA}-${VERSION}/fontconfig/* ${PKG}/etc/fonts/conf.avail
+)
+(cd ${PKG}/etc/fonts/conf.d
+ ln -s ../conf.avail/* .
 )
 
 touch ${PKG}/${DESTDIR}/{fonts.dir,fonts.scale}
