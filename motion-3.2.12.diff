@@ -1,0 +1,251 @@
+--- motion-3.2.12/motion.h.orig	2010-06-01 07:48:23.000000000 +0100
++++ motion-3.2.12/motion.h	2012-06-30 06:55:57.000000000 +0100
+@@ -40,7 +40,8 @@
+ 
+ #define _LINUX_TIME_H 1
+ #if !defined(WITHOUT_V4L) && !defined(BSD)
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #endif
+ 
+ #include <pthread.h>
+--- motion-3.2.12/ffmpeg.c.orig	2010-06-01 07:48:23.000000000 +0100
++++ motion-3.2.12/ffmpeg.c	2012-06-30 07:06:55.000000000 +0100
+@@ -36,6 +36,11 @@
+ #    endif /* __GNUC__ */
+ #endif /* LIBAVCODEC_BUILD > 4680 */
+ 
++#if defined LIBAVFORMAT_VERSION_MAJOR && defined LIBAVFORMAT_VERSION_MINOR 
++#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
++    #define GUESS_NO_DEPRECATED 
++#endif
++#endif
+ 
+ #if LIBAVFORMAT_BUILD >= 4616
+ /* The API for av_write_frame changed with FFmpeg version 0.4.9pre1.
+@@ -227,11 +232,13 @@
+     mpeg1_file_protocol.url_seek  = file_protocol.url_seek;
+     mpeg1_file_protocol.url_close = file_protocol.url_close;
+ 
+-    /* Register the append file protocol. */
+-#if LIBAVFORMAT_BUILD >= (52<<16 | 31<<8)
++/* Register the append file protocol. */
++#ifdef have_av_register_protocol2
++    av_register_protocol2(&mpeg1_file_protocol, sizeof(mpeg1_file_protocol));
++#elif defined have_av_register_protocol        
+     av_register_protocol(&mpeg1_file_protocol);
+ #else
+-    register_protocol(&mpeg1_file_protocol);
++#   warning av_register_protocolXXX missing
+ #endif
+ }
+ 
+@@ -258,7 +265,11 @@
+         /* We use "mpeg1video" for raw mpeg1 format. Using "mpeg" would
+          * result in a muxed output file, which isn't appropriate here.
+          */
+-        of = guess_format("mpeg1video", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);        
++#else
++        of = av_guess_format("mpeg1video", NULL, NULL);
++#endif 
+         if (of) {
+             /* But we want the trailer to be correctly written. */
+             of->write_trailer = mpeg1_write_trailer;
+@@ -270,24 +281,44 @@
+ #endif
+     } else if (strcmp(codec, "mpeg4") == 0) {
+         ext = ".avi";
+-        of = guess_format("avi", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else        
++        of = av_guess_format("avi", NULL, NULL);
++#endif        
+     } else if (strcmp(codec, "msmpeg4") == 0) {
+         ext = ".avi";
+-        of = guess_format("avi", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else        
++        of = av_guess_format("avi", NULL, NULL);
++#endif
+         if (of) {
+             /* Manually override the codec id. */
+             of->video_codec = CODEC_ID_MSMPEG4V2;
+         }
+     } else if (strcmp(codec, "swf") == 0) {
+         ext = ".swf";
+-        of = guess_format("swf", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else        
++        of = av_guess_format("swf", NULL, NULL);
++#endif        
+     } else if (strcmp(codec, "flv") == 0) {
+         ext = ".flv";
+-        of = guess_format("flv", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else        
++        of = av_guess_format("flv", NULL, NULL);
++#endif        
+         of->video_codec = CODEC_ID_FLV1;
+     } else if (strcmp(codec, "ffv1") == 0) {
+         ext = ".avi";
+-        of = guess_format("avi", NULL, NULL);
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else
++        of = av_guess_format("avi", NULL, NULL);
++#endif
+         if (of) {
+             /* Use the FFMPEG Lossless Video codec (experimental!).
+                Requires strict_std_compliance to be <= -2 */
+@@ -295,7 +326,11 @@
+         }
+     } else if (strcmp(codec, "mov") == 0) {
+         ext = ".mov";
+-        of = guess_format("mov", NULL, NULL);        
++#ifdef GUESS_NO_DEPRECATED
++        of = guess_format("mpeg1video", NULL, NULL);
++#else        
++        of = av_guess_format("mov", NULL, NULL);
++#endif
+     } else {
+         motion_log(LOG_ERR, 0, "ffmpeg_video_codec option value %s is not supported", codec);
+         return NULL;
+@@ -340,7 +375,13 @@
+     snprintf(ffmpeg->codec, sizeof(ffmpeg->codec), "%s", ffmpeg_video_codec);
+ 
+     /* allocation the output media context */
++#ifdef have_avformat_alloc_context
++    ffmpeg->oc = avformat_alloc_context();
++#elif defined have_av_avformat_alloc_context
++    ffmpeg->oc = av_alloc_format_context();
++#else
+     ffmpeg->oc = av_mallocz(sizeof(AVFormatContext));
++#endif
+ 
+     if (!ffmpeg->oc) {
+         motion_log(LOG_ERR, 1, "Memory error while allocating output media context");
+@@ -377,7 +418,11 @@
+ 
+     ffmpeg->c     = c = AVSTREAM_CODEC_PTR(ffmpeg->video_st);
+     c->codec_id   = ffmpeg->oc->oformat->video_codec;
++#if LIBAVCODEC_VERSION_MAJOR < 53    
+     c->codec_type = CODEC_TYPE_VIDEO;
++#else
++    c->codec_type = AVMEDIA_TYPE_VIDEO;
++#endif    
+     is_mpeg1      = c->codec_id == CODEC_ID_MPEG1VIDEO;
+ 
+     if (strcmp(ffmpeg_video_codec, "ffv1") == 0)
+@@ -646,7 +691,11 @@
+     if (ffmpeg->oc->oformat->flags & AVFMT_RAWPICTURE) {
+         /* raw video case. The API will change slightly in the near future for that */
+ #ifdef FFMPEG_AVWRITEFRAME_NEWAPI
++#if LIBAVCODEC_VERSION_MAJOR < 53        
+         pkt.flags |= PKT_FLAG_KEY;
++#else
++        pkt.flags |= AV_PKT_FLAG_KEY;  
++#endif        
+         pkt.data = (uint8_t *)pic;
+         pkt.size = sizeof(AVPicture);
+         ret = av_write_frame(ffmpeg->oc, &pkt);
+@@ -667,7 +716,11 @@
+ #ifdef FFMPEG_AVWRITEFRAME_NEWAPI
+             pkt.pts = AVSTREAM_CODEC_PTR(ffmpeg->video_st)->coded_frame->pts;
+             if (AVSTREAM_CODEC_PTR(ffmpeg->video_st)->coded_frame->key_frame) {
++#if LIBAVCODEC_VERSION_MAJOR < 53                
+                 pkt.flags |= PKT_FLAG_KEY;
++#else
++                pkt.flags |= AV_PKT_FLAG_KEY;
++#endif                
+             }
+             pkt.data = ffmpeg->video_outbuf;
+             pkt.size = out_size;
+--- motion-3.2.12/video.h.orig	2010-06-01 07:48:23.000000000 +0100
++++ motion-3.2.12/video.h	2012-06-30 06:56:10.000000000 +0100
+@@ -12,7 +12,8 @@
+ 
+ #define _LINUX_TIME_H 1
+ #ifndef WITHOUT_V4L
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <sys/mman.h>
+ #include "pwc-ioctl.h"
+ #endif
+--- motion-3.2.12/configure.in.orig	2010-06-01 07:48:23.000000000 +0100
++++ motion-3.2.12/configure.in	2012-06-30 07:06:55.000000000 +0100
+@@ -316,7 +316,7 @@
+ #
+ else if test "${FFMPEG_DIR}" = "yes"; then
+ 	# AUTODETECT STATIC/SHARED LIB 
+-	AC_MSG_CHECKING(for ffmpeg autodetecting)
++	AC_MSG_CHECKING(for ffmpeg autodetecting libraries)
+ 
+ 	if test -f /usr/lib64/libavcodec.a -o -f /usr/lib64/libavcodec.so && test -f /usr/lib64/libavformat.a -o -f /usr/lib64/libavformat.so ; then
+ 		AC_MSG_RESULT(found in /usr/lib64)
+@@ -347,7 +347,7 @@
+ 		echo ""		
+ 	fi 
+ else
+-	AC_MSG_CHECKING(for ffmpeg in -> [${FFMPEG_DIR}] <-)
++	AC_MSG_CHECKING(for ffmpeg libraries in -> [${FFMPEG_DIR}] <-)
+ 	if test -f ${FFMPEG_DIR}/lib/libavcodec.a -o -f ${FFMPEG_DIR}/lib/libavcodec.so && test -f ${FFMPEG_DIR}/lib/libavformat.a -o -f ${FFMPEG_DIR}/lib/libavformat.so ; then
+ 		AC_MSG_RESULT(found)
+ 		FFMPEG_OK="found"
+@@ -392,9 +392,11 @@
+ 	elif test -f ${FFMPEG_DIR}/include/libavformat/avformat.h; then
+ 		AC_MSG_RESULT(found ${FFMPEG_DIR}/include/libavformat/avformat.h)
+ 		FFMPEG_CFLAGS="-I${FFMPEG_DIR}/include -DFFMPEG_NEW_INCLUDES"
++		AVFORMAT="-I${FFMPEG_DIR}/include/libavformat"
+     elif test -f ${FFMPEG_DIR}/include/ffmpeg/libavformat/avformat.h; then
+         AC_MSG_RESULT(found ${FFMPEG_DIR}/include/ffmpeg/libavformat/avformat.h)
+         FFMPEG_CFLAGS="-I${FFMPEG_DIR}/include/ffmpeg -DFFMPEG_NEW_INCLUDES" 
++	AVFORMAT="-I${FFMPEG_DIR}/include/ffmpeg/libavformat"
+ 	else
+ 		AC_MSG_RESULT(not found)
+ 		FFMPEG_OK="no_found"
+@@ -423,9 +425,11 @@
+ 		AC_MSG_CHECKING([file_protocol is defined in ffmpeg ?])
+ 		saved_CFLAGS=$CFLAGS
+ 		saved_LIBS=$LIBS
+-		CFLAGS="${FFMPEG_CFLAGS}"
++
++
++		CFLAGS="${FFMPEG_CFLAGS} ${AVFORMAT}"
+ 		LIBS="$TEMP_LIBS"
+-		
++    	
+ 		AC_COMPILE_IFELSE(
+ 			[
+ 			#include <avformat.h>
+@@ -442,7 +446,8 @@
+ 			]
+ 		)
+ 		CFLAGS=$saved_CFLAGS
+-		LIBS=$saved_LIBS	
++		LIBS=$saved_LIBS
++       
+ 	fi
+ fi	
+ fi
+@@ -1067,6 +1072,13 @@
+ LIBS="${TEMP_LIBS}"
+ LDFLAGS="${TEMP_LDFLAGS}"
+ 
++
++AC_CHECK_FUNC(avformat_alloc_context, AC_DEFINE([have_avformat_alloc_context],1,[Define to 1 if you have avformat_alloc_context support]))
++AC_CHECK_FUNC(av_avformat_alloc_context, AC_DEFINE([have_av_avformat_alloc_context],1,[Define to 1 if you have av_avformat_alloc_context support]))
++AC_CHECK_FUNC(av_register_protocol2, AC_DEFINE([have_av_register_protocol2],1,[Define to 1 if you have av_register_protocol2 support]))
++AC_CHECK_FUNC(av_register_protocol, AC_DEFINE([have_av_register_protocol],1,[Define to 1 if you have av_register_protocol support]))
++
++
+ #
+ # Add the right exec path for rc scripts
+ #

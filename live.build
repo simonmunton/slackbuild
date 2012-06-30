@@ -1,0 +1,168 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=live
+TARNAMEEXTRA=
+TARSEP="."
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=2012.06.26
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.live555.com/liveMedia"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=livemedia
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/live-010_propagate_cflags.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ ${ARCH} = "x86_64" ]
+then
+ ./genMakefiles linux-64bit
+else
+ ./genMakefiles linux
+fi
+
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}"
+make clean
+CFLAGS="${CFLAGS} -fPIC -DPIC" make ${NUM_JOBS} || exit
+
+for f in liveMedia groupsock BasicUsageEnvironment UsageEnvironment
+do
+  mv ${f}/lib${f}.a ${f}/lib${f}_pic.a
+done
+
+make clean
+CFLAGS="$(CFLAGS) -fPIC -DPIC" make ${NUM_JOBS} || exit
+
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+
+for f in liveMedia groupsock BasicUsageEnvironment UsageEnvironment
+do
+  mkdir -p ${PKG}/usr/include/${f}
+  cp -pr ${f}/include/* ${PKG}/usr/include/${f}
+  cp -p ${f}/lib${f}*.a ${PKG}/usr/lib${LIBDIRSUFFIX}
+done
+
+mkdir -p ${PKG}/usr/bin
+cp -p mediaServer/live555MediaServer ${PKG}/usr/bin
+cp -p proxyServer/live555ProxyServer ${PKG}/usr/bin
+for f in openRTSP playSIP sapWatch testAMRAudioStreamer \
+          testMP3Receiver testMP3Streamer \
+          testMPEG1or2AudioVideoStreamer \
+          testMPEG1or2AudioVideoToDarwin \
+          testMPEG1or2ProgramToTransportStream \
+          testMPEG1or2Splitter testMPEG1or2VideoReceiver \
+          testMPEG1or2VideoStreamer testMPEG2TransportStreamer \
+          testMPEG4VideoStreamer testMPEG4VideoToDarwin \
+          testOnDemandRTSPServer testRelay testWAVAudioStreamer \
+          MPEG2TransportStreamIndexer \
+          vobStreamer
+do
+  cp -p testProgs/${f} ${PKG}/usr/bin
+done
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "multimedia streaming libraries"
+A set of C++ libraries for multimedia streaming, using open standard 
+protocols (RTP/RTCP, RTSP, SIP). These libraries - which can be 
+compiled for Unix (including Linux and Mac OS X), Windows, and QNX 
+(and other POSIX-compliant systems) - can be used to build streaming 
+applications.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

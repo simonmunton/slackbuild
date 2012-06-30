@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=lyx
-TARNAMEEXTRA=
+TARNAME=projectM
+TARNAMEEXTRA=-complete
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p/projectM
 #TAR_EXT=.tar.gz
-VERSION=2.0.4
-VERSIONEXTRA=
+VERSION=2.1.0
+VERSIONEXTRA=-Source
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://projectm.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,18 +55,28 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PATH=/usr/lib/qt4/bin:${PATH}
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-frontend=qt4
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DINCLUDE-PROJECTM-JACK=1 \
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +91,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,10 +106,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "WYSIWYM document processor"
-LyX is a document processor that encourages an approach to writing
-based on the structure of your documents, not their appearance. It is
-released under a Free Software / Open Source license.
+make_slack_desc << EOF "projectM is an awesome music visualizer"
+projectM is an awesome music visualizer. There is nothing better in 
+the world of Unix. projectM\'s greatness comes from the hard work of 
+the community. Users like you can create presets that connect music 
+with incredible visuals.
 
 EOF
 
