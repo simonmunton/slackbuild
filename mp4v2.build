@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ImageMagick
+TARNAME=mp4v2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=6.7.8-1
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.imagemagick.org/"
+WEBPAGE="https://code.google.com/p/mp4v2/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=imagemagick
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -65,22 +65,14 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --program-prefix= \
-	    --with-x \
-	    --with-frozenpaths=no \
-	    --without-modules \
-	    --disable-openmp \
-	    --enable-static=no \
-	    --enable-shared \
-	    --with-perl
-
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -88,7 +80,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} INSTALLDIRS=vendor || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -96,7 +88,7 @@ then
   exit
 fi
 
-make install INSTALLDIRS=vendor DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -106,30 +98,24 @@ compress_manpages
 
 compress_info
 
-mv ${PKG}/usr/share/doc/* ${PKG}/usr/doc
-
-mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION%-*}
-
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  LICENSE NOTICE Platforms.txt QuickStart.txt \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION%-*}
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/share/doc
-
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a robust collection of image processing tools"
-ImageMagick is a collection of tools for manipulating and displaying
-digital images.  It can merge images, transform image dimensions,
-do screen captures, create animation sequences, and convert between
-many different image formats.  
+make_slack_desc << EOF "MP4v2 library"
+The MP4v2 library provides an API to create and modify mp4 files as 
+defined by ISO-IEC:14496-1:2001 MPEG-4 Systems. This file format is 
+derived from Apple\'s QuickTime file format that has been used as a m
+ultimedia file format in a variety of platforms and applications. It 
+is a very powerful and extensible format that can accommodate 
+practically any type of media.
 
-ImageMagick was written by John Cristy of ImageMagick Studio.
-
-Home page:  http://www.imagemagick.org/
+MP4v2 was originally bundled with mpeg4ip library, but has been moved 
+into its own maintained library due to a combination of the cessation 
+of support of mpeg4ip and the usefulness of this library on its own.
 
 EOF
 
