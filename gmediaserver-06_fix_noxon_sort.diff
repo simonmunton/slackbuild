@@ -1,0 +1,49 @@
+Index: gmediaserver-0.13.0/src/contentdir.c
+===================================================================
+--- gmediaserver-0.13.0.orig/src/contentdir.c	2009-10-20 14:36:41.000000000 +0200
++++ gmediaserver-0.13.0/src/contentdir.c	2009-10-20 14:37:07.000000000 +0200
+@@ -145,8 +145,15 @@
+     const Entry *e1 = k1;
+     const Entry *e2 = k2;
+ 
++    if ( criteria->first == NULL ) {
++       /* default sorting */
++       return strcasecmp(e1->name, e2->name);
++    }
++
+     sort_entry = criteria->first;
+-    while (sort_entry != NULL) {
++
++    /* FIXME: sorting by multiple criterias will never work */
++    while (sort_entry != NULL) { /* FIXME: sort_entry is never updated! */
+ 	char *p1 = get_entry_property(e1, sort_entry->property);
+ 	char *p2 = get_entry_property(e2, sort_entry->property);
+ 
+@@ -154,11 +161,11 @@
+ 	    free(p2);
+ 	    return (sort_entry->ascending ? -1 : 1);
+ 	}
+-	if (p1 != NULL && p2 == NULL) {
++	else if (p1 != NULL && p2 == NULL) {
+ 	    free(p1);
+ 	    return (sort_entry->ascending ? 1 : -1);
+ 	}
+-	if (p1 != NULL && p2 != NULL) {
++	else if (p1 != NULL && p2 != NULL) {
+ 	    int compare;
+ 
+ 	    compare = strcmp(p1, p2);
+@@ -167,9 +174,12 @@
+ 	    if (compare != 0)
+ 		return (sort_entry->ascending ? compare : -compare);
+ 	}
++	else { /* both are null - bail out!!! */
++           return strcasecmp(e1->name, e2->name);
++        }
+     }
+ 
+-    return e1-e2;
++    return e1-e2; /* FIXME: sorting by pointer compare? */
+ }
+ 
+ void

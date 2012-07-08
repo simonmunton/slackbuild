@@ -1,0 +1,227 @@
+--- mediatomb-0.12.1/src/metadata/ffmpeg_handler.cc.orig	2012-07-06 21:40:49.000000000 +0100
++++ mediatomb-0.12.1/src/metadata/ffmpeg_handler.cc	2012-07-06 22:46:00.000000000 +0100
+@@ -105,6 +105,21 @@
+ 
+ 	if (!pFormatCtx->metadata)
+ 		return;
++
++	AVDictionaryEntry *tag = NULL;
++	while ((tag = av_dict_get(pFormatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
++	{
++		for (const mapping_t *m = mapping; m->avname != NULL; m++)
++		{
++			if (strcmp(tag->key, m->avname) == 0 && tag->value && tag->value[0])
++			{
++				log_debug("Added metadata %s: %s\n", m->avname, tag->value);
++				item->setMetadata(MT_KEYS[m->field].upnp, sc->convert(tag->value));
++			}
++		}
++	}
++
++#if 0
+ 	for (const mapping_t *m = mapping; m->avname != NULL; m++)
+ 	{
+ 		AVMetadataTag *tag = NULL;
+@@ -115,6 +130,8 @@
+ 			item->setMetadata(MT_KEYS[m->field].upnp, sc->convert(tag->value));
+ 		}
+ 	}
++#endif
++
+ 	/* Old algorithm (doesn't work with libav >= 0.7)
+ 	if (strlen(pFormatCtx->title) > 0) 
+     {
+@@ -287,8 +304,8 @@
+     av_register_all();
+ 
+     // Open video file
+-    if (av_open_input_file(&pFormatCtx, 
+-                          item->getLocation().c_str(), NULL, 0, NULL) != 0)
++    if (avformat_open_input(&pFormatCtx, 
++                          item->getLocation().c_str(), NULL, NULL) != 0)
+         return; // Couldn't open file
+ 
+     // Retrieve stream information
+--- mediatomb-0.12.1/src/metadata/libmp4v2_handler.cc.orig	2010-03-25 14:58:10.000000000 +0000
++++ mediatomb-0.12.1/src/metadata/libmp4v2_handler.cc	2012-07-07 07:28:27.000000000 +0100
+@@ -65,52 +65,64 @@
+ static void addMetaField(metadata_fields_t field, MP4FileHandle mp4, Ref<CdsItem> item)
+ {
+     String value;
+-    char*  mp4_retval = NULL;
++    const char*  mp4_retval = NULL;
+     u_int16_t track;
+     u_int16_t total_tracks;
+  
+     Ref<StringConverter> sc = StringConverter::i2i();
+-    
++
++    const MP4Tags *tags;
++    tags = MP4TagsAlloc();
++    if (!MP4TagsFetch(tags, mp4))
++        return;
++
+     switch (field)
+     {
+         case M_TITLE:
+-            MP4GetMetadataName(mp4, &mp4_retval);
++            mp4_retval = tags->name;
+             break;
+         case M_ARTIST:
+-            MP4GetMetadataArtist(mp4, &mp4_retval);
++            mp4_retval = tags->artist;
+             break;
+         case M_ALBUM:
+-            MP4GetMetadataAlbum(mp4, &mp4_retval);
++            mp4_retval = tags->album;
+             break;
+         case M_DATE:
+-            MP4GetMetadataYear(mp4, &mp4_retval);
++            mp4_retval = tags->releaseDate;
+             if (mp4_retval)
+             {
+                 value = mp4_retval;
+-                free(mp4_retval);
+                 if (string_ok(value))
+                     value = value + "-01-01";
+                 else
+-                    return;
++                    mp4_retval = NULL;
+             }
+             break;
+         case M_GENRE:
+-            MP4GetMetadataGenre(mp4, &mp4_retval);
++            mp4_retval = tags->genre;
+             break;
+         case M_DESCRIPTION:
+-            MP4GetMetadataComment(mp4, &mp4_retval);
++            mp4_retval = tags->comments;
+             break;
+         case M_TRACKNUMBER:
+-            MP4GetMetadataTrack(mp4, &track, &total_tracks);
+-            if (track > 0)
++            if (tags->track)
+             {
+-                value = String::from(track);
+-                item->setTrackNumber((int)track);
++                track = tags->track->index;
++                total_tracks = tags->track->total;
++                if (track > 0)
++                {
++                    value = String::from(track);
++                    item->setTrackNumber((int)track);
++                }
++                else
++                {
++                    MP4TagsFree(tags);
++                    return;
++                }
+             }
+-            else
+-                return;
+             break;
+         default:
++            MP4TagsFree(tags);
+             return;
+     }
+ 
+@@ -118,7 +130,6 @@
+         (mp4_retval))
+     {
+         value = mp4_retval;
+-        free(mp4_retval);
+     }
+     
+     value = trim_string(value);
+@@ -128,6 +139,8 @@
+         item->setMetadata(MT_KEYS[field].upnp, sc->convert(value));
+         log_debug("mp4 handler: setting metadata on item: %d, %s\n", field, sc->convert(value).c_str());
+     }
++
++    MP4TagsFree(tags);
+ }
+ 
+ void LibMP4V2Handler::fillMetadata(Ref<CdsItem> item)
+@@ -190,14 +203,24 @@
+         }
+ 
+ #if defined(HAVE_MAGIC)
+-        u_int8_t *art_data;
++        void *art_data=NULL;
+         u_int32_t art_data_len;
+         String art_mimetype;
+ #ifdef HAVE_MP4_GET_METADATA_COVER_ART_COUNT
+         if (MP4GetMetadataCoverArtCount(mp4) && 
+             MP4GetMetadataCoverArt(mp4, &art_data, &art_data_len))
+ #else
+-            MP4GetMetadataCoverArt(mp4, &art_data, &art_data_len);
++//            MP4GetMetadataCoverArt(mp4, &art_data, &art_data_len);
++        const MP4Tags *tags;
++        tags = MP4TagsAlloc();
++        if (MP4TagsFetch(tags, mp4))
++        {
++            if (tags->artwork)
++            {
++                art_data = tags->artwork->data;
++                art_data_len = tags->artwork->size;
++            }
++        }
+ #endif
+         {
+             if (art_data)
+@@ -211,11 +234,11 @@
+                 }
+                 catch (Exception ex)
+                 {
+-                    free(art_data);
++                    MP4TagsFree(tags);
++                    MP4Close(mp4);
+                     throw ex;
+                 }
+ 
+-                free(art_data);
+                 if (art_mimetype != _(MIMETYPE_DEFAULT))
+                 {
+                     Ref<CdsResource> resource(new CdsResource(CH_MP4));
+@@ -225,6 +248,7 @@
+                 }
+             }
+         }
++        MP4TagsFree(tags);
+ #endif
+         MP4Close(mp4);
+     }
+@@ -253,19 +277,29 @@
+     if (!MP4GetMetadataCoverArtCount(mp4))
+         throw _Exception(_("LibMP4V2Handler: resource has no album art information"));
+ #endif
+-    u_int8_t *art_data;
++    void *art_data=NULL;
+     u_int32_t art_data_len;
+-    if (MP4GetMetadataCoverArt(mp4, &art_data, &art_data_len))
++    const MP4Tags *tags;
++    tags = MP4TagsAlloc();
++    if (MP4TagsFetch(tags, mp4))
+     {
++        if (tags->artwork)
++        {
++            art_data = tags->artwork->data;
++            art_data_len = tags->artwork->size;
++        }
+         if (art_data)
+         {
+             *data_size = (off_t)art_data_len;
+             Ref<IOHandler> h(new MemIOHandler((void *)art_data, art_data_len));
+-            free(art_data);
++            MP4TagsFree(tags);
++            MP4Close(mp4);
+             return h;
+         }
+     }
+-        
++    MP4TagsFree(tags);
++    MP4Close(mp4);
++
+     throw _Exception(_("LibMP4V2Handler: could not serve album art "
+                            "for file") + item->getLocation() + 
+                            " - embedded image not found");

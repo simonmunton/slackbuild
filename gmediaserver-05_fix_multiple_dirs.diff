@@ -1,0 +1,28 @@
+Index: gmediaserver-0.13.0/src/metadata.c
+===================================================================
+--- gmediaserver-0.13.0.orig/src/metadata.c	2009-10-20 14:32:45.000000000 +0200
++++ gmediaserver-0.13.0/src/metadata.c	2009-10-20 14:34:29.000000000 +0200
+@@ -1071,6 +1071,7 @@
+ 	uint32_t c;
+ 	uint32_t child_count = 0;
+ 
++	root_entry = make_entry(ROOT_ENTRY_NAME, -1, true);
+ 	children = xmalloc(sizeof(int32_t) * pathc);
+ 	for (c = 0; c < pathc; c++) {
+ 	    Entry *entry;
+@@ -1088,13 +1089,13 @@
+ 	        free(tmp);
+             }
+ 
+-	    entry = scan_entry(pathv[c], name, -1, indent_size, NULL);
++	    entry = scan_entry(pathv[c], name, root_entry->id, indent_size,
++			       NULL);
+ 	    if (entry != NULL)
+ 	        children[child_count++] = entry->id;
+ 	    free(name);
+ 	}
+ 	if (child_count != 0) {
+-	    root_entry = make_entry(ROOT_ENTRY_NAME, -1, true);
+ 	    detail = get_entry_detail(root_entry, DETAIL_CHILDREN);
+ 	    detail->data.children.count = child_count;
+ 	    detail->data.children.list = children;

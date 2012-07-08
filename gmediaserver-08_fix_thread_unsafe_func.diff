@@ -1,0 +1,20 @@
+Description: Fix thread unsafe function causing crashes
+ The conv_filename function is not thread safe, as it uses a static buffer
+ to be able to return the computed string, w/o leaking. Due the UPnP web
+ server being threaded and the function freeing the pointer on entry, the
+ string used by the server might happen to be doubly freed, or used while
+ the pointer is not valid any longer. Just declare the variable as Thread
+ Local Storage.
+Author: Guillem Jover <guillem@debian.org>
+
+--- gmediaserver-0.13.0.orig/src/main.c
++++ gmediaserver-0.13.0/src/main.c
+@@ -127,7 +127,7 @@ convert_string_to_log(const char *str)
+     return xstrdup(str);
+ }
+ 
+-static char *cache_fs_str = NULL;
++static __thread char *cache_fs_str = NULL;
+ 
+ char *
+ conv_filename(const char *str)

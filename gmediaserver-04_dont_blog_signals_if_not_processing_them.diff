@@ -1,0 +1,43 @@
+## 04_dont_blog_signals_if_not_processing_them.dpatch by Thomas Viehmann
+## Don't block signals before the (possibly long) scan during which
+## they (in particular SIGTERM) would be ignored.
+## See Debian bug #500259
+
+--- gmediaserver-0.13.0~/src/main.c
++++ gmediaserver-0.13.0/src/main.c
+@@ -403,6 +403,17 @@
+     if (!background)
+         write_pid_file(pidfilename, getpid(), false);
+ 
++    if (!init_metadata()) {
++        finish_logging(false);
++        exit(EXIT_FAILURE);
++    }
++
++    if (!scan_entries(argv+optind, argc-optind, 0)) {
++        finish_metadata();
++        finish_logging(false);
++	exit(EXIT_FAILURE);
++    }
++   
+     signalaction.sa_handler = dummy_signal_handler;
+     if (sigemptyset(&signalaction.sa_mask) < 0)
+     	die(_("cannot empty signal set - %s\n"), errstr);
+@@ -428,17 +439,6 @@
+     if (sigprocmask(SIG_BLOCK, &signalset, NULL) < 0)
+     	die(_("cannot block signals - %s\n"), errstr);
+ 
+-    if (!init_metadata()) {
+-        finish_logging(false);
+-        exit(EXIT_FAILURE);
+-    }
+-
+-    if (!scan_entries(argv+optind, argc-optind, 0)) {
+-        finish_metadata();
+-        finish_logging(false);
+-	exit(EXIT_FAILURE);
+-    }
+-
+     init_contentdir();
+ 
+     init_upnp(listenip, listenport);

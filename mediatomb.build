@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xournal
+TARNAME=mediatomb
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.4.7
+VERSION=0.12.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://xournal.sourceforge.net/"
+WEBPAGE="http://mediatomb.cc/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,22 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/mediatomb-debug-mode-fix.patch
+ patch -p1 < ${CWD}/mediatomb-config_xml_comment.patch
+ patch -p1 < ${CWD}/mediatomb-const_char_conversion.patch
+ patch -p1 < ${CWD}/mediatomb-libav_0.7_support.patch
+ patch -p1 < ${CWD}/mediatomb-gcc_4.6_support.patch
+ patch -p1 < ${CWD}/mediatomb-js_1.8_support.patch
+ patch -p1 < ${CWD}/mediatomb-js_parse.patch
+ patch -p1 < ${CWD}/mediatomb-libmozjs185_support.patch
+ patch -p1 < ${CWD}/mediatomb-gcc_4.7_support.patch
+ patch -p1 < ${CWD}/mediatomb-buffer_overrun_999hours.patch
+ patch -p1 < ${CWD}/mediatomb-js_copyObject.patch
+ patch -p1 < ${CWD}/mediatomb-fix_spelling_errors.patch
+ patch -p1 < ${CWD}/mediatomb-fix-ffmpeg-metadata.patch
+ patch -p1 < ${CWD}/mediatomb-metadata.patch
+
+ autoreconf
 )
 fi
 
@@ -72,6 +87,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -87,7 +103,7 @@ then
   exit
 fi
 
-make install desktop-install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -104,12 +120,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "notetaking application"
-Xournal is an application for notetaking, sketching, keeping a journal 
-using a stylus. It is free software (GNU GPL) and runs on Linux 
-(recent distributions) and other GTK+/Gnome platforms. It is similar 
-to Microsoft Windows Journal or to other alternatives such as Jarnal, 
-Gournal, and NoteLab.
+make_slack_desc << EOF "UPnP MediaServer"
+MediaTomb is an open source (GPL) UPnP MediaServer with a nice web 
+user interface, it allows you to stream your digital media through 
+your home network and listen to/watch it on a variety of UPnP 
+compatible devices.
+
+MediaTomb implements the UPnP MediaServer V 1.0 specification that can 
+be found on http://www.upnp.org/. The current implementation focuses 
+on parts that are required by the specification, however we look into 
+extending the functionality to cover the optional parts of the spec 
+as well.
 
 EOF
 

@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xournal
+TARNAME=gmediaserver
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=0.4.7
+VERSION=0.13.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://xournal.sourceforge.net/"
+WEBPAGE="http://www.gnu.org/software/gmediaserver/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,13 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gmediaserver-03_fix_info_file.diff
+ patch -p1 < ${CWD}/gmediaserver-04_dont_blog_signals_if_not_processing_them.diff
+ patch -p1 < ${CWD}/gmediaserver-05_fix_multiple_dirs.diff
+ patch -p1 < ${CWD}/gmediaserver-06_fix_noxon_sort.diff
+ patch -p1 < ${CWD}/gmediaserver-07_mime_magic.diff
+ patch -p1 < ${CWD}/gmediaserver-08_fix_thread_unsafe_func.diff
+ patch -p1 < ${CWD}/gmediaserver-09_libupnp6.diff
 )
 fi
 
@@ -72,6 +78,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -87,7 +94,7 @@ then
   exit
 fi
 
-make install desktop-install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -104,12 +111,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "notetaking application"
-Xournal is an application for notetaking, sketching, keeping a journal 
-using a stylus. It is free software (GNU GPL) and runs on Linux 
-(recent distributions) and other GTK+/Gnome platforms. It is similar 
-to Microsoft Windows Journal or to other alternatives such as Jarnal, 
-Gournal, and NoteLab.
+make_slack_desc << EOF "UPnP compatible media server"
+GMediaServer is a UPnP compatible media server for the GNU system. It 
+is part of the GNU project.
+
+GMediaServer serves audio and video files to certain network connected 
+media players. Most hardware media players only play music and/or 
+video they don't provide the media themselves. Those media files have 
+to come from a device on the network. GMediaServer is a server for 
+such UPnP compatible media players
 
 EOF
 

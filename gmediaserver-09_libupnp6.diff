@@ -1,0 +1,78 @@
+Index: gmediaserver-0.13.0/src/upnp.c
+===================================================================
+--- gmediaserver-0.13.0.orig/src/upnp.c	2011-10-18 09:51:53.000000000 +0100
++++ gmediaserver-0.13.0/src/upnp.c	2011-10-18 17:39:39.000000000 +0100
+@@ -26,6 +26,8 @@
+ #include <netinet/in.h>		/* ?; inet_ntoa */
+ #include <arpa/inet.h>		/* ?; inet_ntoa */
+ #include <inttypes.h>		/* POSIX */
++#include <sys/socket.h>
++#include <netdb.h>
+ #include "gettext.h"            /* Gnulib/gettext */
+ #define _(s) gettext(s)
+ #define N_(s) gettext_noop(s)
+@@ -261,11 +263,18 @@
+     Service *service;
+     ServiceVariable *variable;
+ 
++    char addrStr[INET6_ADDRSTRLEN];
++    int error;
++
++    error = getnameinfo((struct sockaddr *)&request->CtrlPtIPAddr, sizeof(request->CtrlPtIPAddr),
++                          addrStr, sizeof(addrStr), 0, 0,
++                          NI_NUMERICHOST);
++
+     say(2, _("Event received: Get variable request\n"));
+     say(3, _("Event device UDN: %s\n"), quotearg(request->DevUDN));
+     say(3, _("Event service ID: %s\n"), quotearg(request->ServiceID));
+     say(3, _("Event variable name: %s\n"), quotearg(request->StateVarName));
+-    say(3, _("Event source: %s\n"), inet_ntoa(request->CtrlPtIPAddr));
++    say(3, _("Event source: %s\n"), error == 0 ? addrStr : "unknown address");
+ 
+     if (strcmp(request->DevUDN, device_udn) != 0) {
+         say(1, _("Discarding event - event device UDN (%s) not recognized\n"), quotearg(request->DevUDN));
+@@ -302,11 +311,18 @@
+     ServiceAction *action;
+     ActionEvent event;
+ 
++    char addrStr[INET6_ADDRSTRLEN];
++    int error;
++
++    error = getnameinfo((struct sockaddr *)&request->CtrlPtIPAddr, sizeof(request->CtrlPtIPAddr),
++                          addrStr, sizeof(addrStr), 0, 0,
++                          NI_NUMERICHOST);
++
+     say(2, _("Event received: Action request\n"));
+     say(3, _("Event device UDN: %s\n"), quotearg(request->DevUDN));
+     say(3, _("Event service ID: %s\n"), quotearg(request->ServiceID));
+     say(3, _("Event action name: %s\n"), quotearg(request->ActionName));
+-    say(3, _("Event source: %s\n"), inet_ntoa(request->CtrlPtIPAddr));
++    say(3, _("Event source: %s\n"), error == 0 ? addrStr : "unknown address");
+     say_document(4, _("Event action request:\n"), request->ActionRequest);
+ 
+     if (strcmp(request->DevUDN, device_udn) != 0) {
+Index: gmediaserver-0.13.0/src/contentdir.c
+===================================================================
+--- gmediaserver-0.13.0.orig/src/contentdir.c	2011-10-18 17:44:50.000000000 +0100
++++ gmediaserver-0.13.0/src/contentdir.c	2011-10-18 17:44:58.000000000 +0100
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include <config.h>
++#include <assert.h>
+ #include <stdint.h>		/* Gnulib/C99 */
+ #include <inttypes.h>		/* ? */
+ #include <sys/stat.h>		/* POSIX */
+Index: gmediaserver-0.13.0/src/webserver.c
+===================================================================
+--- gmediaserver-0.13.0.orig/src/webserver.c	2011-10-18 18:00:17.000000000 +0100
++++ gmediaserver-0.13.0/src/webserver.c	2011-10-18 18:00:22.000000000 +0100
+@@ -83,7 +83,7 @@
+     return get_entry_by_id(id);
+ }
+ 
+-static int
++static VDCallback_GetInfo
+ webserver_get_info(const char *filename, struct File_Info *info)
+ {
+     Entry *entry;
