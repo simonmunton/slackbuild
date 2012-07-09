@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libupnp
+TARNAME=ushare
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=1.6.17
+VERSION=1.1a
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://pupnp.sourceforge.net/"
+WEBPAGE="http://ushare.geexbox.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -63,9 +63,7 @@ CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --enable-dlna
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -90,6 +88,17 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/usr/man/man1
+cp src/ushare.1 ${PKG}/usr/man/man1
+
+(cd ${PKG}/etc
+ mv ushare.conf ushare.conf.new
+ doinst_config etc/ushare.conf.new
+ mkdir rc.d
+ mv init.d/ushare rc.d/rc.ushare
+ rmdir init.d
+)
+
 #strip_binaries
 
 fix_links
@@ -105,12 +114,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Portable Open Source UPnP Development Kit"
-The portable SDK for UPnP Devices (libupnp) provides developers with 
-an API and open source code for building control points, devices, and 
-bridges that are compliant with Version 1.0 of the Universal Plug and 
-Play Device Architecture Specification and support several operating 
-systems like Linux, *BSD, Solaris and others. 
+make_slack_desc << EOF "A free UPnP A/V & DLNA Media Server for Linux"
+uShare is a UPnP (TM) A/V & DLNA Media Server. It implements the 
+server component that provides UPnP media devices with information on 
+available multimedia files. uShare uses the built-in http server of 
+libupnp to stream the files to clients.
+
+GeeXboX uShare is able to provide access to both images, videos, 
+music or playlists files (see below for a complete file format support 
+list). It does not act as an UPnP Media Adaptor and thus, can't 
+transcode streams to fit the client requirements.
 
 EOF
 
