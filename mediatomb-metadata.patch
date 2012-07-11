@@ -1,5 +1,5 @@
 --- mediatomb-0.12.1/src/metadata/ffmpeg_handler.cc.orig	2012-07-06 21:40:49.000000000 +0100
-+++ mediatomb-0.12.1/src/metadata/ffmpeg_handler.cc	2012-07-06 22:46:00.000000000 +0100
++++ mediatomb-0.12.1/src/metadata/ffmpeg_handler.cc	2012-07-10 22:33:16.000000000 +0100
 @@ -105,6 +105,21 @@
  
  	if (!pFormatCtx->metadata)
@@ -31,8 +31,27 @@
  	/* Old algorithm (doesn't work with libav >= 0.7)
  	if (strlen(pFormatCtx->title) > 0) 
      {
-@@ -287,8 +304,8 @@
-     av_register_all();
+@@ -277,18 +294,25 @@
+ 
+     int x = 0;
+     int y = 0;
++    static bool initDone = false;
+ 
+-	AVFormatContext *pFormatCtx;
++	AVFormatContext *pFormatCtx = NULL;
+ 	
+ 	// Suppress all log messages
+ 	av_log_set_callback(FfmpegNoOutputStub);
+ 	
+ 	// Register all formats and codecs
+-    av_register_all();
++    if (!initDone)
++    {
++	initDone = true;
++	av_register_all();
++    }
++
++printf("-> %s\n", item->getLocation().c_str());
  
      // Open video file
 -    if (av_open_input_file(&pFormatCtx, 
@@ -42,6 +61,15 @@
          return; // Couldn't open file
  
      // Retrieve stream information
+@@ -303,7 +327,7 @@
+ 	addFfmpegResourceFields(item, pFormatCtx, &x, &y);
+ 	
+     // Close the video file
+-    av_close_input_file(pFormatCtx);
++    avformat_close_input(&pFormatCtx);
+ }
+ 
+ Ref<IOHandler> FfmpegHandler::serveContent(Ref<CdsItem> item, int resNum, off_t *data_size)
 --- mediatomb-0.12.1/src/metadata/libmp4v2_handler.cc.orig	2010-03-25 14:58:10.000000000 +0000
 +++ mediatomb-0.12.1/src/metadata/libmp4v2_handler.cc	2012-07-07 07:28:27.000000000 +0100
 @@ -65,52 +65,64 @@
