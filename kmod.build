@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
 VERSION=9
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://git.profusion.mobi/cgit.cgi/kmod.git/"
 
@@ -64,10 +64,11 @@ CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
+            --libdir=/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --bindir=/sbin \
+	    --sbindir=/sbin \
 	    --with-zlib \
 	    --with-xz
 
@@ -105,6 +106,26 @@ make install DESTDIR=${PKG}
  do
    mv ${f} ${f%.8}-kmod.8
  done
+)
+
+# Create symlinks for the usual module-init-tools stuff:
+( cd ${PKG}/sbin
+  for file in depmod insmod lsmod modinfo modprobe rmmod ; do
+    ln -sf kmod ${file}
+  done
+)
+
+# Link lsmod into /bin
+mkdir -p ${PKG}/bin
+( cd ${PKG}/bin ; ln -sf /sbin/lsmod . )
+
+mkdir -p ${PKG}/etc/modprobe.d
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+mv ${PKG}/lib${LIBDIRSUFFIX}/pkgconfig ${PKG}/usr/lib${LIBDIRSUFFIX}
+mv ${PKG}/lib${LIBDIRSUFFIX}/*.la ${PKG}/usr/lib${LIBDIRSUFFIX}
+rm -f ${PKG}/lib${LIBDIRSUFFIX}/*.so
+( cd $PKG/usr/lib${LIBDIRSUFFIX}
+  ln -sf ../../lib${LIBDIRSUFFIX}/libkmod.so.? libkmod.so
 )
 
 strip_binaries
