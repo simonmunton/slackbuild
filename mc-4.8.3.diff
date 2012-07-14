@@ -1,3 +1,14 @@
+--- mc-4.8.3/src/filemanager/chown.c.orig	2012-04-22 08:32:39.000000000 +0100
++++ mc-4.8.3/src/filemanager/chown.c	2012-07-14 12:48:20.000000000 +0100
+@@ -378,7 +378,7 @@
+                     if (mc_chown (fname_vpath, new_user, new_group) == -1)
+                         message (D_ERROR, MSG_ERROR, _("Cannot chown \"%s\"\n%s"),
+                                  fname, unix_error_string (errno));
+-                    vfs_path_free (vpath);
++                    vfs_path_free (fname_vpath);
+                 }
+                 else
+                     apply_chowns (new_user, new_group);
 --- mc-4.8.3/src/filemanager/panel.c.orig	2012-04-22 11:53:16.000000000 +0100
 +++ mc-4.8.3/src/filemanager/panel.c	2012-04-30 21:30:54.000000000 +0100
 @@ -3490,7 +3490,7 @@
@@ -37,6 +48,28 @@
          tty_print_string (str_fit_to_term (file_label, width - 34, J_LEFT_FIT));
      else
          tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
+--- mc-4.8.3/src/vfs/cpio/cpio.c.orig	2012-04-22 08:32:39.000000000 +0100
++++ mc-4.8.3/src/vfs/cpio/cpio.c	2012-07-14 12:43:37.000000000 +0100
+@@ -249,7 +249,7 @@
+ 
+         mc_close (fd);
+         s = g_strconcat (super->name, decompress_extension (type), (char *) NULL);
+-        tmp_vpath = vfs_path_from_str (s);
++        tmp_vpath = vfs_path_from_str_flags (s, VPF_NO_CANON);
+         fd = mc_open (tmp_vpath, O_RDONLY);
+         vfs_path_free (tmp_vpath);
+         if (fd == -1)
+--- mc-4.8.3/src/vfs/tar/tar.c.orig	2012-04-22 08:32:39.000000000 +0100
++++ mc-4.8.3/src/vfs/tar/tar.c	2012-07-14 12:44:15.000000000 +0100
+@@ -316,7 +316,7 @@
+ 
+         mc_close (result);
+         s = g_strconcat (archive->name, decompress_extension (type), (char *) NULL);
+-        tmp_vpath = vfs_path_from_str (s);
++        tmp_vpath = vfs_path_from_str_flags (s, VPF_NO_CANON);
+         result = mc_open (tmp_vpath, O_RDONLY);
+         vfs_path_free (tmp_vpath);
+         if (result == -1)
 --- mc-4.8.3/src/editor/editwidget.c.orig	2012-04-22 11:52:10.000000000 +0100
 +++ mc-4.8.3/src/editor/editwidget.c	2012-04-30 21:30:54.000000000 +0100
 @@ -320,6 +320,12 @@
@@ -60,3 +93,31 @@
      spellcheck
 +    keyword \\\\ brightcyan
      keyword \\' brightcyan
+--- mc-4.8.3/lib/util.c.orig	2012-04-22 11:53:16.000000000 +0100
++++ mc-4.8.3/lib/util.c	2012-07-14 12:46:49.000000000 +0100
+@@ -112,14 +112,14 @@
+ static char *
+ resolve_symlinks (const vfs_path_t *vpath)
+ {
+-    char *p;
++    char *p, *p2;
+     char *buf, *buf2, *q, *r, c;
+     struct stat mybuf;
+ 
+     if (vpath->relative)
+         return NULL;
+ 
+-    p = vfs_path_to_str (vpath);
++    p = p2 = vfs_path_to_str (vpath);
+     r = buf = g_malloc (MC_MAXPATHLEN);
+     buf2 = g_malloc (MC_MAXPATHLEN);
+     *r++ = PATH_SEP;
+@@ -181,7 +181,7 @@
+ 
+   ret:
+     g_free (buf2);
+-    g_free (p);
++    g_free (p2);
+     return buf;
+ }
+ 
