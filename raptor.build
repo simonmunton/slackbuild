@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
 VERSION=1.4.21
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +43,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/raptor-01-write_bytes.patch
+ patch -p1 < ${CWD}/raptor-02-fix-639065
+ patch -p1 < ${CWD}/raptor-1.4.21-cve.patch
 )
 fi
 
@@ -75,6 +77,9 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/usr/bin/rapper ${PKG}/usr/bin/rapper-1
+mv ${PKG}/usr/man/man1/rapper.1 ${PKG}/usr/man/man1/rapper-1.1
 
 #strip_binaries
 

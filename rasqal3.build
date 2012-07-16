@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
 VERSION=0.9.29
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -75,6 +75,12 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/usr/include/rasqal ${PKG}/usr/include/rasqal3
+ln -s rasqal3 ${PKG}/usr/include/rasqal
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/rasqal.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/rasqal3.pc
+ln -s rasqal3.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/rasqal.pc
+sed -i '/includedir=/ s/rasqal/rasqal3/' ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/rasqal3.pc
 
 #strip_binaries
 
