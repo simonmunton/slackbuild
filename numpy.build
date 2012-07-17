@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=1.5.1
+VERSION=1.6.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://numpy.scipy.org"
+WEBPAGE="http://numpy.scipy.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/numpy-1.0.3.diff
- patch -p1 -b -z .orig < ${CWD}/numpy-1.5.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,13 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  true
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+#make ${NUM_JOBS} || exit
 python setup.py build || exit
 fi
 
@@ -71,9 +89,10 @@ then
   exit
 fi
 
-python setup.py install --prefix=${PKG}/usr
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -88,17 +107,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "array-processing package for Python"
-NumPy is a general-purpose array-processing package designed to
-efficiently manipulate large multi-dimensional arrays of arbitrary
-records without sacrificing too much speed for small multi-dimensional
-arrays. NumPy is built on the Numeric code base and adds features
-introduced by numarray as well as an extended C-API and the ability to
-create arrays of arbitrary type which makes NumPy suitable for
-interfacing with general purpose data-base applications.
+make_slack_desc << EOF "scientific computing with Python"
+NumPy is the fundamental package for scientific computing with Python. 
+It contains among other things:
 
-There are also basic facilities for discrete fourier transform,
-basic linear algebra and random number generation.
+    a powerful N-dimensional array object
+    sophisticated (broadcasting) functions
+    tools for integrating C/C++ and Fortran code
+    useful linear algebra, Fourier transform, and random number capabilities
 
 EOF
 
