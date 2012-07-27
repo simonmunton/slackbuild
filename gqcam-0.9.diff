@@ -1,6 +1,28 @@
---- gqcam-0.9/timer.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/timer.c	2010-06-15 06:46:06.000000000 +0100
-@@ -63,7 +63,7 @@
+--- gqcam-0.9/filters.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/filters.c	2012-07-25 19:52:47.000000000 +0100
+@@ -12,7 +12,8 @@
+ #include <semaphore.h>
+ #include <gtk/gtk.h>
+ #include <linux/types.h> 
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <signal.h>
+ #include <png.h>
+ #include "gqcam.h"
+--- gqcam-0.9/timer.c.orig	2012-07-25 19:52:04.000000000 +0100
++++ gqcam-0.9/timer.c	2012-07-25 19:52:25.000000000 +0100
+@@ -10,7 +10,8 @@
+ #include <pthread.h>
+ #include <gtk/gtk.h>
+ #include <linux/types.h> 
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <stdio.h>
+ #include <jpeglib.h>
+ #include <png.h>
+@@ -63,7 +64,7 @@
  
    camera->on_timer = 1;
    
@@ -9,3 +31,167 @@
      strcpy(camera->timer_struct.command, gtk_entry_get_text(GTK_ENTRY(camera->timer_struct.commandentry)));
      camera->timer_struct.iscommand = 1;
    }
+--- gqcam-0.9/gqcam.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/gqcam.c	2012-07-27 05:56:27.000000000 +0100
+@@ -31,7 +31,9 @@
+ #include <semaphore.h>
+ #include <gtk/gtk.h>
+ #include <linux/types.h> 
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
++#include <libv4l1.h>
+ #include <signal.h>
+ #include <png.h>
+ #include "gqcam.h"
+@@ -79,10 +81,10 @@
+ 
+ void set_cam_info(struct Camera *camera)
+ {
+-  if (ioctl (camera->dev, VIDIOCSPICT, &camera->vid_pic) == -1) {
++  if (v4l1_ioctl (camera->dev, VIDIOCSPICT, &camera->vid_pic) == -1) {
+     perror ("ioctl (VIDIOCSPICT)");
+   }
+-  if (ioctl (camera->dev, VIDIOCSWIN, &camera->vid_win) == -1) {
++  if (v4l1_ioctl (camera->dev, VIDIOCSWIN, &camera->vid_win) == -1) {
+     perror ("ioctl (VIDIOCSWIN)");
+   }
+ }
+@@ -92,9 +94,12 @@
+   int i;
+   struct video_clip vid_clips[32];
+ 
+-  ioctl(camera->dev, VIDIOCGCAP, &camera->vid_caps);
+-  ioctl(camera->dev, VIDIOCGWIN, &camera->vid_win);
+-  ioctl(camera->dev, VIDIOCGPICT, &camera->vid_pic);
++  if (v4l1_ioctl(camera->dev, VIDIOCGCAP, &camera->vid_caps) < 0)
++    perror("VIDIOCGCAP");
++  if (v4l1_ioctl(camera->dev, VIDIOCGWIN, &camera->vid_win) < 0)
++    perror("VIDIOCGWIN");
++  if (v4l1_ioctl(camera->dev, VIDIOCGPICT, &camera->vid_pic) < 0)
++    perror("VIDIOCGPICT");
+ 
+   for (i = 0; i < 32; i++) {
+     vid_clips[i].x      = 0;
+@@ -189,7 +194,7 @@
+ void open_cam(struct Camera *camera) 
+ {
+   if((camera->dev<=0)){
+-    camera->dev = open(camera->devname, O_RDWR);
++    camera->dev = v4l1_open(camera->devname, O_RDWR);
+     //    printf("Opening: %d\n", camera->dev);
+     if (camera->dev < 0) {
+       perror("/dev/video");
+@@ -204,7 +209,7 @@
+   int debug = 0;
+   pthread_mutex_lock( &camera->iscam_mutex );
+   if(camera->dev > 0){
+-    close(camera->dev);
++    v4l1_close(camera->dev);
+     camera->dev = 0;
+   }
+ }
+@@ -291,7 +296,7 @@
+       pthread_mutex_unlock( &camera->pref_mutex );
+       
+       if( camera->dev )
+-	len = read (camera->dev, camera->picbuff, camera->vid_caps.maxwidth * camera->vid_caps.maxheight*3);
++	len = v4l1_read (camera->dev, camera->picbuff, camera->vid_caps.maxwidth * camera->vid_caps.maxheight*3);
+       if (len <= 0)
+ 	fprintf(stderr, "Error reading image...\n");      
+     }
+--- gqcam-0.9/color.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/color.c	2012-07-25 19:50:49.000000000 +0100
+@@ -10,7 +10,8 @@
+ #include <pthread.h>
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/preferences.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/preferences.c	2012-07-25 19:53:01.000000000 +0100
+@@ -12,7 +12,8 @@
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+ #include <glib.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/frontend.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/frontend.c	2012-07-25 19:50:33.000000000 +0100
+@@ -12,7 +12,8 @@
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+ #include <glib.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/greyscale.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/greyscale.c	2012-07-25 19:51:10.000000000 +0100
+@@ -10,7 +10,8 @@
+ #include <pthread.h>
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/Makefile.orig	2012-07-25 20:01:06.000000000 +0100
++++ gqcam-0.9/Makefile	2012-07-27 05:57:37.000000000 +0100
+@@ -2,7 +2,7 @@
+ CC = gcc
+ LD = $(CC)
+ 
+-LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng -g
++LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng -lv4l1 -g
+ 
+ PROG = gqcam
+ VERSION = 0.9
+--- gqcam-0.9/save.c.orig	2000-11-07 16:52:06.000000000 +0000
++++ gqcam-0.9/save.c	2012-07-25 19:58:48.000000000 +0100
+@@ -10,7 +10,8 @@
+ #include <pthread.h>
+ #include <gtk/gtk.h>
+ #include <linux/types.h> 
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <stdio.h>
+ #include <jpeglib.h>
+ #include <png.h>
+@@ -171,7 +172,7 @@
+   /* Set error handling.  REQUIRED if you aren't supplying your own
+    * error hadnling functions in the png_create_write_struct() call.
+    */
+-  if (setjmp(png_ptr->jmpbuf))
++  if (setjmp(png_jmpbuf(png_ptr)))
+     {
+       /* If we get here, we had a problem reading the file */
+       fclose(fp);
+@@ -314,12 +315,12 @@
+   png_write_end(png_ptr, info_ptr);
+   
+   /* if you malloced the palette, free it here */
+-  free(info_ptr->palette);
++//  free(info_ptr->palette);
+   
+   /* if you allocated any text comments, free them here */
+   
+   /* clean up after the write, and free any memory allocated */
+-  png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
++  png_destroy_write_struct(&png_ptr, &info_ptr);
+   
+   /* close the file */
+   fclose(fp);

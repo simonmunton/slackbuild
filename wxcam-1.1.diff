@@ -1,0 +1,31 @@
+--- wxcam-1.1/src/v4l2.cpp.orig	2011-06-11 08:49:43.000000000 +0100
++++ wxcam-1.1/src/v4l2.cpp	2012-07-27 06:35:13.000000000 +0100
+@@ -204,6 +204,12 @@
+                     std::cout<<"Found V4L2_PIX_FMT_BGR24 pixel format"<<std::endl;
+                     break;
+                 }
++                else if(argp.pixelformat == V4L2_PIX_FMT_RGB24) {
++                    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
++                    pixelFormat = V4L2_PIX_FMT_RGB24;
++                    std::cout<<"Found V4L2_PIX_FMT_RGB24 pixel format"<<std::endl;
++                    break;
++                }
+                 else if(argp.pixelformat == V4L2_PIX_FMT_UYVY) {
+                     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+                     pixelFormat = V4L2_PIX_FMT_UYVY;
+@@ -481,9 +487,15 @@
+     }
+     else if(pixelFormat == V4L2_PIX_FMT_BGR24 || pixelFormat == V4L2_PIX_FMT_SN9C10X
+             || pixelFormat == V4L2_PIX_FMT_SBGGR8) {
++        memcpy(*buffer, buffers[buf.index].start, width * height * 3);
+         if(!adjustColors)
+             convert2bgr( (unsigned char*)*buffer, width*height*3);   
+     }
++    else if(pixelFormat == V4L2_PIX_FMT_RGB24) {
++        memcpy(*buffer, buffers[buf.index].start, width * height * 3);
++        if(adjustColors)
++            convert2bgr( (unsigned char*)*buffer, width*height*3);   
++    }
+     else {
+         std::cout<<"Unknown pixel format"<<std::endl;
+         return false;
