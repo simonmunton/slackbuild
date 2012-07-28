@@ -1,17 +1,29 @@
---- gqcam-0.9/filters.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/filters.c	2012-07-25 19:52:47.000000000 +0100
-@@ -12,7 +12,8 @@
- #include <semaphore.h>
- #include <gtk/gtk.h>
+--- gqcam-0.9/greyscale.c.orig	2012-07-28 16:34:31.764969058 +0100
++++ gqcam-0.9/greyscale.c	2012-07-28 16:34:43.966969251 +0100
+@@ -10,7 +10,8 @@
+ #include <pthread.h>
  #include <linux/types.h> 
+ #include <gtk/gtk.h>
 -#include <linux/videodev.h>
 +#include <libv4l1-videodev.h>
 +#include <linux/videodev2.h>
- #include <signal.h>
  #include <png.h>
  #include "gqcam.h"
---- gqcam-0.9/timer.c.orig	2012-07-25 19:52:04.000000000 +0100
-+++ gqcam-0.9/timer.c	2012-07-25 19:52:25.000000000 +0100
+ #include "frontend.h"
+--- gqcam-0.9/frontend.c.orig	2012-07-28 16:34:31.758969058 +0100
++++ gqcam-0.9/frontend.c	2012-07-28 16:34:43.965969255 +0100
+@@ -12,7 +12,8 @@
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+ #include <glib.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/timer.c.orig	2012-07-28 16:34:31.746969057 +0100
++++ gqcam-0.9/timer.c	2012-07-28 16:34:43.963969264 +0100
 @@ -10,7 +10,8 @@
  #include <pthread.h>
  #include <gtk/gtk.h>
@@ -31,8 +43,8 @@
      strcpy(camera->timer_struct.command, gtk_entry_get_text(GTK_ENTRY(camera->timer_struct.commandentry)));
      camera->timer_struct.iscommand = 1;
    }
---- gqcam-0.9/gqcam.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/gqcam.c	2012-07-27 05:56:27.000000000 +0100
+--- gqcam-0.9/gqcam.c.orig	2012-07-28 16:34:31.746969057 +0100
++++ gqcam-0.9/gqcam.c	2012-07-28 17:24:35.879016819 +0100
 @@ -31,7 +31,9 @@
  #include <semaphore.h>
  #include <gtk/gtk.h>
@@ -73,6 +85,15 @@
  
    for (i = 0; i < 32; i++) {
      vid_clips[i].x      = 0;
+@@ -108,7 +113,7 @@
+   if (camera->vid_caps.type & VID_TYPE_MONOCHROME) {
+     camera->greyscale = 1;
+     camera->pic = realloc( camera->pic, camera->vid_caps.maxwidth*camera->vid_caps.maxheight);
+-    camera->picbuff = realloc( camera->picbuff, camera->vid_caps.maxwidth*camera->vid_caps.maxheight );
++    camera->picbuff = realloc( camera->picbuff, camera->vid_caps.maxwidth*camera->vid_caps.maxheight);
+   }
+   else {
+     camera->greyscale = 0;
 @@ -189,7 +194,7 @@
  void open_cam(struct Camera *camera) 
  {
@@ -100,8 +121,25 @@
        if (len <= 0)
  	fprintf(stderr, "Error reading image...\n");      
      }
---- gqcam-0.9/color.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/color.c	2012-07-25 19:50:49.000000000 +0100
+@@ -491,6 +496,8 @@
+   //camera.vid_pic.contrast = contrast*256;
+   //camera.vid_pic.whiteness = whiteness*256;
+   //set_cam_info(&camera);
++  camera.vid_pic.palette = VIDEO_PALETTE_RGB24;
++  set_cam_info(&camera);
+   create_frontend(&camera);
+ 
+   if( !camera.speed_fastest )
+@@ -565,6 +572,7 @@
+   camera->vid_pic.brightness = brightness*256;
+   camera->vid_pic.contrast = contrast*256;
+   camera->vid_pic.whiteness = whiteness*256;
++  camera->vid_pic.palette = VIDEO_PALETTE_RGB24;
+   set_cam_info(camera);
+   sem_post( &s_grab1 );
+   sem_post( &s_grab2 );
+--- gqcam-0.9/color.c.orig	2012-07-28 16:34:31.752969058 +0100
++++ gqcam-0.9/color.c	2012-07-28 16:34:43.964969259 +0100
 @@ -10,7 +10,8 @@
  #include <pthread.h>
  #include <linux/types.h> 
@@ -112,55 +150,8 @@
  #include <png.h>
  #include "gqcam.h"
  #include "frontend.h"
---- gqcam-0.9/preferences.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/preferences.c	2012-07-25 19:53:01.000000000 +0100
-@@ -12,7 +12,8 @@
- #include <linux/types.h> 
- #include <gtk/gtk.h>
- #include <glib.h>
--#include <linux/videodev.h>
-+#include <libv4l1-videodev.h>
-+#include <linux/videodev2.h>
- #include <png.h>
- #include "gqcam.h"
- #include "frontend.h"
---- gqcam-0.9/frontend.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/frontend.c	2012-07-25 19:50:33.000000000 +0100
-@@ -12,7 +12,8 @@
- #include <linux/types.h> 
- #include <gtk/gtk.h>
- #include <glib.h>
--#include <linux/videodev.h>
-+#include <libv4l1-videodev.h>
-+#include <linux/videodev2.h>
- #include <png.h>
- #include "gqcam.h"
- #include "frontend.h"
---- gqcam-0.9/greyscale.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/greyscale.c	2012-07-25 19:51:10.000000000 +0100
-@@ -10,7 +10,8 @@
- #include <pthread.h>
- #include <linux/types.h> 
- #include <gtk/gtk.h>
--#include <linux/videodev.h>
-+#include <libv4l1-videodev.h>
-+#include <linux/videodev2.h>
- #include <png.h>
- #include "gqcam.h"
- #include "frontend.h"
---- gqcam-0.9/Makefile.orig	2012-07-25 20:01:06.000000000 +0100
-+++ gqcam-0.9/Makefile	2012-07-27 05:57:37.000000000 +0100
-@@ -2,7 +2,7 @@
- CC = gcc
- LD = $(CC)
- 
--LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng
-+LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng -lv4l1
- 
- PROG = gqcam
- VERSION = 0.9
---- gqcam-0.9/save.c.orig	2000-11-07 16:52:06.000000000 +0000
-+++ gqcam-0.9/save.c	2012-07-25 19:58:48.000000000 +0100
+--- gqcam-0.9/save.c.orig	2012-07-28 16:34:31.770969058 +0100
++++ gqcam-0.9/save.c	2012-07-28 16:34:43.967969249 +0100
 @@ -10,7 +10,8 @@
  #include <pthread.h>
  #include <gtk/gtk.h>
@@ -195,3 +186,38 @@
    
    /* close the file */
    fclose(fp);
+--- gqcam-0.9/preferences.c.orig	2012-07-28 16:34:31.757969058 +0100
++++ gqcam-0.9/preferences.c	2012-07-28 16:34:43.965969255 +0100
+@@ -12,7 +12,8 @@
+ #include <linux/types.h> 
+ #include <gtk/gtk.h>
+ #include <glib.h>
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <png.h>
+ #include "gqcam.h"
+ #include "frontend.h"
+--- gqcam-0.9/filters.c.orig	2012-07-28 16:34:31.723969052 +0100
++++ gqcam-0.9/filters.c	2012-07-28 16:34:43.963969264 +0100
+@@ -12,7 +12,8 @@
+ #include <semaphore.h>
+ #include <gtk/gtk.h>
+ #include <linux/types.h> 
+-#include <linux/videodev.h>
++#include <libv4l1-videodev.h>
++#include <linux/videodev2.h>
+ #include <signal.h>
+ #include <png.h>
+ #include "gqcam.h"
+--- gqcam-0.9/Makefile.orig	2012-07-28 16:34:31.770969058 +0100
++++ gqcam-0.9/Makefile	2012-07-28 16:34:43.966969251 +0100
+@@ -2,7 +2,7 @@
+ CC = gcc
+ LD = $(CC)
+ 
+-LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng
++LDFLAGS = `gtk-config --libs gthread` -ljpeg -lpthread -lpng -lv4l1
+ 
+ PROG = gqcam
+ VERSION = 0.9
