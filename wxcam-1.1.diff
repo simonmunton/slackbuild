@@ -1,6 +1,34 @@
 --- wxcam-1.1/src/v4l2.cpp.orig	2011-06-11 08:49:43.000000000 +0100
-+++ wxcam-1.1/src/v4l2.cpp	2012-07-27 06:35:13.000000000 +0100
-@@ -204,6 +204,12 @@
++++ wxcam-1.1/src/v4l2.cpp	2012-07-29 11:14:12.000000000 +0100
+@@ -51,10 +51,12 @@
+     controlsSetted = false;
+     pixelFormat = 0;
+     isMapped = false;       
++    convert = NULL;
+ }
+    
+ VideoForLinux2::~VideoForLinux2()
+ {
++    v4lconvert_destroy(convert);
+     closeDevice();
+ }
+ 
+@@ -77,11 +79,13 @@
+ bool VideoForLinux2::mMap(int w, int h, int frameRate) {
+     struct v4l2_cropcap cropcap;
+     struct v4l2_crop crop;
+-    struct v4l2_format fmt;
++//    struct v4l2_format fmt;
+     unsigned int min;
+             
+     if(!controlsSetted)
+         setControls();
++
++    convert = v4lconvert_create(fd);
+     
+     memset(&fmt, 0, sizeof(struct v4l2_format));
+     memset(&cropcap, 0, sizeof(struct v4l2_cropcap));
+@@ -204,6 +208,12 @@
                      std::cout<<"Found V4L2_PIX_FMT_BGR24 pixel format"<<std::endl;
                      break;
                  }
@@ -13,7 +41,43 @@
                  else if(argp.pixelformat == V4L2_PIX_FMT_UYVY) {
                      fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
                      pixelFormat = V4L2_PIX_FMT_UYVY;
-@@ -481,9 +487,15 @@
+@@ -266,6 +276,7 @@
+         return false;
+     }
+     
++#if 0
+     /* Buggy driver paranoia. */
+     min = fmt.fmt.pix.width * 2;
+     if (fmt.fmt.pix.bytesperline < min)
+@@ -273,6 +284,7 @@
+     min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
+     if (fmt.fmt.pix.sizeimage < min)
+         fmt.fmt.pix.sizeimage = min;
++#endif
+ 
+     width = w;
+     height = h;
+@@ -477,13 +489,35 @@
+ 		pixelFormat == V4L2_PIX_FMT_SGBRG8 ||
+ 		pixelFormat == V4L2_PIX_FMT_SPCA561 || 
+ 		pixelFormat ==  V4L2_PIX_FMT_SGRBG8) {         
++#if 0
+         bayer2rgb24(( unsigned char* ) *buffer, ( unsigned char* ) buffers[buf.index].start, width, height); 
++#else
++
++	struct v4l2_format dest_fmt;
++	memset(&dest_fmt, 0, sizeof dest_fmt);
++	dest_fmt.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++	dest_fmt.fmt.pix.width       = width;
++	dest_fmt.fmt.pix.height      = height;
++	dest_fmt.fmt.pix.bytesperline   = width * 3;
++	dest_fmt.fmt.pix.sizeimage   = width * height * 3;
++	dest_fmt.fmt.pix.field       = V4L2_FIELD_NONE;
++	dest_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
++
++	v4lconvert_convert(convert, &fmt, &dest_fmt, ( unsigned char* ) buffers[buf.index].start, 
++			   fmt.fmt.pix.sizeimage, (unsigned char *) *buffer, width * height * 3);
++#endif
      }
      else if(pixelFormat == V4L2_PIX_FMT_BGR24 || pixelFormat == V4L2_PIX_FMT_SN9C10X
              || pixelFormat == V4L2_PIX_FMT_SBGGR8) {
@@ -29,3 +93,47 @@
      else {
          std::cout<<"Unknown pixel format"<<std::endl;
          return false;
+@@ -552,17 +586,17 @@
+ 
+ bool VideoForLinux2::getResolution(unsigned int &width, unsigned int &height, unsigned int &frameRate)
+ {
+-    struct v4l2_format fmt;
+-    memset(&fmt, 0, sizeof(struct v4l2_format));
+-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++    struct v4l2_format fmt1;
++    memset(&fmt1, 0, sizeof(struct v4l2_format));
++    fmt1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+     frameRate=0; /*ignored*/
+-    if (ioctl (fd, VIDIOC_G_FMT, &fmt) == -1) {
++    if (ioctl (fd, VIDIOC_G_FMT, &fmt1) == -1) {
+         perror("VIDIOC_G_FMT");
+         return false;
+     }
+-    width = fmt.fmt.pix.width;
+-    height = fmt.fmt.pix.height;
+-    frameRate = ( fmt.fmt.pix.priv & PWC_FPS_FRMASK ) >> PWC_FPS_SHIFT;
++    width = fmt1.fmt.pix.width;
++    height = fmt1.fmt.pix.height;
++    frameRate = ( fmt1.fmt.pix.priv & PWC_FPS_FRMASK ) >> PWC_FPS_SHIFT;
+     printf("width: %d, height %d\n", width, height);
+     return true;
+ }
+--- wxcam-1.1/src/v4l2.h.orig	2011-06-11 08:50:00.000000000 +0100
++++ wxcam-1.1/src/v4l2.h	2012-07-29 09:43:46.000000000 +0100
+@@ -23,6 +23,7 @@
+ 
+ #include "v4l.h"
+ #include <string>
++#include <libv4lconvert.h>
+ 
+ #define HEADERFRAME1 0xaf
+ 
+@@ -76,6 +77,8 @@
+     int pixelFormat;
+     unsigned int width, height;
+     struct controls controls;
++    struct v4lconvert_data *convert;
++    struct v4l2_format fmt;
+             
+ };
+ 
