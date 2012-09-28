@@ -1,0 +1,47 @@
+--- httping-1.5.4/main.c.orig	2012-09-07 07:39:21.000000000 +0100
++++ httping-1.5.4/main.c	2012-09-28 21:08:03.000000000 +0100
+@@ -409,7 +409,7 @@
+ 				break;
+ 
+ 			case 'h':
+-				hostname = optarg;
++				hostname = mystrdup(optarg, "optarg");
+ 				break;
+ 
+ 			case 'p':
+@@ -524,11 +524,13 @@
+ 
+ 		if (strncasecmp(getcopy, "http://", 7) == 0)
+ 		{
+-			getcopy += 7;
++			free(getcopy);
++			getcopy = mystrdup(get + 7, "get request");
+ 		}
+ 		else if (strncasecmp(getcopy, "https://", 8) == 0)
+ 		{
+-			getcopy += 8;
++			free(getcopy);
++			getcopy = mystrdup(get + 8, "get request");
+ 			use_ssl = 1;
+ 		}
+ 
+--- httping-1.5.4/mssl.c.orig	2012-09-28 19:56:07.000000000 +0100
++++ httping-1.5.4/mssl.c	2012-09-28 20:46:46.000000000 +0100
+@@ -32,11 +32,14 @@
+ {
+ 	int rc = SSL_shutdown(ssl_h);
+ 
+-	if (!rc)
++	if (rc >= 0)
+ 	{
+-		shutdown(socket_h, 1);
++		if (rc == 0)
++		{
++			SSL_shutdown(ssl_h);
++		}
+ 
+-		rc = SSL_shutdown(ssl_h);
++		shutdown(socket_h, 1);
+ 	}
+ 
+ 	/* rc == 0 means try again but it seems to be fine
