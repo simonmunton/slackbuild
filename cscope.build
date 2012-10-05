@@ -2,15 +2,16 @@
 #
 . build_funcs
 
-TARNAME=x264
+TARNAME=cscope
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-#VERSION=snapshot-20111021-2245-stable
-VERSION=snapshot-20121003-2245
+VERSION=15.8a
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://cscope.sourceforge.net"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -54,14 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-	    --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --enable-shared \
-            --enable-visualize
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -74,11 +88,9 @@ then
   exit
 fi
 
-mkdir -p $PKG/usr/{lib${LIBDIRSUFFIX}/pkgconfig,include,bin}
-
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,17 +99,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/*txt \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-X264BUILD=`grep "#define X264_BUILD" x264.h | gawk '{print $3}'`
-PKGNAME=${TARNAME}-build-${X264BUILD}
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "H264 video encoder"
-x264 is a free library for encoding H264/AVC video streams. 
+make_slack_desc << EOF "text screen based source browsing tool"
+Cscope is a text screen based source browsing tool.  Although it is
+primarily designed to search C code (including lex and yacc files), it
+can also be used for C++ code.
 
 EOF
 
