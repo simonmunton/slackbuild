@@ -1,8 +1,6 @@
 
-#kde-base-artwork
 
-
-FILES="kdelibs
+FILES=(kdelibs
 kdepimlibs
  nepomuk-core
 kde-runtime
@@ -27,13 +25,11 @@ oxygen-icons
  kfloppy
  kgpg
  kremotecontrol
- #ksecrets
  ktimer
  kwallet
  printer-applet
  superkaramba
  sweeper
-#kdemultimedia
  libkcddb
  libkcompactdisc
  audiocd-kio
@@ -104,25 +100,58 @@ kdepim-runtime
   korundum
   kross-interpreters
 kde-l10n-en_GB
-"
+)
+
+
 #libbluedevil
-#bluedevil"
+#bluedevil
 
-for f in $FILES
+
+
+declare -A BLACKLIST
+
+BLACKLIST=(
+[kdeplasma-addons]=1
+[perlqt]=1
+[perlkde]=1
+[pykde4]=1
+)
+
+JOBS=8
+
+DODISTCC=0
+
+
+
+
+for f in ${FILES[*]}
 do
-  if [ ! -e /tmp/$f.built ]
+  if [ ! -e /tmp/packages/$f.built ]
   then
-    ./$f.build -j5
 
-#  echo "now install $f"
-#  read junk
+    if [ "${BLACKLIST[$f]}" == "1" ]
+    then
+      unset CC
+      unset CXX
+      unset DISTCC_HOSTS
+
+      ./$f.build -j1
+    else
+      if [ "$DODISTCC" == "1" ]
+      then
+        export CC="distcc gcc"
+        export CXX="distcc g++"
+        export DISTCC_HOSTS="hades/6 localhost"
+      fi
+
+      ./$f.build -j$JOBS
+    fi
 
     su -c "upgradepkg --install-new --reinstall /tmp/packages/$f*"
 
-    touch /tmp/$f.built
+    touch /tmp/packages/$f.built
   fi
 
 done
 
 echo alldone
-
