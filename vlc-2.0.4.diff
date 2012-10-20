@@ -1,0 +1,50 @@
+--- vlc-2.0.4/modules/services_discovery/upnp.cpp.orig	2012-06-06 22:31:44.000000000 +0100
++++ vlc-2.0.4/modules/services_discovery/upnp.cpp	2012-10-20 06:56:15.000000000 +0100
+@@ -191,7 +191,7 @@
+     if ( !p_parent ) return NULL;
+     if ( !psz_tag_name_ ) return NULL;
+ 
+-    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, psz_tag_name_ );
++    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, (char *)psz_tag_name_ );
+     if ( !p_node_list ) return NULL;
+ 
+     IXML_Node* p_element = ixmlNodeList_item( p_node_list, 0 );
+@@ -215,14 +215,14 @@
+     if ( !psz_tag_name_ ) return NULL;
+     if ( !psz_attribute_ ) return NULL;
+ 
+-    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, psz_tag_name_ );
++    IXML_NodeList* p_node_list = ixmlElement_getElementsByTagName( p_parent, (char *) psz_tag_name_ );
+     if ( !p_node_list ) return NULL;
+ 
+     IXML_Node* p_element = ixmlNodeList_item( p_node_list, 0 );
+     ixmlNodeList_free( p_node_list );
+     if ( !p_element ) return NULL;
+ 
+-    return ixmlElement_getAttribute( (IXML_Element*) p_element, psz_attribute_ );
++    return ixmlElement_getAttribute( (IXML_Element*) p_element, (char *) psz_attribute_ );
+ }
+ 
+ /*
+@@ -261,7 +261,7 @@
+     const char* psz_result_string = xml_getChildElementValue( p_doc, "Result" );
+     if( !psz_result_string ) return 0;
+ 
+-    IXML_Document* p_browse_doc = ixmlParseBuffer( psz_result_string );
++    IXML_Document* p_browse_doc = ixmlParseBuffer( (char *) psz_result_string );
+ 
+     return p_browse_doc;
+ }
+--- vlc-2.0.4/modules/codec/dmo/dmo.c.orig	2012-09-13 17:02:04.000000000 +0100
++++ vlc-2.0.4/modules/codec/dmo/dmo.c	2012-10-20 07:31:17.000000000 +0100
+@@ -52,6 +52,10 @@
+ #include <vlc_codecs.h>
+ #include "dmo.h"
+ 
++#ifndef BI_RGB
++#define BI_RGB 0
++#endif
++
+ //#define DMO_DEBUG 1
+ 
+ #ifdef LOADER
