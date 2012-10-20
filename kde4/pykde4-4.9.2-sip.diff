@@ -1,0 +1,64 @@
+commit fd30259903ad693b86476b6e8c280b93d0102223
+Author: Luca Beltrame <lbeltrame@kde.org>
+Date:   Wed Oct 3 21:35:49 2012 +0200
+
+    Enable proper building with newer SIP and PyQt. This change makes a part
+    of the SIP files present in PyKDE4 conditional to the version of PyQt.
+    If greater than 4.9, they are omitted, and thus this will build.
+    
+    The same change will be made in master
+
+diff --git a/sip/kdecore/typedefs.sip b/sip/kdecore/typedefs.sip
+index 5a0a080..af53f85 100644
+--- a/sip/kdecore/typedefs.sip
++++ b/sip/kdecore/typedefs.sip
+@@ -951,6 +951,9 @@ template <TYPE1>
+ %End
+ };
+ 
++%Feature PyKDE_QVector
++
++%If(PyKDE_QVector)
+ %MappedType QVector<int>
+ {
+ %TypeHeaderCode
+@@ -1025,3 +1028,4 @@ template <TYPE1>
+     return sipGetState(sipTransferObj);
+ %End
+ };
++%End
+\ No newline at end of file
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f778510..83e9322 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,6 +37,7 @@ IF(PYQT4_VERSION STRLESS "040900")  # These version numbers also appear in ../CM
+ ENDIF(PYQT4_VERSION STRLESS "040900")
+ 
+ 
++
+ SET(SOPRANO_MIN_VERSION "2.0")
+ MACRO_OPTIONAL_FIND_PACKAGE(Soprano)
+ MACRO_LOG_FEATURE(Soprano_FOUND "Soprano" "Soprano Libraries" "kdesupport" FALSE "" "Required for Soprano Python bindings.")
+@@ -95,9 +96,19 @@ SET(SIP_DISABLE_FEATURES VendorID PyQt_NoPrintRangeBug)
+ 
+ # Use an extra option when compiling on Python 3.
+ IF (PYTHON_3)
+-    SET(SIP_EXTRA_OPTIONS -g -x Py_v3)
++    IF(PYQT4_VERSION STRGREATER "040900")  
++	# Disable for newer PyQt
++	SET(SIP_EXTRA_OPTIONS -g -x PyKDE_QVector -x Py_v3)
++    ELSE (PYQT4_VERSION STRGREATER "040900")
++	SET(SIP_EXTRA_OPTIONS -g -x Py_v3)
++    ENDIF(PYQT4_VERSION STRGREATER "040900")
+ ELSE (PYTHON_3)
+-    SET(SIP_EXTRA_OPTIONS -g)
++    IF(PYQT4_VERSION STRGREATER "040900")  
++	# Disable for newer PyQt
++	SET(SIP_EXTRA_OPTIONS -g -x PyKDE_QVector)
++    ELSE (PYQT4_VERSION STRGREATER "040900")
++	SET(SIP_EXTRA_OPTIONS -g)
++    ENDIF(PYQT4_VERSION STRGREATER "040900")
+ ENDIF (PYTHON_3)
+ 
+ ADD_DEFINITIONS(-D_REENTRANT -DQT_CORE_LIB -DQT_GUI_LIB -DUSING_SOPRANO_NRLMODEL_UNSTABLE_API)
