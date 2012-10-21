@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mozplugger
+TARNAME=clamz
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/m
+TARSEP="-"
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.14.6
+VERSION=0.5
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://code.google.com/p/clamz/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/mozplugger-1.14.6.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -51,6 +54,8 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -61,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -73,17 +88,9 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/lib/{firefox,mozilla}/plugins
+make install DESTDIR=${PKG}
 
-make install DESTDIR=${PKG} libprefix=/lib${LIBDIRSUFFIX}
-
-mv ${PKG}/etc/mozpluggerrc ${PKG}/etc/mozpluggerrc.new
-
-doinst_config etc/mozpluggerrc.new
-
-#cp mozplugger.so ${PKG}/usr/lib/firefox/plugins
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -98,10 +105,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Mozilla plugin"
-MozPlugger is a Mozilla plugin which can show many types of multimedia 
-inside your Mozilla. To accomplish this, MozPlugger uses external 
-programs such as mplayer, xanim, mtv, timidity and tracker.
+make_slack_desc << EOF "Amazon mp3 downloader"
+Clamz is a little command-line program to download MP3 files from 
+Amazon.com's music store. It is intended to serve as a substitute for 
+Amazon's official MP3 Downloader, which is not free software (and 
+therefore is only available in binary form for a limited set of 
+platforms.) Clamz can be used to download either individual songs or 
+complete albums that you have purchased from Amazon. 
 
 EOF
 
