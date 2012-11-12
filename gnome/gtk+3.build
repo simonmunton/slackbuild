@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=glib
+TARNAME=gtk+
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.22.5
+VERSION=3.6.2
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=glib2
+PKGNAME=gtk+3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,7 +43,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/gtk+-2.10.14.diff
+# patch -p1 < ${CWD}/gtk+2-nsplugin.diff
+# patch -p1 < ${CWD}/gtk+-2.22.0.diff
 )
 fi
 
@@ -55,15 +57,16 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+# add -ggdb to flags for debug
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --mandir=/usr/man \
             --localstatedir=/var/lib \
-            --enable-debug=minimal \
-            --enable-static
+            --mandir=/usr/man \
+            --with-xinput=yes \
+            --enable-debug=minimal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,15 +81,29 @@ fi
 
 make install DESTDIR=${PKG}
 
-# Install profile scripts:
-mkdir -p ${PKG}/etc/profile.d/
-cp -a ${CWD}/glib2.sh ${PKG}/etc/profile.d/libglib2.sh.new
-cp -a ${CWD}/glib2.csh ${PKG}/etc/profile.d/libglib2.csh.new
+mv ${PKG}/etc/gtk-3.0/im-multipress.conf ${PKG}/etc/gtk-3.0/im-multipress.conf.new
+doinst_config etc/gtk-3.0/im-multipress.conf.new
+
+mkdir -p ${PKG}/etc/profile.d
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.csh
+#!/bin/csh
+setenv GDK_USE_XFT 1
+EOF
+
+cat <<EOF > ${PKG}/etc/profile.d/gtk+.sh
+#!/bin/sh
+GDK_USE_XFT=1
+export GDK_USE_XFT
+EOF
+
 chmod 755 ${PKG}/etc/profile.d/*
 
-doinst_same_perm etc/profile.d/libglib2.sh
-doinst_same_perm etc/profile.d/libglib2.csh
-doinst_config etc/profile.d/libglib2.sh.new etc/profile.d/libglib2.csh.new
+#mkdir -p ${PKG}/etc/gtk-3.0
+touch ${PKG}/etc/gtk-3.0/gtk.immodules
+touch ${PKG}/etc/gtk-3.0/gdk-pixbuf.loaders
+
+#rm -f /usr/share/icons/*/icon-theme.cache 1> /dev/null 2> /dev/null
 
 #strip_binaries
 
@@ -103,9 +120,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library of C routines"
-GLib is a library which includes support routines for C such as lists,
-trees, hashes, memory allocation, and many other things.
+make_slack_desc << EOF "multi-platform toolkit for GUIs"
+This is GTK+, a multi-platform toolkit for creating graphical user
+interfaces.  Offering a complete set of widgets, GTK+ is suitable for
+projects ranging from small one-off projects to complete application
+suites.
 
 EOF
 

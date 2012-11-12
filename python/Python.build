@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p/python
 #TAR_EXT=.tar.gz
-VERSION=2.6.6
+VERSION=2.7.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,13 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/python.readline.set_pre_input_hook.diff
+
+if [ "$ARCH" = "x86_64" ]; then
+  # Install to lib64 instead of lib and
+  # Python must report /usr/lib64/python2.7/site-packages as python_lib_dir:
+  patch -p1 < ${CWD}/python.x86_64.diff.gz
+fi
 )
 fi
 
@@ -55,11 +61,12 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-LIBDIRSUFFIX=""
+BRANCH_VERSION=`echo ${VERSION} | cut -f 1,2 -d .`
+
 # Location for Python site-packages:
-SITEPK=${PKG}/usr/lib${LIBDIRSUFFIX}/python2.6/site-packages
+SITEPK=${PKG}/usr/lib${LIBDIRSUFFIX}/python${BRANCH_VERSION}/site-packages
 # same as above without $PKG
-TOOLSDIR=/usr/lib${LIBDIRSUFFIX}/python2.6/site-packages
+TOOLSDIR=/usr/lib${LIBDIRSUFFIX}/python${BRANCH_VERSION}/site-packages
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -126,7 +133,7 @@ mkdir -p ${PKG}/usr/bin
 
 ( cd ${PKG}/usr/bin
   rm -f python
-  ln -sf python2.6 python
+  ln -sf python${BRANCH_VERSION} python
 )
 
 strip_binaries
