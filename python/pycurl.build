@@ -2,17 +2,16 @@
 #
 . build_funcs
 
-TARNAME=lxml
+TARNAME=pycurl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=3.0.1
+VERSION=7.19.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://lxml.de/"
-#"http://codespeak.net/"
+WEBPAGE="http://pycurl.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -81,6 +80,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+#make ${NUM_JOBS} || exit
 python setup.py build || exit
 fi
 
@@ -89,6 +89,7 @@ then
   exit
 fi
 
+#make install DESTDIR=${PKG}
 python setup.py install --root=${PKG}
 
 strip_binaries
@@ -100,19 +101,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python binding for libxml2 and libxslt"
-lxml is a Pythonic, mature binding for the libxml2 and libxslt 
-libraries. It provides safe and convenient access to these libraries 
-using the ElementTree API.
-
-It extends the ElementTree API significantly to offer support for 
-XPath, RelaxNG, XML Schema, XSLT, C14N and much more.
+make_slack_desc << EOF "PycURL is a Python interface to libcurl"
+PycURL is a Python interface to libcurl. PycURL can be used to fetch 
+objects identified by a URL from a Python program, similar to the 
+urllib Python module. PycURL is mature, very fast, and supports a lot 
+of features. 
 
 EOF
 
