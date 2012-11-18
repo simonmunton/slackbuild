@@ -13,9 +13,19 @@ then
   exit
 fi
 
+# try looking up package in 02packages.details.txt
+MOD=`zgrep "^$1\\s" ~/tmp/cpan/MINICPAN/modules/02packages.details.txt.gz`
+if [ $? -eq 0 ]
+then
+  MOD=${MOD##*/}
+  MOD=${MOD%-*}
+  set $MOD
+fi
+
+# Try and find package in cpan cache
 C=0
 N=${1//::/-}
-for f in `find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[0-9]*"`
+for f in `find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*"`
 do
   N1=MINICPAN/${f#*/MINICPAN/}
   C=$(($C + 1))
@@ -23,7 +33,7 @@ done
 if (( $C > 1 ))
 then
   echo multiple candidates found:
-  find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[0-9]*"
+  find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*"
 #  exit
   set $N1
 elif (( $C == 1 ))
