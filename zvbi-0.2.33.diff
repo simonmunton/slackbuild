@@ -1,0 +1,36 @@
+--- zvbi-0.2.33/src/exp-gfx.c.orig	2008-02-24 14:17:47.000000000 +0000
++++ zvbi-0.2.33/src/exp-gfx.c	2012-11-12 20:55:52.000000000 +0000
+@@ -1672,11 +1672,11 @@
+ 	char title[80];
+ 	unsigned int i;
+ 
+-	if (setjmp (png_ptr->jmpbuf))
++	if (setjmp (png_jmpbuf(png_ptr)))
+ 		return FALSE;
+ 
+ 	png_set_write_fn (png_ptr,
+-			  (voidp) gfx,
++			  (png_voidp) gfx,
+ 			  write_data,
+ 			  flush_data);
+ 
+--- zvbi-0.2.33/src/io-dvb.c.orig	2008-02-24 14:18:21.000000000 +0000
++++ zvbi-0.2.33/src/io-dvb.c	2012-11-12 20:58:07.000000000 +0000
+@@ -29,6 +29,7 @@
+ #include <errno.h>
+ #include <sys/select.h>
+ #include <sys/ioctl.h>
++#include <sys/stat.h>
+ 
+ #ifndef HAVE_S64_U64
+   /* Linux 2.6.x asm/types.h defines __s64 and __u64 only
+--- zvbi-0.2.33/contrib/ntsc-cc.c.orig	2007-11-27 17:39:34.000000000 +0000
++++ zvbi-0.2.33/contrib/ntsc-cc.c	2012-11-12 20:59:00.000000000 +0000
+@@ -35,6 +35,7 @@
+ #include <sys/ioctl.h>
+ #include <sys/types.h>
+ #include <sys/time.h>
++#include <sys/stat.h>
+ #ifdef HAVE_GETOPT_LONG
+ #  include <getopt.h>
+ #endif
