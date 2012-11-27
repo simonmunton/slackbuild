@@ -1,0 +1,61 @@
+--- audacious-plugins-3.3.2/src/cdaudio-ng/cdaudio-ng.c.orig	2012-09-23 14:05:12.000000000 +0100
++++ audacious-plugins-3.3.2/src/cdaudio-ng/cdaudio-ng.c	2012-11-25 09:06:19.000000000 +0000
+@@ -666,20 +666,20 @@
+     if (aud_get_bool ("CDDA", "use_cdtext"))
+     {
+         AUDDBG ("getting cd-text information for disc\n");
+-        cdtext_t *pcdtext = cdio_get_cdtext (pcdrom_drive->p_cdio, 0);
+-        if (pcdtext == NULL || pcdtext->field[CDTEXT_TITLE] == NULL)
++        cdtext_t *pcdtext = cdio_get_cdtext (pcdrom_drive->p_cdio);
++        if (pcdtext == NULL || cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_TITLE) == NULL)
+         {
+             AUDDBG ("no cd-text available for disc\n");
+         }
+         else
+         {
+             cdaudio_set_strinfo (&trackinfo[0],
+-                                 pcdtext->field[CDTEXT_PERFORMER] ? pcdtext->
+-                                 field[CDTEXT_PERFORMER] : "",
+-                                 pcdtext->field[CDTEXT_TITLE] ? pcdtext->
+-                                 field[CDTEXT_TITLE] : "",
+-                                 pcdtext->field[CDTEXT_GENRE] ? pcdtext->
+-                                 field[CDTEXT_GENRE] : "");
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_PERFORMER) ?
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_PERFORMER) : "",
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_TITLE) ?
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_TITLE) : "",
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_GENRE) ?
++                                 cdtext_get_const(pcdtext, 0, CDTEXT_FIELD_GENRE)  : "");
+         }
+     }
+ 
+@@ -691,8 +691,8 @@
+         if (aud_get_bool ("CDDA", "use_cdtext"))
+         {
+             AUDDBG ("getting cd-text information for track %d\n", trackno);
+-            pcdtext = cdio_get_cdtext (pcdrom_drive->p_cdio, trackno);
+-            if (pcdtext == NULL || pcdtext->field[CDTEXT_PERFORMER] == NULL)
++            pcdtext = cdio_get_cdtext (pcdrom_drive->p_cdio);
++            if (pcdtext == NULL || cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_PERFORMER) == NULL)
+             {
+                 AUDDBG ("no cd-text available for track %d\n", trackno);
+                 pcdtext = NULL;
+@@ -702,12 +702,12 @@
+         if (pcdtext != NULL)
+         {
+             cdaudio_set_strinfo (&trackinfo[trackno],
+-                                 pcdtext->field[CDTEXT_PERFORMER] ? pcdtext->
+-                                 field[CDTEXT_PERFORMER] : "",
+-                                 pcdtext->field[CDTEXT_TITLE] ? pcdtext->
+-                                 field[CDTEXT_TITLE] : "",
+-                                 pcdtext->field[CDTEXT_GENRE] ? pcdtext->
+-                                 field[CDTEXT_GENRE] : "");
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_PERFORMER) ?
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_PERFORMER) : "",
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_TITLE) ?
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_TITLE) : "",
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_GENRE) ?
++                                 cdtext_get_const(pcdtext, trackno, CDTEXT_FIELD_GENRE) : "");
+             cdtext_was_available = TRUE;
+         }
+         else

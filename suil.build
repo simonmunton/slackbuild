@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gnupg
+TARNAME=suil
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.0.19
+VERSION=0.6.6
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://www.gnupg.org/"
+WEBPAGE="http://drobilla.net/software/suil/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gnupg2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gnupg-2.0.16.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,18 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-	    --infodir=/usr/info \
+./waf configure --prefix=/usr \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+./waf ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,24 +86,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-make -C doc install-html DESTDIR=${PKG}
+./waf install --destdir=${PKG}
 
-(cd ${PKG}/usr/share/doc/${TARNAME}
- mv gnupg.html html
-
- cd html
- for f in *
- do
-  f1=`echo $f | sed -e 's/_002d/-/g ; s/_005f/_/g ; s/_0023/#/g'`
-  if [ "$f" != "$f1" ]
-  then
-    mv "$f" "$f1"
-  fi
- done
-)
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -101,25 +98,23 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ABOUT-NLS THANKS VERSION \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/${TARNAME}2-${VERSION}
-
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The GNU Privacy Guard version 2.x"
-GnuPG is GNU's tool for secure communication and data storage.  It can
-be used to encrypt data and to create digital signatures.  It includes
-an advanced key management facility and is compliant with the proposed
-OpenPGP Internet standard as described in RFC2440 and the S/MIME
-standard as described by several RFCs.
+make_slack_desc << EOF "library for loading and wrapping LV2 plugin UIs"
+Suil is a lightweight C library for loading and wrapping LV2 plugin 
+UIs.
 
-GnuPG 2.0 is the stable version of GnuPG integrating support for
-OpenPGP and S/MIME.  It does not conflict with an installed 1.4.x
-OpenPGP-only version.
+Suil makes it possible to load a UI of any toolkit in a host using 
+any other toolkit (assuming the toolkits are both supported by Suil). 
+Hosts do not need to build against or link to foreign toolkit 
+libraries to use UIs written with that toolkit; all the necessary 
+magic is performed by dynamically loaded modules. The API is designed 
+such that hosts do not need to explicitly support specific toolkits 
+at all  if Suil supports a particular toolkit, then UIs in that 
+toolkit will work in all hosts that use Suil automatically.
 
 EOF
 

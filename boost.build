@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
 VERSION=1_50_0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -77,10 +77,11 @@ export EXPAT_LIBPATH=/usr/lib${LIBDIRSUFFIX}
 if [ ${DO_MAKE} == "yes" ]
 then
 #make LIBS="$LIBS" || exit
-./bjam ${LIBS} ${OPTS} --stagedir=stage                     variant=release threading=single stage
-./bjam ${LIBS} ${OPTS} --stagedir=stage-mt   --buildid=mt   variant=release threading=multi  stage
-./bjam ${LIBS} ${OPTS} --stagedir=stage-d    --buildid=d    variant=debug   threading=single stage
-./bjam ${LIBS} ${OPTS} --stagedir=stage-mt-d --buildid=mt-d variant=debug   threading=multi  stage
+./bjam link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x stage
+#./bjam ${LIBS} ${OPTS} --stagedir=stage-s    --build-dir=build-s                   variant=release threading=single stage
+#./bjam ${LIBS} ${OPTS} --stagedir=stage-mt   --build-dir=build-mt   --buildid=mt   variant=release threading=multi  stage
+#./bjam ${LIBS} ${OPTS} --stagedir=stage-d    --build-dir=build-d    --buildid=d    variant=debug   threading=single stage
+#./bjam ${LIBS} ${OPTS} --stagedir=stage-mt-d --build-dir=build-mt-d --buildid=mt-d variant=debug   threading=multi  stage
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,17 +91,20 @@ fi
 
 #make install prefix=${PKG}/usr LIBS="$LIBS" 
 INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
+./bjam ${INSTALL_OPTS} link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x install
 
-./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS}                variant=release threading=single install
-./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=mt   variant=release threading=multi  install
+#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-s                   variant=release threading=single install
+#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-mt   --buildid=mt   variant=release threading=multi  install
 
-INSTALL_OPTS="--prefix=${PKGDBG}/usr --exec-prefix=${PKGDBG}/usr --libdir=${PKGDBG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKGDBG}/usr/include"
+#INSTALL_OPTS="--prefix=${PKGDBG}/usr --exec-prefix=${PKGDBG}/usr --libdir=${PKGDBG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKGDBG}/usr/include"
 
-./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=d    variant=debug   threading=single install
-./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --buildid=mt-d variant=debug   threading=multi  install
+#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-d    --buildid=d    variant=debug   threading=single install
+#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-mt-d --buildid=mt-d variant=debug   threading=multi  install
 
 
-rm -rf ${PKGDBG}/usr/include
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/*-d.so* ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
 
 #	    PREFIX=${PKG}/usr \
 #	    EPREFIX=${PKG}/usr \
