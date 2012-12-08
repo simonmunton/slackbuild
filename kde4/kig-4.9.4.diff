@@ -1,0 +1,15 @@
+--- kig-4.9.4/cmake/FindBoostPython.cmake.orig	2012-11-30 07:42:14.000000000 +0000
++++ kig-4.9.4/cmake/FindBoostPython.cmake	2012-12-08 21:48:58.628826510 +0000
+@@ -46,6 +46,12 @@
+ 	find_package(Boost 1.33 COMPONENTS python)
+ 	if (Boost_PYTHON_FOUND)
+ 	  set(_found TRUE)
++	  list(FIND Boost_PYTHON_LIBRARY "optimized" _lidx)
++	  if (NOT ${_lidx} LESS 0)
++	    math(EXPR _lidx1 "1 + ${_lidx}")
++	    list(GET Boost_PYTHON_LIBRARY "${_lidx1}" _l)
++	    set(Boost_PYTHON_LIBRARY ${_l})
++	  endif(NOT ${_lidx} LESS 0)
+ 	  set(BOOST_PYTHON_INCLUDES "${_python_INCLUDE_DIRS};${Boost_INCLUDE_DIRS}")
+           set(BOOST_PYTHON_LIBS "${_python_LDFLAGS} ${Boost_PYTHON_LIBRARY}")
+ 	endif(Boost_PYTHON_FOUND)
