@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=clucene-core
+TARNAME=clucene
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.9.21b
+VERSION=20121221
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+#PKGNAME=clucene-core
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -53,15 +53,21 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,6 +81,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 #strip_binaries
 
