@@ -1,0 +1,35 @@
+commit a4b5cd2893a5eef09d615340ae899f785de84858
+Author: Orgad Shaneh <orgad.shaneh@audiocodes.com>
+Date:   Sun Nov 4 21:20:53 2012 +0200
+
+    Fix for memory leak in ResultStore
+    
+    In ResultStoreBase::addResults() it possible that the ResultItem we
+    create is invalid (filter-mode enabled). Since an invalid ResultItem
+    won't have any result data, we need to make sure that we don't allocate
+    any data for it.
+    
+    Backported (with minor technical changes) from qt/qtbase commit
+    6039179373f7552c2a711b06a7d69b9ca9d2b175
+    Original commit by Christian Strømme
+    
+    Task-number: QTBUG-27224
+    Change-Id: I5c941363c211d0414d461e7b1b0274c80f3d69b9
+    Reviewed-by: Christian Stromme <christian.stromme@digia.com>
+
+diff --git a/src/corelib/concurrent/qtconcurrentresultstore.h b/src/corelib/concurrent/qtconcurrentresultstore.h
+index 72ae1a5..fb0ae2c 100644
+--- a/src/corelib/concurrent/qtconcurrentresultstore.h
++++ b/src/corelib/concurrent/qtconcurrentresultstore.h
+@@ -177,7 +177,10 @@ public:
+ 
+     int addResults(int index, const QVector<T> *results, int totalCount)
+     {
+-        return ResultStoreBase::addResults(index, new QVector<T>(*results), results->count(), totalCount);
++        if (m_filterMode && totalCount && !results->count())
++            return ResultStoreBase::addResults(index, 0, 0, totalCount);
++        else
++            return ResultStoreBase::addResults(index, new QVector<T>(*results), results->count(), totalCount);
+     }
+ 
+     int addCanceledResult(int index)

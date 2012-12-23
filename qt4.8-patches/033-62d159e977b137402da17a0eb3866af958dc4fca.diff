@@ -1,0 +1,45 @@
+commit 62d159e977b137402da17a0eb3866af958dc4fca
+Author: Alan Alpert <aalpert@rim.com>
+Date:   Tue Nov 6 16:29:04 2012 -0800
+
+    Fix code convention docs
+    
+    The previously specified convention prevents change handlers from
+    being created properly. Another convention is being suggested instead.
+    
+    Task-number: QTBUG-27852
+    Change-Id: I32a3f6f6c01e628457b30479505b32f1c5bbc92c
+    Reviewed-by: Alan Alpert (RIM) <aalpert@rim.com>
+
+diff --git a/doc/src/declarative/codingconventions.qdoc b/doc/src/declarative/codingconventions.qdoc
+index 7befaeb..2774072 100644
+--- a/doc/src/declarative/codingconventions.qdoc
++++ b/doc/src/declarative/codingconventions.qdoc
+@@ -76,10 +76,8 @@ can be written like this:
+ 
+ QML and JavaScript do not enforce private properties like C++. There is a need
+ to hide these private properties, for example, when the properties are part of
+-the implementation. As a convention, private properties begin with two
+-\e underscore characters. For example, \c __area, is a property that is
+-accessible but is not meant for public use. Note that QML and JavaScript will
+-grant the user access to these properties.
++the implementation. To effectively gain private properties in a QML Item, the
++convention is to add a QtObject{} child to contain the properties. This shields them from being accessed outside the file in QML and JavaScript. As it involves the creation of another object, it is more expensive than just creating a property. To minimize the performance cost, try to group all private properties in one file into the same QtObject.
+ 
+ \snippet doc/src/snippets/declarative/codingconventions/private.qml 0
+ 
+diff --git a/doc/src/snippets/declarative/codingconventions/private.qml b/doc/src/snippets/declarative/codingconventions/private.qml
+index 8375e33..168e5f2 100644
+--- a/doc/src/snippets/declarative/codingconventions/private.qml
++++ b/doc/src/snippets/declarative/codingconventions/private.qml
+@@ -44,6 +44,9 @@ import QtQuick 1.0
+ Item {
+     id: component
+     width: 40; height: 50
+-    property real __area: width * height * 0.5    //not meant for outside use
++    QtObject {
++        id: d
++        property real area: width * height * 0.5    //not meant for outside use
++    }
+ }
+ //! [0]

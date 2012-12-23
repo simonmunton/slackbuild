@@ -1,0 +1,61 @@
+commit 31fee4444587e043413393f1c5df1b6c8c7da5aa
+Author: Rafael Roquetto <rafael.roquetto.qnx@kdab.com>
+Date:   Tue Nov 20 18:30:15 2012 -0200
+
+    QNX: fix QProcess fd inheritance
+    
+    Under QNX, QProcess was not inheriting the parent's file descriptors. This
+    patch fills in the fd_map array, containing the file descriptors to be
+    inherited, which is passed to spawn(), accordingly.
+    
+    cherry-picked from qt5 226f245c71df5673b5114615fbd9ad5c285b8d3a
+    
+    Change-Id: Id2957c6278bc21c89234a84b364763b601ae08a1
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/src/corelib/io/qprocess_unix.cpp b/src/corelib/io/qprocess_unix.cpp
+index 2500309..82d80dc 100644
+--- a/src/corelib/io/qprocess_unix.cpp
++++ b/src/corelib/io/qprocess_unix.cpp
+@@ -106,6 +106,8 @@ QT_END_NAMESPACE
+ #include <stdlib.h>
+ #include <string.h>
+ #ifdef Q_OS_QNX
++#include "qvarlengtharray.h"
++
+ #include <spawn.h>
+ #include <sys/neutrino.h>
+ #endif
+@@ -866,8 +868,21 @@ static pid_t doSpawn(int fd_count, int fd_map[], char **argv, char **envp,
+ 
+ pid_t QProcessPrivate::spawnChild(const char *workingDir, char **argv, char **envp)
+ {
+-    const int fd_count = 3;
+-    int fd_map[fd_count];
++    // we need to manually fill in fd_map
++    // to inherit the file descriptors from
++    // the parent
++    const int fd_count = sysconf(_SC_OPEN_MAX);
++    QVarLengthArray<int, 1024> fd_map(fd_count);
++
++    for (int i = 3; i < fd_count; ++i) {
++        // here we rely that fcntl returns -1 and
++        // sets errno to EBADF
++        const int flags = ::fcntl(i, F_GETFD);
++
++        fd_map[i] = ((flags >= 0) && !(flags & FD_CLOEXEC))
++                  ? i : SPAWN_FDCLOSED;
++    }
++
+     switch (processChannelMode) {
+     case QProcess::ForwardedChannels:
+         fd_map[0] = stdinChannel.pipe[0];
+@@ -886,7 +901,7 @@ pid_t QProcessPrivate::spawnChild(const char *workingDir, char **argv, char **en
+         break;
+     }
+ 
+-    pid_t childPid = doSpawn(fd_count, fd_map, argv, envp, workingDir, false);
++    pid_t childPid = doSpawn(fd_count, fd_map.data(), argv, envp, workingDir, false);
+ 
+     if (childPid == -1) {
+         QString error = qt_error_string(errno);

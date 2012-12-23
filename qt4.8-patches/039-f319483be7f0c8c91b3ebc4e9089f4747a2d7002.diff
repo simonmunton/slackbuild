@@ -1,0 +1,42 @@
+commit f319483be7f0c8c91b3ebc4e9089f4747a2d7002
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Thu Sep 27 06:08:34 2012 +0200
+
+    Fix regression introduced in QFileSystemEntry::path()
+    
+    When fd2eb070128ab6ef6b5c9343a0921f6b5a0bc041 was backported it
+    shouldn't have included the change to path() as this introduced
+    a behaviour change.  This reverts that part of the patch so it
+    is back to Qt 4.8.2 behavior.
+    
+    Task-number: QTBUG-27356
+    
+    Change-Id: I7c19dda473e7aa2c53baed961c3b0e0d322362fe
+    Reviewed-by: João Abecasis <joao@abecasis.name>
+
+diff --git a/src/corelib/io/qfilesystementry.cpp b/src/corelib/io/qfilesystementry.cpp
+index 32bf109..75d85a5 100644
+--- a/src/corelib/io/qfilesystementry.cpp
++++ b/src/corelib/io/qfilesystementry.cpp
+@@ -189,7 +189,7 @@ QString QFileSystemEntry::path() const
+     if (m_lastSeparator == -1) {
+ #if defined(Q_OS_WIN) || defined(Q_OS_SYMBIAN)
+         if (m_filePath.length() >= 2 && m_filePath.at(1) == QLatin1Char(':'))
+-            return QFSFileEngine::currentPath(m_filePath.left(2));
++            return m_filePath.left(2);
+ #endif
+         return QString(QLatin1Char('.'));
+     }
+diff --git a/tests/auto/qfileinfo/tst_qfileinfo.cpp b/tests/auto/qfileinfo/tst_qfileinfo.cpp
+index 510a0ea..3409fd6 100644
+--- a/tests/auto/qfileinfo/tst_qfileinfo.cpp
++++ b/tests/auto/qfileinfo/tst_qfileinfo.cpp
+@@ -729,7 +729,7 @@ void tst_QFileInfo::dir_data()
+     QTest::newRow("resource1") << ":/tst_qfileinfo/resources/file1.ext1" << true << ":/tst_qfileinfo/resources";
+ #ifdef Q_OS_WIN
+     QTest::newRow("driveWithSlash") << "C:/file1.ext1.ext2" << true << "C:/";
+-    QTest::newRow("driveWithoutSlash") << QDir::currentPath().left(2) + "file1.ext1.ext2" << false << QDir::currentPath();
++    QTest::newRow("driveWithoutSlash") << QDir::currentPath().left(2) + "file1.ext1.ext2" << false << QDir::currentPath().left(2);
+ #endif
+ }
+ 

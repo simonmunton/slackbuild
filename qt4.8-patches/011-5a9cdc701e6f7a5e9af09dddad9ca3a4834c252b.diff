@@ -1,0 +1,88 @@
+commit 5a9cdc701e6f7a5e9af09dddad9ca3a4834c252b
+Author: Julien Brianceau <jbrianceau@nds.com>
+Date:   Wed Nov 7 16:35:34 2012 +0100
+
+    qpa: Fix rendering issue in blitter engine (negative scaling factors)
+    
+    A 180° rotation results in a TxScale QTransform with negative scaling
+    factors (x=-1.0 y=-1.0). This is not properly handled by blitter paint
+    engine yet, so use software rendering fallback in this case.
+    
+    This rendering issue can be seen when using "-webkit-transform" CSS
+    property in WebKit with DirectFB QPA platform.
+    
+    cherry-picked from qt5/qtbase 07ea3cf0b3883979e84bd91a5dc6a7a126de3123
+    
+    Change-Id: I0911fd1166a3968d0a1d6bcca47ce2b26866de44
+    Reviewed-by: Samuel Rødal <samuel.rodal@digia.com>
+
+diff --git a/src/gui/painting/qpaintengine_blitter.cpp b/src/gui/painting/qpaintengine_blitter.cpp
+index cbf42bb..5ee2bc9 100644
+--- a/src/gui/painting/qpaintengine_blitter.cpp
++++ b/src/gui/painting/qpaintengine_blitter.cpp
+@@ -330,7 +330,11 @@ void QBlitterPaintEnginePrivate::updateTransformState(QPainterState *s)
+ {
+     QTransform::TransformationType type = s->matrix.type();
+ 
+-    caps.updateState(STATE_XFORM_COMPLEX, type > QTransform::TxScale);
++    // consider scaling operations with a negative factor as "complex" for now.
++    // as some blitters could handle axisymmetrical operations, we should improve blitter
++    // paint engine to handle them as a capability
++    caps.updateState(STATE_XFORM_COMPLEX, (type > QTransform::TxScale) ||
++        ((type == QTransform::TxScale) && ((s->matrix.m11() < 0.0) || (s->matrix.m22() < 0.0))));
+     caps.updateState(STATE_XFORM_SCALE, type > QTransform::TxTranslate);
+ 
+     hasXForm = type >= QTransform::TxTranslate;
+diff --git a/tests/auto/qpainter/tst_qpainter.cpp b/tests/auto/qpainter/tst_qpainter.cpp
+index fc2d045..f46e508 100644
+--- a/tests/auto/qpainter/tst_qpainter.cpp
++++ b/tests/auto/qpainter/tst_qpainter.cpp
+@@ -111,6 +111,7 @@ private slots:
+ 
+     void drawBorderPixmap();
+     void drawPixmapFragments();
++    void drawPixmapNegativeScale();
+ 
+     void drawLine_data();
+     void drawLine();
+@@ -1058,6 +1059,40 @@ void tst_QPainter::drawPixmapFragments()
+     QVERIFY(fragment.opacity == 1);
+ }
+ 
++void tst_QPainter::drawPixmapNegativeScale()
++{
++    // basePixmap is a 16x16 opaque white square ...
++    QPixmap basePixmap(16, 16);
++    basePixmap.fill(QColor(255, 255, 255, 255));
++    // ... with an opaque black 8x16 left strip
++    QPainter p(&basePixmap);
++    p.setCompositionMode(QPainter::CompositionMode_Source);
++    p.fillRect(QRect(0, 0, 8, 16), QColor(0, 0, 0, 255));
++    p.end();
++
++    // verify one pixel value for each strip
++    QImage baseImage = basePixmap.toImage().convertToFormat(QImage::Format_ARGB32);
++    QVERIFY(baseImage.pixel(4, 8) == qRgba(0, 0, 0, 255));
++    QVERIFY(baseImage.pixel(12, 8) == qRgba(255, 255, 255, 255));
++
++    // resultPixmap is a 16x16 square
++    QPixmap resultPixmap(16, 16);
++
++    // draw basePixmap over resultPixmap using x=-1.0 y=-1.0
++    // scaling factors (i.e. 180° rotation)
++    QPainter p2(&resultPixmap);
++    p2.setCompositionMode(QPainter::CompositionMode_Source);
++    p2.scale(qreal(-1.0), qreal(-1.0));
++    p2.translate(-resultPixmap.width(), -resultPixmap.height());
++    p2.drawPixmap(resultPixmap.rect(), basePixmap);
++    p2.end();
++
++    // check result
++    QImage resultImage = resultPixmap.toImage().convertToFormat(QImage::Format_ARGB32);
++    QVERIFY(resultImage.pixel(4, 8) == qRgba(255, 255, 255, 255)); // left strip is now white
++    QVERIFY(resultImage.pixel(12, 8) == qRgba(0, 0, 0, 255)); // and right strip is now black
++}
++
+ void tst_QPainter::drawLine_data()
+ {
+     QTest::addColumn<QLine>("line");

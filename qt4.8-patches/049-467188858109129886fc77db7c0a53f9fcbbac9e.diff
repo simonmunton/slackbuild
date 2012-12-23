@@ -1,0 +1,60 @@
+commit 467188858109129886fc77db7c0a53f9fcbbac9e
+Author: Bernd Weimer <bweimer@rim.com>
+Date:   Thu Nov 22 16:45:42 2012 +0100
+
+    BlackBerry: Removed filtering of window system events
+    
+    Only one event type can be passed to the event filter in Qt4. For the
+    BlackBerry platform this will be BPS events. This should be acceptable,
+    as there isn't any documentation stating that it should be window system
+    events for QPA ports.
+    
+    In Qt5 the implementation is different (it is possible to pass the event
+    type along with the event itself).
+    
+    Change-Id: I95550cec8a04a4994479904bc68544742a458aa9
+    Reviewed-by: Thomas McGuire <thomas.mcguire@kdab.com>
+
+diff --git a/src/corelib/kernel/qabstracteventdispatcher.cpp b/src/corelib/kernel/qabstracteventdispatcher.cpp
+index 9ede350..abc362b 100644
+--- a/src/corelib/kernel/qabstracteventdispatcher.cpp
++++ b/src/corelib/kernel/qabstracteventdispatcher.cpp
+@@ -463,8 +463,8 @@ void QAbstractEventDispatcher::closingDown()
+     \snippet doc/src/snippets/code/src_corelib_kernel_qabstracteventdispatcher.cpp 0
+ 
+     Note that the type of the \a message is platform dependent. The
+-    following table shows the \a {message}'s type on Windows, Mac, and
+-    X11. You can do a static cast to these types.
++    following table shows the \a {message}'s type on Windows, Mac, X11
++    and BlackBerry. You can do a static cast to these types.
+ 
+     \table
+         \header
+@@ -479,6 +479,9 @@ void QAbstractEventDispatcher::closingDown()
+         \row
+             \o Mac
+             \o NSEvent
++        \row
++            \o BlackBerry
++            \o bps_event_t
+     \endtable
+ 
+     
+diff --git a/src/gui/kernel/qeventdispatcher_blackberry_qpa.cpp b/src/gui/kernel/qeventdispatcher_blackberry_qpa.cpp
+index 375c303..253878e 100644
+--- a/src/gui/kernel/qeventdispatcher_blackberry_qpa.cpp
++++ b/src/gui/kernel/qeventdispatcher_blackberry_qpa.cpp
+@@ -66,10 +66,9 @@ static bool sendWindowSystemEvents(QAbstractEventDispatcher *eventDispatcher, QE
+             break;
+         }
+ 
+-        if (eventDispatcher->filterEvent(event)) {
+-            delete event;
+-            continue;
+-        }
++        // in contrast to the common QPA version we don't put window system events
++        // into the event filter here, instead native bps events are filtered in
++        // QEventDispatcherBlackberry::select()
+ 
+         nevents++;
+ 

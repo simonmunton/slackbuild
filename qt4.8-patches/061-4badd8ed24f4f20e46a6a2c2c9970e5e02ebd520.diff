@@ -1,0 +1,60 @@
+commit 4badd8ed24f4f20e46a6a2c2c9970e5e02ebd520
+Author: Ryan Stelzleni <ryans@pixar.com>
+Date:   Fri Jun 15 14:49:20 2012 -0700
+
+    Fix multiple tablet hires coordinate bug under X11
+    
+    On X11 if you have multiple tablet input devices, like a Wacom Cintiq and
+    a Wacom Intuos tablet connected at the same time, one of the tablets will
+    generate incorrect high resolution coordinates.
+    
+    The reason seems to be that when translating the XEvent in
+    qapplication_X11.cpp the code searches for the first tablet device it
+    finds that supports the type of the current event. Since both tablets
+    will support this event type, we wind up always finding only one of the
+    tablets. Specifically, the first tablet that was found when enumerating
+    tablets during qt_init. Then all calls to QTabletDeviceData::scaleCoord
+    are made on the same device, so the size of one of the devices is never
+    used. That device will wind up with incorrect high resolution
+    coordinates.
+    
+    When not running under IRIX the XEvent will have a deviceid which we can
+    use to find the correct device to use for scaling.  This change
+    implements that fix.
+    
+    Change-Id: I667a52a729273a9b12880592d0a4cd7ce7f16106
+    Reviewed-by: Gunnar Sletta <gunnar.sletta@digia.com>
+    Reviewed-by: Konstantin Ritt <ritt.ks@gmail.com>
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/src/gui/kernel/qapplication_x11.cpp b/src/gui/kernel/qapplication_x11.cpp
+index 9582abf..3631f1d 100644
+--- a/src/gui/kernel/qapplication_x11.cpp
++++ b/src/gui/kernel/qapplication_x11.cpp
+@@ -4834,15 +4834,21 @@ bool QETWidget::translateXinputEvent(const XEvent *ev, QTabletDeviceData *tablet
+     }
+     XFreeDeviceState(s);
+ #else
++    // We've been passed in data for a tablet device that handles this type
++    // of event, but it isn't necessarily the tablet device that originated
++    // the event.  Use the device id to find the originating device if we
++    // have it.
+     QTabletDeviceDataList *tablet_list = qt_tablet_devices();
+     for (int i = 0; i < tablet_list->size(); ++i) {
+-        const QTabletDeviceData &t = tablet_list->at(i);
+-        if (device_id == static_cast<XDevice *>(t.device)->device_id) {
+-            deviceType = t.deviceType;
+-            if (t.deviceType == QTabletEvent::XFreeEraser) {
++        QTabletDeviceData &tab = tablet_list->operator[](i);
++        if (device_id == static_cast<XDevice *>(tab.device)->device_id) {
++            // Replace the tablet passed in with this one.
++            tablet = &tab;
++            deviceType = tab.deviceType;
++            if (tab.deviceType == QTabletEvent::XFreeEraser) {
+                 deviceType = QTabletEvent::Stylus;
+                 pointerType = QTabletEvent::Eraser;
+-            } else if (t.deviceType == QTabletEvent::Stylus) {
++            } else if (tab.deviceType == QTabletEvent::Stylus) {
+                 pointerType = QTabletEvent::Pen;
+             }
+             break;

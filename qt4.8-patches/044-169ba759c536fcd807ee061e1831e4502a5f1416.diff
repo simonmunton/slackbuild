@@ -1,0 +1,142 @@
+commit 169ba759c536fcd807ee061e1831e4502a5f1416
+Author: Jan Arve Saether <jan-arve.saether@digia.com>
+Date:   Tue Nov 20 11:11:44 2012 +0100
+
+    Fix regression in QXmlStreamWriter with codec set to UTF-16
+    
+    Actually, this broke using QXmlStreamWriter with any codec
+    where characters in the ASCII range have a different encoding
+    than the ASCII standard.
+    
+    This was a regression from 558fe9383ba0aecbec09cc411c0ebab132aac137
+    
+    Backported from Qt 5 (035d93a6e1cbde76d34866ffd9b39633572e6236),
+    and changed QStringLiteral to QLatin1String
+    
+    Task-number: QTBUG-23310
+    Change-Id: Iaaf25463737382ace1bdb83138c7dd634d825b30
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/src/corelib/xml/qxmlstream.cpp b/src/corelib/xml/qxmlstream.cpp
+index 2f414e4..0841813 100644
+--- a/src/corelib/xml/qxmlstream.cpp
++++ b/src/corelib/xml/qxmlstream.cpp
+@@ -2986,6 +2986,7 @@ public:
+     uint wroteSomething :1;
+     uint hasError :1;
+     uint autoFormatting :1;
++    uint isCodecASCIICompatible :1;
+     QByteArray autoFormattingIndent;
+     NamespaceDeclaration emptyNamespace;
+     int lastNamespaceDeclaration;
+@@ -2994,6 +2995,7 @@ public:
+     QTextCodec *codec;
+     QTextEncoder *encoder;
+ #endif
++    void checkIfASCIICompatibleCodec();
+ 
+     NamespaceDeclaration &findNamespace(const QString &namespaceUri, bool writeDeclaration = false, bool noDefault = false);
+     void writeNamespaceDeclaration(const NamespaceDeclaration &namespaceDeclaration);
+@@ -3015,6 +3017,7 @@ QXmlStreamWriterPrivate::QXmlStreamWriterPrivate(QXmlStreamWriter *q)
+     codec = QTextCodec::codecForMib(106); // utf8
+     encoder = codec->makeEncoder(QTextCodec::IgnoreHeader); // no byte order mark for utf8
+ #endif
++    checkIfASCIICompatibleCodec();
+     inStartElement = inEmptyElement = false;
+     wroteSomething = false;
+     hasError = false;
+@@ -3024,6 +3027,18 @@ QXmlStreamWriterPrivate::QXmlStreamWriterPrivate(QXmlStreamWriter *q)
+     namespacePrefixCount = 0;
+ }
+ 
++void QXmlStreamWriterPrivate::checkIfASCIICompatibleCodec()
++{
++#ifndef QT_NO_TEXTCODEC
++    Q_ASSERT(encoder);
++    // assumes ASCII-compatibility for all 8-bit encodings
++    const QByteArray bytes = encoder->fromUnicode(QLatin1String(" "));
++    isCodecASCIICompatible = (bytes.count() == 1);
++#else
++    isCodecASCIICompatible = true;
++#endif
++}
++
+ void QXmlStreamWriterPrivate::write(const QStringRef &s)
+ {
+     if (device) {
+@@ -3092,18 +3107,20 @@ void QXmlStreamWriterPrivate::writeEscaped(const QString &s, bool escapeWhitespa
+     write(escaped);
+ }
+ 
+-// ASCII only!
++// Converts from ASCII to output encoding
+ void QXmlStreamWriterPrivate::write(const char *s, int len)
+ {
+     if (device) {
+         if (hasError)
+             return;
+-        if (device->write(s, len) != len)
+-            hasError = true;
+-    } else if (stringDevice) {
+-        stringDevice->append(QString::fromLatin1(s, len));
+-    } else
+-        qWarning("QXmlStreamWriter: No device");
++        if (isCodecASCIICompatible) {
++            if (device->write(s, len) != len)
++                hasError = true;
++            return;
++        }
++    }
++
++    write(QString::fromLatin1(s, len));
+ }
+ 
+ void QXmlStreamWriterPrivate::writeNamespaceDeclaration(const NamespaceDeclaration &namespaceDeclaration) {
+@@ -3285,6 +3302,7 @@ void QXmlStreamWriter::setCodec(QTextCodec *codec)
+         d->codec = codec;
+         delete d->encoder;
+         d->encoder = codec->makeEncoder(QTextCodec::IgnoreHeader); // no byte order mark for utf8
++        d->checkIfASCIICompatibleCodec();
+     }
+ }
+ 
+diff --git a/tests/auto/qxmlstream/tst_qxmlstream.cpp b/tests/auto/qxmlstream/tst_qxmlstream.cpp
+index 9082a0c..8ec7393 100644
+--- a/tests/auto/qxmlstream/tst_qxmlstream.cpp
++++ b/tests/auto/qxmlstream/tst_qxmlstream.cpp
+@@ -568,6 +568,7 @@ private slots:
+     void hasAttribute() const;
+     void writeWithCodec() const;
+     void writeWithUtf8Codec() const;
++    void writeWithUtf16Codec() const;
+     void writeWithStandalone() const;
+     void entitiesAndWhitespace_1() const;
+     void entitiesAndWhitespace_2() const;
+@@ -1366,6 +1367,27 @@ void tst_QXmlStream::writeWithUtf8Codec() const
+     QVERIFY(outarray.startsWith(begin));
+ }
+ 
++void tst_QXmlStream::writeWithUtf16Codec() const
++{
++    QByteArray outarray;
++    QXmlStreamWriter writer(&outarray);
++
++    QTextCodec *codec = QTextCodec::codecForMib(1014); // utf-16LE
++    QVERIFY(codec);
++    writer.setCodec(codec);
++
++    writer.writeStartDocument("1.0");
++    static const char begin[] = "<?xml version=\"1.0\" encoding=\"UTF-16";  // skip potential "LE" suffix
++    const int count = sizeof(begin) - 1;    // don't include 0 terminator
++    QByteArray begin_UTF16;
++    begin_UTF16.reserve(2*(count));
++    for (int i = 0; i < count; ++i) {
++        begin_UTF16.append(begin[i]);
++        begin_UTF16.append((char)'\0');
++    }
++    QVERIFY(outarray.startsWith(begin_UTF16));
++}
++
+ void tst_QXmlStream::writeWithStandalone() const
+ {
+     {

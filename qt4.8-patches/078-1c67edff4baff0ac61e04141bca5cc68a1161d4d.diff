@@ -1,0 +1,28 @@
+commit 1c67edff4baff0ac61e04141bca5cc68a1161d4d
+Author: Rafael Roquetto <rafael.roquetto.qnx@kdab.com>
+Date:   Tue Nov 27 16:17:01 2012 -0200
+
+    Remove invalid assert from QGraphicsScene
+    
+    This assert has become invalid since commit 40fef403. After that commit, the
+    'origin' mentioned by the assert is not necessarily the first item of
+    cachedItemsUnderMouse, since it origin can be reassigned at line 5839.
+    
+    cherry-picked from qt5 f4b80c1210e444ad7454abfb80ba166ce2e2a5f2
+    
+    Change-Id: Iae264f5b301b4bf76b59c7262b06edb24c594ee5
+    Reviewed-by: Bernd Weimer <bweimer@rim.com>
+    Reviewed-by: Denis Dzyubenko <denis@ddenis.info>
+
+diff --git a/src/gui/graphicsview/qgraphicsscene.cpp b/src/gui/graphicsview/qgraphicsscene.cpp
+index d2b82e7..a35ca34 100644
+--- a/src/gui/graphicsview/qgraphicsscene.cpp
++++ b/src/gui/graphicsview/qgraphicsscene.cpp
+@@ -5943,7 +5943,6 @@ bool QGraphicsScenePrivate::sendTouchBeginEvent(QGraphicsItem *origin, QTouchEve
+                                                 firstTouchPoint.scenePos(),
+                                                 touchEvent->widget());
+     }
+-    Q_ASSERT(cachedItemsUnderMouse.first() == origin);
+ 
+     // Set focus on the topmost enabled item that can take focus.
+     bool setFocus = false;

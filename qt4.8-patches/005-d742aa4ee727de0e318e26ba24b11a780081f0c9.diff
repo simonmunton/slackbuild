@@ -1,0 +1,40 @@
+commit d742aa4ee727de0e318e26ba24b11a780081f0c9
+Author: Friedemann Kleint <Friedemann.Kleint@digia.com>
+Date:   Tue Oct 30 11:26:40 2012 +0100
+
+    Fix submenu navigation.
+    
+    Bring back code that was removed
+    in Qt 4: 60324267fbb8a8554e62aaf9ef01360709292320 for QTBUG-7411 .
+    
+    This code reselects the submenu action of a currently opened
+    popup when the mouse is moved to the submenu crossing other
+    actions. In addition, make sure it only triggers when
+    the reason is not keyboard selection.
+    
+    Task-number: QTBUG-20094
+    Change-Id: Ibb73f83e86635083aad8b1e79fc0fdd512c65754
+    Reviewed-by: Samuel Rødal <samuel.rodal@digia.com>
+    (cherry picked from qtbase/0a91c9df01ec8f0c4aef9ce6e5e9bc3804fb80c2)
+
+diff --git a/src/gui/widgets/qmenu.cpp b/src/gui/widgets/qmenu.cpp
+index fa40c1a..6e8c61c 100644
+--- a/src/gui/widgets/qmenu.cpp
++++ b/src/gui/widgets/qmenu.cpp
+@@ -578,6 +578,16 @@ void QMenuPrivate::setCurrentAction(QAction *action, int popup, SelectionReason
+ {
+     Q_Q(QMenu);
+     tearoffHighlighted = 0;
++    // Reselect the currently active action in case mouse moved over other menu items when
++    // moving from sub menu action to sub menu (QTBUG-20094).
++    if (reason != SelectedFromKeyboard && action == currentAction && !(action && action->menu() && action->menu() != activeMenu)) {
++        if (QMenu *menu = qobject_cast<QMenu*>(causedPopup.widget)) {
++            if (causedPopup.action && menu->d_func()->activeMenu == q)
++                menu->d_func()->setCurrentAction(causedPopup.action, 0, reason, false);
++        }
++        return;
++    }
++
+     if (currentAction)
+         q->update(actionRect(currentAction));
+ 

@@ -1,0 +1,30 @@
+commit 8c273bb6fb0a2b27067dea6999fbe2e4a6a8c1e4
+Author: Sergio Martins <sergio.martins.qnx@kdab.com>
+Date:   Fri Nov 2 12:17:06 2012 +0000
+
+    QNX: Fix build with QNX SDP 6.5.
+    
+    __EXT_LF64SRC isn't defined in this case.
+    
+    This also makes it consistent with mkspecs/common/posix/qplatformdefs.h
+    which uses QT_USE_XOPEN_LFS_EXTENSIONS and QT_LARGEFILE_SUPPORT
+    to decide which type of stat struct to declare.
+    
+    Backport of b8e7265a5055da754c8b4cb2fb97b9367e83791b
+    
+    Change-Id: I04e990a2402aee347870c3578bf6f76b837b8e1e
+    Reviewed-by: Thomas McGuire <thomas.mcguire@kdab.com>
+
+diff --git a/src/corelib/io/qfilesystemengine.cpp b/src/corelib/io/qfilesystemengine.cpp
+index 02b7aba..ef45c7c 100644
+--- a/src/corelib/io/qfilesystemengine.cpp
++++ b/src/corelib/io/qfilesystemengine.cpp
+@@ -327,7 +327,7 @@ void QFileSystemMetaData::fillFromDirEnt(const QT_DIRENT &entry)
+             if (S_ISLNK(extra_stat->d_stat.st_mode) && extra->d_type == _DTYPE_LSTAT)
+                 continue;
+ 
+-#if defined(__EXT_LF64SRC)
++#if defined(QT_USE_XOPEN_LFS_EXTENSIONS) && defined(QT_LARGEFILE_SUPPORT)
+             // Even with large file support, d_stat is always of type struct stat, not struct stat64,
+             // so it needs to be converted
+             struct stat64 statBuf;

@@ -1,0 +1,37 @@
+commit f99e974d957cf669293600c609f92a741d7d53d7
+Author: Sergio Ahumada <sergio.ahumada@digia.com>
+Date:   Sat Nov 10 23:27:36 2012 +0100
+
+    test: Mark tst_ExceptionSafety_Objects::objects() as QSKIP
+    
+    This test is crashing so marking it as QSKIP.
+    
+    Task-number: QTBUG-18927
+    Change-Id: Iba6e6f556793747f09d2a8fa6af5c9169a53dfe9
+    Reviewed-by: Simo Fält <simo.falt@digia.com>
+    Reviewed-by: Janne Anttila <janne.anttila@digia.com>
+
+diff --git a/tests/auto/exceptionsafety_objects/exceptionsafety_objects.pro b/tests/auto/exceptionsafety_objects/exceptionsafety_objects.pro
+index 7912f83..8a9e566 100644
+--- a/tests/auto/exceptionsafety_objects/exceptionsafety_objects.pro
++++ b/tests/auto/exceptionsafety_objects/exceptionsafety_objects.pro
+@@ -5,4 +5,4 @@ QT += testlib
+ SOURCES += tst_exceptionsafety_objects.cpp
+ HEADERS += oomsimulator.h 3rdparty/valgrind.h 3rdparty/memcheck.h
+ 
+-CONFIG+=insignificant_test # QTQAINFRA-428
++CONFIG+=insignificant_test # QTBUG-18927
+diff --git a/tests/auto/exceptionsafety_objects/tst_exceptionsafety_objects.cpp b/tests/auto/exceptionsafety_objects/tst_exceptionsafety_objects.cpp
+index 5bbe8ab..5182c11 100644
+--- a/tests/auto/exceptionsafety_objects/tst_exceptionsafety_objects.cpp
++++ b/tests/auto/exceptionsafety_objects/tst_exceptionsafety_objects.cpp
+@@ -359,6 +359,9 @@ void tst_ExceptionSafety_Objects::objects()
+         || tag == QLatin1String("QThreadPool"))
+         QSKIP("This type of object is not currently strongly exception safe", SkipSingle);
+ 
++    if (tag == QLatin1String("QWidget"))
++        QSKIP("QTBUG-18927", SkipAll);
++
+     QFETCH(AbstractTester *, objectCreator);
+ 
+     doOOMTest(*objectCreator, 0);

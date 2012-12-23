@@ -1,0 +1,25 @@
+commit d74dbaaa325e5937485a9b3cdcadb55f2ecc111a
+Author: Vadim Zakondyrin <thekondr@crystalnix.com>
+Date:   Sat Nov 17 20:25:06 2012 +0700
+
+    Fixed memory leak in assign operator of QGLBuffer
+    
+    Change-Id: I90b7e3f352fb7ceea7befabbab7d3b67213dd45f
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/src/opengl/qglbuffer.cpp b/src/opengl/qglbuffer.cpp
+index ad42896..b52e4d0 100644
+--- a/src/opengl/qglbuffer.cpp
++++ b/src/opengl/qglbuffer.cpp
+@@ -208,8 +208,10 @@ QGLBuffer &QGLBuffer::operator=(const QGLBuffer &other)
+ {
+     if (d_ptr != other.d_ptr) {
+         other.d_ptr->ref.ref();
+-        if (!d_ptr->ref.deref())
++        if (!d_ptr->ref.deref()) {
+             destroy();
++            delete d_ptr;
++        }
+         d_ptr = other.d_ptr;
+     }
+     return *this;

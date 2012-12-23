@@ -1,0 +1,100 @@
+commit e6f3c6c3741cbd7f4f0af3c04303fa1d60a55c49
+Author: Andreas Aardal Hanssen <andreas@hanssen.name>
+Date:   Tue Nov 13 19:06:25 2012 +0100
+
+    Fix zero-duration animations running Backwards.
+    
+    If you set the duration of any variant or property animation to 0,
+    its progress will be stuck at 1 (0..1), and its "end" value set on
+    the target object, after start() has been called. If you change the
+    direction of the animation to QAbstractAnimation::Backward, you
+    would expect the progress to be 0 after start. Instead it's still
+    1; the code seems to assume that if the duration is 0, the
+    progress must be 1 always.
+    
+    The fix is that if the duration is 0, the direction is checked to
+    determine whether progress should be 0 (Backward) or 1 (Forward).
+    
+    Task-number: QTBUG-27969
+    Change-Id: Ibeca084bbbce41df1dca7b7d96c15b6b54394996
+    (cherry-picked from qtbase/f3597af5adcd2275503e9e4bfb425549f9ab3ced)
+    Reviewed-by: Thierry Bastian <thierryb@filewave.com>
+    Reviewed-by: Olivier Goffart <ogoffart@woboq.com>
+
+diff --git a/src/corelib/animation/qvariantanimation.cpp b/src/corelib/animation/qvariantanimation.cpp
+index 355207e..f8d7ea5 100644
+--- a/src/corelib/animation/qvariantanimation.cpp
++++ b/src/corelib/animation/qvariantanimation.cpp
+@@ -237,7 +237,8 @@ void QVariantAnimationPrivate::recalculateCurrentInterval(bool force/*=false*/)
+     if ((keyValues.count() + (defaultStartEndValue.isValid() ? 1 : 0)) < 2)
+         return;
+ 
+-    const qreal progress = easing.valueForProgress(((duration == 0) ? qreal(1) : qreal(currentTime) / qreal(duration)));
++    const qreal endProgress = (direction == QAbstractAnimation::Forward) ? qreal(1) : qreal(0);
++    const qreal progress = easing.valueForProgress(((duration == 0) ? endProgress : qreal(currentTime) / qreal(duration)));
+ 
+     //0 and 1 are still the boundaries
+     if (force || (currentInterval.start.first > 0 && progress < currentInterval.start.first)
+diff --git a/tests/auto/qpropertyanimation/tst_qpropertyanimation.cpp b/tests/auto/qpropertyanimation/tst_qpropertyanimation.cpp
+index 21c0592..a263e2e 100644
+--- a/tests/auto/qpropertyanimation/tst_qpropertyanimation.cpp
++++ b/tests/auto/qpropertyanimation/tst_qpropertyanimation.cpp
+@@ -124,6 +124,7 @@ private slots:
+     void setStartEndValues_data();
+     void setStartEndValues();
+     void zeroDurationStart();
++    void zeroDurationForwardBackward();
+     void operationsInStates_data();
+     void operationsInStates();
+     void oneKeyValue();
+@@ -879,6 +880,50 @@ void tst_QPropertyAnimation::zeroDurationStart()
+     QCOMPARE(qVariantValue<QAbstractAnimation::State>(secondChange.first()), QAbstractAnimation::Stopped);
+ }
+ 
++void tst_QPropertyAnimation::zeroDurationForwardBackward()
++{
++    QObject o; o.setProperty("test", 1);
++    QObject o2; o2.setProperty("test", 2);
++    QObject o3; o3.setProperty("test", 3);
++    QObject o4; o4.setProperty("test", 4);
++    QPropertyAnimation prop(&o, "test"); prop.setDuration(0); prop.setStartValue(1); prop.setEndValue(2);
++
++    prop.start();
++    QCOMPARE(o.property("test").toInt(), 2);
++    prop.setDirection(QAbstractAnimation::Backward);
++    prop.start();
++    QCOMPARE(o.property("test").toInt(), 1);
++
++    prop.setDirection(QAbstractAnimation::Forward);
++    QPropertyAnimation prop2(&o2, "test"); prop2.setDuration(0); prop2.setStartValue(2); prop2.setEndValue(3);
++    QPropertyAnimation prop3(&o3, "test"); prop3.setDuration(0); prop3.setStartValue(3); prop3.setEndValue(4);
++    QPropertyAnimation prop4(&o4, "test"); prop4.setDuration(0); prop4.setStartValue(4); prop4.setEndValue(5);
++    QSequentialAnimationGroup group;
++    group.addAnimation(&prop);
++    group.addAnimation(&prop2);
++    group.addAnimation(&prop3);
++    group.addAnimation(&prop4);
++    group.start();
++
++    QCOMPARE(o.property("test").toInt(), 2);
++    QCOMPARE(o2.property("test").toInt(), 3);
++    QCOMPARE(o3.property("test").toInt(), 4);
++    QCOMPARE(o4.property("test").toInt(), 5);
++
++    group.setDirection(QAbstractAnimation::Backward);
++    group.start();
++
++    QCOMPARE(o.property("test").toInt(), 1);
++    QCOMPARE(o2.property("test").toInt(), 2);
++    QCOMPARE(o3.property("test").toInt(), 3);
++    QCOMPARE(o4.property("test").toInt(), 4);
++
++    group.removeAnimation(&prop);
++    group.removeAnimation(&prop2);
++    group.removeAnimation(&prop3);
++    group.removeAnimation(&prop4);
++}
++
+ #define Pause 1
+ #define Start 2
+ #define Resume 3

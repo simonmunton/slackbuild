@@ -1,0 +1,29 @@
+commit 2b7ec50666d9e9b2cd8c0c74e8a3c889b77cfd1e
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Mon Nov 12 15:58:15 2012 +0100
+
+    Don't use Cocoa code unconditionally
+    
+    The Cocoa code should only be used if QT_MAC_USE_COCOA is defined, this
+    was causing problems in Carbon with menus which are now resolved.
+    
+    Task-number: QTBUG-27960
+    
+    Change-Id: I60186d69a869def4b2f03f1b0fdde82208fcfbe5
+    Reviewed-by: Pasi Matilainen <pasi.matilainen@digia.com>
+    Reviewed-by: Morten Johan Sørvig <morten.sorvig@digia.com>
+
+diff --git a/src/gui/widgets/qmenu_mac.mm b/src/gui/widgets/qmenu_mac.mm
+index ef34f69..37755f1 100644
+--- a/src/gui/widgets/qmenu_mac.mm
++++ b/src/gui/widgets/qmenu_mac.mm
+@@ -1848,7 +1848,9 @@ OSMenuRef QMenuBarPrivate::macMenu()
+         return 0;
+     } else if (!mac_menubar->menu) {
+         mac_menubar->menu = qt_mac_create_menu(q);
++#ifdef QT_MAC_USE_COCOA
+         [mac_menubar->menu setAutoenablesItems:NO];
++#endif
+         ProcessSerialNumber mine, front;
+         if (GetCurrentProcess(&mine) == noErr && GetFrontProcess(&front) == noErr) {
+             if (!qt_mac_no_menubar_merge && !mac_menubar->apple_menu) {

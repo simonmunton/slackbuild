@@ -1,0 +1,37 @@
+commit c74b83d9baca9210588f7ee107e10f2dffffdc73
+Author: Peter Hartmann <phartmann@rim.com>
+Date:   Fri Nov 23 17:32:50 2012 +0100
+
+    BlackBerry mkspecs: optimize linker flags
+    
+    * relro makes some sections read-only before giving control to the
+    program;
+    * now resolves all symbols when the program is started and allows for
+     the GOT being marked read-only to prevent it from being overwritten.
+    
+    These settings have been used internally for device builds already.
+    
+    Change-Id: I03576d4fd1585ad566865e2a7a0341b3e13c3b06
+    (cherry picked from commit c8c8e1990ce74590739bd52874e38e03e3d64825)
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+
+diff --git a/mkspecs/blackberry-armv7le-qcc/qmake.conf b/mkspecs/blackberry-armv7le-qcc/qmake.conf
+index 98daef1..44ea967 100644
+--- a/mkspecs/blackberry-armv7le-qcc/qmake.conf
++++ b/mkspecs/blackberry-armv7le-qcc/qmake.conf
+@@ -21,3 +21,5 @@ contains(QT_CONFIG, stack-protector-strong) {
+ 
+ QMAKE_CFLAGS += -mcpu=cortex-a9
+ QMAKE_CXXFLAGS += -mcpu=cortex-a9
++
++QMAKE_LFLAGS_SHLIB += -Wl,-z,relro -Wl,-z,now
+diff --git a/mkspecs/blackberry-x86-qcc/qmake.conf b/mkspecs/blackberry-x86-qcc/qmake.conf
+index 26bf509..fe33893 100644
+--- a/mkspecs/blackberry-x86-qcc/qmake.conf
++++ b/mkspecs/blackberry-x86-qcc/qmake.conf
+@@ -18,3 +18,5 @@ contains(QT_CONFIG, stack-protector-strong) {
+     QMAKE_CFLAGS += -fstack-protector -fstack-protector-all
+     QMAKE_CXXFLAGS += -fstack-protector -fstack-protector-all
+ }
++
++QMAKE_LFLAGS_SHLIB += -Wl,-z,relro -Wl,-z,now

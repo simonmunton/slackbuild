@@ -1,0 +1,32 @@
+commit c240761fd00bd4a284a261d926a27265bcc84ca9
+Author: Friedemann Kleint <Friedemann.Kleint@digia.com>
+Date:   Mon Nov 5 10:31:52 2012 +0100
+
+    QWindowsVistaStyle: Restore altered brush origin.
+    
+    The line to restore it was missing, and the leftover variable
+    caused a warning, which was removed in
+    abe5a0a432116963d22c4ef501a4dfd2393d66fb .
+    
+    Task-number: QTBUG-27828
+    
+    Change-Id: I00b8b89b07bec38a1660c3a9c61220b6d0d7eb48
+    Reviewed-by: Miikka Heikkinen <miikka.heikkinen@digia.com>
+    (cherry picked from qtbase/96ebbad5f03d6db5fa81f284ccbdaf4b6259c27b)
+
+diff --git a/src/gui/styles/qwindowsvistastyle.cpp b/src/gui/styles/qwindowsvistastyle.cpp
+index eeb455d..ba47c87 100644
+--- a/src/gui/styles/qwindowsvistastyle.cpp
++++ b/src/gui/styles/qwindowsvistastyle.cpp
+@@ -766,9 +766,10 @@ void QWindowsVistaStyle::drawPrimitive(PrimitiveElement element, const QStyleOpt
+                 QPixmap pixmap;
+ 
+                 if (vopt->backgroundBrush.style() != Qt::NoBrush) {
+-                    QPointF oldBO = painter->brushOrigin();
++                    const QPointF oldBrushOrigin = painter->brushOrigin();
+                     painter->setBrushOrigin(vopt->rect.topLeft());
+                     painter->fillRect(vopt->rect, vopt->backgroundBrush);
++                    painter->setBrushOrigin(oldBrushOrigin);
+                 }
+ 
+                 if (hover || selected) {

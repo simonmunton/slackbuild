@@ -1,0 +1,29 @@
+commit a5dbb3754eeb5697dd560965f2092372c48516f5
+Author: Sergio Ahumada <sergio.ahumada@digia.com>
+Date:   Wed Nov 14 21:02:23 2012 +0100
+
+    test: Mark tst_qdeclarativexmlhttprequest::send_ignoreData() as XFAIL
+    
+    object->setProperty("reqType", "DELETE") always fails.
+    Actually, this part of the test does not exit in Qt 5.
+    
+    Task-number: QTBUG-28004
+    Change-Id: Ia60f8c1c9bb4e780396327e8f8231771cec6889a
+    Reviewed-by: Simo Fält <simo.falt@digia.com>
+    Reviewed-by: Janne Anttila <janne.anttila@digia.com>
+
+diff --git a/tests/auto/declarative/qdeclarativexmlhttprequest/tst_qdeclarativexmlhttprequest.cpp b/tests/auto/declarative/qdeclarativexmlhttprequest/tst_qdeclarativexmlhttprequest.cpp
+index b01ef8b..6ebc05e 100644
+--- a/tests/auto/declarative/qdeclarativexmlhttprequest/tst_qdeclarativexmlhttprequest.cpp
++++ b/tests/auto/declarative/qdeclarativexmlhttprequest/tst_qdeclarativexmlhttprequest.cpp
+@@ -552,7 +552,9 @@ void tst_qdeclarativexmlhttprequest::send_ignoreData()
+         object->setProperty("url", "http://127.0.0.1:14445/testdocument.html");
+         component.completeCreate();
+ 
+-        QTRY_VERIFY(object->property("dataOK").toBool() == true);
++        bool objectProperty = object->property("dataOK").toBool();
++        QEXPECT_FAIL("", "QTBUG-28004", Continue);
++        QTRY_VERIFY(objectProperty == true);
+ 
+         delete object;
+     }

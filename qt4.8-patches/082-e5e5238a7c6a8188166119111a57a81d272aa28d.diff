@@ -1,0 +1,64 @@
+commit e5e5238a7c6a8188166119111a57a81d272aa28d
+Author: Rafael Roquetto <rafael.roquetto.qnx@kdab.com>
+Date:   Fri Nov 16 18:50:34 2012 -0200
+
+    configure.exe: add inotify command line switch
+    
+    akin to qt5/qtbase 31468563892a184d0a45cb0fdd7a91fa0da681e7, but without
+    feature auto detection due to Qt4 configure.exe nature.
+    
+    Change-Id: I481e9ee01692dab9bd267a7b14722b8471719d1a
+    Reviewed-by: Thomas McGuire <thomas.mcguire@kdab.com>
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/tools/configure/configureapp.cpp b/tools/configure/configureapp.cpp
+index 4b8000d..63ff44f 100644
+--- a/tools/configure/configureapp.cpp
++++ b/tools/configure/configureapp.cpp
+@@ -298,6 +298,7 @@ Configure::Configure(int& argc, char** argv)
+     dictionary[ "LITTLE_ENDIAN" ]   = "yes";
+     dictionary[ "FONT_CONFIG" ]     = "no";
+     dictionary[ "POSIX_IPC" ]       = "no";
++    dictionary[ "QT_INOTIFY" ]      = "no";
+ 
+     QString version;
+     QFile qglobal_h(sourcePath + "/src/corelib/global/qglobal.h");
+@@ -1285,6 +1286,12 @@ void Configure::parseCmdLine()
+             dictionary["QT_ICONV"] = "no";
+         }
+ 
++        else if (configCmdLine.at(i) == "-inotify") {
++            dictionary["QT_INOTIFY"] = "yes";
++        } else if (configCmdLine.at(i) == "-no-inotify") {
++            dictionary["QT_INOTIFY"] = "no";
++        }
++
+         else if (configCmdLine.at(i) == "-neon") {
+             dictionary["NEON"] = "yes";
+         } else if (configCmdLine.at(i) == "-no-neon") {
+@@ -1748,6 +1755,7 @@ void Configure::applySpecSpecifics()
+         dictionary[ "FREETYPE" ]            = "system";
+         dictionary[ "STACK_PROTECTOR_STRONG" ] = "auto";
+         dictionary[ "SLOG2" ]                 = "auto";
++        dictionary[ "QT_INOTIFY" ]          = "yes";
+     }
+ }
+ 
+@@ -1935,6 +1943,9 @@ bool Configure::displayHelp()
+         desc("QT_ICONV",      "yes",     "-sun-iconv",  "Enable support for iconv(3) using sun-iconv.");
+         desc("QT_ICONV",      "yes",     "-gnu-iconv",  "Enable support for iconv(3) using gnu-libiconv");
+ 
++        desc("QT_INOTIFY",    "yes",     "-inotify",    "Enable Qt inotify(7) support.\n");
++        desc("QT_INOTIFY",    "no",      "-no-inotify", "Disable Qt inotify(7) support.\n");
++
+         desc("LARGE_FILE",    "yes",   "-largefile",    "Enables Qt to access files larger than 4 GB.");
+ 
+         desc("LITTLE_ENDIAN", "yes",   "-little-endian","Target platform is little endian (LSB first).");
+@@ -3778,6 +3789,7 @@ void Configure::displayConfig()
+     cout << "Large File support.........." << dictionary[ "LARGE_FILE" ] << endl;
+     cout << "NIS support................." << dictionary[ "NIS" ] << endl;
+     cout << "Iconv support..............." << dictionary[ "QT_ICONV" ] << endl;
++    cout << "Inotify support............." << dictionary[ "QT_INOTIFY" ] << endl;
+     {
+         QString webkit = dictionary[ "WEBKIT" ];
+         if (webkit == "debug")

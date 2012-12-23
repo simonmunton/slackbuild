@@ -1,0 +1,60 @@
+commit fc27933affb49f70a8a5dc93dd7f4b2d105ccdfe
+Author: Don Hatch <dhatch@ilm.com>
+Date:   Tue Dec 4 22:07:03 2012 -0800
+
+    fix uninitialized has_brush,has_pen in QOpenGLPaintEnginePrivate
+    
+    Fix probably-benign uninitialized memory reads
+    of QOpenGLPaintEnginePrivate's member has_brush
+    (if first call to updatePen() is before first call to updateBrush())
+    or has_pen (if the opposite).
+    
+    This makes the following error reported by valgrind 3.7.0 disappear:
+        % valgrind --track-origins=yes --leak-check=no demos/composition/composition
+          (press the "Use OpenGL" button)
+            ...
+            ==30137== Conditional jump or move depends on uninitialised value(s)
+            ==30137==    at 0x4C72CBD: QOpenGLPaintEnginePrivate::updateUseEmulation() (qpaintengine_opengl.cpp:2135)
+            ==30137==    by 0x4C76F2A: QOpenGLPaintEngine::updatePen(QPen const&) (qpaintengine_opengl.cpp:2145)
+            ==30137==    by 0x4C7708D: QOpenGLPaintEngine::penChanged() (qpaintengine_opengl.cpp:5416)
+            ==30137==    by 0x4C7C960: QOpenGLPaintEngine::begin(QPaintDevice*) (qpaintengine_opengl.cpp:1421)
+            ==30137==    by 0x5376BE7: QPainter::begin(QPaintDevice*) (qpainter.cpp:1881)
+            ==30137==    by 0x41B06F: ArthurFrame::paintEvent(QPaintEvent*) (arthurwidgets.cpp:149)
+            ==30137==    by 0x5223315: QWidget::event(QEvent*) (qwidget.cpp:8532)
+            ==30137==  Uninitialised value was created by a heap allocation
+            ==30137==    at 0x4A082CF: operator new(unsigned long) (vg_replace_malloc.c:287)
+            ==30137==    by 0x4C7736C: QOpenGLPaintEngine::QOpenGLPaintEngine() (qpaintengine_opengl.cpp:1234)
+            ==30137==    by 0x4C5171C: QGLEngineThreadStorage<QOpenGLPaintEngine>::engine() (qgl_p.h:939)
+            ==30137==    by 0x4C48E32: qt_qgl_paint_engine() (qgl.cpp:5333)
+            ==30137==    by 0x4C48E4E: QGLWidget::paintEngine() const (qgl.cpp:5345)
+            ==30137==    by 0x5376351: QPainter::begin(QPaintDevice*) (qpainter.cpp:1785)
+            ==30137==    by 0x41B06F: ArthurFrame::paintEvent(QPaintEvent*) (arthurwidgets.cpp:149)
+            ==30137==    by 0x5223315: QWidget::event(QEvent*) (qwidget.cpp:8532)
+            ==30137==
+            ...
+    
+    These members don't appear at all in the qt5 source,
+    so I'm assuming this isn't an issue there.
+    Therefore I'm submitting this fix directly, and only,
+    to the qt 4.8 source, rather than putting it in qt5 first.
+    
+    (I wasn't able to get the composition demo program to exercise
+    the opengl drawing code at all on qt5, so I can't say for sure
+    whether qt5 is free of similar issues at this point.)
+    
+    Change-Id: Ic69beddd6e2c50b827140cb8790b40b9336c8f4e
+    Reviewed-by: Jonas Rabbe <jonas.rabbe@gmail.com>
+
+diff --git a/src/opengl/qpaintengine_opengl.cpp b/src/opengl/qpaintengine_opengl.cpp
+index 9368b3b..a8c4d2b 100644
+--- a/src/opengl/qpaintengine_opengl.cpp
++++ b/src/opengl/qpaintengine_opengl.cpp
+@@ -654,6 +654,8 @@ public:
+     QOpenGLPaintEnginePrivate()
+         : opacity(1)
+         , composition_mode(QPainter::CompositionMode_SourceOver)
++        , has_pen(false)
++        , has_brush(false)
+         , has_fast_pen(false)
+         , use_stencil_method(false)
+         , dirty_drawable_texture(false)

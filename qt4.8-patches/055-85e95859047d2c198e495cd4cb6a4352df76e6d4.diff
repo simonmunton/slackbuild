@@ -1,0 +1,74 @@
+commit 85e95859047d2c198e495cd4cb6a4352df76e6d4
+Author: Miikka Heikkinen <miikka.heikkinen@digia.com>
+Date:   Thu Sep 20 12:28:58 2012 +0300
+
+    Fix hover handling in QTreeView
+    
+    Cached hoverBranch could get invalid if branches were collapsed or
+    expanded programmatically, leading to a crash in some situations.
+    
+    Fixed the logic for updating hovered over branch indicators and
+    also now update hoverBranch when drawing so that it is guaranteed to be
+    up to date there - this fixes issues like hover indicator not updating
+    when the view is programmatically scrolled.
+    
+    Task-number: QTBUG-27158
+    Change-Id: I5bd1ad76aee512ad78df33959a84ead16886a47c
+    Reviewed-by: Stephen Kelly <stephen.kelly@kdab.com>
+    (cherry picked from qt5/qtbase commit fd6a870136ab2fdb3ce8b516abcf8c05d45caba7))
+
+diff --git a/src/gui/itemviews/qtreeview.cpp b/src/gui/itemviews/qtreeview.cpp
+index 15ec9a4..97d23a5 100644
+--- a/src/gui/itemviews/qtreeview.cpp
++++ b/src/gui/itemviews/qtreeview.cpp
+@@ -1236,19 +1236,14 @@ bool QTreeView::viewportEvent(QEvent *event)
+         QHoverEvent *he = static_cast<QHoverEvent*>(event);
+         int oldBranch = d->hoverBranch;
+         d->hoverBranch = d->itemDecorationAt(he->pos());
+-        if (oldBranch != d->hoverBranch) {
+-            //we need to paint the whole items (including the decoration) so that when the user
+-            //moves the mouse over those elements they are updated
+-            if (oldBranch >= 0) {
+-                int y = d->coordinateForItem(oldBranch);
+-                int h = d->itemHeight(oldBranch);
+-                viewport()->update(QRect(0, y, viewport()->width(), h));
+-            }
+-            if (d->hoverBranch >= 0) {
+-                int y = d->coordinateForItem(d->hoverBranch);
+-                int h = d->itemHeight(d->hoverBranch);
+-                viewport()->update(QRect(0, y, viewport()->width(), h));
+-            }
++        QModelIndex newIndex = indexAt(he->pos());
++        if (d->hover != newIndex || d->hoverBranch != oldBranch) {
++            // Update the whole hovered over row. No need to update the old hovered
++            // row, that is taken care in superclass hover handling.
++            QRect rect = visualRect(newIndex);
++            rect.setX(0);
++            rect.setWidth(viewport()->width());
++            viewport()->update(rect);
+         }
+         break; }
+     default:
+@@ -1414,6 +1409,9 @@ void QTreeView::drawTree(QPainter *painter, const QRegion &region) const
+ 
+     const int viewportWidth = d->viewport->width();
+ 
++    QPoint hoverPos = d->viewport->mapFromGlobal(QCursor::pos());
++    d->hoverBranch = d->itemDecorationAt(hoverPos);
++
+     QVector<QRect> rects = region.rects();
+     QVector<int> drawn;
+     bool multipleRects = (rects.size() > 1);
+diff --git a/src/gui/itemviews/qtreeview_p.h b/src/gui/itemviews/qtreeview_p.h
+index 250bdab..b52ccae 100644
+--- a/src/gui/itemviews/qtreeview_p.h
++++ b/src/gui/itemviews/qtreeview_p.h
+@@ -244,7 +244,7 @@ public:
+     QBasicTimer openTimer;
+ 
+     // used for drawing hilighted expand/collapse indicators
+-    int hoverBranch;
++    mutable int hoverBranch;
+ 
+     // used for blocking recursion when calling setViewportMargins from updateGeometries
+     bool geometryRecursionBlock;

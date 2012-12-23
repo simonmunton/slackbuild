@@ -1,0 +1,30 @@
+commit bc97ab6262ec7ba7ab0420cec1d7c713fc9855c1
+Author: Joerg Bornemann <joerg.bornemann@digia.com>
+Date:   Thu Nov 22 11:59:11 2012 +0100
+
+    qmake: do not exclusively lock files for reading on Windows/MSVC
+    
+    When sifting through a file to find Q_OBJECT and friends, qmake
+    was locking it for reading and writing (_SH_DENYRW).
+    This breaks parallel builds where multiple qmake instances might want
+    to scan the same file.
+    Changed the sharing constant to _SH_DENYNO, which doesn't lock the
+    file at all. This is consistent with the _sopen_s call in findDeps.
+    
+    Change-Id: I9c0a06db7f580f411e79d9d96dd36a6d705679aa
+    (cherry picked from commit 9cd7eb29f3b216bdac215fb7633b4b51d534d220)
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/qmake/generators/makefiledeps.cpp b/qmake/generators/makefiledeps.cpp
+index 1de9550..30e13e0 100644
+--- a/qmake/generators/makefiledeps.cpp
++++ b/qmake/generators/makefiledeps.cpp
+@@ -697,7 +697,7 @@ bool QMakeSourceFileInfo::findMocs(SourceFile *file)
+         int fd;
+ #if defined(_MSC_VER) && _MSC_VER >= 1400
+         if (_sopen_s(&fd, fixPathForFile(file->file, true).local().toLocal8Bit().constData(),
+-            _O_RDONLY, _SH_DENYRW, _S_IREAD) != 0)
++            _O_RDONLY, _SH_DENYNO, _S_IREAD) != 0)
+             fd = -1;
+ #else
+         fd = open(fixPathForFile(file->file, true).local().toLocal8Bit().constData(), O_RDONLY);

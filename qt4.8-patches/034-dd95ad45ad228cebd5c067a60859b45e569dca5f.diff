@@ -1,0 +1,46 @@
+commit dd95ad45ad228cebd5c067a60859b45e569dca5f
+Author: Fabian Bumberger <fbumberger@rim.com>
+Date:   Thu Nov 15 12:16:23 2012 +0100
+
+    Blackberry fixed crash when plugging in a secondary display.
+    
+    This bug is only in the Qt4 version of the plugin. In Qt5 attaching a screen works just fine.
+    
+    Change-Id: I45ebc51c6da9999e7d2e4f453379fbc18dd6f857
+    Reviewed-by: James Turner <james.turner@kdab.com>
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+
+diff --git a/src/plugins/platforms/blackberry/qbbintegration.cpp b/src/plugins/platforms/blackberry/qbbintegration.cpp
+index e329bbe..5137431 100644
+--- a/src/plugins/platforms/blackberry/qbbintegration.cpp
++++ b/src/plugins/platforms/blackberry/qbbintegration.cpp
+@@ -361,13 +361,13 @@ void QBBIntegration::createDisplays()
+         if (!isAttached)
+             continue;
+ 
+-        createDisplay(displays[i], i == 0);
++        createDisplay(displays[i], i);
+     } // of displays iteration
+ }
+ 
+-void QBBIntegration::createDisplay(screen_display_t display, bool isPrimary)
++void QBBIntegration::createDisplay(screen_display_t display, int screenIndex)
+ {
+-    QBBScreen *screen = new QBBScreen(mContext, display, isPrimary);
++    QBBScreen *screen = new QBBScreen(mContext, display, screenIndex);
+     mScreens.append(screen);
+ 
+     QObject::connect(mScreenEventHandler, SIGNAL(newWindowCreated(screen_window_t)),
+diff --git a/src/plugins/platforms/blackberry/qbbintegration.h b/src/plugins/platforms/blackberry/qbbintegration.h
+index b524950..921695a 100644
+--- a/src/plugins/platforms/blackberry/qbbintegration.h
++++ b/src/plugins/platforms/blackberry/qbbintegration.h
+@@ -88,7 +88,7 @@ public:
+ 
+     QBBScreen *screenForNative(screen_display_t screen) const;
+ 
+-    void createDisplay(screen_display_t display, bool isPrimary);
++    void createDisplay(screen_display_t display, int screenIndex);
+     void removeDisplay(QBBScreen *screen);
+ private:
+     QBBScreen *primaryDisplay() const;

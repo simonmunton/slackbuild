@@ -1,0 +1,59 @@
+commit b6db048a63ed2f861201324bdbc0257736f4ddde
+Author: Miikka Heikkinen <miikka.heikkinen@digia.com>
+Date:   Thu Oct 4 16:09:02 2012 +0300
+
+    Fix scrolldown arrow not showing on popup for QMenu
+    
+    Scrolldown arrow was not shown when a taller than screen QMenu was
+    opened because the check to draw it used the size that was already
+    adjusted to the screen.
+    
+    Fixed by using the actual menu size in the check. Also fixed the case
+    where the menu was scrolled, closed, and reopened, in which case the
+    size hint would return incorrect cached value. This led to scrolldown
+    arrow not being shown in case the menu was previously fully scrolled
+    down.
+    
+    Task-number: QTBUG-27445
+    Change-Id: Icd8d774071662a9317b3ac53cb05b31cadba96ff
+    Reviewed-by: Friedemann Kleint <Friedemann.Kleint@digia.com>
+    (cherry picked from qt5/qtbase commit fe8eb057fa05433e96de21df34871647f421f962))
+
+diff --git a/src/gui/widgets/qmenu.cpp b/src/gui/widgets/qmenu.cpp
+index 6e8c61c..77b6b21 100644
+--- a/src/gui/widgets/qmenu.cpp
++++ b/src/gui/widgets/qmenu.cpp
+@@ -1823,6 +1823,8 @@ void QMenu::popup(const QPoint &p, QAction *atAction)
+     Q_D(QMenu);
+ #ifndef Q_OS_SYMBIAN
+     if (d->scroll) { // reset scroll state from last popup
++        if (d->scroll->scrollOffset)
++            d->itemsDirty = 1; // sizeHint will be incorrect if there is previous scroll
+         d->scroll->scrollOffset = 0;
+         d->scroll->scrollFlags = QMenuPrivate::QMenuScroller::ScrollNone;
+     }
+@@ -1922,6 +1924,7 @@ void QMenu::popup(const QPoint &p, QAction *atAction)
+     d->mousePopupPos = mouse;
+     const bool snapToMouse = (QRect(p.x() - 3, p.y() - 3, 6, 6).contains(mouse));
+ 
++    const QSize menuSize(sizeHint());
+     if (adjustToDesktop) {
+         // handle popup falling "off screen"
+         if (isRightToLeft()) {
+@@ -1955,7 +1958,7 @@ void QMenu::popup(const QPoint &p, QAction *atAction)
+ 
+         if (pos.y() < screen.top() + desktopFrame)
+             pos.setY(screen.top() + desktopFrame);
+-        if (pos.y() + size.height() - 1 > screen.bottom() - desktopFrame) {
++        if (pos.y() + menuSize.height() - 1 > screen.bottom() - desktopFrame) {
+             if (d->scroll) {
+                 d->scroll->scrollFlags |= uint(QMenuPrivate::QMenuScroller::ScrollDown);
+                 int y = qMax(screen.y(),pos.y());
+@@ -1967,7 +1970,6 @@ void QMenu::popup(const QPoint &p, QAction *atAction)
+         }
+     }
+     const int subMenuOffset = style()->pixelMetric(QStyle::PM_SubMenuOverlap, 0, this);
+-    const QSize menuSize(sizeHint());
+     QMenu *caused = qobject_cast<QMenu*>(d_func()->causedPopup.widget);
+     if (caused && caused->geometry().width() + menuSize.width() + subMenuOffset < screen.width()) {
+         QRect parentActionRect(caused->d_func()->actionRect(caused->d_func()->currentAction));

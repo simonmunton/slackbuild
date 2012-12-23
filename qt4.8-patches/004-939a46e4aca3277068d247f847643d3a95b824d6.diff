@@ -1,0 +1,70 @@
+commit 939a46e4aca3277068d247f847643d3a95b824d6
+Author: Andrey Leonov <aleonov@rim.com>
+Date:   Fri Oct 26 14:56:37 2012 -0400
+
+    Adding PAC and exclusion list support to BlackBerry Qt proxy implementation.
+    
+    The additional proxy functionality is only available starting BPS API version 3.1.1.
+    
+    (cherry picked from commit 4b71432987ca9ff059d04f0e5f567b8eb09717f9)
+    
+    Change-Id: Ia59adf00a15e7b0a8fc124fcbb598c9c7c331358
+    Reviewed-by: Peter Hartmann <phartmann@rim.com>
+
+diff --git a/src/network/kernel/qnetworkproxy.cpp b/src/network/kernel/qnetworkproxy.cpp
+index f0b973b..67c3f5c 100644
+--- a/src/network/kernel/qnetworkproxy.cpp
++++ b/src/network/kernel/qnetworkproxy.cpp
+@@ -1420,10 +1420,9 @@ void QNetworkProxyFactory::setApplicationProxyFactory(QNetworkProxyFactory *fact
+     \o On Windows platforms, this function may take several seconds to
+     execute depending on the configuration of the user's system.
+ 
+-    \li On BlackBerry, this function ignores network configuration specified
+-    in \a query. Only UrlRequest quieries are supported. SOCKS is not supported.
+-    The proxy information is retrieved only for the default configuration.
+-    Also, PAC and exclusion lists are currently not supported.
++    \li On BlackBerry, only UrlRequest queries are supported. SOCKS is
++    not supported. The proxy credentials are only retrieved for the
++    default configuration.
+     \endlist
+ */
+ 
+diff --git a/src/network/kernel/qnetworkproxy_blackberry.cpp b/src/network/kernel/qnetworkproxy_blackberry.cpp
+index c985219..cbc2533 100644
+--- a/src/network/kernel/qnetworkproxy_blackberry.cpp
++++ b/src/network/kernel/qnetworkproxy_blackberry.cpp
+@@ -78,11 +78,34 @@ QList<QNetworkProxy> QNetworkProxyFactory::systemProxyForQuery(const QNetworkPro
+ 
+     netstatus_proxy_details_t details;
+     memset(&details, 0, sizeof(netstatus_proxy_details_t));
++
++#if BPS_VERSION >= 3001001
++
++    QByteArray bUrl(url.toEncoded());
++    QString sInterface(query.networkConfiguration().name());
++    QByteArray bInterface;
++    if (!sInterface.isEmpty()) {
++        if (query.networkConfiguration().type() != QNetworkConfiguration::InternetAccessPoint) {
++            qWarning("Unsupported configuration type: %d", query.networkConfiguration().type());
++            return QList<QNetworkProxy>() << QNetworkProxy(QNetworkProxy::NoProxy);
++        }
++        bInterface = sInterface.toUtf8();
++    }
++
++    if (netstatus_get_proxy_details_for_url(bUrl.constData(), (bInterface.isEmpty() ? NULL : bInterface.constData()), &details) != BPS_SUCCESS) {
++        qWarning("netstatus_get_proxy_details_for_url failed! errno: %d", errno);
++        return QList<QNetworkProxy>() << QNetworkProxy(QNetworkProxy::NoProxy);
++    }
++
++#else
++
+     if (netstatus_get_proxy_details(&details) != BPS_SUCCESS) {
+         qWarning("netstatus_get_proxy_details failed! errno: %d", errno);
+         return QList<QNetworkProxy>() << QNetworkProxy(QNetworkProxy::NoProxy);
+     }
+ 
++#endif
++
+     if (details.http_proxy_host == NULL) { // No proxy
+         netstatus_free_proxy_details(&details);
+         return QList<QNetworkProxy>() << QNetworkProxy(QNetworkProxy::NoProxy);

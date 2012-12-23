@@ -1,0 +1,26 @@
+commit 609684a4196ccb979b85293ae61c16dd9d7b4671
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Mon Nov 12 10:41:14 2012 +0100
+
+    On 32bit applications it would not get out of the waiting state
+    
+    Specifically for 32bit applications it would not get out of the waiting
+    state when using the Cocoa API, the QuickTime API works fine in this
+    respect so we can fallback to this instead.
+    
+    Change-Id: I768009c1e90e8c67ed518288971f11c3e7a1c2ee
+    Reviewed-by: aavit <eirik.aavitsland@digia.com>
+
+diff --git a/src/3rdparty/phonon/qt7/quicktimevideoplayer.mm b/src/3rdparty/phonon/qt7/quicktimevideoplayer.mm
+index 3f76132..b35d787 100644
+--- a/src/3rdparty/phonon/qt7/quicktimevideoplayer.mm
++++ b/src/3rdparty/phonon/qt7/quicktimevideoplayer.mm
+@@ -452,7 +452,7 @@ float QuickTimeVideoPlayer::percentageLoaded()
+ 
+ void QuickTimeVideoPlayer::waitStatePlayable()
+ {
+-#if defined(QT_MAC_USE_COCOA)
++#if defined(QT_MAC_USE_COCOA) && !defined(Q_OS_MAC32)
+     long state = [[m_QTMovie attributeForKey:@"QTMovieLoadStateAttribute"] longValue];
+     while (state != QTMovieLoadStateError && state < QTMovieLoadStatePlayable)
+         state = [[m_QTMovie attributeForKey:@"QTMovieLoadStateAttribute"] longValue];

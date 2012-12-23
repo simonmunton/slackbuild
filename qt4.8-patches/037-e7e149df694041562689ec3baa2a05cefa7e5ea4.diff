@@ -1,0 +1,62 @@
+commit e7e149df694041562689ec3baa2a05cefa7e5ea4
+Author: Tomasz Duda <tomaszduda23@gmail.com>
+Date:   Sat Nov 17 19:45:21 2012 +0100
+
+    Make the qatomic classes work in ARMv5 OABI.
+    
+    The function testAndSetOrdered is not atomic.
+    The context of a thread may be interrupted inside testAndSetOrdered
+    and then if another thread calls fetchAndStoreOrdered, _q_value may be
+    overwritten. After that _q_value will contain random value
+    depending on where testAndSetOrdered was interrupted.
+    It should not be possible for the atomic classes.
+    
+    Since the commit 8a7b5aca7b6575013a4e4ee9b99808d25edf6fdf
+    introduced new implementation of QMutex for linux
+    the bug causes deadlock.
+    
+    Change-Id: Ib9ffcf0e26d3be36a0e158fd12a363b97177dcbf
+    Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+
+diff --git a/src/corelib/arch/qatomic_armv5.h b/src/corelib/arch/qatomic_armv5.h
+index 20d6b1b..58af413 100644
+--- a/src/corelib/arch/qatomic_armv5.h
++++ b/src/corelib/arch/qatomic_armv5.h
+@@ -226,10 +226,18 @@ inline bool QBasicAtomicInt::testAndSetRelease(int expectedValue, int newValue)
+ inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
+ {
+     int originalValue;
++#ifndef QT_NO_ARM_EABI
+     asm volatile("swp %0,%2,[%3]"
+                  : "=&r"(originalValue), "=m" (_q_value)
+                  : "r"(newValue), "r"(&_q_value)
+                  : "cc", "memory");
++#else
++    while (q_atomic_swp(&q_atomic_lock, ~0) != 0)
++        qt_atomic_yield(&count);
++    originalValue=_q_value;
++    _q_value = newValue;
++    q_atomic_swp(&q_atomic_lock, 0);
++#endif
+     return originalValue;
+ }
+ 
+@@ -355,10 +363,18 @@ template <typename T>
+ Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+ {
+     T *originalValue;
++#ifndef QT_NO_ARM_EABI
+     asm volatile("swp %0,%2,[%3]"
+                  : "=&r"(originalValue), "=m" (_q_value)
+                  : "r"(newValue), "r"(&_q_value)
+                  : "cc", "memory");
++#else
++    while (q_atomic_swp(&q_atomic_lock, ~0) != 0)
++        qt_atomic_yield(&count);
++    originalValue=_q_value;
++    _q_value = newValue;
++    q_atomic_swp(&q_atomic_lock, 0);
++#endif
+     return originalValue;
+ }
+ 

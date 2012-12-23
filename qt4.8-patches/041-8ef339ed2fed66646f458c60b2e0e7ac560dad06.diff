@@ -1,0 +1,229 @@
+commit 8ef339ed2fed66646f458c60b2e0e7ac560dad06
+Author: Thiago Macieira <thiago.macieira@intel.com>
+Date:   Sun Nov 18 23:54:41 2012 +0100
+
+    Revert "QtConcurrent: Fix for leak in QFuture"
+    
+    This reverts commit 28b06b3ebae3d411c74f09fa7de52bc290c47dc3
+    
+    That commit contains new symbols added in a patch release of Qt. That is not permitted.
+    
+    Change-Id: I1d36b50d4c26aa32072fd3f9c311a0e773527abd
+    Reviewed-by: Christian Stromme <christian.stromme@digia.com>
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/src/corelib/concurrent/qfutureinterface.cpp b/src/corelib/concurrent/qfutureinterface.cpp
+index 6853a1a..9668e5d 100644
+--- a/src/corelib/concurrent/qfutureinterface.cpp
++++ b/src/corelib/concurrent/qfutureinterface.cpp
+@@ -419,16 +419,6 @@ bool QFutureInterfaceBase::referenceCountIsOne() const
+     return d->refCount == 1;
+ }
+ 
+-bool QFutureInterfaceBase::refT() const
+-{
+-    return d->refCount.refT();
+-}
+-
+-bool QFutureInterfaceBase::derefT() const
+-{
+-    return d->refCount.derefT();
+-}
+-
+ QFutureInterfaceBasePrivate::QFutureInterfaceBasePrivate(QFutureInterfaceBase::State initialState)
+     : refCount(1), m_progressValue(0), m_progressMinimum(0), m_progressMaximum(0),
+       state(initialState), pendingResults(0),
+diff --git a/src/corelib/concurrent/qfutureinterface.h b/src/corelib/concurrent/qfutureinterface.h
+index dfe7941..30bfbdb 100644
+--- a/src/corelib/concurrent/qfutureinterface.h
++++ b/src/corelib/concurrent/qfutureinterface.h
+@@ -132,8 +132,6 @@ public:
+ 
+ protected:
+     bool referenceCountIsOne() const;
+-    bool refT() const;
+-    bool derefT() const;
+ public:
+ 
+ #ifndef QFUTURE_TEST
+@@ -152,17 +150,13 @@ class QFutureInterface : public QFutureInterfaceBase
+ public:
+     QFutureInterface(State initialState = NoState)
+         : QFutureInterfaceBase(initialState)
+-    {
+-        refT();
+-    }
++    { }
+     QFutureInterface(const QFutureInterface &other)
+         : QFutureInterfaceBase(other)
+-    {
+-        refT();
+-    }
++    { }
+     ~QFutureInterface()
+     {
+-        if (!derefT())
++        if (referenceCountIsOne())
+             resultStore().clear();
+     }
+ 
+@@ -171,8 +165,7 @@ public:
+ 
+     QFutureInterface &operator=(const QFutureInterface &other)
+     {
+-        other.refT();
+-        if (!derefT())
++        if (referenceCountIsOne())
+             resultStore().clear();
+         QFutureInterfaceBase::operator=(other);
+         return *this;
+diff --git a/src/corelib/concurrent/qfutureinterface_p.h b/src/corelib/concurrent/qfutureinterface_p.h
+index 8431b1a..407c926 100644
+--- a/src/corelib/concurrent/qfutureinterface_p.h
++++ b/src/corelib/concurrent/qfutureinterface_p.h
+@@ -129,31 +129,7 @@ class QFutureInterfaceBasePrivate
+ public:
+     QFutureInterfaceBasePrivate(QFutureInterfaceBase::State initialState);
+ 
+-    // When the last QFuture<T> reference is removed, we need to make
+-    // sure that data stored in the ResultStore is cleaned out.
+-    // Since QFutureInterfaceBasePrivate can be shared between QFuture<T>
+-    // and QFuture<void> objects, we use a separate ref. counter
+-    // to keep track of QFuture<T> objects.
+-    class RefCount
+-    {
+-    public:
+-        inline RefCount(int r = 0, int rt = 0)
+-            : m_refCount(r), m_refCountT(rt) {}
+-        // Default ref counter for QFIBP
+-        inline bool ref() { return m_refCount.ref(); }
+-        inline bool deref() { return m_refCount.deref(); }
+-        // Ref counter for type T
+-        inline bool refT() { return m_refCountT.ref(); }
+-        inline bool derefT() { return m_refCountT.deref(); }
+-        inline operator int() const { return int(m_refCount); }
+-        inline bool operator==(int value) const { return m_refCount == value; }
+-
+-    private:
+-        QAtomicInt m_refCount;
+-        QAtomicInt m_refCountT;
+-    };
+-
+-    RefCount refCount;
++    QAtomicInt refCount;
+     mutable QMutex m_mutex;
+     QWaitCondition waitCondition;
+     QList<QFutureCallOutInterface *> outputConnections;
+diff --git a/tests/auto/qfuture/tst_qfuture.cpp b/tests/auto/qfuture/tst_qfuture.cpp
+index 0f1836c..f6ed5a9 100644
+--- a/tests/auto/qfuture/tst_qfuture.cpp
++++ b/tests/auto/qfuture/tst_qfuture.cpp
+@@ -1282,32 +1282,18 @@ void tst_QFuture::throttling()
+ 
+ void tst_QFuture::voidConversions()
+ {
+-    {
+-        QFutureInterface<int> iface;
+-        iface.reportStarted();
+-
+-        QFuture<int> intFuture(&iface);
+-        int value = 10;
+-        iface.reportFinished(&value);
++    QFutureInterface<int> iface;
++    iface.reportStarted();
+ 
+-        QFuture<void> voidFuture(intFuture);
+-        voidFuture = intFuture;
++    QFuture<int> intFuture(&iface);
+ 
+-        QVERIFY(voidFuture == intFuture);
+-    }
++    int value = 10;
++    iface.reportFinished(&value);
+ 
+-    {
+-        QFuture<void> voidFuture;
+-        {
+-            QFutureInterface<QList<int> > iface;
+-            iface.reportStarted();
++    QFuture<void> voidFuture(intFuture);
++    voidFuture = intFuture;
+ 
+-            QFuture<QList<int> > listFuture(&iface);
+-            iface.reportResult(QList<int>() << 1 << 2 << 3);
+-            voidFuture = listFuture;
+-        }
+-        QCOMPARE(voidFuture.resultCount(), 0);
+-    }
++    QVERIFY(voidFuture == intFuture);
+ }
+ 
+ 
+diff --git a/tests/auto/qtconcurrentmap/tst_qtconcurrentmap.cpp b/tests/auto/qtconcurrentmap/tst_qtconcurrentmap.cpp
+index f8c4a36..43075f1 100644
+--- a/tests/auto/qtconcurrentmap/tst_qtconcurrentmap.cpp
++++ b/tests/auto/qtconcurrentmap/tst_qtconcurrentmap.cpp
+@@ -43,7 +43,6 @@
+ 
+ #include <qdebug.h>
+ #include <QThread>
+-#include <QMutex>
+ 
+ #include <QtTest/QtTest>
+ 
+@@ -77,7 +76,6 @@ private slots:
+     void stlContainers();
+     void qFutureAssignmentLeak();
+     void stressTest();
+-    void persistentResultTest();
+ public slots:
+     void throttling();
+ };
+@@ -2418,47 +2416,6 @@ void tst_QtConcurrentMap::stressTest()
+     }
+ }
+ 
+-struct LockedCounter
+-{
+-    LockedCounter(QMutex *mutex, QAtomicInt *ai)
+-        : mtx(mutex),
+-          ref(ai) {}
+-
+-    typedef int result_type;
+-    int operator()(int x)
+-    {
+-        QMutexLocker locker(mtx);
+-        ref->ref();
+-        return ++x;
+-    }
+-
+-    QMutex *mtx;
+-    QAtomicInt *ref;
+-};
+-
+-// The Thread engine holds the last reference
+-// to the QFuture, so this should not leak
+-// or fail.
+-void tst_QtConcurrentMap::persistentResultTest()
+-{
+-    QFuture<void> voidFuture;
+-    QMutex mtx;
+-    QAtomicInt ref;
+-    LockedCounter lc(&mtx, &ref);
+-    QList<int> list;
+-    {
+-        list << 1 << 2 << 3;
+-        mtx.lock();
+-        QFuture<int> future = QtConcurrent::mapped(list
+-                                                   ,lc);
+-        voidFuture = future;
+-    }
+-    QCOMPARE(int(ref), 0);
+-    mtx.unlock(); // Unblock
+-    voidFuture.waitForFinished();
+-    QCOMPARE(int(ref), 3);
+-}
+-
+ QTEST_MAIN(tst_QtConcurrentMap)
+ 
+ #else

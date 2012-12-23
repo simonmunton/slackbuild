@@ -1,0 +1,45 @@
+commit 621d9b15918ec9341190da50fe7dddc9a0276f34
+Author: Richard Moe Gustavsen <richard.gustavsen@digia.com>
+Date:   Thu Oct 25 16:22:08 2012 +0200
+
+    Cocoa: QPrintDialog does not show/closes down immediatly
+    
+    This happends if an event loop recursion ends before
+    the native print dialog gets executed (in the same scope).
+    
+    The reason is that the event dispatcher gets interrupted as the
+    first recursion ends. And (because of the big difference between
+    how AppKit implements modal windows compared to Qt) this sets a flag
+    in the dispatcher that gets handled on the next callback to
+    QCocoaEventDispatcher::processPostedEvents. This will tell
+    the dispatcher to break out of the current modal session.
+    But since it cannot detect that an alien (native) session is now
+    running, it closes down that session by accident instead.
+    
+    While code can be written in the event dispatcher to detect this
+    problem, it ends up more clean to just work around the problem
+    from the native dialogs instead. This to avoid making the
+    dispatcher more complex than it already is. Native dialogs is
+    a bit messy already, and the work-arounds needed should be
+    isolated inside those components, and not inside the dispatcher.
+    
+    Change-Id: I8cb90b3a7a41b2122ae39e1af5eee0746505aa3a
+    Reviewed-by: Morten Johan Sørvig <morten.sorvig@digia.com>
+
+diff --git a/src/gui/dialogs/qprintdialog_mac.mm b/src/gui/dialogs/qprintdialog_mac.mm
+index 71395d0..64cc243 100644
+--- a/src/gui/dialogs/qprintdialog_mac.mm
++++ b/src/gui/dialogs/qprintdialog_mac.mm
+@@ -305,6 +305,12 @@ void QPrintDialogPrivate::openCocoaPrintPanel(Qt::WindowModality modality)
+     macStartInterceptWindowTitle(q);
+     printPanel = [NSPrintPanel printPanel];
+     QT_MANGLE_NAMESPACE(QCocoaPrintPanelDelegate) *delegate = [[QT_MANGLE_NAMESPACE(QCocoaPrintPanelDelegate) alloc] init];
++
++    // Call processEvents in case the event dispatcher has been interrupted, and needs to do
++    // cleanup of modal sessions. Do this before showing the native dialog, otherwise it will
++    // close down during the cleanup (QTBUG-17913):
++    qApp->processEvents(QEventLoop::ExcludeUserInputEvents, QEventLoop::ExcludeSocketNotifiers);
++
+     [printPanel setOptions:macOptions];
+ 
+     if (modality == Qt::ApplicationModal) {

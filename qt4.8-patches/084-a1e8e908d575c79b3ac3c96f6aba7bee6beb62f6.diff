@@ -1,0 +1,106 @@
+commit a1e8e908d575c79b3ac3c96f6aba7bee6beb62f6
+Author: Andrew den Exter <andrew.den.exter@jollamobile.com>
+Date:   Mon Dec 3 17:03:02 2012 +1000
+
+    Clear focus of GraphicsItem focus scopes and their children.
+    
+    A focus scope has effective focus if one of its children is the focus item,
+    clearFocus() should remove effective focus from an item and its children
+    not just from the focus item.
+    
+    Task-number: QTBUG-28328
+    Reviewed-by: Martin Jones <martin.jones@jollamobile.com>
+    (cherry picked from commit ab97a44b6ae5cc826460f3704669383afd398594)
+    
+    Change-Id: Ib6f43b40091cb1bb1a0d5b8b9ac71e44f35b037b
+    Reviewed-by: Martin Jones <martin.jones@jollamobile.com>
+
+diff --git a/src/gui/graphicsview/qgraphicsitem.cpp b/src/gui/graphicsview/qgraphicsitem.cpp
+index f7075e9..b4b302a 100644
+--- a/src/gui/graphicsview/qgraphicsitem.cpp
++++ b/src/gui/graphicsview/qgraphicsitem.cpp
+@@ -3349,6 +3349,12 @@ void QGraphicsItem::clearFocus()
+ */
+ void QGraphicsItemPrivate::clearFocusHelper(bool giveFocusToParent)
+ {
++    QGraphicsItem *subFocusItem = q_ptr;
++    if (flags & QGraphicsItem::ItemIsFocusScope) {
++        while (subFocusItem->d_ptr->focusScopeItem)
++            subFocusItem = subFocusItem->d_ptr->focusScopeItem;
++    }
++
+     if (giveFocusToParent) {
+         // Pass focus to the closest parent focus scope
+         if (!inDestructor) {
+@@ -3357,10 +3363,10 @@ void QGraphicsItemPrivate::clearFocusHelper(bool giveFocusToParent)
+                 if (p->flags() & QGraphicsItem::ItemIsFocusScope) {
+                     if (p->d_ptr->focusScopeItem == q_ptr) {
+                         p->d_ptr->focusScopeItem = 0;
+-                        if (!q_ptr->hasFocus()) //if it has focus, focusScopeItemChange is called elsewhere
++                        if (!subFocusItem->hasFocus()) //if it has focus, focusScopeItemChange is called elsewhere
+                             focusScopeItemChange(false);
+                     }
+-                    if (q_ptr->hasFocus())
++                    if (subFocusItem->hasFocus())
+                         p->d_ptr->setFocusHelper(Qt::OtherFocusReason, /* climb = */ false,
+                                                  /* focusFromHide = */ false);
+                     return;
+@@ -3370,7 +3376,7 @@ void QGraphicsItemPrivate::clearFocusHelper(bool giveFocusToParent)
+         }
+     }
+ 
+-    if (q_ptr->hasFocus()) {
++    if (subFocusItem->hasFocus()) {
+         // Invisible items with focus must explicitly clear subfocus.
+         clearSubFocus(q_ptr);
+ 
+diff --git a/tests/auto/qgraphicsitem/tst_qgraphicsitem.cpp b/tests/auto/qgraphicsitem/tst_qgraphicsitem.cpp
+index c087463..2c56dbc 100644
+--- a/tests/auto/qgraphicsitem/tst_qgraphicsitem.cpp
++++ b/tests/auto/qgraphicsitem/tst_qgraphicsitem.cpp
+@@ -9220,6 +9220,45 @@ void tst_QGraphicsItem::focusScope()
+     scope3->setFocus();
+     QVERIFY(scope3->hasFocus());
+ 
++    // clearFocus() on a focus scope will remove focus from its children.
++    scope1->clearFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(!scope3->hasFocus());
++
++    scope1->setFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(scope3->hasFocus());
++
++    scope2->clearFocus();
++    QVERIFY(scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(!scope3->hasFocus());
++
++    scope2->setFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(scope3->hasFocus());
++
++    // Focus cleared while a parent doesn't have focus remains cleared
++    // when the parent regains focus.
++    scope1->clearFocus();
++    scope3->clearFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(!scope3->hasFocus());
++
++    scope1->setFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(scope2->hasFocus());
++    QVERIFY(!scope3->hasFocus());
++
++    scope3->setFocus();
++    QVERIFY(!scope1->hasFocus());
++    QVERIFY(!scope2->hasFocus());
++    QVERIFY(scope3->hasFocus());
++
+     QGraphicsRectItem *rect4 = new QGraphicsRectItem;
+     rect4->setData(0, "rect4");
+     rect4->setParentItem(scope3);

@@ -1,0 +1,98 @@
+commit e2f600de9553168b3eb4fcbd1d4c523a91ee33ef
+Author: Christian Strømme <christian.stromme@digia.com>
+Date:   Fri Nov 23 13:29:36 2012 +0100
+
+    Fixes problem with single precision floats in QDataStream (Windows).
+    
+    When the floating-point behavior in MSVC is set to "precise" (default),
+    assigning nan numbers to a float causes the bit pattern to be altered
+    (only affects 32bit builds). We should therefore not assign the swapped
+    value back to a float and use it.
+    
+    Backported from Qt 5 (3f936e9094f3a6e4d76791c1eff7ae92f91b61ae)
+    
+    Task-number: QTBUG-25950
+    
+    Change-Id: I39725557ab89c978eb1c59a4c79df8a27ed70ecf
+    Reviewed-by: Jędrzej Nowacki <jedrzej.nowacki@digia.com>
+
+diff --git a/src/corelib/io/qdatastream.cpp b/src/corelib/io/qdatastream.cpp
+index 2e5a406..8b23479 100644
+--- a/src/corelib/io/qdatastream.cpp
++++ b/src/corelib/io/qdatastream.cpp
+@@ -1132,8 +1132,12 @@ QDataStream &QDataStream::operator<<(float f)
+         } x;
+         x.val1 = g;
+         x.val2 = qbswap(x.val2);
+-        g = x.val1;
++
++        if (dev->write((char *)&x.val2, sizeof(float)) != sizeof(float))
++            q_status = WriteFailed;
++        return *this;
+     }
++
+     if (dev->write((char *)&g, sizeof(float)) != sizeof(float))
+         q_status = WriteFailed;
+     return *this;
+diff --git a/tests/auto/qdatastream/tst_qdatastream.cpp b/tests/auto/qdatastream/tst_qdatastream.cpp
+index abd558c..ed7a01d 100644
+--- a/tests/auto/qdatastream/tst_qdatastream.cpp
++++ b/tests/auto/qdatastream/tst_qdatastream.cpp
+@@ -218,6 +218,8 @@ private slots:
+     void compatibility_Qt3();
+     void compatibility_Qt2();
+ 
++    void floatingPointNaN();
++
+ private:
+     void writebool(QDataStream *s);
+     void writeQBool(QDataStream *s);
+@@ -3494,6 +3496,48 @@ void tst_QDataStream::compatibility_Qt2()
+     QVERIFY(in_palette.color(QPalette::Light) == Qt::green);
+ }
+ 
++void tst_QDataStream::floatingPointNaN()
++{
++    QDataStream::ByteOrder bo = QSysInfo::ByteOrder == QSysInfo::BigEndian
++                                ? QDataStream::LittleEndian
++                                : QDataStream::BigEndian;
++
++    // Test and verify that values that become (s)nan's after swapping endianness
++    // don't change in the process.
++    // When compiling with e.g., MSVC (32bit) and when the fpu is used (fp:precise)
++    // all snan's will be converted to qnan's (default behavior).
++    // IF we get a snan after swapping endianness we can not copy the value to another
++    // float as this will cause the value to differ from the original value.
++    QByteArray ba;
++
++    union {
++       float f;
++       quint32 i;
++    } xs[2];
++
++    xs[0].i = qbswap<quint32>(0xff800001);
++    xs[1].i = qbswap<quint32>(0x7f800001);
++
++    {
++        QDataStream stream(&ba, QIODevice::WriteOnly);
++        stream.setByteOrder(bo);
++        stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
++        stream << xs[0].f;
++        stream << xs[1].f;
++    }
++
++    {
++        QDataStream stream(ba);
++        stream.setByteOrder(bo);
++        stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
++        float fr = 0.0f;
++        stream >> fr;
++        QCOMPARE(fr, xs[0].f);
++        stream >> fr;
++        QCOMPARE(fr, xs[1].f);
++    }
++}
++
+ void tst_QDataStream::floatingPointPrecision()
+ {
+     QByteArray ba;

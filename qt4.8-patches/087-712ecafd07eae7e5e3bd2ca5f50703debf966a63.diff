@@ -1,0 +1,32 @@
+commit 712ecafd07eae7e5e3bd2ca5f50703debf966a63
+Author: Karim Pinter <karim.pinter@digia.com>
+Date:   Wed Oct 17 14:30:31 2012 +0300
+
+    Fix for fullscreen resolution change on QWS
+    
+    Fix for QTBUG-27607. Now it handles the setMaxWindowRect for fullscreen
+    widgets. It is called when the resolution changes with QWS.
+    
+    Change-Id: I0fdbb39c55f727b6507fbb14369943dd8b7c2d7e
+    Reviewed-by: Samuli Piippo <samuli.piippo@digia.com>
+    Reviewed-by: Paul Olav Tvete <paul.tvete@digia.com>
+
+diff --git a/src/gui/kernel/qapplication_qws.cpp b/src/gui/kernel/qapplication_qws.cpp
+index 3ac3544..a665edc 100644
+--- a/src/gui/kernel/qapplication_qws.cpp
++++ b/src/gui/kernel/qapplication_qws.cpp
+@@ -258,8 +258,12 @@ void QApplicationPrivate::setMaxWindowRect(const QScreen *screen, int screenNo,
+     for (int i = 0; i < l.size(); ++i) {
+         QWidget *w = l.at(i);
+         QScreen *s = w->d_func()->getScreen();
+-        if (w->isMaximized() && s == screen)
+-            w->d_func()->setMaxWindowState_helper();
++        if (s == screen) {
++            if (w->isMaximized())
++                w->d_func()->setMaxWindowState_helper();
++            else if (w->isFullScreen())
++                w->d_func()->setFullScreenSize_helper();
++        }
+     }
+ 
+     if ( qt_desktopWidget ) // XXX workaround crash

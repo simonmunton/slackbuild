@@ -1,0 +1,36 @@
+commit e8460dbefd30b657f27c0c111e8e2ec5d74d6bb2
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Wed Nov 28 10:14:07 2012 +0100
+
+    Disable graphic effects for widgets on Mac to prevent crashing
+    
+    Since graphics effects on widgets are not supported on Mac then the
+    code is #ifdef'd out so that it does not crash instead.
+    
+    Task-number: QTBUG-24792
+    Change-Id: I4d81675b54816fa60cf66696b1a0a7b0206474e3
+    Reviewed-by: Morten Johan Sørvig <morten.sorvig@digia.com>
+
+diff --git a/src/gui/kernel/qwidget.cpp b/src/gui/kernel/qwidget.cpp
+index 3a0261e..2b8ead3 100644
+--- a/src/gui/kernel/qwidget.cpp
++++ b/src/gui/kernel/qwidget.cpp
+@@ -5308,6 +5308,9 @@ QGraphicsEffect *QWidget::graphicsEffect() const
+ 
+     \note This function will apply the effect on itself and all its children.
+ 
++    \note Graphics effects are not supported on Mac, so they will not cause any difference
++    to the rendering of the widget.
++
+     \since 4.6
+ 
+     \sa graphicsEffect()
+@@ -5493,7 +5496,7 @@ void QWidgetPrivate::drawWidget(QPaintDevice *pdev, const QRegion &rgn, const QP
+ 
+ 
+     Q_Q(QWidget);
+-#ifndef QT_NO_GRAPHICSEFFECT
++#if !defined(QT_NO_GRAPHICSEFFECT) && !defined(Q_WS_MAC)
+     if (graphicsEffect && graphicsEffect->isEnabled()) {
+         QGraphicsEffectSource *source = graphicsEffect->d_func()->source;
+         QWidgetEffectSourcePrivate *sourced = static_cast<QWidgetEffectSourcePrivate *>

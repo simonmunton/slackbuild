@@ -1,0 +1,49 @@
+commit 9bc44bb10b8f7426c8431d8e2fcb46ba9a0334aa
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Fri Nov 16 14:29:35 2012 +0100
+
+    Fix compile issue with building with openssl and in a namespace
+    
+    Task-number: QTBUG-25207
+    
+    Change-Id: I20ab722d3fcb74d90d9010c5c7c303f586e0d7c7
+    Reviewed-by: Shane Kearns <shane.kearns@accenture.com>
+
+diff --git a/src/network/ssl/qsslsocket_p.h b/src/network/ssl/qsslsocket_p.h
+index 0e8a5cb..9305f02 100644
+--- a/src/network/ssl/qsslsocket_p.h
++++ b/src/network/ssl/qsslsocket_p.h
+@@ -64,22 +64,26 @@
+ 
+ #include <private/qringbuffer_p.h>
+ 
+-QT_BEGIN_NAMESPACE
+-
+ #if defined(Q_OS_MAC)
+ #include <Security/SecCertificate.h>
+ #include <CoreFoundation/CFArray.h>
+-#if !defined(Q_OS_IOS)
+-    typedef OSStatus (*PtrSecCertificateGetData)(SecCertificateRef, CSSM_DATA_PTR);
+-    typedef OSStatus (*PtrSecTrustSettingsCopyCertificates)(int, CFArrayRef*);
+-    typedef OSStatus (*PtrSecTrustCopyAnchorCertificates)(CFArrayRef*);
+-#endif
+ #elif defined(Q_OS_WIN)
+ #include <windows.h>
+ #include <wincrypt.h>
+ #ifndef HCRYPTPROV_LEGACY
+ #define HCRYPTPROV_LEGACY HCRYPTPROV
+ #endif
++#endif
++
++QT_BEGIN_NAMESPACE
++
++#if defined(Q_OS_MAC) && !defined(Q_OS_IOS)
++    typedef OSStatus (*PtrSecCertificateGetData)(SecCertificateRef, CSSM_DATA_PTR);
++    typedef OSStatus (*PtrSecTrustSettingsCopyCertificates)(int, CFArrayRef*);
++    typedef OSStatus (*PtrSecTrustCopyAnchorCertificates)(CFArrayRef*);
++#endif
++
++#if defined(Q_OS_WIN)
+ #if defined(Q_OS_WINCE)
+     typedef HCERTSTORE (WINAPI *PtrCertOpenSystemStoreW)(LPCSTR, DWORD, HCRYPTPROV_LEGACY, DWORD, const void*);
+ #else

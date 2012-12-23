@@ -1,0 +1,34 @@
+commit d9de8ad5ddbdd86de463b5aa82e03a450762b816
+Author: Andy Shaw <andy.shaw@digia.com>
+Date:   Fri Nov 9 09:43:03 2012 +0100
+
+    When clicking on a menu item which has a sub menu it should not close
+    
+    If you clicked on a menu with a submenu then it should do nothing as
+    this is what the native behaviour is on Mac.
+    
+    Task-number: QTBUG-10706
+    Change-Id: I7c8898b4b35a8189e1a8270d8a528eb56c81aed7
+    Reviewed-by: Richard Moe Gustavsen <richard.gustavsen@digia.com>
+
+diff --git a/src/gui/widgets/qmenu_mac.mm b/src/gui/widgets/qmenu_mac.mm
+index 37755f1..a70c287 100644
+--- a/src/gui/widgets/qmenu_mac.mm
++++ b/src/gui/widgets/qmenu_mac.mm
+@@ -1433,6 +1433,7 @@ QMenuPrivate::QMacMenuPrivate::syncAction(QMacMenuAction *action)
+         } else {
+             [item setSubmenu:subMenu];
+         }
++        [item setAction:nil];
+ #endif
+     } else { //respect some other items
+ #ifndef QT_MAC_USE_COCOA
+@@ -1447,6 +1448,8 @@ QMenuPrivate::QMacMenuPrivate::syncAction(QMacMenuAction *action)
+         }
+ #else
+         [item setSubmenu:0];
++        if ([item action] == nil)
++            [item setAction:@selector(qtDispatcherToQAction:)];
+         // No key equivalent set for multiple key QKeySequence.
+         if (accel.count() == 1) {
+             [item setKeyEquivalent:keySequenceToKeyEqivalent(accel)];

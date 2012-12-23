@@ -1,0 +1,33 @@
+commit a7965832a46af1c9d58c6aca38084b6436f48302
+Author: Samuel Rødal <samuel.rodal@digia.com>
+Date:   Mon Nov 26 16:39:40 2012 +0100
+
+    Fixed crash in tst_qglthreads.
+    
+    QGLTextureCache has a read write locker to protect texture lookups.
+    However, even calling QCache::object() might modify the cache, causing
+    race conditions, since it modifies the priority order of the objects in
+    the cache. Therefore, we need to protect it with a QWriteLocker instead
+    of a QReadLocker.
+    
+    Task-number: QTBUG-22560
+    Change-Id: I46fffc624ace27e25fb100f865e1df0a19b9093d
+    Reviewed-by: Gabriel de Dietrich <gabriel.dedietrich@digia.com>
+    (cherry picked from commit 6633dbbac49f4ce8a89b67090fdffaa8c8126eb5)
+    Reviewed-by: Gunnar Sletta <gunnar.sletta@digia.com>
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/src/opengl/qgl_p.h b/src/opengl/qgl_p.h
+index b5d17e8..5fe6678 100644
+--- a/src/opengl/qgl_p.h
++++ b/src/opengl/qgl_p.h
+@@ -696,7 +696,8 @@ int QGLTextureCache::maxCost()
+ 
+ QGLTexture* QGLTextureCache::getTexture(QGLContext *ctx, qint64 key)
+ {
+-    QReadLocker locker(&m_lock);
++    // Can't be a QReadLocker since QCache::object() modifies the cache (reprioritizes the object)
++    QWriteLocker locker(&m_lock);
+     const QGLTextureCacheKey cacheKey = {key, QGLContextPrivate::contextGroup(ctx)};
+     return m_cache.object(cacheKey);
+ }

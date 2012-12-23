@@ -1,0 +1,52 @@
+commit d6b30ba996b94311c772124ad75ec5abe0ead490
+Author: Sergio Ahumada <sergio.ahumada@digia.com>
+Date:   Sat Nov 10 21:54:55 2012 +0100
+
+    test: Mark tst_GuiAppLauncher::run() as XFAIL
+    
+    Task-number: QTBUG-27938
+    Change-Id: I6cde6167ace521e88635593aaaebd8f372fec7b3
+    Reviewed-by: Simo Fält <simo.falt@digia.com>
+    Reviewed-by: Janne Anttila <janne.anttila@digia.com>
+    Reviewed-by: Sergey Hambardzumyan <sergey.hambardzumyan@digia.com>
+
+diff --git a/tests/auto/guiapplauncher/guiapplauncher.pro b/tests/auto/guiapplauncher/guiapplauncher.pro
+index 1f7a5fc..d41d5d5 100644
+--- a/tests/auto/guiapplauncher/guiapplauncher.pro
++++ b/tests/auto/guiapplauncher/guiapplauncher.pro
+@@ -21,4 +21,4 @@ x11 {
+     LIBS += $$QMAKE_LIBS_X11
+ }
+ 
+-CONFIG+=insignificant_test # QTQAINFRA-428
++CONFIG+=insignificant_test # QTBUG-27938
+diff --git a/tests/auto/guiapplauncher/tst_guiapplauncher.cpp b/tests/auto/guiapplauncher/tst_guiapplauncher.cpp
+index c7146ae..c1cbe18 100644
+--- a/tests/auto/guiapplauncher/tst_guiapplauncher.cpp
++++ b/tests/auto/guiapplauncher/tst_guiapplauncher.cpp
+@@ -381,6 +381,25 @@ void tst_GuiAppLauncher::run()
+     const bool rc = runApp(data, &errorMessage);
+     if (!rc) // Wait for windows to disappear after kill
+         WindowManager::sleepMS(500);
++#if defined(Q_OS_LINUX) && defined(__i386__) // Ubuntu 10.04 x86
++    QEXPECT_FAIL("Qt Designer", "QTBUG-27938", Continue);
++#endif
++#if defined(Q_OS_LINUX) && defined(__x86_64__) // Ubuntu 11.10 x64
++    QEXPECT_FAIL("Qt Designer", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("Qt Linguist", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("Qt Demo", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("Browser Demo", "QTBUG-27938", Continue);
++#endif
++#if defined(Q_OS_WIN)
++    QEXPECT_FAIL("Qt Demo", "QTBUG-27938", Continue);
++#endif
++#if defined(Q_OS_WIN) && defined(QT_BUILD_INTERNAL)
++    QEXPECT_FAIL("Qt Demo", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("Composition Demo", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("Sub-Attac Demo", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("graphicsview/padnavigator Example", "QTBUG-27938", Continue);
++    QEXPECT_FAIL("painting/svgviewer Example", "QTBUG-27938", Continue);
++#endif
+     QVERIFY2(rc, qPrintable(errorMessage));
+ }
+ 

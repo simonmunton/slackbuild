@@ -1,0 +1,47 @@
+commit b898c4ed69caec14d51a2be4fc44a4ed54a06c48
+Author: Mitch Curtis <mitch.curtis@digia.com>
+Date:   Tue Nov 27 14:54:51 2012 +0100
+
+    Prevent crashes after throwing an exception.
+    
+    After bc3491c1b85ca36486c9472ecf7ba82f46699e8a, throwing an exception
+    from a slot will cause the application to crash (segfault). This patch
+    wraps the offending callFunction call in a try/catch block when
+    QT_NO_EXCEPTIONS is defined, allowing the appropriate cleanup to occur
+    and hence preventing the crash.
+    
+    Task-number: QTBUG-26825
+    Task-number: QTBUG-27548
+    Change-Id: Ia3a02398b0308b2216ad17f8f643745bd013fd50
+    Reviewed-by: Olivier Goffart <ogoffart@woboq.com>
+    Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+    Reviewed-by: Andy Shaw <andy.shaw@digia.com>
+
+diff --git a/src/corelib/kernel/qobject.cpp b/src/corelib/kernel/qobject.cpp
+index 9008fb8..5ac32ae 100644
+--- a/src/corelib/kernel/qobject.cpp
++++ b/src/corelib/kernel/qobject.cpp
+@@ -3536,8 +3536,23 @@ void QMetaObject::activate(QObject *sender, const QMetaObject *m, int local_sign
+                 if (qt_signal_spy_callback_set.slot_begin_callback != 0)
+                     qt_signal_spy_callback_set.slot_begin_callback(receiver, c->method(), argv ? argv : empty_argv);
+ 
++#if defined(QT_NO_EXCEPTIONS)
+                 callFunction(receiver, QMetaObject::InvokeMetaMethod, method_relative, argv ? argv : empty_argv);
++#else
++                QT_TRY {
++                    callFunction(receiver, QMetaObject::InvokeMetaMethod, method_relative, argv ? argv : empty_argv);
++                } QT_CATCH(...) {
++                    locker.relock();
++                    if (receiverInSameThread)
++                        QObjectPrivate::resetCurrentSender(receiver, &currentSender, previousSender);
+ 
++                    --connectionLists->inUse;
++                    Q_ASSERT(connectionLists->inUse >= 0);
++                    if (connectionLists->orphaned && !connectionLists->inUse)
++                        delete connectionLists;
++                    QT_RETHROW;
++                }
++#endif
+                 if (qt_signal_spy_callback_set.slot_end_callback != 0)
+                     qt_signal_spy_callback_set.slot_end_callback(receiver, c->method());
+                 locker.relock();

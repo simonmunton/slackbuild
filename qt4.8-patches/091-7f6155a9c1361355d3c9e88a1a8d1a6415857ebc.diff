@@ -1,0 +1,219 @@
+commit 7f6155a9c1361355d3c9e88a1a8d1a6415857ebc
+Author: Marc Mutz <marc.mutz@kdab.com>
+Date:   Sun Oct 21 20:10:22 2012 +0200
+
+    [QTBUG-27420] Make Q{Box,Grid,Form}Layout::takeAt() unparent a nested layout
+    
+    QStackedLayout doesn't have support for QLayout, only QWidget, so
+    the issue doesn't arise there.
+    
+    (cherry-picked from qtbase/716d33d2a73ade42eb31be3e8ecbaeecdd5ddd21)
+    (only change: s/reset()/clear()/ in the tests)
+    
+    Reported-by: Johannes Schaub
+    Task-number: QTBUG-27420
+    
+    Change-Id: I7f3c4b1996e954428c00d4dda1095712efa91367
+    Reviewed-by: Friedemann Kleint <Friedemann.Kleint@digia.com>
+
+diff --git a/src/gui/kernel/qboxlayout.cpp b/src/gui/kernel/qboxlayout.cpp
+index 5dde1d2..cca524d 100644
+--- a/src/gui/kernel/qboxlayout.cpp
++++ b/src/gui/kernel/qboxlayout.cpp
+@@ -788,6 +788,12 @@ QLayoutItem *QBoxLayout::takeAt(int index)
+     b->item = 0;
+     delete b;
+ 
++    if (QLayout *l = item->layout()) {
++        // sanity check in case the user passed something weird to QObject::setParent()
++        if (l->parent() == this)
++            l->setParent(0);
++    }
++
+     invalidate();
+     return item;
+ }
+diff --git a/src/gui/kernel/qformlayout.cpp b/src/gui/kernel/qformlayout.cpp
+index 0cbb9fa..9e481ec 100644
+--- a/src/gui/kernel/qformlayout.cpp
++++ b/src/gui/kernel/qformlayout.cpp
+@@ -1410,6 +1410,13 @@ QLayoutItem *QFormLayout::takeAt(int index)
+     QLayoutItem *i = item->item;
+     item->item = 0;
+     delete item;
++
++    if (QLayout *l = i->layout()) {
++        // sanity check in case the user passed something weird to QObject::setParent()
++        if (l->parent() == this)
++            l->setParent(0);
++    }
++
+     return i;
+ }
+ 
+diff --git a/src/gui/kernel/qgridlayout.cpp b/src/gui/kernel/qgridlayout.cpp
+index cb0dc90..3f11faa 100644
+--- a/src/gui/kernel/qgridlayout.cpp
++++ b/src/gui/kernel/qgridlayout.cpp
+@@ -156,15 +156,20 @@ public:
+             return 0;
+     }
+     inline QLayoutItem *takeAt(int index) {
+-        QLayoutItem *item = 0;
++        Q_Q(QGridLayout);
+         if (index < things.count()) {
+-            QGridBox *b = things.takeAt(index);
+-            if (b) {
+-                item = b->takeItem();
++            if (QGridBox *b = things.takeAt(index)) {
++                QLayoutItem *item = b->takeItem();
++                if (QLayout *l = item->layout()) {
++                    // sanity check in case the user passed something weird to QObject::setParent()
++                    if (l->parent() == q)
++                        l->setParent(0);
++                }
+                 delete b;
++                return item;
+             }
+         }
+-        return item;
++        return 0;
+     }
+ 
+     void getItemPosition(int index, int *row, int *column, int *rowSpan, int *columnSpan) {
+diff --git a/tests/auto/qboxlayout/tst_qboxlayout.cpp b/tests/auto/qboxlayout/tst_qboxlayout.cpp
+index 4d6388f..3d2a30a 100644
+--- a/tests/auto/qboxlayout/tst_qboxlayout.cpp
++++ b/tests/auto/qboxlayout/tst_qboxlayout.cpp
+@@ -68,6 +68,7 @@ private slots:
+     void setStyleShouldChangeSpacing();
+ 
+     void taskQTBUG_7103_minMaxWidthNotRespected();
++    void taskQTBUG_27420_takeAtShouldUnparentLayout();
+ };
+ 
+ class CustomLayoutStyle : public QWindowsStyle
+@@ -275,5 +276,26 @@ void tst_QBoxLayout::taskQTBUG_7103_minMaxWidthNotRespected()
+     QCOMPARE(label->height(), height);
+ }
+ 
++void tst_QBoxLayout::taskQTBUG_27420_takeAtShouldUnparentLayout()
++{
++    QSharedPointer<QHBoxLayout> outer(new QHBoxLayout);
++    QPointer<QVBoxLayout> inner = new QVBoxLayout;
++
++    outer->addLayout(inner);
++    QCOMPARE(outer->count(), 1);
++    QCOMPARE(inner->parent(), outer.data());
++
++    QLayoutItem *item = outer->takeAt(0);
++    QCOMPARE(item->layout(), inner.data());
++    QVERIFY(!item->layout()->parent());
++
++    outer.clear();
++
++    if (inner)
++        delete item; // success: a taken item/layout should not be deleted when the old parent is deleted
++    else
++        QVERIFY(!inner.isNull());
++}
++
+ QTEST_MAIN(tst_QBoxLayout)
+ #include "tst_qboxlayout.moc"
+diff --git a/tests/auto/qformlayout/tst_qformlayout.cpp b/tests/auto/qformlayout/tst_qformlayout.cpp
+index 89c8f99..462992c 100644
+--- a/tests/auto/qformlayout/tst_qformlayout.cpp
++++ b/tests/auto/qformlayout/tst_qformlayout.cpp
+@@ -50,6 +50,7 @@
+ 
+ #include <QtGui/QWindowsStyle>
+ #include <QStyleFactory>
++#include <QSharedPointer>
+ 
+ #include <qformlayout.h>
+ 
+@@ -125,6 +126,8 @@ private slots:
+     Qt::Orientations expandingDirections() const;
+ */
+ 
++    void taskQTBUG_27420_takeAtShouldUnparentLayout();
++
+ };
+ 
+ tst_QFormLayout::tst_QFormLayout()
+@@ -905,6 +908,27 @@ void tst_QFormLayout::layoutAlone()
+     QTest::qWait(500);
+ }
+ 
++void tst_QFormLayout::taskQTBUG_27420_takeAtShouldUnparentLayout()
++{
++    QSharedPointer<QFormLayout> outer(new QFormLayout);
++    QPointer<QFormLayout> inner = new QFormLayout;
++
++    outer->addRow(inner);
++    QCOMPARE(outer->count(), 1);
++    QCOMPARE(inner->parent(), outer.data());
++
++    QLayoutItem *item = outer->takeAt(0);
++    QCOMPARE(item->layout(), inner.data());
++    QVERIFY(!item->layout()->parent());
++
++    outer.clear();
++
++    if (inner)
++        delete item; // success: a taken item/layout should not be deleted when the old parent is deleted
++    else
++        QVERIFY(!inner.isNull());
++}
++
+ QTEST_MAIN(tst_QFormLayout)
+ 
+ #include "tst_qformlayout.moc"
+diff --git a/tests/auto/qgridlayout/tst_qgridlayout.cpp b/tests/auto/qgridlayout/tst_qgridlayout.cpp
+index 4b06a11..64e16c0 100644
+--- a/tests/auto/qgridlayout/tst_qgridlayout.cpp
++++ b/tests/auto/qgridlayout/tst_qgridlayout.cpp
+@@ -50,6 +50,7 @@
+ 
+ #include <QtGui/QWindowsStyle>
+ #include <QStyleFactory>
++#include <QSharedPointer>
+ 
+ #include "../../shared/util.h"
+ #include "../platformquirks.h"
+@@ -94,6 +95,8 @@ private slots:
+     void contentsRect();
+     void distributeMultiCell();
+ 
++    void taskQTBUG_27420_takeAtShouldUnparentLayout();
++
+ private:
+     QWidget *testWidget;
+     QGridLayout *testLayout;
+@@ -1642,5 +1645,26 @@ void tst_QGridLayout::distributeMultiCell()
+     QCOMPARE(w.sizeHint().height(), 11 + 57 + 11);
+ }
+ 
++void tst_QGridLayout::taskQTBUG_27420_takeAtShouldUnparentLayout()
++{
++    QSharedPointer<QGridLayout> outer(new QGridLayout);
++    QPointer<QGridLayout> inner = new QGridLayout;
++
++    outer->addLayout(inner, 0, 0);
++    QCOMPARE(outer->count(), 1);
++    QCOMPARE(inner->parent(), outer.data());
++
++    QLayoutItem *item = outer->takeAt(0);
++    QCOMPARE(item->layout(), inner.data());
++    QVERIFY(!item->layout()->parent());
++
++    outer.clear();
++
++    if (inner)
++        delete item; // success: a taken item/layout should not be deleted when the old parent is deleted
++    else
++        QVERIFY(!inner.isNull());
++}
++
+ QTEST_MAIN(tst_QGridLayout)
+ #include "tst_qgridlayout.moc"

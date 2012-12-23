@@ -1,0 +1,129 @@
+commit fbf8ae9f390c2d482bb5dadf654942aae171f3df
+Author: Konstantin Ritt <ritt.ks@gmail.com>
+Date:   Fri Nov 2 08:16:11 2012 +0200
+
+    Minor fixes to the QLocale data parser/generator
+    
+    Change-Id: Id4fd9caa7c9d91d92b6ba414d04ce870a366c1f7
+    Reviewed-by: Denis Dzyubenko <denis@ddenis.info>
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/util/local_database/cldr2qlocalexml.py b/util/local_database/cldr2qlocalexml.py
+index 01d03b0..b2b5df6 100755
+--- a/util/local_database/cldr2qlocalexml.py
++++ b/util/local_database/cldr2qlocalexml.py
+@@ -136,13 +136,13 @@ def generateLocaleInfo(path):
+ 
+     language_id = enumdata.languageCodeToId(language_code)
+     if language_id == -1:
+-        sys.stderr.write("unnknown language code \"" + language_code + "\"\n")
++        sys.stderr.write("unknown language code \"" + language_code + "\"\n")
+         return {}
+     language = enumdata.language_list[language_id][0]
+ 
+     script_id = enumdata.scriptCodeToId(script_code)
+     if script_code == -1:
+-        sys.stderr.write("unnknown script code \"" + script_code + "\"\n")
++        sys.stderr.write("unknown script code \"" + script_code + "\"\n")
+         return {}
+     script = "AnyScript"
+     if script_id != -1:
+@@ -153,7 +153,7 @@ def generateLocaleInfo(path):
+     if country_id != -1:
+         country = enumdata.country_list[country_id][0]
+     if country == "":
+-        sys.stderr.write("unnknown country code \"" + country_code + "\"\n")
++        sys.stderr.write("unknown country code \"" + country_code + "\"\n")
+         return {}
+ 
+     # So we say we accept only those values that have "contributed" or
+diff --git a/util/local_database/enumdata.py b/util/local_database/enumdata.py
+index 95f84d0..78fc4d0 100644
+--- a/util/local_database/enumdata.py
++++ b/util/local_database/enumdata.py
+@@ -40,7 +40,7 @@
+ ##
+ #############################################################################
+ 
+-# langugae_list and country_list reflect the current values of enums in qlocale.h
++# language_list and country_list reflect the current values of enums in qlocale.h
+ # If new xml language files are available in CLDR, these languages and countries
+ # need to be *appended* to this list.
+ 
+@@ -126,7 +126,7 @@ language_list = {
+     78 : [ "Maltese",             "mt" ],
+     79 : [ "Maori",               "mi" ],
+     80 : [ "Marathi",             "mr" ],
+-    81 : [ "Moldavian",           "mo" ],
++    81 : [ "Moldavian",           "mo" ], # deprecated (alias to "ro_MD")
+     82 : [ "Mongolian",           "mn" ],
+     83 : [ "Nauru",       "na" ],
+     84 : [ "Nepali",              "ne" ],
+@@ -146,7 +146,7 @@ language_list = {
+     98 : [ "Sangho",              "sg" ],
+     99 : [ "Sanskrit",            "sa" ],
+     100 : [ "Serbian",            "sr" ],
+-    101 : [ "SerboCroatian",      "sh" ],
++    101 : [ "SerboCroatian",      "sh" ], # legacy (alias to "sr_Latn")
+     102 : [ "Sesotho",            "st" ],
+     103 : [ "Setswana",           "tn" ],
+     104 : [ "Shona",              "sn" ],
+@@ -160,7 +160,7 @@ language_list = {
+     112 : [ "Sundanese",          "su" ],
+     113 : [ "Swahili",            "sw" ],
+     114 : [ "Swedish",            "sv" ],
+-    115 : [ "Tagalog",            "tl" ],
++    115 : [ "Tagalog",            "tl" ], # legacy (alias to "fil")
+     116 : [ "Tajik",              "tg" ],
+     117 : [ "Tamil",              "ta" ],
+     118 : [ "Tatar",              "tt" ],
+@@ -172,7 +172,7 @@ language_list = {
+     124 : [ "Tsonga",             "ts" ],
+     125 : [ "Turkish",            "tr" ],
+     126 : [ "Turkmen",            "tk" ],
+-    127 : [ "Twi",                "tw" ],
++    127 : [ "Twi",                "tw" ], # should be an alias to Akan
+     128 : [ "Uigur",              "ug" ],
+     129 : [ "Ukrainian",          "uk" ],
+     130 : [ "Urdu",               "ur" ],
+diff --git a/util/local_database/qlocalexml2cpp.py b/util/local_database/qlocalexml2cpp.py
+index 6c9682e..edf311c 100755
+--- a/util/local_database/qlocalexml2cpp.py
++++ b/util/local_database/qlocalexml2cpp.py
+@@ -792,6 +792,7 @@ def main():
+     data_temp_file.close()
+     qlocaledata_file.close()
+ 
++    os.remove(qtsrcdir + "/src/corelib/tools/qlocale_data_p.h")
+     os.rename(data_temp_file_path, qtsrcdir + "/src/corelib/tools/qlocale_data_p.h")
+ 
+     # qlocale.h
+@@ -853,6 +854,7 @@ def main():
+     qlocaleh_temp_file.close()
+     qlocaleh_file.close()
+ 
++    os.remove(qtsrcdir + "/src/corelib/tools/qlocale.h")
+     os.rename(qlocaleh_temp_file_path, qtsrcdir + "/src/corelib/tools/qlocale.h")
+ 
+     # qlocale.qdoc
+@@ -871,6 +873,7 @@ def main():
+     qlocaleqdoc_temp_file.close()
+     qlocaleqdoc_file.close()
+ 
++    os.remove(qtsrcdir + "/src/corelib/tools/qlocale.qdoc")
+     os.rename(qlocaleqdoc_temp_file_path, qtsrcdir + "/src/corelib/tools/qlocale.qdoc")
+ 
+ if __name__ == "__main__":
+diff --git a/util/local_database/xpathlite.py b/util/local_database/xpathlite.py
+index a9e3096..1706b31 100644
+--- a/util/local_database/xpathlite.py
++++ b/util/local_database/xpathlite.py
+@@ -242,7 +242,7 @@ def findEntry(base, path, draft=None, attribute=None):
+         if result:
+             return result
+         if not aliaspath:
+-            raise Error("findEntry: fatal error: %s: did not found key %s" % (filename, path))
++            raise Error("findEntry: fatal error: %s: can not find key %s" % (filename, path))
+         path = aliaspath
+ 
+     return result

@@ -1,0 +1,68 @@
+commit e706d1d7463d2baae03ede0d3254bc9c2f3ba2c5
+Author: Rafael Roquetto <rafael.roquetto@kdab.com>
+Date:   Wed Oct 24 11:11:31 2012 -0200
+
+    Fix QWidget support on Playbook
+    
+    The BPS version provided by the current version of the Playbook OS does not
+    support orientation locking. This patch implements this manually.
+    
+    This patch is not needed in Qt5, since the API has changed.
+    
+    Change-Id: Ibba6fb3437cb392e3ba3d2b1997a178653226131
+    Reviewed-by: Nicolas Arnaud-Cormos <nicolas@kdab.com>
+    Reviewed-by: Bernd Weimer <bweimer@rim.com>
+    Reviewed-by: Thomas McGuire <thomas.mcguire@kdab.com>
+
+diff --git a/src/gui/kernel/qwidget.cpp b/src/gui/kernel/qwidget.cpp
+index 2b8ead3..ca0d02a 100644
+--- a/src/gui/kernel/qwidget.cpp
++++ b/src/gui/kernel/qwidget.cpp
+@@ -135,6 +135,10 @@
+ #include <bps/navigator.h>
+ #endif
+ 
++#ifdef Q_OS_BLACKBERRY_TABLET
++#include <bps/orientation.h>
++#endif
++
+ // widget/widget data creation count
+ //#define QWIDGET_EXTRA_DEBUG
+ //#define ALIEN_DEBUG
+@@ -11023,11 +11027,35 @@ void QWidget::setAttribute(Qt::WidgetAttribute attribute, bool on)
+         if (testAttribute(Qt::WA_AutoOrientation)) {
+             navigator_rotation_lock(false);
+         } else {
++#ifdef Q_OS_BLACKBERRY_TABLET
++            const bool portraitLocked = testAttribute(Qt::WA_LockPortraitOrientation);
++
++            orientation_direction_t direction;
++            orientation_get(&direction, 0);
++
++            int rotation = 0;
++
++            switch (direction) {
++            case ORIENTATION_TOP_UP:
++            case ORIENTATION_RIGHT_UP:
++                rotation = portraitLocked ? 90 : 0;
++                break;
++            case ORIENTATION_BOTTOM_UP:
++            case ORIENTATION_LEFT_UP:
++                rotation = portraitLocked ? 270 : 180;
++                break;
++            default:
++                break;
++            }
++
++            navigator_set_orientation(rotation, 0);
++#else
+             navigator_set_orientation_mode((testAttribute(Qt::WA_LockPortraitOrientation) ?
+                                             NAVIGATOR_PORTRAIT : NAVIGATOR_LANDSCAPE), 0);
++#endif // Q_OS_BLACKBERRY_TABLET
+             navigator_rotation_lock(true);
+         }
+-#endif
++#endif // Q_OS_BLACKBERRY
+ 
+ #ifdef Q_WS_S60
+         CAknAppUiBase* appUi = static_cast<CAknAppUiBase*>(CEikonEnv::Static()->EikAppUi());

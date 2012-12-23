@@ -1,0 +1,37 @@
+commit 7d5574202ed67b57b1c4df21ab6eb3695c14df37
+Author: Bernd Weimer <bweimer@rim.com>
+Date:   Mon Nov 26 15:57:42 2012 +0100
+
+    BlackBerry: Fixed physical screen dimensions when rotated
+    
+    libscreen will always provide the same physical screen dimensions
+    regardless of the initial orientation. Width and hight will now be
+    swapped appropriately (to make sure that the DPI value is correct).
+    
+    The Qt5 implementation is different (the qnx plugin takes the
+    initial orientation into account).
+    
+    Change-Id: I983d1db7ae334b442597b62dde64d41bb991690c
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+    Reviewed-by: Kevin Krammer <kevin.krammer@kdab.com>
+
+diff --git a/src/plugins/platforms/blackberry/qbbscreen.cpp b/src/plugins/platforms/blackberry/qbbscreen.cpp
+index 30ee090..e62b391 100644
+--- a/src/plugins/platforms/blackberry/qbbscreen.cpp
++++ b/src/plugins/platforms/blackberry/qbbscreen.cpp
+@@ -139,9 +139,13 @@ QBBScreen::QBBScreen(screen_context_t context, screen_display_t display, int scr
+     mCurrentGeometry = mStartGeometry = QRect(0, 0, val[0], val[1]);
+ 
+     // Cache size of this display in millimeters
+-    const QSize screenSize = determineScreenSize(mDisplay, mPrimaryDisplay);
++    mStartPhysicalSize = determineScreenSize(mDisplay, mPrimaryDisplay);
+ 
+-    mCurrentPhysicalSize = mStartPhysicalSize = screenSize;
++    // swap physical dimensions when rotated orthogonally
++    if (mStartRotation == 90 || mStartRotation == 270)
++        mStartPhysicalSize.transpose();
++
++    mCurrentPhysicalSize = mStartPhysicalSize;
+ 
+     // We only create the root window if we are not the primary display.
+     if (mPrimaryDisplay)

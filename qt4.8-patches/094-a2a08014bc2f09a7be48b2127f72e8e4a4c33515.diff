@@ -1,0 +1,33 @@
+commit a2a08014bc2f09a7be48b2127f72e8e4a4c33515
+Author: Erik van Pienbroek <epienbro@fedoraproject.org>
+Date:   Mon Dec 10 20:42:31 2012 +0100
+
+    Fix SSSE3 support build failure on mingw
+    
+    Commit 94253f3472a13ac4eab3ccfbbba9d14165647f85 made QMAKE_MAC_XARCH
+    to be set to 'no' for MinGW environments. Due to this change building
+    for MinGW environments where SSSE3 support is available got broken.
+    While building the imageformats plugin qjpeg4 the following error occurs:
+    
+    undefined reference to `_imp___Z32qt_convert_rgb888_to_rgb32_ssse3PjPKhi'
+    
+    This commit makes building Qt on MinGW environments where SSSE3 support
+    is available working again
+    
+    Change-Id: Ib2a4b3cc244af8bdde70d2d2240c70ff0e7a4cc2
+    Reviewed-by: Andy Shaw <andy.shaw@digia.com>
+    Reviewed-by: Daniel Molkentin <daniel@molkentin.de>
+
+diff --git a/src/gui/gui.pro b/src/gui/gui.pro
+index e8f9d1f..5a9e57c 100644
+--- a/src/gui/gui.pro
++++ b/src/gui/gui.pro
+@@ -80,7 +80,7 @@ win32:!contains(QT_CONFIG, directwrite) {
+     DEFINES += QT_NO_DIRECTWRITE
+ }
+ 
+-contains(QMAKE_MAC_XARCH, no) {
++mac:contains(QMAKE_MAC_XARCH, no) {
+     DEFINES += QT_NO_MAC_XARCH
+ } else {
+     win32-g++*|!win32:!win32-icc*:!macx-icc* {

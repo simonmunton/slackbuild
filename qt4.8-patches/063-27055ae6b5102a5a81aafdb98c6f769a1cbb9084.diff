@@ -1,0 +1,55 @@
+commit 27055ae6b5102a5a81aafdb98c6f769a1cbb9084
+Author: Friedemann Kleint <Friedemann.Kleint@digia.com>
+Date:   Fri Nov 23 14:54:18 2012 +0100
+
+    Do not detect directories ending in ".lnk" as link files.
+    
+    Task-number: QTBUG-21863
+    
+    Change-Id: I70b661fa5fcaba1293a80c971c506798826f5b23
+    Reviewed-by: Joerg Bornemann <joerg.bornemann@digia.com>
+    (cherry picked from qtbase/1022c3ce9d445fd482a62309b9a6c52495c04a92)
+
+diff --git a/src/corelib/io/qfilesystemengine_win.cpp b/src/corelib/io/qfilesystemengine_win.cpp
+index 6ea705c..f7455e8 100644
+--- a/src/corelib/io/qfilesystemengine_win.cpp
++++ b/src/corelib/io/qfilesystemengine_win.cpp
+@@ -830,6 +830,8 @@ bool QFileSystemEngine::fillMetaData(HANDLE fHandle, QFileSystemMetaData &data,
+     return data.hasFlags(what);
+ }
+ 
++static bool isDirPath(const QString &dirPath, bool *existed);
++
+ //static
+ bool QFileSystemEngine::fillMetaData(const QFileSystemEntry &entry, QFileSystemMetaData &data,
+                                      QFileSystemMetaData::MetaDataFlags what)
+@@ -839,7 +841,10 @@ bool QFileSystemEngine::fillMetaData(const QFileSystemEntry &entry, QFileSystemM
+ 
+     QFileSystemEntry fname;
+     data.knownFlagsMask |= QFileSystemMetaData::WinLnkType;
+-    if(entry.filePath().endsWith(QLatin1String(".lnk"))) {
++    // Check for ".lnk": Directories named ".lnk" should be skipped, corrupted
++    // link files should still be detected as links.
++    const QString origFilePath = entry.filePath();
++    if (origFilePath.endsWith(QLatin1String(".lnk")) && !isDirPath(origFilePath, 0)) {
+         data.entryFlags |= QFileSystemMetaData::WinLnkType;
+         fname = QFileSystemEntry(readLink(entry));
+     } else {
+diff --git a/tests/auto/qfileinfo/tst_qfileinfo.cpp b/tests/auto/qfileinfo/tst_qfileinfo.cpp
+index 3409fd6..ce46852 100644
+--- a/tests/auto/qfileinfo/tst_qfileinfo.cpp
++++ b/tests/auto/qfileinfo/tst_qfileinfo.cpp
+@@ -1536,6 +1536,13 @@ void tst_QFileInfo::brokenShortcut()
+     QVERIFY(info.isSymLink());
+     QVERIFY(!info.exists());
+     QFile::remove(linkName);
++
++    QDir current; // QTBUG-21863
++    QVERIFY(current.mkdir(linkName));
++    QFileInfo dirInfo(linkName);
++    QVERIFY(!dirInfo.isSymLink());
++    QVERIFY(dirInfo.isDir());
++    current.rmdir(linkName);
+ }
+ #endif
+ 

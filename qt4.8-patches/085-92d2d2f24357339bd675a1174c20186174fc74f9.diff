@@ -1,0 +1,41 @@
+commit 92d2d2f24357339bd675a1174c20186174fc74f9
+Author: Lucas Wang <wbsecg1@gmail.com>
+Date:   Thu Dec 6 15:43:13 2012 +0800
+
+    support indirect SUBDIRS
+    
+    that is, .file and .subdir "structs".
+    
+    (cherry picked from commit 3460395ebbf1e9eb05419854c0d5de28b89b9b0a)
+    
+    Change-Id: Ifdeedbbc0bccc9bc7a21707152750d7a2e839a5c
+    Reviewed-by: Liang Qi <liang.qi@digia.com>
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/tests/auto/linguist/lupdate/testdata/good/proparsingsubs/project.pro b/tests/auto/linguist/lupdate/testdata/good/proparsingsubs/project.pro
+index f75a462..13f9217 100644
+--- a/tests/auto/linguist/lupdate/testdata/good/proparsingsubs/project.pro
++++ b/tests/auto/linguist/lupdate/testdata/good/proparsingsubs/project.pro
+@@ -1,2 +1,3 @@
+ TEMPLATE = subdirs
+-SUBDIRS = win mac unix common
++comm.subdir = common
++SUBDIRS = win mac unix comm
+diff --git a/tools/linguist/lupdate/main.cpp b/tools/linguist/lupdate/main.cpp
+index bf212ba..7f49620 100644
+--- a/tools/linguist/lupdate/main.cpp
++++ b/tools/linguist/lupdate/main.cpp
+@@ -352,7 +352,12 @@ static void processProject(
+         QStringList subProFiles;
+         QDir proDir(pfi.absoluteDir());
+         foreach (const QString &subdir, visitor.values(QLatin1String("SUBDIRS"))) {
+-            QString subPro = QDir::cleanPath(proDir.absoluteFilePath(subdir));
++            QString realdir = visitor.value(subdir + QLatin1String(".subdir"));
++            if (realdir.isEmpty())
++                realdir = visitor.value(subdir + QLatin1String(".file"));
++            if (realdir.isEmpty())
++                realdir = subdir;
++            QString subPro = QDir::cleanPath(proDir.absoluteFilePath(realdir));
+             QFileInfo subInfo(subPro);
+             if (subInfo.isDir())
+                 subProFiles << (subPro + QLatin1Char('/')

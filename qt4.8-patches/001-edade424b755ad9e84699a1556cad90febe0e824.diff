@@ -1,0 +1,59 @@
+commit edade424b755ad9e84699a1556cad90febe0e824
+Author: Joerg Bornemann <joerg.bornemann@digia.com>
+Date:   Fri Nov 2 12:13:18 2012 +0100
+
+    fix bug in QLocalSocket::waitForReadyRead on Windows
+    
+    We must not close the socket, if there's still data in the read buffer.
+    Also waitForReadyRead must return true, even if the pipe is broken after
+    we've read data.
+    QLocalSocket::readData will close the socket after the buffer has been
+    drained.
+    
+    This fixes the flakiness of tst_QLocalSocket::threadedConnection.
+    
+    In Qt5 large portions of this code has been rewritten and this fix does
+    not apply.
+    
+    Task-number: QTBUG-27816
+    Task-number: QTQAINFRA-574
+    Change-Id: I467340d4dbab11056e6720b145a94a87156cb419
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/src/network/socket/qlocalsocket_win.cpp b/src/network/socket/qlocalsocket_win.cpp
+index f26d98a..1c32a54 100644
+--- a/src/network/socket/qlocalsocket_win.cpp
++++ b/src/network/socket/qlocalsocket_win.cpp
+@@ -604,7 +604,7 @@ bool QLocalSocket::waitForReadyRead(int msecs)
+         case WAIT_OBJECT_0:
+             d->_q_notified();
+             // We just noticed that the pipe is gone.
+-            if (d->pipeClosed) {
++            if (d->pipeClosed && !bytesAvailable()) {
+                 close();
+                 return false;
+             }
+diff --git a/tests/auto/qlocalsocket/tst_qlocalsocket.cpp b/tests/auto/qlocalsocket/tst_qlocalsocket.cpp
+index 202f48a..5462d1c 100644
+--- a/tests/auto/qlocalsocket/tst_qlocalsocket.cpp
++++ b/tests/auto/qlocalsocket/tst_qlocalsocket.cpp
+@@ -697,7 +697,7 @@ public:
+ 
+         // We should *not* have this signal yet!
+         QCOMPARE(spyReadyRead.count(), 0);
+-        socket.waitForReadyRead();
++        QVERIFY(socket.waitForReadyRead());
+         QCOMPARE(spyReadyRead.count(), 1);
+         QTextStream in(&socket);
+         QCOMPARE(in.readLine(), testLine);
+@@ -755,10 +755,6 @@ void tst_QLocalSocket::threadedConnection_data()
+ 
+ void tst_QLocalSocket::threadedConnection()
+ {
+-#if defined(Q_OS_WIN)
+-    QSKIP("This test is flaky on Windows. See QTBUG-27816 and QTQAINFRA-574.", SkipAll);
+-#endif
+-
+ #ifdef Q_OS_SYMBIAN
+     unlink("qlocalsocket_threadtest");
+ #endif

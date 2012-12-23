@@ -1,0 +1,86 @@
+commit 8f090ffa0eb2949c9b335e42e2ce33bf519ad919
+Author: Sergio Ahumada <sergio.ahumada@digia.com>
+Date:   Fri Nov 9 01:24:32 2012 +0100
+
+    test: Fix tst_QHostInfo test
+    
+     Changed qt.nokia.com  -> qt-project.org
+     Changed 87.238.50.178 -> 87.238.53.172
+    
+    Task-number: QTQAINFRA-574
+    Change-Id: Ib85a03b15a13a066d3e095e5e2bc6060a9d093dd
+    Reviewed-by: Simo Fält <simo.falt@digia.com>
+    Reviewed-by: Janne Anttila <janne.anttila@digia.com>
+
+diff --git a/tests/auto/qhostinfo/qhostinfo.pro b/tests/auto/qhostinfo/qhostinfo.pro
+index e43cf4e..2d0fc3d 100644
+--- a/tests/auto/qhostinfo/qhostinfo.pro
++++ b/tests/auto/qhostinfo/qhostinfo.pro
+@@ -15,4 +15,4 @@ symbian: {
+   INCLUDEPATH *= $$MW_LAYER_SYSTEMINCLUDE
+ }
+ 
+-CONFIG+=insignificant_test # QTQAINFRA-428
++CONFIG+=insignificant_test # QTQAINFRA-574
+diff --git a/tests/auto/qhostinfo/tst_qhostinfo.cpp b/tests/auto/qhostinfo/tst_qhostinfo.cpp
+index 424665a..b5a1b87 100644
+--- a/tests/auto/qhostinfo/tst_qhostinfo.cpp
++++ b/tests/auto/qhostinfo/tst_qhostinfo.cpp
+@@ -446,10 +446,10 @@ class LookupThread : public QThread
+ protected:
+     inline void run()
+     {
+-         QHostInfo info = QHostInfo::fromName("qt.nokia.com");
++         QHostInfo info = QHostInfo::fromName("qt-project.org");
+          QCOMPARE(info.error(), QHostInfo::NoError);
+          QVERIFY(info.addresses().count() > 0);
+-         QCOMPARE(info.addresses().at(0).toString(), QString("87.238.50.178"));
++         QCOMPARE(info.addresses().at(0).toString(), QString("87.238.53.172"));
+     }
+ };
+ 
+@@ -484,7 +484,7 @@ public:
+ void LookupReceiver::start()
+ {
+     for (int i=0;i<numrequests;i++)
+-        QHostInfo::lookupHost(QString("qt.nokia.com"), this, SLOT(resultsReady(const QHostInfo&)));
++        QHostInfo::lookupHost(QString("qt-project.org"), this, SLOT(resultsReady(const QHostInfo&)));
+ }
+ 
+ void LookupReceiver::resultsReady(const QHostInfo &info)
+@@ -515,7 +515,7 @@ void tst_QHostInfo::threadSafetyAsynchronousAPI()
+         QVERIFY(threads.at(k)->wait(60000));
+     foreach (LookupReceiver* receiver, receivers) {
+         QCOMPARE(receiver->result.error(), QHostInfo::NoError);
+-        QCOMPARE(receiver->result.addresses().at(0).toString(), QString("87.238.50.178"));
++        QCOMPARE(receiver->result.addresses().at(0).toString(), QString("87.238.53.172"));
+         QCOMPARE(receiver->numrequests, 0);
+     }
+ }
+@@ -552,7 +552,7 @@ void tst_QHostInfo::multipleDifferentLookups_data()
+ void tst_QHostInfo::multipleDifferentLookups()
+ {
+     QStringList hostnameList;
+-    hostnameList << "www.ovi.com" << "www.nokia.com" << "qt.nokia.com" << "www.trolltech.com" << "troll.no"
++    hostnameList << "www.ovi.com" << "www.nokia.com" << "qt-project.org" << "www.trolltech.com" << "troll.no"
+             << "www.qtcentre.org" << "forum.nokia.com" << "www.nokia.com" << "wiki.forum.nokia.com"
+             << "www.nokia.com" << "nokia.de" << "127.0.0.1" << "----";
+ 
+@@ -626,7 +626,7 @@ void tst_QHostInfo::abortHostLookup()
+     lookupsDoneCounter = 0;
+     bool valid = false;
+     int id = -1;
+-    QHostInfo result = qt_qhostinfo_lookup("qt.nokia.com", this, SLOT(resultsReady(QHostInfo)), &valid, &id);
++    QHostInfo result = qt_qhostinfo_lookup("qt-project.org", this, SLOT(resultsReady(QHostInfo)), &valid, &id);
+     QVERIFY(!valid);
+     //it is assumed that the DNS request/response in the backend is slower than it takes to call abort
+     QHostInfo::abortHostLookup(id);
+@@ -653,7 +653,7 @@ void tst_QHostInfo::abortHostLookupInDifferentThread()
+     lookupsDoneCounter = 0;
+     bool valid = false;
+     int id = -1;
+-    QHostInfo result = qt_qhostinfo_lookup("qt.nokia.com", this, SLOT(resultsReady(QHostInfo)), &valid, &id);
++    QHostInfo result = qt_qhostinfo_lookup("qt-project.org", this, SLOT(resultsReady(QHostInfo)), &valid, &id);
+     QVERIFY(!valid);
+     QThread thread;
+     LookupAborter aborter;

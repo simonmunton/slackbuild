@@ -1,0 +1,39 @@
+commit 9773ed039a3e5f46fcdc1732828b40fe3668b7ad
+Author: Friedemann Kleint <Friedemann.Kleint@digia.com>
+Date:   Fri Nov 23 10:04:00 2012 +0100
+
+    Detect QMainWindow-separator as passive interactor in Qt Designer.
+    
+    Ensure that dock widgets in Qt Creator can be resized.
+    
+    Task-number: QTCREATORBUG-8284
+    Change-Id: If6aa55b2dde8fce53e1527db678f518b3912907b
+    Reviewed-by: Jarek Kobus <jaroslaw.kobus@digia.com>
+    (cherry picked from qttools/5e4bc7e3556cb5afcd82731277bdef60ae2cbe33)
+
+diff --git a/tools/designer/src/lib/shared/widgetfactory.cpp b/tools/designer/src/lib/shared/widgetfactory.cpp
+index d6a4afa..94a8e3f 100644
+--- a/tools/designer/src/lib/shared/widgetfactory.cpp
++++ b/tools/designer/src/lib/shared/widgetfactory.cpp
+@@ -825,6 +825,7 @@ static bool isTabBarInteractor(const QTabBar *tabBar)
+ bool WidgetFactory::isPassiveInteractor(QWidget *widget)
+ {
+     static const QString qtPassive = QLatin1String("__qt__passive_");
++    static const QString qtMainWindowSplitter = QLatin1String("qt_qmainwindow_extended_splitter");
+     if (m_lastPassiveInteractor != 0 && (QWidget*)(*m_lastPassiveInteractor) == widget)
+         return m_lastWasAPassiveInteractor;
+ 
+@@ -867,8 +868,11 @@ bool WidgetFactory::isPassiveInteractor(QWidget *widget)
+         return (m_lastWasAPassiveInteractor = true);
+     else if (qstrcmp(widget->metaObject()->className(), "QWorkspaceTitleBar") == 0)
+         return (m_lastWasAPassiveInteractor = true);
+-    else if (widget->objectName().startsWith(qtPassive))
+-        return (m_lastWasAPassiveInteractor = true);
++    const QString name = widget->objectName();
++    if (name.startsWith(qtPassive) || name == qtMainWindowSplitter) {
++        m_lastWasAPassiveInteractor = true;
++        return m_lastWasAPassiveInteractor;
++    }
+     return m_lastWasAPassiveInteractor;
+ }
+ 

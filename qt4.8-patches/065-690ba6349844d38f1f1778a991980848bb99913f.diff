@@ -1,0 +1,46 @@
+commit 690ba6349844d38f1f1778a991980848bb99913f
+Author: Peter Hartmann <phartmann@rim.com>
+Date:   Mon Nov 26 15:29:57 2012 +0100
+
+    BlackBerry mkspecs: use compiler flags for C++ and C compiler
+    
+    ... and not only for the C compiler. Apparently the logic has changed
+    between Qt 4 and Qt 5.
+    
+    This commit is not needed for Qt 5, because there we set the CXXFLAGS
+    after parsing the BlackBerry mkspec file.
+    
+    Change-Id: I225d636586d19fa0e2b0d5a644071202774a385c
+    Reviewed-by: Kevin Krammer <kevin.krammer@kdab.com>
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+
+diff --git a/mkspecs/blackberry-armv7le-qcc/qmake.conf b/mkspecs/blackberry-armv7le-qcc/qmake.conf
+index a48d8fe..98daef1 100644
+--- a/mkspecs/blackberry-armv7le-qcc/qmake.conf
++++ b/mkspecs/blackberry-armv7le-qcc/qmake.conf
+@@ -13,8 +13,11 @@ LIBS += -lbps
+ # Blackberry also has support for stack smashing protection in its libc
+ contains(QT_CONFIG, stack-protector-strong) {
+     QMAKE_CFLAGS += -fstack-protector-strong
++    QMAKE_CXXFLAGS += -fstack-protector-strong
+ } else {
+     QMAKE_CFLAGS += -fstack-protector -fstack-protector-all
++    QMAKE_CXXFLAGS += -fstack-protector -fstack-protector-all
+ }
+ 
+ QMAKE_CFLAGS += -mcpu=cortex-a9
++QMAKE_CXXFLAGS += -mcpu=cortex-a9
+diff --git a/mkspecs/blackberry-x86-qcc/qmake.conf b/mkspecs/blackberry-x86-qcc/qmake.conf
+index 45d6c4b..26bf509 100644
+--- a/mkspecs/blackberry-x86-qcc/qmake.conf
++++ b/mkspecs/blackberry-x86-qcc/qmake.conf
+@@ -13,6 +13,8 @@ LIBS += -lbps
+ # Blackberry also has support for stack smashing protection in its libc
+ contains(QT_CONFIG, stack-protector-strong) {
+     QMAKE_CFLAGS += -fstack-protector-strong
++    QMAKE_CXXFLAGS += -fstack-protector-strong
+ } else {
+     QMAKE_CFLAGS += -fstack-protector -fstack-protector-all
++    QMAKE_CXXFLAGS += -fstack-protector -fstack-protector-all
+ }

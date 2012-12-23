@@ -1,0 +1,78 @@
+commit c1b42ed98203d74089d3124a52f87f1b8de3ee84
+Author: Simon Hausmann <simon.hausmann@digia.com>
+Date:   Fri Nov 23 09:09:28 2012 +0100
+
+    Updated WebKit to 994432629cb04ffd8e1985dce9e9ed3a89236dd1
+    
+    Includes fix for QTBUG-23258 and bumps the version accordingly
+    
+    Change-Id: Id5dd3c388cf6de88aea1b40bc9bdc2d5d6d80a31
+    Reviewed-by: Andy Shaw <andy.shaw@digia.com>
+
+diff --git a/src/3rdparty/webkit/.tag b/src/3rdparty/webkit/.tag
+index 9dca1ea..fca0351 100644
+--- a/src/3rdparty/webkit/.tag
++++ b/src/3rdparty/webkit/.tag
+@@ -1 +1 @@
+-9c682c404770cfb2eddf705be593824e06f8ec40
++994432629cb04ffd8e1985dce9e9ed3a89236dd1
+diff --git a/src/3rdparty/webkit/Source/WebCore/platform/graphics/mac/MediaPlayerPrivateQTKit.mm b/src/3rdparty/webkit/Source/WebCore/platform/graphics/mac/MediaPlayerPrivateQTKit.mm
+index f88dce7..0248394 100644
+--- a/src/3rdparty/webkit/Source/WebCore/platform/graphics/mac/MediaPlayerPrivateQTKit.mm
++++ b/src/3rdparty/webkit/Source/WebCore/platform/graphics/mac/MediaPlayerPrivateQTKit.mm
+@@ -47,6 +47,15 @@
+ #import "SoftLinking.h"
+ #import "TimeRanges.h"
+ #import "WebCoreSystemInterface.h"
++
++#if PLATFORM(QT)
++// Avoid clash with slots member in CALayer.h
++#include <qobjectdefs.h>
++#if defined(slots)
++#undef slots
++#endif
++#endif
++
+ #import <QTKit/QTKit.h>
+ #import <objc/objc-runtime.h>
+ #import <wtf/UnusedParam.h>
+diff --git a/src/3rdparty/webkit/Source/WebKit/qt/Api/qwebkitglobal.h b/src/3rdparty/webkit/Source/WebKit/qt/Api/qwebkitglobal.h
+index 8cf2a2b..b5e7e38 100644
+--- a/src/3rdparty/webkit/Source/WebKit/qt/Api/qwebkitglobal.h
++++ b/src/3rdparty/webkit/Source/WebKit/qt/Api/qwebkitglobal.h
+@@ -22,9 +22,9 @@
+ 
+ #include <QtCore/qglobal.h>
+ 
+-#define QTWEBKIT_VERSION_STR "2.2.3"
++#define QTWEBKIT_VERSION_STR "2.2.4"
+ // QTWEBKIT_VERSION is (major << 16) + (minor << 8) + patch. Similar to Qt.
+-#define QTWEBKIT_VERSION 0x020203
++#define QTWEBKIT_VERSION 0x020204
+ // Use: #if (QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 0, 0)). Similar to Qt.
+ #define QTWEBKIT_VERSION_CHECK(major, minor, patch) ((major<<16)|(minor<<8)|(patch))
+ 
+diff --git a/src/3rdparty/webkit/Source/WebKit/qt/qt_webkit_version.pri b/src/3rdparty/webkit/Source/WebKit/qt/qt_webkit_version.pri
+index 1c81ff6..056c2c9 100644
+--- a/src/3rdparty/webkit/Source/WebKit/qt/qt_webkit_version.pri
++++ b/src/3rdparty/webkit/Source/WebKit/qt/qt_webkit_version.pri
+@@ -1,7 +1,7 @@
+-QT_WEBKIT_VERSION = 4.9.3
++QT_WEBKIT_VERSION = 4.9.4
+ QT_WEBKIT_MAJOR_VERSION = 4
+ QT_WEBKIT_MINOR_VERSION = 9
+-QT_WEBKIT_PATCH_VERSION = 3
++QT_WEBKIT_PATCH_VERSION = 4
+ 
+ QT.webkit.name = QtWebKit
+ QT.webkit.includes = $$QT_MODULE_INCLUDE_BASE $$QT_MODULE_INCLUDE_BASE/QtWebKit
+diff --git a/src/3rdparty/webkit/VERSION b/src/3rdparty/webkit/VERSION
+index 944cda7..38a69ce 100644
+--- a/src/3rdparty/webkit/VERSION
++++ b/src/3rdparty/webkit/VERSION
+@@ -4,4 +4,4 @@ This is a snapshot of the Qt port of WebKit from
+ 
+ and has the sha1 checksum
+ 
+-        9c682c404770cfb2eddf705be593824e06f8ec40
++        994432629cb04ffd8e1985dce9e9ed3a89236dd1

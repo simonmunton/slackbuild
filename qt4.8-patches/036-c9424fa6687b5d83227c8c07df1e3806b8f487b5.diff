@@ -1,0 +1,51 @@
+commit c9424fa6687b5d83227c8c07df1e3806b8f487b5
+Author: Tomasz Duda <tomaszduda23@gmail.com>
+Date:   Sat Nov 17 18:56:16 2012 +0100
+
+    QString doesn't work with old ABI on ARM.
+    
+    QString doesn't work on ARM platform with old ABI because QChar has
+    wrong size. Macro Q_PACKED was removed by commit
+    1ec8acd77b6c048f5a68887ac7750b0764ade598. Some projects still use
+    old ABI. It is better to check version of ABI during compiling.
+    
+    Task-number: QTBUG-15784
+    
+    Change-Id: I92180b864679e01363fa837260707b67674d0a26
+    Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+
+diff --git a/src/corelib/tools/qchar.h b/src/corelib/tools/qchar.h
+index 953f3a0..cfa1ccc 100644
+--- a/src/corelib/tools/qchar.h
++++ b/src/corelib/tools/qchar.h
+@@ -360,7 +360,11 @@ private:
+     QChar(uchar c);
+ #endif
+     ushort ucs;
+-};
++}
++#if (defined(__arm__) && defined(QT_NO_ARM_EABI))
++    Q_PACKED
++#endif
++;
+ 
+ Q_DECLARE_TYPEINFO(QChar, Q_MOVABLE_TYPE);
+ 
+diff --git a/src/corelib/tools/qlocale.h b/src/corelib/tools/qlocale.h
+index 6202236..b19d847 100644
+--- a/src/corelib/tools/qlocale.h
++++ b/src/corelib/tools/qlocale.h
+@@ -786,7 +786,12 @@ public:
+     struct Data {
+         quint16 index;
+         quint16 numberOptions;
+-    };
++    }
++#if (defined(__arm__) || defined(QT_NO_ARM_EABI))
++    Q_PACKED
++#endif
++    ;
++
+ private:
+     friend struct QLocalePrivate;
+     // ### We now use this field to pack an index into locale_data and NumberOptions.

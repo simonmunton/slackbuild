@@ -1,0 +1,37 @@
+commit a1a4e13a83178dd94fd778f927caf5ccb75de42b
+Author: mfekari <mfekari@rim.com>
+Date:   Tue Nov 27 09:35:08 2012 -0500
+
+    Qnx: Check if QCoreApplication::instance() exists before using QSocketNotifier
+    
+    This is a back port from: 5e59215ac649190a5b86f9af283d0cf41b88b3bf
+    
+    Change-Id: I889f8b69a0c81a5e0ed71d28a65279fe6e238e2f
+    Reviewed-by: Peter Hartmann <phartmann@rim.com>
+
+diff --git a/src/corelib/tools/qlocale_unix.cpp b/src/corelib/tools/qlocale_unix.cpp
+index 174d739..87cd112 100644
+--- a/src/corelib/tools/qlocale_unix.cpp
++++ b/src/corelib/tools/qlocale_unix.cpp
+@@ -48,6 +48,7 @@
+ 
+ #if defined(Q_OS_QNX)
+ #include <QtCore/private/qcore_unix_p.h>
++#include <QCoreApplication>
+ 
+ #include <unistd.h>
+ #include <errno.h>
+@@ -113,9 +114,11 @@ void QBBLocaleData::readPPSLocale()
+         return;
+     }
+ 
+-    ppsNotifier = new QSocketNotifier(ppsFd, QSocketNotifier::Read, this);
+     updateMesurementSystem();
+-    QObject::connect(ppsNotifier, SIGNAL(activated(int)), this, SLOT(updateMesurementSystem()));
++    if (QCoreApplication::instance()) {
++        ppsNotifier = new QSocketNotifier(ppsFd, QSocketNotifier::Read, this);
++        QObject::connect(ppsNotifier, SIGNAL(activated(int)), this, SLOT(updateMesurementSystem()));
++    }
+ }
+ #endif
+ 

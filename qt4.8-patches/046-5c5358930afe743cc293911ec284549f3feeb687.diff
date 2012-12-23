@@ -1,0 +1,109 @@
+commit 5c5358930afe743cc293911ec284549f3feeb687
+Author: Aaron McCarthy <amccarthy@sigtec.com>
+Date:   Thu Nov 8 15:13:10 2012 +1000
+
+    Fix error reporting in TDS SQL driver.
+    
+    The error and message handlers used by the freetds library were getting
+    reset to back to the default every time a database was opened.  The
+    Qt TDS SQL driver was calling dbinit() from QTDSDriver::open().  This
+    had two problems:
+    
+    1. dbinit() would reset the error handler previously set by a call to
+       dberrhandle().  A db error would then cause the application to
+       abort.
+    2. freetds expects dbinit() and dbexit() to be called symmetrically.
+       Opening multiple database connections would result in freetds not
+       cleaning up on application close.
+    
+    Solved by moving the dbinit() call into the QTDSDriver constructor.
+    
+    Backported from Qt5/qtbase change 7456562e7f647e7cb2c854c4272c5599b26dbd37
+    
+    Change-Id: I43087a44d74de38918c7285a228e2f3d25d070fd
+    Reviewed-by: Mark Brand <mabrand@mabrand.nl>
+
+diff --git a/src/sql/drivers/tds/qsql_tds.cpp b/src/sql/drivers/tds/qsql_tds.cpp
+index df0c4c5..abfa3be 100644
+--- a/src/sql/drivers/tds/qsql_tds.cpp
++++ b/src/sql/drivers/tds/qsql_tds.cpp
+@@ -135,10 +135,11 @@ QSqlError qMakeError(const QString& err, QSqlError::ErrorType type, int errNo =
+ class QTDSDriverPrivate
+ {
+ public:
+-    QTDSDriverPrivate(): login(0) {}
++    QTDSDriverPrivate(): login(0), initialized(false) {}
+     LOGINREC* login;  // login information
+     QString hostName;
+     QString db;
++    bool initialized;
+ };
+ 
+ 
+@@ -534,6 +535,7 @@ QVariant QTDSDriver::handle() const
+ void QTDSDriver::init()
+ {
+     d = new QTDSDriverPrivate();
++    d->initialized = (dbinit() == SUCCEED);
+     // the following two code-lines will fail compilation on some FreeTDS versions
+     // just comment them out if you have FreeTDS (you won't get any errors and warnings then)
+     dberrhandle((QERRHANDLE)qTdsErrHandler);
+@@ -575,7 +577,7 @@ bool QTDSDriver::open(const QString & db,
+ {
+     if (isOpen())
+         close();
+-    if (!dbinit()) {
++    if (!d->initialized) {
+         setOpenError(true);
+         return false;
+     }
+diff --git a/tests/auto/qsqldatabase/tst_qsqldatabase.cpp b/tests/auto/qsqldatabase/tst_qsqldatabase.cpp
+index 6839a64..ff1aeba 100644
+--- a/tests/auto/qsqldatabase/tst_qsqldatabase.cpp
++++ b/tests/auto/qsqldatabase/tst_qsqldatabase.cpp
+@@ -93,6 +93,8 @@ private slots:
+     void eventNotification_data() { generic_data(); }
+     void eventNotification();
+     void addDatabase();
++    void errorReporting_data();
++    void errorReporting();
+ 
+     //database specific tests
+     void recordMySQL_data() { generic_data("QMYSQL"); }
+@@ -460,6 +462,36 @@ void tst_QSqlDatabase::addDatabase()
+     QVERIFY(!QSqlDatabase::contains("INVALID_CONNECTION"));
+ }
+ 
++void tst_QSqlDatabase::errorReporting_data()
++{
++    QTest::addColumn<QString>("driver");
++
++    QTest::newRow("QTDS") << QString::fromLatin1("QTDS");
++    QTest::newRow("QTDS7") << QString::fromLatin1("QTDS7");
++}
++
++void tst_QSqlDatabase::errorReporting()
++{
++    QFETCH(QString, driver);
++
++    if (!QSqlDatabase::drivers().contains(driver))
++        QSKIP(QString::fromLatin1("Database driver %1 not available").arg(driver).toLocal8Bit().constData(), SkipSingle);
++
++    const QString dbName = QLatin1String("errorReportingDb-") + driver;
++    QSqlDatabase db = QSqlDatabase::addDatabase(driver, dbName);
++
++    db.setHostName(QLatin1String("127.0.0.1"));
++    db.setDatabaseName(QLatin1String("NonExistantDatabase"));
++    db.setUserName(QLatin1String("InvalidUser"));
++    db.setPassword(QLatin1String("IncorrectPassword"));
++
++    QVERIFY(!db.open());
++
++    db = QSqlDatabase();
++
++    QSqlDatabase::removeDatabase(dbName);
++}
++
+ void tst_QSqlDatabase::open()
+ {
+     QFETCH(QString, dbName);

@@ -1,0 +1,32 @@
+commit 481ab62f821c70984df39880497da920e7a226e6
+Author: Tomasz Duda <tomaszduda23@gmail.com>
+Date:   Mon Nov 19 17:31:47 2012 +0100
+
+    Add missing fields for atomic classes in ARMv5 OABI.
+    
+    In commit Ib9ffcf0e26d3be36a0e158fd12a363b97177dcbf I forgot
+    about two local fields for QBasicAtomicPointer and QBasicAtomicInt.
+    
+    Change-Id: I10637a4c85319ee16a8ea610840d31f331575267
+    Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+
+diff --git a/src/corelib/arch/qatomic_armv5.h b/src/corelib/arch/qatomic_armv5.h
+index 58af413..e3acd12 100644
+--- a/src/corelib/arch/qatomic_armv5.h
++++ b/src/corelib/arch/qatomic_armv5.h
+@@ -232,6 +232,7 @@ inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
+                  : "r"(newValue), "r"(&_q_value)
+                  : "cc", "memory");
+ #else
++    int count = 0;
+     while (q_atomic_swp(&q_atomic_lock, ~0) != 0)
+         qt_atomic_yield(&count);
+     originalValue=_q_value;
+@@ -369,6 +370,7 @@ Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+                  : "r"(newValue), "r"(&_q_value)
+                  : "cc", "memory");
+ #else
++    int count = 0;
+     while (q_atomic_swp(&q_atomic_lock, ~0) != 0)
+         qt_atomic_yield(&count);
+     originalValue=_q_value;

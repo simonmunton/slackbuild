@@ -1,0 +1,28 @@
+commit 96311def2466dd44de64d77a1c815b22fbf68f71
+Author: Richard Moore <rich@kde.org>
+Date:   Mon Nov 19 20:48:39 2012 +0000
+
+    Make the rules for redirects a bit stricter.
+    
+    Change-Id: I7a3cec664aa028202de3d3bda9f499e4deb2998d
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+
+diff --git a/src/declarative/qml/qdeclarativexmlhttprequest.cpp b/src/declarative/qml/qdeclarativexmlhttprequest.cpp
+index 5378a15..3de89a5 100644
+--- a/src/declarative/qml/qdeclarativexmlhttprequest.cpp
++++ b/src/declarative/qml/qdeclarativexmlhttprequest.cpp
+@@ -1272,9 +1272,11 @@ void QDeclarativeXMLHttpRequest::finished()
+         QVariant redirect = m_network->attribute(QNetworkRequest::RedirectionTargetAttribute);
+         if (redirect.isValid()) {
+             QUrl url = m_network->url().resolved(redirect.toUrl());
+-            destroyNetwork();
+-            requestFromUrl(url);
+-            return;
++            if (url.scheme().toLower() != QLatin1String("file")) {
++                destroyNetwork();
++                requestFromUrl(url);
++                return;
++            }
+         }
+     }
+ 
