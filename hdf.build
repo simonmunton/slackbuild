@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=hdf5
+TARNAME=hdf
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=1.8.10
+VERSION=4.2.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -63,31 +63,28 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --with-szlib \
-#	    --enable-threadsafe \
-#	    --with-pthread
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --with-szlib \
+	    --enable-threadsafe \
+	    --with-pthread
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      -DBUILD_SHARED_LIBS=y \
-      -DHDF5_ENABLE_SZIP_SUPPORT=y \
-      -DHDF5_ENABLE_Z_LIB_SUPPORT=y \
-      -DHDF5_BUILD_CPP_LIB=y \
-      -DHDF5_BUILD_HL_LIB=y \
-      -DHDF5_BUILD_TOOLS=y \
-      .
-
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      -DBUILD_SHARED_LIBS=y \
+#      -DHDF5_BUILD_CPP_LIB=y \
+#      -DHDF5_BUILD_HL_LIB=y \
+#      -DHDF5_BUILD_TOOLS=y \
+#      -DHDF5_ENABLE_SZIP_SUPPORT=y \
+#      -DHDF5_ENABLE_Z_LIB_SUPPORT=y \
 #      -DHDF5_ENABLE_SZIP_ENCODING=y \
 #      .
 fi
@@ -104,10 +101,8 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/{ACKNOWLEDGMENTS,COPYING,README.txt,release_docs} ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-#rm ${PKG}/usr/lib/*.settings
-#rm ${PKG}/usr/bin/h5perf
+rm ${PKG}/usr/lib/*.settings
+rm ${PKG}/usr/bin/h5perf
 
 sanitise_la_files ${PKG}/usr/lib
 
@@ -126,15 +121,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "HDF5 library"
-HDF5 is a general purpose library and file format for storing
-scientific data. HDF5 can store two primary objects: datasets and
-groups. A dataset is essentially a multidimensional array of data
-elements, and a group is a structure for organizing objects in an HDF5
-file. Using these two basic objects, one can create and store almost
-any kind of scientific data structure, such as images, arrays of
-vectors, and structured and unstructured grids. You can also mix and
-match them in HDF5 files according to your needs.
+make_slack_desc << EOF "HDF4 library"
+HDF (also known as HDF4) is a library and multi-object file format for 
+storing and managing data between machines. There are two versions of 
+HDF: HDF4 and HDF5. HDF4 is the first HDF format. Although HDF4 is 
+still funded, new users that are not constrained to using HDF4, should 
+use HDF5 . 
 
 EOF
 

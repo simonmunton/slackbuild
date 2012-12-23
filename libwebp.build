@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=OpenImageIO
+TARNAME=libwebp
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/o
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.0.11
+VERSION=0.2.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://sites.google.com/site/openimageio/"
+WEBPAGE="https://developers.google.com/speed/webp/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/OpenImageIO-0.10.8.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,22 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-if [ $ARCH != "x86_64" ]
-then
-  ARCH=i686
-  SLKCFLAGS="-m32 -O2 -march=i686 ${CPUOPT}=i686"
-fi
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -85,8 +80,6 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
 make ${NUM_JOBS} || exit
 fi
 
@@ -95,20 +88,7 @@ then
   exit
 fi
 
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include}
-
-cp dist/linux${LIBDIRSUFFIX}/bin/* ${PKG}/usr/bin
-mv ${PKG}/usr/bin/iv ${PKG}/usr/bin/iv-oiio
-cp -P dist/linux${LIBDIRSUFFIX}/lib/* ${PKG}/usr/lib${LIBDIRSUFFIX}
-cp -pr dist/linux${LIBDIRSUFFIX}/include/* ${PKG}/usr/include
-
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
-cp dist/linux${LIBDIRSUFFIX}/python/* ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -119,15 +99,22 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO dist/linux${LIBDIRSUFFIX}/doc/* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenImageIO image library"
-OpenImageIO is a library for reading and writing images, and a bunch 
-of related classes, utilities, and applications.
+make_slack_desc << EOF " A new image format for the Web"
+WebP is a new image format that provides lossless and lossy 
+compression for images on the web. WebP lossless images are 26% 
+smaller in size compared to PNGs. WebP lossy images are 25-34% smaller 
+in size compared to JPEG images at equivalent SSIM index. WebP supports 
+lossless transparency (also known as alpha channel) with just 22% 
+additional bytes. Transparency is also supported with lossy 
+compression and typically provides 3x smaller file sizes compared to 
+PNG when lossy compression is acceptable for the red/green/blue color 
+channels.
 
 EOF
 

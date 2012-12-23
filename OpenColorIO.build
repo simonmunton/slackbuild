@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=hdf5
+TARNAME=OpenColorIO
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/h
+TARSEP="-"
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.8.10
+VERSION=1.0.8
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://opencolorio.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -43,15 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-# patch -p1 < ${CWD}/hdf5-1.6.4-destdir.patch
-
-# patch -p1 < ${CWD}/hdf5-1.6.4-gcc4.patch
-# patch -p1 < ${CWD}/hdf5-1.6.4-norpath.patch
-# patch -p1 < ${CWD}/hdf5-1.6.4-testh5repack.patch
-# patch -p1 < ${CWD}/hdf5-1.6.5-h5diff_attr.patch
-# patch -p1 < ${CWD}/hdf5-1.6.5-flags.patch
-# patch -p1 < ${CWD}/hdf5-1.6.5-sort.patch
-
 )
 fi
 
@@ -61,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #CFLAGS="${SLKCFLAGS}" \
@@ -69,27 +65,18 @@ then
 #            --sysconfdir=/etc \
 #            --libdir=/usr/lib${LIBDIRSUFFIX} \
 #            --localstatedir=/var/lib \
-#	    --with-szlib \
-#	    --enable-threadsafe \
-#	    --with-pthread
+#	    --mandir=/usr/man
 
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DBUILD_SHARED_LIBS=y \
-      -DHDF5_ENABLE_SZIP_SUPPORT=y \
-      -DHDF5_ENABLE_Z_LIB_SUPPORT=y \
-      -DHDF5_BUILD_CPP_LIB=y \
-      -DHDF5_BUILD_HL_LIB=y \
-      -DHDF5_BUILD_TOOLS=y \
+      -DOCIO_BUILD_STATIC=off \
       .
 
-#      -DHDF5_ENABLE_SZIP_ENCODING=y \
-#      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -104,14 +91,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/{ACKNOWLEDGMENTS,COPYING,README.txt,release_docs} ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-#rm ${PKG}/usr/lib/*.settings
-#rm ${PKG}/usr/bin/h5perf
-
-sanitise_la_files ${PKG}/usr/lib
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -126,15 +106,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "HDF5 library"
-HDF5 is a general purpose library and file format for storing
-scientific data. HDF5 can store two primary objects: datasets and
-groups. A dataset is essentially a multidimensional array of data
-elements, and a group is a structure for organizing objects in an HDF5
-file. Using these two basic objects, one can create and store almost
-any kind of scientific data structure, such as images, arrays of
-vectors, and structured and unstructured grids. You can also mix and
-match them in HDF5 files according to your needs.
+make_slack_desc << EOF "Open Source Color Management"
+OpenColorIO (OCIO) is a complete color management solution geared 
+towards motion picture production with an emphasis on visual effects 
+and computer animation. OCIO provides a straightforward and consistent 
+user experience across all supporting applications while allowing for 
+sophisticated back-end configuration options suitable for high-end 
+production usage. OCIO is compatible with the Academy Color Encoding 
+Specification (ACES) and is LUT-format agnostic, supporting many 
+popular formats.
 
 EOF
 
