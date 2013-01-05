@@ -1,0 +1,266 @@
+commit c1565d0b7e3720e65778d4d338acbfa200129d07
+Author: Rafael Roquetto <rafael.roquetto.qnx@kdab.com>
+Date:   Fri Dec 14 18:15:28 2012 -0200
+
+    BlackBerry: QBBCursor implementation
+    
+    Implementation of QBBCursor, a QPlatformCursor subclass. Due to the lack of a
+    proper cursor API from the underlying OS, this class only caches the current
+    cursor position to make sure that the QCursor class works properly.
+    
+    Backport from qt5 290ed7f8fafd67197f773454223410bbe57fc4d3
+    
+    Change-Id: I1bb4b2b416579641d03ca5611e335322a8d81ae2
+    Reviewed-by: Bernd Weimer <bweimer@rim.com>
+    Reviewed-by: Friedemann Kleint <Friedemann.Kleint@digia.com>
+
+diff --git a/src/plugins/platforms/blackberry/blackberry.pro b/src/plugins/platforms/blackberry/blackberry.pro
+index 6c34583..28a2bf6 100644
+--- a/src/plugins/platforms/blackberry/blackberry.pro
++++ b/src/plugins/platforms/blackberry/blackberry.pro
+@@ -31,7 +31,8 @@ SOURCES =   main.cpp \
+             qbbscreeneventhandler.cpp \
+             qbbabstractvirtualkeyboard.cpp \
+             qbbnativeinterface.cpp \
+-            qbbbuttoneventnotifier.cpp
++            qbbbuttoneventnotifier.cpp \
++            qbbcursor.cpp
+ 
+ HEADERS =   qbbbuffer.h \
+             qbbscreeneventthread.h \
+@@ -51,7 +52,8 @@ HEADERS =   qbbbuffer.h \
+             qbbscreeneventhandler.h \
+             qbbabstractvirtualkeyboard.h \
+             qbbnativeinterface.h \
+-            qbbbuttoneventnotifier.h
++            qbbbuttoneventnotifier.h \
++            qbbcursor.h
+ 
+ blackberry {
+     SOURCES += qbbbpseventfilter.cpp \
+diff --git a/src/plugins/platforms/blackberry/qbbcursor.cpp b/src/plugins/platforms/blackberry/qbbcursor.cpp
+new file mode 100644
+index 0000000..70f0f05
+--- /dev/null
++++ b/src/plugins/platforms/blackberry/qbbcursor.cpp
+@@ -0,0 +1,74 @@
++/****************************************************************************
++**
++** Copyright (C) 2011 - 2012 Research In Motion <blackberry-qt@qnx.com>
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the plugins of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include "qbbcursor.h"
++
++#include <QDebug>
++
++QT_BEGIN_NAMESPACE
++
++QBBCursor::QBBCursor(QPlatformScreen *screen) : QPlatformCursor(screen)
++{
++}
++
++void QBBCursor::changeCursor(QCursor *widgetCursor, QWidget *widget)
++{
++    Q_UNUSED(widgetCursor);
++    Q_UNUSED(widget);
++}
++
++void QBBCursor::setPos(const QPoint &pos)
++{
++#ifdef QBBCURSOR_DEBUG
++    qDebug() << "QBBCursor::setPos -" << pos;
++#endif
++    mPos = pos;
++}
++
++QPoint QBBCursor::pos() const
++{
++#ifdef QBBCURSOR_DEBUG
++    qDebug() << "QBBCursor::pos -" << mPos;
++#endif
++    return mPos;
++}
++
++QT_END_NAMESPACE
+diff --git a/src/plugins/platforms/blackberry/qbbcursor.h b/src/plugins/platforms/blackberry/qbbcursor.h
+new file mode 100644
+index 0000000..fb58f70
+--- /dev/null
++++ b/src/plugins/platforms/blackberry/qbbcursor.h
+@@ -0,0 +1,63 @@
++/****************************************************************************
++**
++** Copyright (C) 2011 - 2012 Research In Motion <blackberry-qt@qnx.com>
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the plugins of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef QBBCURSOR_H
++#define QBBCURSOR_H
++
++#include <qplatformcursor_qpa.h>
++
++QT_BEGIN_NAMESPACE
++
++class QBBCursor : public QPlatformCursor
++{
++public:
++    QBBCursor(QPlatformScreen *screen);
++
++    void changeCursor(QCursor *widgetCursor, QWidget *widget);
++    void setPos(const QPoint &pos);
++
++    QPoint pos() const;
++
++private:
++    QPoint mPos;
++};
++
++#endif // QBBCURSOR_H
+diff --git a/src/plugins/platforms/blackberry/qbbscreen.cpp b/src/plugins/platforms/blackberry/qbbscreen.cpp
+index e62b391..091c044 100644
+--- a/src/plugins/platforms/blackberry/qbbscreen.cpp
++++ b/src/plugins/platforms/blackberry/qbbscreen.cpp
+@@ -44,6 +44,7 @@
+ #include "qbbscreen.h"
+ #include "qbbrootwindow.h"
+ #include "qbbwindow.h"
++#include "qbbcursor.h"
+ 
+ #include <QDebug>
+ #include <QtCore/QThread>
+@@ -111,7 +112,8 @@ QBBScreen::QBBScreen(screen_context_t context, screen_display_t display, int scr
+       mUsingOpenGL(false),
+       mPrimaryDisplay(screenIndex == 0),
+       mKeyboardHeight(0),
+-      mScreenIndex(screenIndex)
++      mScreenIndex(screenIndex),
++      mCursor(new QBBCursor(this))
+ {
+ #if defined(QBBSCREEN_DEBUG)
+     qDebug() << "QBBScreen::QBBScreen";
+@@ -491,6 +493,11 @@ void QBBScreen::onWindowPost(QBBWindow* window)
+     }
+ }
+ 
++QPlatformCursor * QBBScreen::cursor() const
++{
++    return mCursor;
++}
++
+ void QBBScreen::keyboardHeightChanged(int height)
+ {
+     if (height == mKeyboardHeight)
+diff --git a/src/plugins/platforms/blackberry/qbbscreen.h b/src/plugins/platforms/blackberry/qbbscreen.h
+index ce5ea78..de92836 100644
+--- a/src/plugins/platforms/blackberry/qbbscreen.h
++++ b/src/plugins/platforms/blackberry/qbbscreen.h
+@@ -51,6 +51,7 @@
+ QT_BEGIN_NAMESPACE
+ 
+ class QBBWindow;
++class QPlatformCursor;
+ 
+ class QBBScreen : public QPlatformScreen
+ {
+@@ -86,6 +87,8 @@ public:
+ 
+     QSharedPointer<QBBRootWindow> rootWindow() const { return mRootWindow; }
+ 
++    QPlatformCursor *cursor() const;
++
+ public Q_SLOTS:
+     void setRotation(int rotation);
+     void newWindowCreated(screen_window_t window);
+@@ -122,6 +125,8 @@ private:
+     QList<screen_window_t> mOverlays;
+     int mScreenIndex;
+ 
++    QPlatformCursor *mCursor;
++
+     bool isPrimaryDisplay() { return mPrimaryDisplay; }
+ };
+ 
+diff --git a/src/plugins/platforms/blackberry/qbbscreeneventhandler.cpp b/src/plugins/platforms/blackberry/qbbscreeneventhandler.cpp
+index f408a49..6e315d2 100644
+--- a/src/plugins/platforms/blackberry/qbbscreeneventhandler.cpp
++++ b/src/plugins/platforms/blackberry/qbbscreeneventhandler.cpp
+@@ -409,6 +409,8 @@ void QBBScreenEventHandler::handleTouchEvent(screen_event_t event, int qnxType)
+         qFatal("QBB: failed to query event position, errno=%d", errno);
+     }
+ 
++    QCursor::setPos(pos[0], pos[1]);
++
+     // get window coordinates of touch
+     errno = 0;
+     int windowPos[2];

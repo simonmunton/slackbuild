@@ -1,0 +1,58 @@
+commit 717e36037cf246aa201c0aaf15a5dcbd7883f159
+Author: Liang Qi <liang.qi@digia.com>
+Date:   Fri Dec 14 12:32:13 2012 +0100
+
+    Mac: fix bugs for font selection in QFontDialog
+    
+    Use localized family name and style name when selecting font with
+    non-English locale
+    
+    Task-number: QTBUG-27415
+    Change-Id: Ia10aaff50e1ffdb248c730fb46a8a66088ee64bb
+    (cherry picked from qtbase/3c09f6bc9aee0c97427fe8da6efdc73b4ac473aa)
+    Reviewed-by: Liang Qi <liang.qi@digia.com>
+
+diff --git a/src/gui/dialogs/qfontdialog_mac.mm b/src/gui/dialogs/qfontdialog_mac.mm
+index 119c299..10d995c 100644
+--- a/src/gui/dialogs/qfontdialog_mac.mm
++++ b/src/gui/dialogs/qfontdialog_mac.mm
+@@ -141,20 +141,16 @@ static QFont qfontForCocoaFont(NSFont *cocoaFont, const QFont &resolveFont)
+     QFont newFont;
+     if (cocoaFont) {
+         int pSize = qRound([cocoaFont pointSize]);
+-        QString family(qt_mac_NSStringToQString([cocoaFont familyName]));
+-        QString typeface(qt_mac_NSStringToQString([cocoaFont fontName]));
+-
+-        int hyphenPos = typeface.indexOf(QLatin1Char('-'));
+-        if (hyphenPos != -1) {
+-            typeface.remove(0, hyphenPos + 1);
+-        } else {
+-            typeface = QLatin1String("Normal");
+-        }
++        CTFontDescriptorRef font = CTFontCopyFontDescriptor((CTFontRef)cocoaFont);
++        // QCoreTextFontDatabase::populateFontDatabase() is using localized names
++        QString family = QCFString::toQString((CFStringRef) CTFontDescriptorCopyLocalizedAttribute(font, kCTFontFamilyNameAttribute, NULL));
++        QString style = QCFString::toQString((CFStringRef) CTFontDescriptorCopyLocalizedAttribute(font, kCTFontStyleNameAttribute, NULL));
+ 
+-        newFont = QFontDatabase().font(family, typeface, pSize);
++        newFont = QFontDatabase().font(family, style, pSize);
+         newFont.setUnderline(resolveFont.underline());
+         newFont.setStrikeOut(resolveFont.strikeOut());
+ 
++        CFRelease(font);
+     }
+     return newFont;
+ }
+diff --git a/src/gui/text/qfontdatabase.cpp b/src/gui/text/qfontdatabase.cpp
+index 6d16701..10ef906 100644
+--- a/src/gui/text/qfontdatabase.cpp
++++ b/src/gui/text/qfontdatabase.cpp
+@@ -769,7 +769,7 @@ QtFontFamily *QFontDatabasePrivate::family(const QString &f, bool create)
+     if (res < 0)
+         pos++;
+ 
+-    // qDebug("adding family %s at %d total=%d", f.latin1(), pos, count);
++    // qDebug() << "adding family " << f.toLatin1() << " at " << pos << " total=" << count;
+     if (!(count % 8)) {
+         QtFontFamily **newFamilies = (QtFontFamily **)
+                    realloc(families,

@@ -10,7 +10,7 @@ TARDIR=~/tmp/new/q
 VERSION=4.8.4
 #-patched-20091007
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -73,6 +73,10 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
  patch -p1 < ${CWD}/qt4.8-patches/097-691e78e5061d4cbc0de212d23b06c5dffddf2098.diff
  patch -p1 < ${CWD}/qt4.8-patches/098-ad601ceb3b953c042c70b462605f87c84b7179a6.diff
 
+
+
+ patch -p1 < ${CWD}/qt4.8-patches/resourceloader.diff
+
  # set correct X11 prefix
  perl -pi -e "s,QMAKE_LIBDIR_X11.*,QMAKE_LIBDIR_X11\t=," mkspecs/*/*.conf
  perl -pi -e "s,QMAKE_INCDIR_X11.*,QMAKE_INCDIR_X11\t=," mkspecs/*/*.conf
@@ -106,7 +110,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             -plugin-sql-odbc \
             -plugin-sql-sqlite \
 	    -dbus \
-	    -webkit \
+	    -webkit-debug \
 	    -no-phonon \
 	    -nomake examples \
 	    -nomake demos \
@@ -136,13 +140,13 @@ fi
 make install INSTALL_ROOT=$PKG
 
 ( cd $PKG/usr/lib${LIBDIRSUFFIX}
-#mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-$VERSION
-ln -s qt qt-$VERSION
+#mv $PKG/usr/lib/qt4 $PKG/usr/lib/qt-${VERSION}
+ln -s qt qt-${VERSION}
 )
 
 # Link the shared libraries into /usr/lib:
 ( cd $PKG/usr/lib${LIBDIRSUFFIX}
-  for file in qt-$VERSION/lib/*.so* ; do
+  for file in qt-${VERSION}/lib/*.so* ; do
     ln -sf $file .
   done
 )
@@ -168,7 +172,7 @@ mkdir -p $PKG/usr/bin
 #    QtDBus.pc QtGui.pc QtNetwork.pc QtOpenGL.pc QtScript.pc \
 #    QtSql.pc QtSvg.pc QtTest.pc QtUiTools.pc QtXml.pc ;
 #  do
-#    ln -sf /usr/lib/qt-$VERSION/lib/pkgconfig/$file . ;
+#    ln -sf /usr/lib/qt-${VERSION}/lib/pkgconfig/$file . ;
 #  done
 #)
 
@@ -177,19 +181,30 @@ mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig
  for n in *
  do
   sed -i -e "s@-L${CWD}[^ ]*@@g; /^libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" ${n}
-#  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
+#  sed -i -e "s@$CWD/$TARNAME-${VERSION}/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
   ( cd $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig ; ln -sf /usr/lib${LIBDIRSUFFIX}/qt/lib/pkgconfig/$n . )
-#  ln -sf /usr/lib${LIBDIRSUFFIX}/qt-$VERSION/lib/pkgconfig/$n $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig/$n
+#  ln -sf /usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/pkgconfig/$n $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig/$n
  done
 
 #cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/lib
 # for n in *.la *.prl
 # do
-#  sed -i -e "s@$CWD/$TARNAME-$VERSION/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
+#  sed -i -e "s@$CWD/$TARNAME-${VERSION}/@/usr/lib${LIBDIRSUFFIX}/qt/@g" $n
 # done
 )
 
+# make a debug package for webkit if not there
+LQTWK=`readlink ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/libQtWebKit.so`
+if [ ! -e ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/${LQTWK}.debug ]
+then
+  objcopy --only-keep-debug lib/${LQTWK} ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/${LQTWK}.debug
+  (cd ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib
+    objcopy --add-gnu-debuglink=${LQTWK}.debug ${LQTWK}
+  )
+  chmod -x ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/${LQTWK}.debug
+fi
 
+read junk
 # split out the debug stuff
 rm -rf ${PKG1}
 mkdir -p ${PKG1}
@@ -212,10 +227,10 @@ compress_info
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   GPL_EXCEPTION.TXT GPL_EXCEPTION_ADDENDUM.TXT INSTALL LICENSE.GPL \
-  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-$VERSION \
+  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-${VERSION} \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-( cd $PKG/usr/doc/$TARNAME-$VERSION
+( cd $PKG/usr/doc/$TARNAME-${VERSION}
   ln -sf /usr/lib${LIBDIRSUFFIX}/qt/doc/html .
 )
 

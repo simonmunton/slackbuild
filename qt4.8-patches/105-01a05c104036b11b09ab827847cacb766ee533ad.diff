@@ -1,0 +1,49 @@
+commit 01a05c104036b11b09ab827847cacb766ee533ad
+Author: Peter Hartmann <phartmann@rim.com>
+Date:   Fri Dec 14 17:50:30 2012 +0100
+
+    QUrl: ensure toEncoded() matches toString() wrt. empty authority
+    
+    This was already fixed for toString() with commit 884f15e, this commit
+    also fixes the toEncoded() implementation.
+    
+    In Qt5 this is already working.
+    
+    Task-number: QTBUG-8701
+    Change-Id: I0c81801e74d97de31632df45e52a25eb037b4710
+    Reviewed-by: Thiago Macieira <thiago.macieira@intel.com>
+
+diff --git a/src/corelib/io/qurl.cpp b/src/corelib/io/qurl.cpp
+index d3b6f45..9bb411d 100644
+--- a/src/corelib/io/qurl.cpp
++++ b/src/corelib/io/qurl.cpp
+@@ -3995,7 +3995,7 @@ QByteArray QUrlPrivate::toEncoded(QUrl::FormattingOptions options) const
+     QString savedHost = host;  // pre-validation, may be invalid!
+     QString auth = authority();
+     bool doFileScheme = scheme == QLatin1String("file") && encodedPath.startsWith('/');
+-    if ((options & QUrl::RemoveAuthority) != QUrl::RemoveAuthority && (!auth.isEmpty() || doFileScheme || !savedHost.isEmpty())) {
++    if ((options & QUrl::RemoveAuthority) != QUrl::RemoveAuthority && (!auth.isNull() || doFileScheme || !savedHost.isEmpty())) {
+         if (doFileScheme && !encodedPath.startsWith('/'))
+             url += '/';
+         url += "//";
+diff --git a/tests/auto/qurl/tst_qurl.cpp b/tests/auto/qurl/tst_qurl.cpp
+index 726d05e..81f646d 100644
+--- a/tests/auto/qurl/tst_qurl.cpp
++++ b/tests/auto/qurl/tst_qurl.cpp
+@@ -4018,10 +4018,16 @@ void tst_QUrl::taskQTBUG_8701()
+     QString foo_triple_bar("foo:///bar"), foo_uni_bar("foo:/bar");
+ 
+     QCOMPARE(foo_triple_bar, QUrl(foo_triple_bar).toString());
++    QCOMPARE(foo_triple_bar, QString::fromUtf8(QUrl(foo_triple_bar).toEncoded()));
++
+     QCOMPARE(foo_uni_bar, QUrl(foo_uni_bar).toString());
++    QCOMPARE(foo_uni_bar, QString::fromUtf8(QUrl(foo_uni_bar).toEncoded()));
+ 
+     QCOMPARE(foo_triple_bar, QUrl(foo_triple_bar, QUrl::StrictMode).toString()); // fails
++    QCOMPARE(foo_triple_bar, QString::fromUtf8(QUrl(foo_triple_bar, QUrl::StrictMode).toEncoded())); // fails
++
+     QCOMPARE(foo_uni_bar, QUrl(foo_uni_bar, QUrl::StrictMode).toString());
++    QCOMPARE(foo_uni_bar, QString::fromUtf8(QUrl(foo_uni_bar, QUrl::StrictMode).toEncoded()));
+ }
+ 
+ void tst_QUrl::effectiveTLDs_data()

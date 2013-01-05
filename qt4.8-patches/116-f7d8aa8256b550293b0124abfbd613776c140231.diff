@@ -1,0 +1,35 @@
+commit f7d8aa8256b550293b0124abfbd613776c140231
+Author: Sergio Martins <sergio.martins.qnx@kdab.com>
+Date:   Fri Dec 14 13:44:39 2012 +0000
+
+    Blackberry: Reset virtual keyboard when shown.
+    
+    The keyboard mode is shared between applications.
+    
+    You can reproduce this bug by clicking on a spin box,
+    it will open a number only keyboard, then close the application
+    and run an application that shows a text edit: a number only
+    keyboard will appear.
+    
+    PPS keyboard already does this.
+    
+    Backport of Qt 5 commit 019f9158e64ae24
+    
+    Change-Id: I1ef8e32ae2958a604cfe618b765b23504997f0d4
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+
+diff --git a/src/plugins/platforms/blackberry/qbbvirtualkeyboardbps.cpp b/src/plugins/platforms/blackberry/qbbvirtualkeyboardbps.cpp
+index 712d568..c64ad55 100644
+--- a/src/plugins/platforms/blackberry/qbbvirtualkeyboardbps.cpp
++++ b/src/plugins/platforms/blackberry/qbbvirtualkeyboardbps.cpp
+@@ -85,6 +85,10 @@ bool QBBVirtualKeyboardBps::showKeyboard()
+     qDebug() << Q_FUNC_INFO << "current visibility=" << isVisible();
+ #endif
+ 
++    // They keyboard's mode is global between applications, we have to set it each time
++    if (!isVisible())
++        applyKeyboardMode(keyboardMode());
++
+     virtualkeyboard_show();
+     return true;
+ }

@@ -1,0 +1,799 @@
+commit 1566021e623fb79c4ff5475d51010765a3074bbb
+Author: Tero Ahola <tero.ahola@digia.com>
+Date:   Wed Feb 8 12:26:36 2012 +0200
+
+    Modified vertical alignments of simple widgets on OSX
+    
+    Adding QCheckBox, QComboBox, QLineEdit etc. into an HBox layout or grid
+    layout makes the layout look like a snake's trail. Fixed the positioning
+    of these widgets to make the layouts visually more appealing.
+    
+    Updated qmacstyle auto-test accordingly.
+    
+    Task-number: QTBUG-13635
+    Ammended-by: Gabriel de Dietrich
+    Ammended-by: Liang Qi
+    
+    Change-Id: Ic12346f764d8092292b8388f50d184b37d7cef5f
+    (cherry picked from qtbase/8b6de4677142cab41790ca50ce6c7f1efbab5de8)
+    Reviewed-by: Gabriel de Dietrich <gabriel.dedietrich@digia.com>
+
+diff --git a/src/gui/styles/qmacstyle_mac.mm b/src/gui/styles/qmacstyle_mac.mm
+index 77c337b..0cdd077 100644
+--- a/src/gui/styles/qmacstyle_mac.mm
++++ b/src/gui/styles/qmacstyle_mac.mm
+@@ -764,7 +764,7 @@ static QSize qt_aqua_get_known_size(QStyle::ContentsType ct, const QWidget *widg
+         if (!widg || !qobject_cast<QComboBox *>(widg->parentWidget())) {
+             //should I take into account the font dimentions of the lineedit? -Sam
+             if (sz == QAquaSizeLarge)
+-                ret = QSize(-1, 22);
++                ret = QSize(-1, 21);
+             else
+                 ret = QSize(-1, 19);
+         }
+@@ -1146,7 +1146,7 @@ HIRect QMacStylePrivate::comboboxInnerBounds(const HIRect &outerBounds, int butt
+     switch (buttonKind){
+     case kThemePopupButton:
+         innerBounds.origin.x += 2;
+-        innerBounds.origin.y += 3;
++        innerBounds.origin.y += 2;
+         innerBounds.size.width -= 5;
+         innerBounds.size.height -= 6;
+         break;
+@@ -1164,9 +1164,9 @@ HIRect QMacStylePrivate::comboboxInnerBounds(const HIRect &outerBounds, int butt
+         break;
+     case kThemeComboBox:
+         innerBounds.origin.x += 3;
+-        innerBounds.origin.y += 3;
++        innerBounds.origin.y += 2;
+         innerBounds.size.width -= 6;
+-        innerBounds.size.height -= 6;
++        innerBounds.size.height -= 8;
+         break;
+     case kThemeComboBoxSmall:
+         innerBounds.origin.x += 3;
+@@ -1195,7 +1195,7 @@ QRect QMacStylePrivate::comboboxEditBounds(const QRect &outerBounds, const HIThe
+     QRect ret = outerBounds;
+     switch (bdi.kind){
+     case kThemeComboBox:
+-        ret.adjust(5, 8, -22, -4);
++        ret.adjust(5, 5, -22, -5);
+         break;
+     case kThemeComboBoxSmall:
+         ret.adjust(4, 6, -20, 0);
+@@ -1206,7 +1206,7 @@ QRect QMacStylePrivate::comboboxEditBounds(const QRect &outerBounds, const HIThe
+         ret.setHeight(12);
+         break;
+     case kThemePopupButton:
+-        ret.adjust(10, 3, -23, -3);
++        ret.adjust(10, 2, -23, -4);
+         break;
+     case kThemePopupButtonSmall:
+         ret.adjust(9, 3, -20, -3);
+@@ -4403,7 +4403,7 @@ QRect QMacStyle::subElementRect(SubElement sr, const QStyleOption *opt,
+         if(widget->parentWidget() && qobject_cast<const QComboBox*>(widget->parentWidget()))
+             rect.adjust(-1, -2, 0, 0);
+         else
+-            rect.adjust(-1, 0, 0, +1);
++            rect.adjust(-1, -1, 0, +1);
+         break;
+     case SE_CheckBoxLayoutItem:
+         rect = opt->rect;
+diff --git a/tests/auto/qmacstyle/tst_qmacstyle.cpp b/tests/auto/qmacstyle/tst_qmacstyle.cpp
+index 04337fe..21b57e6 100644
+--- a/tests/auto/qmacstyle/tst_qmacstyle.cpp
++++ b/tests/auto/qmacstyle/tst_qmacstyle.cpp
+@@ -129,7 +129,7 @@ void tst_QMacStyle::sizeHints()
+     setSize(&w, size);
+ 
+     QLineEdit lineEdit1(&w);
+-    QCOMPARE(sh(&lineEdit1).height(), SIZE(22, 19, 16));    // 16 in Builder, 15 in AHIG
++    QCOMPARE(sh(&lineEdit1).height(), SIZE(21, 19, 16));    // 16 in Builder, 15 in AHIG
+ 
+     QProgressBar progress1(&w);
+     progress1.setOrientation(Qt::Horizontal);
+@@ -140,10 +140,10 @@ void tst_QMacStyle::sizeHints()
+     QCOMPARE(sh(&progress1).width(), SIZE(16, 10, 10));   // Builder
+ 
+     QRadioButton radio1("Radio", &w);
+-    QCOMPARE(sh(&radio1).height(), SIZE(15, 12, 10));   // Builder
++    QCOMPARE(sh(&radio1).height(), SIZE(14, 12, 10));   // Builder
+ 
+     QCheckBox checkBox1("Switch", &w);
+-    QCOMPARE(sh(&checkBox1).height(), SIZE(14, 12, 10));   // Builder
++    QCOMPARE(sh(&checkBox1).height(), SIZE(13, 12, 10));   // Builder
+ 
+     QComboBox comboBox1(&w);
+     comboBox1.setEditable(false);
+@@ -153,7 +153,7 @@ void tst_QMacStyle::sizeHints()
+     QComboBox comboBox2(&w);
+     comboBox2.setEditable(true);
+     comboBox2.addItem("Foo");
+-    QCOMPARE(sh(&comboBox2).height(), SIZE(20, 17, 15));
++    QCOMPARE(sh(&comboBox2).height(), SIZE(22, 17, 15));
+ 
+     // Combos in toolbars use the actual widget rect to
+     // avoid faulty clipping:
+@@ -231,7 +231,7 @@ void tst_QMacStyle::sizeHints()
+ 
+     // QMacStyle bug: label doesn't react to Small and Mini
+     QLabel label1("Blah", &w);
+-    QCOMPARE(sh(&label1).height(), SIZE(17, 14, 11));
++    QCOMPARE(sh(&label1).height(), SIZE(16, 14, 11));
+ }
+ 
+ void tst_QMacStyle::layoutMargins_data()
+diff --git a/tests/manual/qlayout/gridwidget.cpp b/tests/manual/qlayout/gridwidget.cpp
+new file mode 100644
+index 0000000..821ed7f
+--- /dev/null
++++ b/tests/manual/qlayout/gridwidget.cpp
+@@ -0,0 +1,74 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include "gridwidget.h"
++#include <QGridLayout>
++#include <QPushButton>
++#include <QComboBox>
++#include <QDateTimeEdit>
++#include <QLineEdit>
++#include <QSpinBox>
++#include <QLabel>
++#include <QCheckBox>
++
++GridWidget::GridWidget(QWidget *parent) :
++    QWidget(parent)
++{
++    QGridLayout *hb = new QGridLayout(this);
++    QComboBox *combo = new QComboBox();
++    combo->addItem("123");
++    QComboBox *combo2 = new QComboBox();
++    combo2->setEditable(true);
++    combo2->addItem("123");
++
++    hb->addWidget(new QLabel("123"), 0, 0);
++    hb->addWidget(new QLabel("123"), 0, 1);
++    hb->addWidget(new QLineEdit("123"), 1, 0);
++    hb->addWidget(new QLineEdit("123"), 1, 1);
++    hb->addWidget(new QCheckBox("123"), 0, 2);
++    hb->addWidget(new QCheckBox("123"), 1, 2);
++    hb->addWidget(combo, 0, 3);
++    hb->addWidget(combo2, 1, 3);
++    hb->addWidget(new QDateTimeEdit(), 0, 4);
++    hb->addWidget(new QPushButton("123"), 1, 4);
++    hb->addWidget(new QSpinBox(), 0, 5);
++    hb->addWidget(new QSpinBox(), 1, 5);
++}
+diff --git a/tests/manual/qlayout/gridwidget.h b/tests/manual/qlayout/gridwidget.h
+new file mode 100644
+index 0000000..481c17f
+--- /dev/null
++++ b/tests/manual/qlayout/gridwidget.h
+@@ -0,0 +1,59 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef GRIDWIDGET_H
++#define GRIDWIDGET_H
++
++#include <QWidget>
++
++class GridWidget : public QWidget
++{
++    Q_OBJECT
++public:
++    explicit GridWidget(QWidget *parent = 0);
++
++signals:
++
++public slots:
++
++};
++
++#endif // GRIDWIDGET_H
+diff --git a/tests/manual/qlayout/hbwidget.cpp b/tests/manual/qlayout/hbwidget.cpp
+new file mode 100644
+index 0000000..e4a568e
+--- /dev/null
++++ b/tests/manual/qlayout/hbwidget.cpp
+@@ -0,0 +1,70 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include "hbwidget.h"
++#include <QHBoxLayout>
++#include <QPushButton>
++#include <QComboBox>
++#include <QDateTimeEdit>
++#include <QLineEdit>
++#include <QSpinBox>
++#include <QLabel>
++#include <QCheckBox>
++
++HbWidget::HbWidget(QWidget *parent) :
++    QWidget(parent)
++{
++    QHBoxLayout *hb = new QHBoxLayout(this);
++    QComboBox *combo = new QComboBox(this);
++    combo->addItem("123");
++    QComboBox *combo2 = new QComboBox();
++    combo2->setEditable(true);
++    combo2->addItem("123");
++
++    hb->addWidget(new QLabel("123"));
++    hb->addWidget(new QLineEdit("123"));
++    hb->addWidget(combo);
++    hb->addWidget(combo2);
++    hb->addWidget(new QCheckBox("123"));
++    hb->addWidget(new QDateTimeEdit());
++    hb->addWidget(new QPushButton("123"));
++    hb->addWidget(new QSpinBox());
++}
+diff --git a/tests/manual/qlayout/hbwidget.h b/tests/manual/qlayout/hbwidget.h
+new file mode 100644
+index 0000000..f8efdc3
+--- /dev/null
++++ b/tests/manual/qlayout/hbwidget.h
+@@ -0,0 +1,59 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef HBWIDGET_H
++#define HBWIDGET_H
++
++#include <QWidget>
++
++class HbWidget : public QWidget
++{
++    Q_OBJECT
++public:
++    explicit HbWidget(QWidget *parent = 0);
++
++signals:
++
++public slots:
++
++};
++
++#endif // HBWIDGET_H
+diff --git a/tests/manual/qlayout/main.cpp b/tests/manual/qlayout/main.cpp
+new file mode 100644
+index 0000000..7c6bbab
+--- /dev/null
++++ b/tests/manual/qlayout/main.cpp
+@@ -0,0 +1,52 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include <QApplication>
++#include "mainwindow.h"
++
++int main(int argc, char *argv[])
++{
++    QApplication a(argc, argv);
++    MainWindow w;
++    w.show();
++
++    return a.exec();
++}
+diff --git a/tests/manual/qlayout/mainwindow.cpp b/tests/manual/qlayout/mainwindow.cpp
+new file mode 100644
+index 0000000..9899e0d
+--- /dev/null
++++ b/tests/manual/qlayout/mainwindow.cpp
+@@ -0,0 +1,93 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include "mainwindow.h"
++#include "hbwidget.h"
++#include "vbwidget.h"
++#include "gridwidget.h"
++#include <QGridLayout>
++#include <QComboBox>
++
++MainWindow::MainWindow(QWidget *parent)
++    : QMainWindow(parent)
++{
++    QWidget *widget = new QWidget(this);
++    setCentralWidget(widget);
++    m_mainLayout = new QGridLayout(widget);
++
++    QComboBox *combo = new QComboBox();
++    combo->addItem("HBox Layout");
++    combo->addItem("VBox Layout");
++    combo->addItem("Grid Layout");
++    connect(combo, SIGNAL(currentIndexChanged(int)), this, SLOT(layoutIndexChanged(int)));
++    HbWidget *hbWidget = new HbWidget(this);
++
++    m_mainLayout->addWidget(combo);
++    m_mainLayout->addWidget(hbWidget);
++}
++
++MainWindow::~MainWindow()
++{
++
++}
++
++void MainWindow::layoutIndexChanged(int index)
++{
++    delete m_mainLayout->takeAt(1)->widget();
++
++    switch (index) {
++    case 0: {
++        HbWidget *hbWidget = new HbWidget(this);
++        m_mainLayout->addWidget(hbWidget);
++        break;
++        }
++    case 1: {
++        VbWidget *vbWidget = new VbWidget(this);
++        m_mainLayout->addWidget(vbWidget);
++        break;
++        }
++    default: {
++        GridWidget *gridW = new GridWidget(this);
++        m_mainLayout->addWidget(gridW);
++        break;
++        }
++    }
++}
+diff --git a/tests/manual/qlayout/mainwindow.h b/tests/manual/qlayout/mainwindow.h
+new file mode 100644
+index 0000000..44ccd66
+--- /dev/null
++++ b/tests/manual/qlayout/mainwindow.h
+@@ -0,0 +1,64 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef MAINWINDOW_H
++#define MAINWINDOW_H
++
++#include <QMainWindow>
++
++class QGridLayout;
++
++class MainWindow : public QMainWindow
++{
++    Q_OBJECT
++
++public:
++    MainWindow(QWidget *parent = 0);
++    ~MainWindow();
++
++private slots:
++    void layoutIndexChanged(int index);
++
++private:
++    QGridLayout *m_mainLayout;
++};
++
++#endif // MAINWINDOW_H
+diff --git a/tests/manual/qlayout/qlayout.pro b/tests/manual/qlayout/qlayout.pro
+new file mode 100644
+index 0000000..620cf41
+--- /dev/null
++++ b/tests/manual/qlayout/qlayout.pro
+@@ -0,0 +1,14 @@
++QT       += core gui
++
++TEMPLATE = app
++
++SOURCES += main.cpp\
++        mainwindow.cpp \
++        hbwidget.cpp \
++        gridwidget.cpp \
++        vbwidget.cpp
++
++HEADERS += mainwindow.h \
++        hbwidget.h \
++        gridwidget.h \
++        vbwidget.h
+diff --git a/tests/manual/qlayout/vbwidget.cpp b/tests/manual/qlayout/vbwidget.cpp
+new file mode 100644
+index 0000000..9033105
+--- /dev/null
++++ b/tests/manual/qlayout/vbwidget.cpp
+@@ -0,0 +1,70 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include "vbwidget.h"
++#include <QVBoxLayout>
++#include <QPushButton>
++#include <QComboBox>
++#include <QDateTimeEdit>
++#include <QLineEdit>
++#include <QSpinBox>
++#include <QLabel>
++#include <QCheckBox>
++
++VbWidget::VbWidget(QWidget *parent) :
++    QWidget(parent)
++{
++    QVBoxLayout *hb = new QVBoxLayout(this);
++    QComboBox *combo = new QComboBox(this);
++    combo->addItem("123");
++    QComboBox *combo2 = new QComboBox();
++    combo2->setEditable(true);
++    combo2->addItem("123");
++
++    hb->addWidget(new QLabel("123"));
++    hb->addWidget(new QLineEdit("123"));
++    hb->addWidget(combo);
++    hb->addWidget(combo2);
++    hb->addWidget(new QCheckBox("123"));
++    hb->addWidget(new QDateTimeEdit());
++    hb->addWidget(new QPushButton("123"));
++    hb->addWidget(new QSpinBox());
++}
+diff --git a/tests/manual/qlayout/vbwidget.h b/tests/manual/qlayout/vbwidget.h
+new file mode 100644
+index 0000000..86559c5
+--- /dev/null
++++ b/tests/manual/qlayout/vbwidget.h
+@@ -0,0 +1,59 @@
++/****************************************************************************
++**
++** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
++** Contact: http://www.qt-project.org/legal
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial License Usage
++** Licensees holding valid commercial Qt licenses may use this file in
++** accordance with the commercial license agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Digia.  For licensing terms and
++** conditions see http://qt.digia.com/licensing.  For further information
++** use the contact form at http://qt.digia.com/contact-us.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Digia gives you certain additional
++** rights.  These rights are described in the Digia Qt LGPL Exception
++** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++**
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef VBWIDGET_H
++#define VBWIDGET_H
++
++#include <QWidget>
++
++class VbWidget : public QWidget
++{
++    Q_OBJECT
++public:
++    explicit VbWidget(QWidget *parent = 0);
++
++signals:
++
++public slots:
++
++};
++
++#endif // VBWIDGET_H

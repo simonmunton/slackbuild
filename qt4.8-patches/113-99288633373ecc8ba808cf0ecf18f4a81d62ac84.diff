@@ -1,0 +1,566 @@
+commit 99288633373ecc8ba808cf0ecf18f4a81d62ac84
+Author: Eskil Abrahamsen Blomfeldt <eskil.abrahamsen-blomfeldt@digia.com>
+Date:   Tue Dec 11 14:33:04 2012 +0100
+
+    Backport adjusting cursorToX for trailing spaces from Qt 5
+    
+    This is a backport of d07982b104de5dc2b54bef09c071500ce22cf539
+    from Qt 5 which fixes cursorToX() in some cases, e.g. when
+    a line filled with spaces is ended by a soft line break.
+    
+    Task-number: QTBUG-27354
+    Change-Id: Ia88873aeb3c0620044fefe24fc6bb1310e3aa339
+    Reviewed-by: Lars Knoll <lars.knoll@digia.com>
+    Reviewed-by: Andrew den Exter <andrew.den.exter@qinetic.com.au>
+
+diff --git a/src/gui/text/qtextengine.cpp b/src/gui/text/qtextengine.cpp
+index b368fd9..319829d 100644
+--- a/src/gui/text/qtextengine.cpp
++++ b/src/gui/text/qtextengine.cpp
+@@ -2826,13 +2826,7 @@ QFixed QTextEngine::leadingSpaceWidth(const QScriptLine &line)
+         || !isRightToLeft())
+         return QFixed();
+ 
+-    int pos = line.length;
+-    const HB_CharAttributes *attributes = this->attributes();
+-    if (!attributes)
+-        return QFixed();
+-    while (pos > 0 && attributes[line.from + pos - 1].whiteSpace)
+-        --pos;
+-    return width(line.from + pos, line.length - pos);
++    return width(line.from + line.length, line.trailingSpaces);
+ }
+ 
+ QFixed QTextEngine::alignLine(const QScriptLine &line)
+@@ -2842,14 +2836,12 @@ QFixed QTextEngine::alignLine(const QScriptLine &line)
+     // if width is QFIXED_MAX that means we used setNumColumns() and that implicitly makes this line left aligned.
+     if (!line.justified && line.width != QFIXED_MAX) {
+         int align = option.alignment();
+-        if (align & Qt::AlignLeft)
+-            x -= leadingSpaceWidth(line);
+         if (align & Qt::AlignJustify && isRightToLeft())
+             align = Qt::AlignRight;
+         if (align & Qt::AlignRight)
+-            x = line.width - (line.textAdvance + leadingSpaceWidth(line));
++            x = line.width - (line.textAdvance);
+         else if (align & Qt::AlignHCenter)
+-            x = (line.width - line.textAdvance)/2 - leadingSpaceWidth(line);
++            x = (line.width - line.textAdvance)/2;
+     }
+     return x;
+ }
+diff --git a/src/gui/text/qtextlayout.cpp b/src/gui/text/qtextlayout.cpp
+index 4b26eb5..bb216e9 100644
+--- a/src/gui/text/qtextlayout.cpp
++++ b/src/gui/text/qtextlayout.cpp
+@@ -2498,13 +2498,14 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
+     bool lastLine = i >= eng->lines.size() - 1;
+ 
+     QFixed x = line.x;
+-    x += eng->alignLine(line);
++    x += eng->alignLine(line) - eng->leadingSpaceWidth(line);
+ 
+     if (!i && !eng->layoutData->items.size()) {
+         *cursorPos = 0;
+         return x.toReal();
+     }
+ 
++    int lineEnd = line.from + line.length + line.trailingSpaces;
+     int pos = *cursorPos;
+     int itm;
+     const HB_CharAttributes *attributes = eng->attributes();
+@@ -2512,9 +2513,9 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
+         *cursorPos = 0;
+         return x.toReal();
+     }
+-    while (pos < line.from + line.length && !attributes[pos].charStop)
++    while (pos < lineEnd && !attributes[pos].charStop)
+         pos++;
+-    if (pos == line.from + (int)line.length) {
++    if (pos == lineEnd) {
+         // end of line ensure we have the last item on the line
+         itm = eng->findItem(pos-1);
+     }
+@@ -2546,7 +2547,6 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
+ 
+     bool reverse = eng->layoutData->items[itm].analysis.bidiLevel % 2;
+ 
+-    int lineEnd = line.from + line.length;
+ 
+     // add the items left of the cursor
+ 
+@@ -2619,6 +2619,9 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
+     if (eng->option.wrapMode() != QTextOption::NoWrap && x > line.x + line.width)
+         x = line.x + line.width;
+ 
++    if (eng->option.wrapMode() != QTextOption::NoWrap && x < 0)
++        x = 0;
++
+     *cursorPos = pos + si->position;
+     return x.toReal();
+ }
+diff --git a/tests/auto/qtextlayout/tst_qtextlayout.cpp b/tests/auto/qtextlayout/tst_qtextlayout.cpp
+index b55c244..17a5333 100644
+--- a/tests/auto/qtextlayout/tst_qtextlayout.cpp
++++ b/tests/auto/qtextlayout/tst_qtextlayout.cpp
+@@ -57,6 +57,10 @@
+ 
+ #define TESTFONT_SIZE 12
+ 
++Q_DECLARE_METATYPE(QTextOption::WrapMode)
++Q_DECLARE_METATYPE(Qt::LayoutDirection)
++Q_DECLARE_METATYPE(Qt::AlignmentFlag)
++
+ //TESTED_CLASS=
+ //TESTED_FILES=
+ 
+@@ -83,6 +87,12 @@ private slots:
+     void noWrap();
+     void cursorToXForInlineObjects();
+     void cursorToXForSetColumns();
++    void cursorToXForTrailingSpaces_data();
++    void cursorToXForTrailingSpaces();
++    void horizontalAlignment_data();
++    void horizontalAlignment();
++    void horizontalAlignmentMultiline_data();
++    void horizontalAlignmentMultiline();
+     void defaultWordSeparators_data();
+     void defaultWordSeparators();
+     void cursorMovementFromInvalidPositions();
+@@ -525,6 +535,436 @@ void tst_QTextLayout::cursorToXForSetColumns()
+     QCOMPARE(line.cursorToX(1), (qreal) TESTFONT_SIZE);
+ }
+ 
++void tst_QTextLayout::cursorToXForTrailingSpaces_data()
++{
++    qreal width = TESTFONT_SIZE * 4;
++
++    QTest::addColumn<QTextOption::WrapMode>("wrapMode");
++    QTest::addColumn<Qt::LayoutDirection>("textDirection");
++    QTest::addColumn<Qt::AlignmentFlag>("alignment");
++    QTest::addColumn<qreal>("cursorAt0");
++    QTest::addColumn<qreal>("cursorAt4");
++    QTest::addColumn<qreal>("cursorAt6");
++
++    // Aligned left from start of visible characters.
++    QTest::newRow("ltr nowrap lalign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignLeft
++            << qreal(0)
++            << width
++            << qreal(TESTFONT_SIZE * 6);
++
++    // Aligned left from start of visible characters.
++    QTest::newRow("ltr wrap lalign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignLeft
++            << qreal(0)
++            << width
++            << width;
++
++    // Aligned right from end of whitespace characters.
++    QTest::newRow("ltr nowrap ralign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE * -2)
++            << qreal(TESTFONT_SIZE *  2)
++            << width;
++
++    // Aligned right from end of visible characters.
++    QTest::newRow("ltr wrap ralign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE)
++            << width
++            << width;
++
++    // Aligned center of all characters
++    QTest::newRow("ltr nowrap calign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * -1)
++            << qreal(TESTFONT_SIZE *  3)
++            << qreal(TESTFONT_SIZE *  5);
++
++    // Aligned center of visible characters
++    QTest::newRow("ltr wrap calign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * 0.5)
++            << qreal(width)
++            << qreal(width);
++
++    // Aligned right from start of visible characters
++    QTest::newRow("rtl nowrap ralign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignRight
++            << width
++            << qreal(0)
++            << qreal(TESTFONT_SIZE * -2);
++
++    // Aligned right from start of visible characters
++    QTest::newRow("rtl wrap ralign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignRight
++            << width
++            << qreal(0)
++            << qreal(0);
++
++    // Aligned left from end of whitespace characters
++    QTest::newRow("rtl nowrap lalign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignLeft
++            << qreal(TESTFONT_SIZE * 6)
++            << qreal(TESTFONT_SIZE * 2)
++            << qreal(0);
++
++    // Aligned left from end of visible characters
++    QTest::newRow("rtl wrap lalign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignLeft
++            << qreal(TESTFONT_SIZE * 3)
++            << qreal(0)
++            << qreal(0);
++
++    // Aligned center of all characters
++    QTest::newRow("rtl nowrap calign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE *  5)
++            << qreal(TESTFONT_SIZE *  1)
++            << qreal(TESTFONT_SIZE * -1);
++
++    // Aligned center of visible characters
++    QTest::newRow("rtl wrap calign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * 3.5)
++            << qreal(0)
++            << qreal(0);
++}
++
++void tst_QTextLayout::cursorToXForTrailingSpaces()
++{
++    QFETCH(QTextOption::WrapMode, wrapMode);
++    QFETCH(Qt::LayoutDirection, textDirection);
++    QFETCH(Qt::AlignmentFlag, alignment);
++    QFETCH(qreal, cursorAt0);
++    QFETCH(qreal, cursorAt4);
++    QFETCH(qreal, cursorAt6);
++
++    QTextLayout layout("%^&   ", testFont);
++
++    QTextOption o = layout.textOption();
++    o.setTextDirection(textDirection);
++    o.setAlignment(alignment);
++    o.setWrapMode(wrapMode);
++    layout.setTextOption(o);
++
++    layout.beginLayout();
++    QTextLine line = layout.createLine();
++    line.setLineWidth(TESTFONT_SIZE * 4);
++    layout.endLayout();
++
++    QCOMPARE(line.cursorToX(0), cursorAt0);
++    QCOMPARE(line.cursorToX(4), cursorAt4);
++    QCOMPARE(line.cursorToX(6), cursorAt6);
++}
++
++void tst_QTextLayout::horizontalAlignment_data()
++{
++    qreal width = TESTFONT_SIZE * 4;
++
++    QTest::addColumn<QTextOption::WrapMode>("wrapMode");
++    QTest::addColumn<Qt::LayoutDirection>("textDirection");
++    QTest::addColumn<Qt::AlignmentFlag>("alignment");
++    QTest::addColumn<qreal>("naturalLeft");
++    QTest::addColumn<qreal>("naturalRight");
++
++    // Aligned left from start of visible characters.
++    QTest::newRow("ltr nowrap lalign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignLeft
++            << qreal(0)
++            << qreal(TESTFONT_SIZE * 6);
++
++    // Aligned left from start of visible characters.
++    QTest::newRow("ltr wrap lalign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignLeft
++            << qreal(0)
++            << qreal(TESTFONT_SIZE * 3);
++
++    // Aligned right from end of whitespace characters.
++    QTest::newRow("ltr nowrap ralign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE *  - 2)
++            << width;
++
++    // Aligned right from end of visible characters.
++    QTest::newRow("ltr wrap ralign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE)
++            << width;
++
++    // Aligned center of all characters
++    QTest::newRow("ltr nowrap calign")
++            << QTextOption::NoWrap
++            << Qt::LeftToRight
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * -1)
++            << qreal(TESTFONT_SIZE *  5);
++
++    // Aligned center of visible characters
++    QTest::newRow("ltr wrap calign")
++            << QTextOption::WrapAnywhere
++            << Qt::LeftToRight
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * 0.5)
++            << qreal(TESTFONT_SIZE * 3.5);
++
++    // Aligned right from start of visible characters
++    QTest::newRow("rtl nowrap ralign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE * -2)
++            << width;
++
++    // Aligned right from start of visible characters
++    QTest::newRow("rtl wrap ralign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignRight
++            << qreal(TESTFONT_SIZE * 1)
++            << width;
++
++    // Aligned left from end of whitespace characters
++    QTest::newRow("rtl nowrap lalign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignLeft
++            << qreal(0)
++            << qreal(TESTFONT_SIZE * 6);
++
++    // Aligned left from end of visible characters
++    QTest::newRow("rtl wrap lalign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignLeft
++            << qreal(0)
++            << qreal(TESTFONT_SIZE * 3);
++
++    // Aligned center of all characters
++    QTest::newRow("rtl nowrap calign")
++            << QTextOption::NoWrap
++            << Qt::RightToLeft
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * -1)
++            << qreal(TESTFONT_SIZE *  5);
++
++    // Aligned center of visible characters
++    QTest::newRow("rtl wrap calign")
++            << QTextOption::WrapAnywhere
++            << Qt::RightToLeft
++            << Qt::AlignHCenter
++            << qreal(TESTFONT_SIZE * 0.5)
++            << qreal(TESTFONT_SIZE * 3.5);
++}
++
++void tst_QTextLayout::horizontalAlignment()
++{
++    QFETCH(QTextOption::WrapMode, wrapMode);
++    QFETCH(Qt::LayoutDirection, textDirection);
++    QFETCH(Qt::AlignmentFlag, alignment);
++    QFETCH(qreal, naturalLeft);
++    QFETCH(qreal, naturalRight);
++
++    QTextLayout layout("%^&   ", testFont);
++
++    QTextOption o = layout.textOption();
++    o.setTextDirection(textDirection);
++    o.setAlignment(alignment);
++    o.setWrapMode(wrapMode);
++    layout.setTextOption(o);
++
++    layout.beginLayout();
++    QTextLine line = layout.createLine();
++    line.setLineWidth(TESTFONT_SIZE * 4);
++    layout.endLayout();
++
++    QRectF naturalRect = line.naturalTextRect();
++    QCOMPARE(naturalRect.left(), naturalLeft);
++    QCOMPARE(naturalRect.right(), naturalRight);
++}
++
++
++void tst_QTextLayout::horizontalAlignmentMultiline_data()
++{
++    qreal width = TESTFONT_SIZE * 8;
++
++    const QString linebreakText = QLatin1String("^%$&") + QChar(0x2028) + QLatin1String("^%&*^$");
++    QString wrappingText("^%$&^%&*^$");
++    QString wrappingWhitespaceText("^%$&        ^%&*^$");
++
++    QTest::addColumn<QString>("text");
++    QTest::addColumn<Qt::LayoutDirection>("textDirection");
++    QTest::addColumn<Qt::AlignmentFlag>("alignment");
++    QTest::addColumn<qreal>("firstLeft");
++    QTest::addColumn<qreal>("firstRight");
++    QTest::addColumn<qreal>("lastLeft");
++    QTest::addColumn<qreal>("lastRight");
++
++    Qt::LayoutDirection textDirection[] = { Qt::LeftToRight, Qt::RightToLeft };
++    QByteArray textDirectionText [] = { "ltr ", "rtl " };
++    for (int i = 0; i < 2; ++i) {
++        // Aligned left from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "linebreak lalign")
++                << linebreakText
++                << textDirection[i]
++                << Qt::AlignLeft
++                << qreal(0)
++                << qreal(TESTFONT_SIZE * 4)
++                << qreal(0)
++                << qreal(TESTFONT_SIZE * 6);
++
++        // Aligned left from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-text lalign")
++                << wrappingText
++                << textDirection[i]
++                << Qt::AlignLeft
++                << qreal(0)
++                << width
++                << qreal(0)
++                << qreal(TESTFONT_SIZE * 2);
++
++        // Aligned left from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-ws lalign")
++                << wrappingWhitespaceText
++                << textDirection[i]
++                << Qt::AlignLeft
++                << qreal(0)
++                << qreal(TESTFONT_SIZE * 4)
++                << qreal(0)
++                << qreal(TESTFONT_SIZE * 6);
++
++        // Aligned right from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "linebreak ralign")
++                << linebreakText
++                << textDirection[i]
++                << Qt::AlignRight
++                << qreal(TESTFONT_SIZE * 4)
++                << width
++                << qreal(TESTFONT_SIZE * 2)
++                << width;
++
++        // Aligned right from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-text ralign")
++                << wrappingText
++                << textDirection[i]
++                << Qt::AlignRight
++                << qreal(0)
++                << width
++                << qreal(TESTFONT_SIZE * 6)
++                << width;
++
++        // Aligned left from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-ws ralign")
++                << wrappingWhitespaceText
++                << textDirection[i]
++                << Qt::AlignRight
++                << qreal(TESTFONT_SIZE * 4)
++                << width
++                << qreal(TESTFONT_SIZE * 2)
++                << width;
++
++        // Aligned center from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "linebreak calign")
++                << linebreakText
++                << textDirection[i]
++                << Qt::AlignCenter
++                << qreal(TESTFONT_SIZE * 2)
++                << qreal(TESTFONT_SIZE * 6)
++                << qreal(TESTFONT_SIZE * 1)
++                << qreal(TESTFONT_SIZE * 7);
++
++        // Aligned center from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-text calign")
++                << wrappingText
++                << textDirection[i]
++                << Qt::AlignCenter
++                << qreal(0)
++                << width
++                << qreal(TESTFONT_SIZE * 3)
++                << qreal(TESTFONT_SIZE * 5);
++
++        // Aligned center from start of visible characters.
++        QTest::newRow(textDirectionText[i] + "wrap-ws calign")
++                << wrappingWhitespaceText
++                << textDirection[i]
++                << Qt::AlignCenter
++                << qreal(TESTFONT_SIZE * 2)
++                << qreal(TESTFONT_SIZE * 6)
++                << qreal(TESTFONT_SIZE * 1)
++                << qreal(TESTFONT_SIZE * 7);
++    }
++}
++
++void tst_QTextLayout::horizontalAlignmentMultiline()
++{
++    QFETCH(QString, text);
++    QFETCH(Qt::LayoutDirection, textDirection);
++    QFETCH(Qt::AlignmentFlag, alignment);
++    QFETCH(qreal, firstLeft);
++    QFETCH(qreal, firstRight);
++    QFETCH(qreal, lastLeft);
++    QFETCH(qreal, lastRight);
++
++    QTextLayout layout(text, testFont);
++
++    QTextOption o = layout.textOption();
++    o.setTextDirection(textDirection);
++    o.setAlignment(alignment);
++    o.setWrapMode(QTextOption::WrapAnywhere);
++    layout.setTextOption(o);
++
++    layout.beginLayout();
++    QTextLine firstLine = layout.createLine();
++    QTextLine lastLine;
++    for (QTextLine line = firstLine; line.isValid(); line = layout.createLine()) {
++        line.setLineWidth(TESTFONT_SIZE * 8);
++        lastLine = line;
++    }
++    layout.endLayout();
++
++    qDebug() << firstLine.textLength() << firstLine.naturalTextRect() << lastLine.naturalTextRect();
++
++    QRectF rect = firstLine.naturalTextRect();
++    QCOMPARE(rect.left(), firstLeft);
++    QCOMPARE(rect.right(), firstRight);
++
++    rect = lastLine.naturalTextRect();
++    QCOMPARE(rect.left(), lastLeft);
++    QCOMPARE(rect.right(), lastRight);
++}
++
+ void tst_QTextLayout::defaultWordSeparators_data()
+ {
+     QTest::addColumn<QString>("text");

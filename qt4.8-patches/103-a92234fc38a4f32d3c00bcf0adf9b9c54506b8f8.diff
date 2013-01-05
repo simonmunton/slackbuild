@@ -1,0 +1,29 @@
+commit a92234fc38a4f32d3c00bcf0adf9b9c54506b8f8
+Author: Peter Hartmann <phartmann@rim.com>
+Date:   Thu Dec 13 16:21:40 2012 +0100
+
+    QPaintEngine: Fix build if compiled with QT_NO_XRENDER
+    
+    composition_mode is only defined if QT_NO_XRENDER is not defined.
+    Bug was introduced with 439aa67582e715ddc0ca7e30305b0c9498a71f81
+    "Fixes ignored composition mode in QPainter::fillRect with X11 engine."
+    
+    Change-Id: I2dc036ffa277cbf0f9327ede3fead9a407147fc0
+    Reviewed-by: Samuel Rødal <samuel.rodal@digia.com>
+
+diff --git a/src/gui/painting/qpaintengine_x11.cpp b/src/gui/painting/qpaintengine_x11.cpp
+index eb39893..df04ebb 100644
+--- a/src/gui/painting/qpaintengine_x11.cpp
++++ b/src/gui/painting/qpaintengine_x11.cpp
+@@ -777,7 +777,10 @@ void QX11PaintEngine::drawRects(const QRectF *rects, int rectCount)
+         || d->has_complex_xform
+         || d->has_custom_pen
+         || d->cbrush.style() != Qt::SolidPattern
+-        || complexPictOp(d->composition_mode))
++#if !defined(QT_NO_XRENDER)
++        || complexPictOp(d->composition_mode)
++#endif
++       )
+     {
+         QPaintEngine::drawRects(rects, rectCount);
+         return;

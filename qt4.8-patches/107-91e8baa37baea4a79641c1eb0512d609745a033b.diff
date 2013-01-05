@@ -1,0 +1,1527 @@
+commit 91e8baa37baea4a79641c1eb0512d609745a033b
+Author: Liang Qi <liang.qi@digia.com>
+Date:   Sat Dec 15 15:53:20 2012 +0100
+
+    Remove the timestamp info in genarated files
+    
+    For moc, rcc and uic, then it's friendly for tools like ccache.
+    ccache is using md5 to check file modification, but the different
+    timestamp info will cause different md5 for same meaningful
+    contents, it will disabled ccache.
+    
+    Updated the autotest for uic and rcc.
+    
+    Task-number: QTBUG-26589
+    Change-Id: I9e72ff022f722809b3f86bd9d7e0ae1e470e8eb2
+    (back port from qtbase/139f416237c52575b236c3b61e25796c83034567)
+    Reviewed-by: Olivier Goffart <ogoffart@woboq.com>
+
+diff --git a/src/tools/moc/moc.cpp b/src/tools/moc/moc.cpp
+index 947fc8e..aecc949 100644
+--- a/src/tools/moc/moc.cpp
++++ b/src/tools/moc/moc.cpp
+@@ -766,9 +766,6 @@ void Moc::parse()
+ 
+ void Moc::generate(FILE *out)
+ {
+-
+-    QDateTime dt = QDateTime::currentDateTime();
+-    QByteArray dstr = dt.toString().toLatin1();
+     QByteArray fn = filename;
+     int i = filename.length()-1;
+     while (i>0 && filename[i-1] != '/' && filename[i-1] != '\\')
+@@ -777,8 +774,7 @@ void Moc::generate(FILE *out)
+         fn = filename.mid(i);
+     fprintf(out, "/****************************************************************************\n"
+             "** Meta object code from reading C++ file '%s'\n**\n" , (const char*)fn);
+-    fprintf(out, "** Created: %s\n"
+-            "**      by: The Qt Meta Object Compiler version %d (Qt %s)\n**\n" , dstr.data(), mocOutputRevision, QT_VERSION_STR);
++    fprintf(out, "** Created by: The Qt Meta Object Compiler version %d (Qt %s)\n**\n" , mocOutputRevision, QT_VERSION_STR);
+     fprintf(out, "** WARNING! All changes made in this file will be lost!\n"
+             "*****************************************************************************/\n\n");
+ 
+diff --git a/src/tools/rcc/rcc.cpp b/src/tools/rcc/rcc.cpp
+index 55d2aad..9fcc017 100644
+--- a/src/tools/rcc/rcc.cpp
++++ b/src/tools/rcc/rcc.cpp
+@@ -731,9 +731,7 @@ bool RCCResourceLibrary::writeHeader()
+         writeString("/****************************************************************************\n");
+         writeString("** Resource object code\n");
+         writeString("**\n");
+-        writeString("** Created: ");
+-        writeByteArray(QDateTime::currentDateTime().toString().toLatin1());
+-        writeString("\n**      by: The Resource Compiler for Qt version ");
++        writeString("** Created by: The Resource Compiler for Qt version ");
+         writeByteArray(QT_VERSION_STR);
+         writeString("\n**\n");
+         writeString("** WARNING! All changes made in this file will be lost!\n");
+diff --git a/src/tools/uic/uic.cpp b/src/tools/uic/uic.cpp
+index 7e35679..93dd33a 100644
+--- a/src/tools/uic/uic.cpp
++++ b/src/tools/uic/uic.cpp
+@@ -139,8 +139,7 @@ void Uic::writeCopyrightHeader(DomUI *ui)
+         out << "/********************************************************************************\n";
+         out << "** Form generated from reading UI file '" << QFileInfo(opt.inputFile).fileName() << "'\n";
+         out << "**\n";
+-        out << "** Created: " << QDateTime::currentDateTime().toString() << "\n";
+-        out << "**      " << QString::fromLatin1("by: Qt User Interface Compiler version %1\n").arg(QLatin1String(QT_VERSION_STR));
++        out << "** Created by: Qt User Interface Compiler version " << QLatin1String(QT_VERSION_STR) << "\n";
+         out << "**\n";
+         out << "** WARNING! All changes made in this file will be lost when recompiling UI file!\n";
+         out << "********************************************************************************/\n\n";
+diff --git a/tests/auto/rcc/data/images.expected b/tests/auto/rcc/data/images.expected
+index 71be819..4de47ab 100644
+--- a/tests/auto/rcc/data/images.expected
++++ b/tests/auto/rcc/data/images.expected
+@@ -1,8 +1,7 @@
+ /****************************************************************************
+ ** Resource object code
+ **
+-IGNORE: ** Created: Tue Jul 15 11:17:15 2008
+-IGNORE: **      by: The Resource Compiler for Qt version 4.4.2
++IGNORE: ** Created by: The Resource Compiler for Qt version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost!
+ *****************************************************************************/
+diff --git a/tests/auto/uic/baseline/Dialog_with_Buttons_Bottom.ui.h b/tests/auto/uic/baseline/Dialog_with_Buttons_Bottom.ui.h
+index ecbfd30..3123a67 100644
+--- a/tests/auto/uic/baseline/Dialog_with_Buttons_Bottom.ui.h
++++ b/tests/auto/uic/baseline/Dialog_with_Buttons_Bottom.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'Dialog_with_Buttons_Bottom.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/Dialog_with_Buttons_Right.ui.h b/tests/auto/uic/baseline/Dialog_with_Buttons_Right.ui.h
+index aa42d5c..80232e3 100644
+--- a/tests/auto/uic/baseline/Dialog_with_Buttons_Right.ui.h
++++ b/tests/auto/uic/baseline/Dialog_with_Buttons_Right.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'Dialog_with_Buttons_Right.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/Dialog_without_Buttons.ui.h b/tests/auto/uic/baseline/Dialog_without_Buttons.ui.h
+index 7d876e1..64426d4 100644
+--- a/tests/auto/uic/baseline/Dialog_without_Buttons.ui.h
++++ b/tests/auto/uic/baseline/Dialog_without_Buttons.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'Dialog_without_Buttons.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/Main_Window.ui.h b/tests/auto/uic/baseline/Main_Window.ui.h
+index b54e4a6..afdbf99 100644
+--- a/tests/auto/uic/baseline/Main_Window.ui.h
++++ b/tests/auto/uic/baseline/Main_Window.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'Main_Window.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/Widget.ui.h b/tests/auto/uic/baseline/Widget.ui.h
+index 362d283..0a830e0 100644
+--- a/tests/auto/uic/baseline/Widget.ui.h
++++ b/tests/auto/uic/baseline/Widget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'Widget.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/addlinkdialog.ui.h b/tests/auto/uic/baseline/addlinkdialog.ui.h
+index 230bc5d..696f75c 100644
+--- a/tests/auto/uic/baseline/addlinkdialog.ui.h
++++ b/tests/auto/uic/baseline/addlinkdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'addlinkdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/addtorrentform.ui.h b/tests/auto/uic/baseline/addtorrentform.ui.h
+index c075e8a..6550c7f 100644
+--- a/tests/auto/uic/baseline/addtorrentform.ui.h
++++ b/tests/auto/uic/baseline/addtorrentform.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'addtorrentform.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/authenticationdialog.ui.h b/tests/auto/uic/baseline/authenticationdialog.ui.h
+index 9f35586..7002dea 100644
+--- a/tests/auto/uic/baseline/authenticationdialog.ui.h
++++ b/tests/auto/uic/baseline/authenticationdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'authenticationdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/backside.ui.h b/tests/auto/uic/baseline/backside.ui.h
+index 0fd710a..6e8ffba 100644
+--- a/tests/auto/uic/baseline/backside.ui.h
++++ b/tests/auto/uic/baseline/backside.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'backside.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/batchtranslation.ui.h b/tests/auto/uic/baseline/batchtranslation.ui.h
+index 61b2125..24a1d33 100644
+--- a/tests/auto/uic/baseline/batchtranslation.ui.h
++++ b/tests/auto/uic/baseline/batchtranslation.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'batchtranslation.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/bookmarkdialog.ui.h b/tests/auto/uic/baseline/bookmarkdialog.ui.h
+index 098614c..7364f47 100644
+--- a/tests/auto/uic/baseline/bookmarkdialog.ui.h
++++ b/tests/auto/uic/baseline/bookmarkdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'bookmarkdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/bookwindow.ui.h b/tests/auto/uic/baseline/bookwindow.ui.h
+index e6c9280..d779cbd 100644
+--- a/tests/auto/uic/baseline/bookwindow.ui.h
++++ b/tests/auto/uic/baseline/bookwindow.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'bookwindow.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/browserwidget.ui.h b/tests/auto/uic/baseline/browserwidget.ui.h
+index 556d672..65b36af 100644
+--- a/tests/auto/uic/baseline/browserwidget.ui.h
++++ b/tests/auto/uic/baseline/browserwidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'browserwidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/calculator.ui.h b/tests/auto/uic/baseline/calculator.ui.h
+index b2cf236..bfd976c 100644
+--- a/tests/auto/uic/baseline/calculator.ui.h
++++ b/tests/auto/uic/baseline/calculator.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'calculator.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/calculatorform.ui.h b/tests/auto/uic/baseline/calculatorform.ui.h
+index f2cf253..a4a4e96 100644
+--- a/tests/auto/uic/baseline/calculatorform.ui.h
++++ b/tests/auto/uic/baseline/calculatorform.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'calculatorform.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/certificateinfo.ui.h b/tests/auto/uic/baseline/certificateinfo.ui.h
+index 53d54c4..63f0ca5 100644
+--- a/tests/auto/uic/baseline/certificateinfo.ui.h
++++ b/tests/auto/uic/baseline/certificateinfo.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'certificateinfo.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/chatdialog.ui.h b/tests/auto/uic/baseline/chatdialog.ui.h
+index 4152d36..4c611a2 100644
+--- a/tests/auto/uic/baseline/chatdialog.ui.h
++++ b/tests/auto/uic/baseline/chatdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'chatdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/chatmainwindow.ui.h b/tests/auto/uic/baseline/chatmainwindow.ui.h
+index 932f1dd..1390b4a 100644
+--- a/tests/auto/uic/baseline/chatmainwindow.ui.h
++++ b/tests/auto/uic/baseline/chatmainwindow.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'chatmainwindow.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/chatsetnickname.ui.h b/tests/auto/uic/baseline/chatsetnickname.ui.h
+index 9a52aa5..8e619b6 100644
+--- a/tests/auto/uic/baseline/chatsetnickname.ui.h
++++ b/tests/auto/uic/baseline/chatsetnickname.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'chatsetnickname.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/config.ui.h b/tests/auto/uic/baseline/config.ui.h
+index 2769592..ca7a3d6 100644
+--- a/tests/auto/uic/baseline/config.ui.h
++++ b/tests/auto/uic/baseline/config.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'config.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/config_fromuic3.ui.h b/tests/auto/uic/baseline/config_fromuic3.ui.h
+index f4ffa7f..3c610a2 100644
+--- a/tests/auto/uic/baseline/config_fromuic3.ui.h
++++ b/tests/auto/uic/baseline/config_fromuic3.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'config_fromuic3.ui'
+ **
+-** Created: Thu Dec 17 12:48:42 2009
+-**      by: Qt User Interface Compiler version 4.6.4
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/connectdialog.ui.h b/tests/auto/uic/baseline/connectdialog.ui.h
+index ceafddc..0b88163 100644
+--- a/tests/auto/uic/baseline/connectdialog.ui.h
++++ b/tests/auto/uic/baseline/connectdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'connectdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:12 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/controller.ui.h b/tests/auto/uic/baseline/controller.ui.h
+index 583a353..d1c29d1 100644
+--- a/tests/auto/uic/baseline/controller.ui.h
++++ b/tests/auto/uic/baseline/controller.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'controller.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/cookies.ui.h b/tests/auto/uic/baseline/cookies.ui.h
+index 83946bb..b0c285e 100644
+--- a/tests/auto/uic/baseline/cookies.ui.h
++++ b/tests/auto/uic/baseline/cookies.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'cookies.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/cookiesexceptions.ui.h b/tests/auto/uic/baseline/cookiesexceptions.ui.h
+index 2f4a7fb..0de0222 100644
+--- a/tests/auto/uic/baseline/cookiesexceptions.ui.h
++++ b/tests/auto/uic/baseline/cookiesexceptions.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'cookiesexceptions.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/default.ui.h b/tests/auto/uic/baseline/default.ui.h
+index 4c6b489..07374f2 100644
+--- a/tests/auto/uic/baseline/default.ui.h
++++ b/tests/auto/uic/baseline/default.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'default.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/dialog.ui.h b/tests/auto/uic/baseline/dialog.ui.h
+index cd92679..e2a369a 100644
+--- a/tests/auto/uic/baseline/dialog.ui.h
++++ b/tests/auto/uic/baseline/dialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'dialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/downloaditem.ui.h b/tests/auto/uic/baseline/downloaditem.ui.h
+index d856e20..ff70b79 100644
+--- a/tests/auto/uic/baseline/downloaditem.ui.h
++++ b/tests/auto/uic/baseline/downloaditem.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'downloaditem.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/downloads.ui.h b/tests/auto/uic/baseline/downloads.ui.h
+index dd960d2..de1dabb 100644
+--- a/tests/auto/uic/baseline/downloads.ui.h
++++ b/tests/auto/uic/baseline/downloads.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'downloads.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/embeddeddialog.ui.h b/tests/auto/uic/baseline/embeddeddialog.ui.h
+index a6cfbb1..1beb8e5 100644
+--- a/tests/auto/uic/baseline/embeddeddialog.ui.h
++++ b/tests/auto/uic/baseline/embeddeddialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'embeddeddialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/filespage.ui.h b/tests/auto/uic/baseline/filespage.ui.h
+index 12d8554..b0e9b82 100644
+--- a/tests/auto/uic/baseline/filespage.ui.h
++++ b/tests/auto/uic/baseline/filespage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'filespage.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/filternamedialog.ui.h b/tests/auto/uic/baseline/filternamedialog.ui.h
+index 163a6d2..d73502c 100644
+--- a/tests/auto/uic/baseline/filternamedialog.ui.h
++++ b/tests/auto/uic/baseline/filternamedialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'filternamedialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/filterpage.ui.h b/tests/auto/uic/baseline/filterpage.ui.h
+index f3a2268..9f0766e 100644
+--- a/tests/auto/uic/baseline/filterpage.ui.h
++++ b/tests/auto/uic/baseline/filterpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'filterpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/finddialog.ui.h b/tests/auto/uic/baseline/finddialog.ui.h
+index 83d9ba7..8d029d8 100644
+--- a/tests/auto/uic/baseline/finddialog.ui.h
++++ b/tests/auto/uic/baseline/finddialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'finddialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/form.ui.h b/tests/auto/uic/baseline/form.ui.h
+index da2cecb..e4e3761 100644
+--- a/tests/auto/uic/baseline/form.ui.h
++++ b/tests/auto/uic/baseline/form.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'form.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/formwindowsettings.ui.h b/tests/auto/uic/baseline/formwindowsettings.ui.h
+index 1ac96a0..896aa48 100644
+--- a/tests/auto/uic/baseline/formwindowsettings.ui.h
++++ b/tests/auto/uic/baseline/formwindowsettings.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'formwindowsettings.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/generalpage.ui.h b/tests/auto/uic/baseline/generalpage.ui.h
+index ecad723..10fad36 100644
+--- a/tests/auto/uic/baseline/generalpage.ui.h
++++ b/tests/auto/uic/baseline/generalpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'generalpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/gridalignment.ui.h b/tests/auto/uic/baseline/gridalignment.ui.h
+index 8386190..e8e0670 100644
+--- a/tests/auto/uic/baseline/gridalignment.ui.h
++++ b/tests/auto/uic/baseline/gridalignment.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'gridalignment.ui'
+ **
+-** Created: Fri Oct 22 14:33:59 2010
+-**      by: Qt User Interface Compiler version 4.8.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/gridpanel.ui.h b/tests/auto/uic/baseline/gridpanel.ui.h
+index e60e22d..60ac561 100644
+--- a/tests/auto/uic/baseline/gridpanel.ui.h
++++ b/tests/auto/uic/baseline/gridpanel.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'gridpanel.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/helpdialog.ui.h b/tests/auto/uic/baseline/helpdialog.ui.h
+index 1111c97..5dffd90 100644
+--- a/tests/auto/uic/baseline/helpdialog.ui.h
++++ b/tests/auto/uic/baseline/helpdialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'helpdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/history.ui.h b/tests/auto/uic/baseline/history.ui.h
+index 8787279..797607e 100644
+--- a/tests/auto/uic/baseline/history.ui.h
++++ b/tests/auto/uic/baseline/history.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'history.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/icontheme.ui.h b/tests/auto/uic/baseline/icontheme.ui.h
+index 946fff9..4065b50 100644
+--- a/tests/auto/uic/baseline/icontheme.ui.h
++++ b/tests/auto/uic/baseline/icontheme.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'icontheme.ui'
+ **
+-** Created: Thu Sep 2 10:28:19 2010
+-**      by: Qt User Interface Compiler version 4.8.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/identifierpage.ui.h b/tests/auto/uic/baseline/identifierpage.ui.h
+index d7e9cee..e026c53 100644
+--- a/tests/auto/uic/baseline/identifierpage.ui.h
++++ b/tests/auto/uic/baseline/identifierpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'identifierpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/imagedialog.ui.h b/tests/auto/uic/baseline/imagedialog.ui.h
+index 8011a22..15fef2ff 100644
+--- a/tests/auto/uic/baseline/imagedialog.ui.h
++++ b/tests/auto/uic/baseline/imagedialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'imagedialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/inputpage.ui.h b/tests/auto/uic/baseline/inputpage.ui.h
+index 0ca3cce..a9b8c0a 100644
+--- a/tests/auto/uic/baseline/inputpage.ui.h
++++ b/tests/auto/uic/baseline/inputpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'inputpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/installdialog.ui.h b/tests/auto/uic/baseline/installdialog.ui.h
+index 9228e08..45af019 100644
+--- a/tests/auto/uic/baseline/installdialog.ui.h
++++ b/tests/auto/uic/baseline/installdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'installdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/languagesdialog.ui.h b/tests/auto/uic/baseline/languagesdialog.ui.h
+index 5062775..f9d7aa2 100644
+--- a/tests/auto/uic/baseline/languagesdialog.ui.h
++++ b/tests/auto/uic/baseline/languagesdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'languagesdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/listwidgeteditor.ui.h b/tests/auto/uic/baseline/listwidgeteditor.ui.h
+index 4b1edc4..5552a67 100644
+--- a/tests/auto/uic/baseline/listwidgeteditor.ui.h
++++ b/tests/auto/uic/baseline/listwidgeteditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'listwidgeteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/mainwindow.ui.h b/tests/auto/uic/baseline/mainwindow.ui.h
+index ae0a45d..5b59de9 100644
+--- a/tests/auto/uic/baseline/mainwindow.ui.h
++++ b/tests/auto/uic/baseline/mainwindow.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'mainwindow.ui'
+ **
+-** Created: Fri Sep 4 10:17:13 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/mainwindowbase.ui.h b/tests/auto/uic/baseline/mainwindowbase.ui.h
+index fa2045b..9a99ded 100644
+--- a/tests/auto/uic/baseline/mainwindowbase.ui.h
++++ b/tests/auto/uic/baseline/mainwindowbase.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'mainwindowbase.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/mydialog.ui.h b/tests/auto/uic/baseline/mydialog.ui.h
+index 6114cc3..092a287 100644
+--- a/tests/auto/uic/baseline/mydialog.ui.h
++++ b/tests/auto/uic/baseline/mydialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'mydialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/myform.ui.h b/tests/auto/uic/baseline/myform.ui.h
+index 99e1cda..0695962 100644
+--- a/tests/auto/uic/baseline/myform.ui.h
++++ b/tests/auto/uic/baseline/myform.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'myform.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/newactiondialog.ui.h b/tests/auto/uic/baseline/newactiondialog.ui.h
+index 65add17..279e7dc 100644
+--- a/tests/auto/uic/baseline/newactiondialog.ui.h
++++ b/tests/auto/uic/baseline/newactiondialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'newactiondialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/newdynamicpropertydialog.ui.h b/tests/auto/uic/baseline/newdynamicpropertydialog.ui.h
+index 9aafed4..d1b13f8 100644
+--- a/tests/auto/uic/baseline/newdynamicpropertydialog.ui.h
++++ b/tests/auto/uic/baseline/newdynamicpropertydialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'newdynamicpropertydialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/newform.ui.h b/tests/auto/uic/baseline/newform.ui.h
+index 5d9bb44..ce0b447 100644
+--- a/tests/auto/uic/baseline/newform.ui.h
++++ b/tests/auto/uic/baseline/newform.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'newform.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/orderdialog.ui.h b/tests/auto/uic/baseline/orderdialog.ui.h
+index ffc889b..c2dc385 100644
+--- a/tests/auto/uic/baseline/orderdialog.ui.h
++++ b/tests/auto/uic/baseline/orderdialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'orderdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/outputpage.ui.h b/tests/auto/uic/baseline/outputpage.ui.h
+index b10101f..bea4ff1 100644
+--- a/tests/auto/uic/baseline/outputpage.ui.h
++++ b/tests/auto/uic/baseline/outputpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'outputpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/pagefold.ui.h b/tests/auto/uic/baseline/pagefold.ui.h
+index 3efad22..92b2174 100644
+--- a/tests/auto/uic/baseline/pagefold.ui.h
++++ b/tests/auto/uic/baseline/pagefold.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'pagefold.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/paletteeditor.ui.h b/tests/auto/uic/baseline/paletteeditor.ui.h
+index 6259f6e..4372a03 100644
+--- a/tests/auto/uic/baseline/paletteeditor.ui.h
++++ b/tests/auto/uic/baseline/paletteeditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'paletteeditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/paletteeditoradvancedbase.ui.h b/tests/auto/uic/baseline/paletteeditoradvancedbase.ui.h
+index 8b315bc..7b1d96d 100644
+--- a/tests/auto/uic/baseline/paletteeditoradvancedbase.ui.h
++++ b/tests/auto/uic/baseline/paletteeditoradvancedbase.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'paletteeditoradvancedbase.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/passworddialog.ui.h b/tests/auto/uic/baseline/passworddialog.ui.h
+index 1cf2efc..39fd992 100644
+--- a/tests/auto/uic/baseline/passworddialog.ui.h
++++ b/tests/auto/uic/baseline/passworddialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'passworddialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/pathpage.ui.h b/tests/auto/uic/baseline/pathpage.ui.h
+index cc7a990..c2c5172 100644
+--- a/tests/auto/uic/baseline/pathpage.ui.h
++++ b/tests/auto/uic/baseline/pathpage.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'pathpage.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/phrasebookbox.ui.h b/tests/auto/uic/baseline/phrasebookbox.ui.h
+index 93f2522..456ff54 100644
+--- a/tests/auto/uic/baseline/phrasebookbox.ui.h
++++ b/tests/auto/uic/baseline/phrasebookbox.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'phrasebookbox.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/plugindialog.ui.h b/tests/auto/uic/baseline/plugindialog.ui.h
+index b5c4bf8..f4f654e 100644
+--- a/tests/auto/uic/baseline/plugindialog.ui.h
++++ b/tests/auto/uic/baseline/plugindialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'plugindialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/preferencesdialog.ui.h b/tests/auto/uic/baseline/preferencesdialog.ui.h
+index 33b7e68..608ddd8 100644
+--- a/tests/auto/uic/baseline/preferencesdialog.ui.h
++++ b/tests/auto/uic/baseline/preferencesdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'preferencesdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/previewconfigurationwidget.ui.h b/tests/auto/uic/baseline/previewconfigurationwidget.ui.h
+index 951792d..54f5639 100644
+--- a/tests/auto/uic/baseline/previewconfigurationwidget.ui.h
++++ b/tests/auto/uic/baseline/previewconfigurationwidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'previewconfigurationwidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/previewdialogbase.ui.h b/tests/auto/uic/baseline/previewdialogbase.ui.h
+index 4fe4501..ce51618 100644
+--- a/tests/auto/uic/baseline/previewdialogbase.ui.h
++++ b/tests/auto/uic/baseline/previewdialogbase.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'previewdialogbase.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/previewwidget.ui.h b/tests/auto/uic/baseline/previewwidget.ui.h
+index b4cccb7..2b426ab 100644
+--- a/tests/auto/uic/baseline/previewwidget.ui.h
++++ b/tests/auto/uic/baseline/previewwidget.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'previewwidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/previewwidgetbase.ui.h b/tests/auto/uic/baseline/previewwidgetbase.ui.h
+index 248d757..ba7ece6 100644
+--- a/tests/auto/uic/baseline/previewwidgetbase.ui.h
++++ b/tests/auto/uic/baseline/previewwidgetbase.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'previewwidgetbase.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/proxy.ui.h b/tests/auto/uic/baseline/proxy.ui.h
+index 19822a8..096675d 100644
+--- a/tests/auto/uic/baseline/proxy.ui.h
++++ b/tests/auto/uic/baseline/proxy.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'proxy.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qfiledialog.ui.h b/tests/auto/uic/baseline/qfiledialog.ui.h
+index 044d98c..3f39051 100644
+--- a/tests/auto/uic/baseline/qfiledialog.ui.h
++++ b/tests/auto/uic/baseline/qfiledialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qfiledialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qpagesetupwidget.ui.h b/tests/auto/uic/baseline/qpagesetupwidget.ui.h
+index 6d0a3b4..3a9fcbf 100644
+--- a/tests/auto/uic/baseline/qpagesetupwidget.ui.h
++++ b/tests/auto/uic/baseline/qpagesetupwidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qpagesetupwidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qprintpropertieswidget.ui.h b/tests/auto/uic/baseline/qprintpropertieswidget.ui.h
+index 512fcec..51a0a96 100644
+--- a/tests/auto/uic/baseline/qprintpropertieswidget.ui.h
++++ b/tests/auto/uic/baseline/qprintpropertieswidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qprintpropertieswidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qprintsettingsoutput.ui.h b/tests/auto/uic/baseline/qprintsettingsoutput.ui.h
+index 13ee6ee..780458a 100644
+--- a/tests/auto/uic/baseline/qprintsettingsoutput.ui.h
++++ b/tests/auto/uic/baseline/qprintsettingsoutput.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qprintsettingsoutput.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qprintwidget.ui.h b/tests/auto/uic/baseline/qprintwidget.ui.h
+index 4437935..6b11f51 100644
+--- a/tests/auto/uic/baseline/qprintwidget.ui.h
++++ b/tests/auto/uic/baseline/qprintwidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qprintwidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qsqlconnectiondialog.ui.h b/tests/auto/uic/baseline/qsqlconnectiondialog.ui.h
+index ed428fd..c2aa09a 100644
+--- a/tests/auto/uic/baseline/qsqlconnectiondialog.ui.h
++++ b/tests/auto/uic/baseline/qsqlconnectiondialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qsqlconnectiondialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qtgradientdialog.ui.h b/tests/auto/uic/baseline/qtgradientdialog.ui.h
+index 3598aa1..1385d31 100644
+--- a/tests/auto/uic/baseline/qtgradientdialog.ui.h
++++ b/tests/auto/uic/baseline/qtgradientdialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qtgradientdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qtgradienteditor.ui.h b/tests/auto/uic/baseline/qtgradienteditor.ui.h
+index 8077981..6714df2 100644
+--- a/tests/auto/uic/baseline/qtgradienteditor.ui.h
++++ b/tests/auto/uic/baseline/qtgradienteditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qtgradienteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qtgradientview.ui.h b/tests/auto/uic/baseline/qtgradientview.ui.h
+index 6787c8d..42ddaca 100644
+--- a/tests/auto/uic/baseline/qtgradientview.ui.h
++++ b/tests/auto/uic/baseline/qtgradientview.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qtgradientview.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qtgradientviewdialog.ui.h b/tests/auto/uic/baseline/qtgradientviewdialog.ui.h
+index 7710c99..87d9246 100644
+--- a/tests/auto/uic/baseline/qtgradientviewdialog.ui.h
++++ b/tests/auto/uic/baseline/qtgradientviewdialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qtgradientviewdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qtresourceeditordialog.ui.h b/tests/auto/uic/baseline/qtresourceeditordialog.ui.h
+index d434af7..3173fc1 100644
+--- a/tests/auto/uic/baseline/qtresourceeditordialog.ui.h
++++ b/tests/auto/uic/baseline/qtresourceeditordialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qtresourceeditordialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/qttoolbardialog.ui.h b/tests/auto/uic/baseline/qttoolbardialog.ui.h
+index 35a40c3..7377d48 100644
+--- a/tests/auto/uic/baseline/qttoolbardialog.ui.h
++++ b/tests/auto/uic/baseline/qttoolbardialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'qttoolbardialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/querywidget.ui.h b/tests/auto/uic/baseline/querywidget.ui.h
+index c628457..762c548 100644
+--- a/tests/auto/uic/baseline/querywidget.ui.h
++++ b/tests/auto/uic/baseline/querywidget.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'querywidget.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/remotecontrol.ui.h b/tests/auto/uic/baseline/remotecontrol.ui.h
+index b970fca..76ea625 100644
+--- a/tests/auto/uic/baseline/remotecontrol.ui.h
++++ b/tests/auto/uic/baseline/remotecontrol.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'remotecontrol.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/saveformastemplate.ui.h b/tests/auto/uic/baseline/saveformastemplate.ui.h
+index 5ef260c..a648c29 100644
+--- a/tests/auto/uic/baseline/saveformastemplate.ui.h
++++ b/tests/auto/uic/baseline/saveformastemplate.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'saveformastemplate.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/settings.ui.h b/tests/auto/uic/baseline/settings.ui.h
+index e09b7df..19cd3d9 100644
+--- a/tests/auto/uic/baseline/settings.ui.h
++++ b/tests/auto/uic/baseline/settings.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'settings.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/signalslotdialog.ui.h b/tests/auto/uic/baseline/signalslotdialog.ui.h
+index 7bbe74c..97e5079 100644
+--- a/tests/auto/uic/baseline/signalslotdialog.ui.h
++++ b/tests/auto/uic/baseline/signalslotdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'signalslotdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/sslclient.ui.h b/tests/auto/uic/baseline/sslclient.ui.h
+index ef32462..2224f87 100644
+--- a/tests/auto/uic/baseline/sslclient.ui.h
++++ b/tests/auto/uic/baseline/sslclient.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'sslclient.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/sslerrors.ui.h b/tests/auto/uic/baseline/sslerrors.ui.h
+index ef83595..cf592f5 100644
+--- a/tests/auto/uic/baseline/sslerrors.ui.h
++++ b/tests/auto/uic/baseline/sslerrors.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'sslerrors.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/statistics.ui.h b/tests/auto/uic/baseline/statistics.ui.h
+index 61872e8..5f7b66d 100644
+--- a/tests/auto/uic/baseline/statistics.ui.h
++++ b/tests/auto/uic/baseline/statistics.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'statistics.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/stringlisteditor.ui.h b/tests/auto/uic/baseline/stringlisteditor.ui.h
+index af0756d..f2acd08 100644
+--- a/tests/auto/uic/baseline/stringlisteditor.ui.h
++++ b/tests/auto/uic/baseline/stringlisteditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'stringlisteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/stylesheeteditor.ui.h b/tests/auto/uic/baseline/stylesheeteditor.ui.h
+index ea635a1..2a9ed42 100644
+--- a/tests/auto/uic/baseline/stylesheeteditor.ui.h
++++ b/tests/auto/uic/baseline/stylesheeteditor.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'stylesheeteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:14 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/tabbedbrowser.ui.h b/tests/auto/uic/baseline/tabbedbrowser.ui.h
+index b48a5b0..3eed9fc 100644
+--- a/tests/auto/uic/baseline/tabbedbrowser.ui.h
++++ b/tests/auto/uic/baseline/tabbedbrowser.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'tabbedbrowser.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/tablewidgeteditor.ui.h b/tests/auto/uic/baseline/tablewidgeteditor.ui.h
+index a7b4b1d..a7e4787 100644
+--- a/tests/auto/uic/baseline/tablewidgeteditor.ui.h
++++ b/tests/auto/uic/baseline/tablewidgeteditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'tablewidgeteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/tetrixwindow.ui.h b/tests/auto/uic/baseline/tetrixwindow.ui.h
+index cd2f2cf..6b8a55a 100644
+--- a/tests/auto/uic/baseline/tetrixwindow.ui.h
++++ b/tests/auto/uic/baseline/tetrixwindow.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'tetrixwindow.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/textfinder.ui.h b/tests/auto/uic/baseline/textfinder.ui.h
+index 2b21412..a0cec9c 100644
+--- a/tests/auto/uic/baseline/textfinder.ui.h
++++ b/tests/auto/uic/baseline/textfinder.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'textfinder.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/topicchooser.ui.h b/tests/auto/uic/baseline/topicchooser.ui.h
+index 04ceede..2a40592 100644
+--- a/tests/auto/uic/baseline/topicchooser.ui.h
++++ b/tests/auto/uic/baseline/topicchooser.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'topicchooser.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/translatedialog.ui.h b/tests/auto/uic/baseline/translatedialog.ui.h
+index e722d67..050f75b 100644
+--- a/tests/auto/uic/baseline/translatedialog.ui.h
++++ b/tests/auto/uic/baseline/translatedialog.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'translatedialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/translationsettings.ui.h b/tests/auto/uic/baseline/translationsettings.ui.h
+index 2105b09..8d48bd0 100644
+--- a/tests/auto/uic/baseline/translationsettings.ui.h
++++ b/tests/auto/uic/baseline/translationsettings.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'translationsettings.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/treewidgeteditor.ui.h b/tests/auto/uic/baseline/treewidgeteditor.ui.h
+index 875290c..dea3c11e 100644
+--- a/tests/auto/uic/baseline/treewidgeteditor.ui.h
++++ b/tests/auto/uic/baseline/treewidgeteditor.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'treewidgeteditor.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/trpreviewtool.ui.h b/tests/auto/uic/baseline/trpreviewtool.ui.h
+index aa84d54..81ceabc 100644
+--- a/tests/auto/uic/baseline/trpreviewtool.ui.h
++++ b/tests/auto/uic/baseline/trpreviewtool.ui.h
+@@ -44,8 +44,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'trpreviewtool.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/validators.ui.h b/tests/auto/uic/baseline/validators.ui.h
+index 27b5482..5c1314e 100644
+--- a/tests/auto/uic/baseline/validators.ui.h
++++ b/tests/auto/uic/baseline/validators.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'validators.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/
+diff --git a/tests/auto/uic/baseline/wateringconfigdialog.ui.h b/tests/auto/uic/baseline/wateringconfigdialog.ui.h
+index 9e586f0..f0c06ef 100644
+--- a/tests/auto/uic/baseline/wateringconfigdialog.ui.h
++++ b/tests/auto/uic/baseline/wateringconfigdialog.ui.h
+@@ -1,8 +1,7 @@
+ /********************************************************************************
+ ** Form generated from reading UI file 'wateringconfigdialog.ui'
+ **
+-** Created: Fri Sep 4 10:17:15 2009
+-**      by: Qt User Interface Compiler version 4.6.0
++** Created by: Qt User Interface Compiler version 4.8.5
+ **
+ ** WARNING! All changes made in this file will be lost when recompiling UI file!
+ ********************************************************************************/

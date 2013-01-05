@@ -1,0 +1,102 @@
+commit be330d8959dbd1a589a9d46e4ed12b5b16fffbb4
+Author: Jan Arve Saether <jan-arve.saether@digia.com>
+Date:   Tue Dec 11 11:39:08 2012 +0100
+
+    a11y: Do not refer to destructed QObject in Windows bridge
+    
+    The crash could happen if a QWidget in the UI got deleted, and
+    the AT client later tried to access the widget through the cache
+    (qAccessibleRecentSentEvents()).
+    
+    Solution: Use a QPointer as a guard.
+    
+    Task-number: QTBUG-26187
+    Change-Id: I41eab158989fddfa147309b6bd91ac0cd1fe7b1a
+    Reviewed-by: Frederik Gladhorn <frederik.gladhorn@digia.com>
+
+diff --git a/src/gui/accessible/qaccessible_win.cpp b/src/gui/accessible/qaccessible_win.cpp
+index 678a528..f9f9f04 100644
+--- a/src/gui/accessible/qaccessible_win.cpp
++++ b/src/gui/accessible/qaccessible_win.cpp
+@@ -49,6 +49,7 @@
+ #include "qsettings.h"
+ #include <QtCore/qmap.h>
+ #include <QtCore/qpair.h>
++#include <QtCore/qpointer.h>
+ #include <QtGui/qgraphicsitem.h>
+ #include <QtGui/qgraphicsscene.h>
+ #include <QtGui/qgraphicsview.h>
+@@ -265,7 +266,7 @@ void showDebug(const char* funcName, const QAccessibleInterface *iface)
+ #endif
+ 
+ // This stuff is used for widgets/items with no window handle:
+-typedef QMap<int, QPair<QObject*,int> > NotifyMap;
++typedef QMap<int, QPair<QPointer<QObject>, int> > NotifyMap;
+ Q_GLOBAL_STATIC(NotifyMap, qAccessibleRecentSentEvents)
+ static int eventNum = 0;
+ 
+@@ -414,13 +415,26 @@ void QAccessible::updateAccessibility(QObject *o, int who, Event reason)
+     if (reason != MenuCommand) { // MenuCommand is faked
+         if (w != o) {
+             // See comment "SENDING EVENTS TO OBJECTS WITH NO WINDOW HANDLE"
+-            eventNum %= 50;              //[0..49]
+-            int eventId = - eventNum - 1;
+-
+-            qAccessibleRecentSentEvents()->insert(eventId, qMakePair(o,who));
+-            ptrNotifyWinEvent(reason, wid, OBJID_CLIENT, eventId );
+-
+-            ++eventNum;
++            if (reason != QAccessible::ObjectDestroyed) {
++                /* In some rare occasions, the server (Qt) might get a ::get_accChild call with a
++                   childId that references an entry in the cache where there was a dangling
++                   QObject-pointer. Previously we crashed on this.
++
++                   There is no point in actually notifying the AT client that the object got destroyed,
++                   because the AT client won't query for get_accChild if the event is ObjectDestroyed
++                   anyway, and we have no other way of mapping the eventId argument to the actual
++                   child/descendant object. (Firefox seems to simply completely ignore
++                   EVENT_OBJECT_DESTROY).
++
++                   We therefore guard each QObject in the cache with a QPointer, and only notify the AT
++                   client if the type is not ObjectDestroyed.
++                */
++                eventNum %= 50;              //[0..49]
++                int eventId = - eventNum - 1;
++                qAccessibleRecentSentEvents()->insert(eventId, qMakePair(QPointer<QObject>(o), who));
++                ptrNotifyWinEvent(reason, wid, OBJID_CLIENT, eventId );
++                ++eventNum;
++            }
+         } else {
+             ptrNotifyWinEvent(reason, wid, OBJID_CLIENT, who);
+         }
+@@ -603,8 +617,8 @@ HRESULT STDMETHODCALLTYPE QWindowsEnumerate::Skip(unsigned long celt)
+ struct AccessibleElement {
+     AccessibleElement(int entryId, QAccessibleInterface *accessible) {
+         if (entryId < 0) {
+-            QPair<QObject*, int> ref = qAccessibleRecentSentEvents()->value(entryId);
+-            iface = QAccessible::queryAccessibleInterface(ref.first);
++            QPair<QPointer<QObject>, int> ref = qAccessibleRecentSentEvents()->value(entryId);
++            iface = QAccessible::queryAccessibleInterface(ref.first.data());
+             entry = ref.second;
+             cleanupInterface = true;
+         } else {
+diff --git a/tests/auto/qaccessibility/tst_qaccessibility.cpp b/tests/auto/qaccessibility/tst_qaccessibility.cpp
+index d47eb06..39207ec 100644
+--- a/tests/auto/qaccessibility/tst_qaccessibility.cpp
++++ b/tests/auto/qaccessibility/tst_qaccessibility.cpp
+@@ -436,7 +436,15 @@ void tst_QAccessibility::eventTest()
+     button->hide();
+     QVERIFY_EVENT(button, 0, QAccessible::ObjectHide);
+ 
++    // Destroy a visible widget
++    QTestAccessibility::clearEvents();
++    button->show();
++    QVERIFY_EVENT(button, 0, QAccessible::ObjectShow);
++
+     delete button;
++
++    QVERIFY_EVENT(button, 0, QAccessible::ObjectHide);
++    QVERIFY_EVENT(button, 0, QAccessible::ObjectDestroyed);
+ }
+ 
+ void tst_QAccessibility::customWidget()

@@ -1,0 +1,98 @@
+commit 0a24cec5a11678ebefe08b331812adbb9b3368aa
+Author: Friedemann Kleint <Friedemann.Kleint@digia.com>
+Date:   Tue Dec 11 13:47:26 2012 +0100
+
+    QMenu: Do not set snapToMouse if a caused-widget exists.
+    
+    When clicking at the bottom-right corner of a menu in a menu
+    bar, it appears at the wrong position. Add test and stabilize
+    RTL-tests by making sure the layout direction is cleared should
+    they fail.
+    
+    Task-number: QTBUG-28031
+    Task-number: QTBUG-2596
+    Change-Id: Ibc5ae916388753908e9f3ee98e8859faaa0c8723
+    Reviewed-by: Olivier Goffart <ogoffart@woboq.com>
+    (cherry picked from qtbase/bf178c77dda1db56ae698c1d31a6e3f685f4830f)
+
+diff --git a/src/gui/widgets/qmenu.cpp b/src/gui/widgets/qmenu.cpp
+index 77b6b21..d829465 100644
+--- a/src/gui/widgets/qmenu.cpp
++++ b/src/gui/widgets/qmenu.cpp
+@@ -1922,7 +1922,7 @@ void QMenu::popup(const QPoint &p, QAction *atAction)
+ 
+     QPoint mouse = QCursor::pos();
+     d->mousePopupPos = mouse;
+-    const bool snapToMouse = (QRect(p.x() - 3, p.y() - 3, 6, 6).contains(mouse));
++    const bool snapToMouse = !d->causedPopup.widget && (QRect(p.x() - 3, p.y() - 3, 6, 6).contains(mouse));
+ 
+     const QSize menuSize(sizeHint());
+     if (adjustToDesktop) {
+diff --git a/tests/auto/qmenubar/tst_qmenubar.cpp b/tests/auto/qmenubar/tst_qmenubar.cpp
+index e197ae2..0d00953 100644
+--- a/tests/auto/qmenubar/tst_qmenubar.cpp
++++ b/tests/auto/qmenubar/tst_qmenubar.cpp
+@@ -1454,6 +1454,25 @@ void tst_QMenuBar::check_shortcutPress()
+ #endif
+ }
+ 
++class LayoutDirectionSaver
++{
++    Q_DISABLE_COPY(LayoutDirectionSaver)
++public:
++    explicit LayoutDirectionSaver(Qt::LayoutDirection direction)
++        : m_oldDirection(qApp->layoutDirection())
++    {
++       qApp->setLayoutDirection(direction);
++    }
++
++    ~LayoutDirectionSaver()
++    {
++        qApp->setLayoutDirection(m_oldDirection);
++    }
++
++private:
++    const Qt::LayoutDirection m_oldDirection;
++};
++
+ void tst_QMenuBar::check_menuPosition()
+ {
+ #ifdef Q_WS_MAC
+@@ -1516,10 +1535,9 @@ void tst_QMenuBar::check_menuPosition()
+         menu.close();
+     }
+ 
+-    //in RTL, the menu should be stuck at the right of the action geometry
++    // QTBUG-2596: in RTL, the menu should be stuck at the right of the action geometry
+     {
+-        Qt::LayoutDirection dir = qApp->layoutDirection();
+-        qApp->setLayoutDirection(Qt::RightToLeft);
++        LayoutDirectionSaver directionSaver(Qt::RightToLeft);
+         menu.clear();
+         QObject::connect(&menu, SIGNAL(aboutToShow()), &menu, SLOT(addActions()));
+         QRect mbItemRect = mw->menuBar()->actionGeometry(menu_action);
+@@ -1528,9 +1546,23 @@ void tst_QMenuBar::check_menuPosition()
+         QVERIFY(menu.isActiveWindow());
+         QCOMPARE(menu.geometry().right(), mbItemRect.right());
+         menu.close();
+-        qApp->setLayoutDirection(dir);
+     }
+ 
++#ifndef QT_NO_CURSOR
++    // QTBUG-28031: Click at bottom-right corner.
++    {
++        mw->move(400, 200);
++        LayoutDirectionSaver directionSaver(Qt::RightToLeft);
++        QMenuBar *mb = mw->menuBar();
++        const QPoint localPos = mb->actionGeometry(menu.menuAction()).bottomRight() - QPoint(1, 1);
++        const QPoint globalPos = mb->mapToGlobal(localPos);
++        QCursor::setPos(globalPos);
++        QTest::mouseClick(mb, Qt::LeftButton, 0, localPos);
++        QTRY_VERIFY(menu.isActiveWindow());
++        QCOMPARE(menu.geometry().right() - 1, globalPos.x());
++        menu.close();
++    }
++#  endif // QT_NO_CURSOR
+ }
+ 
+ void tst_QMenuBar::task223138_triggered()

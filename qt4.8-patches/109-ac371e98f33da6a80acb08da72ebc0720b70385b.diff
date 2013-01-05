@@ -1,0 +1,41 @@
+commit ac371e98f33da6a80acb08da72ebc0720b70385b
+Author: José Millán Soto <fid@gpul.org>
+Date:   Sun Sep 23 12:25:59 2012 +0200
+
+    Return correct accessible name when a label has rich text
+    
+    When a QLabel was displaying rich text, the raw html was being returned as
+    accessible name. Now the plain text is returned.
+    
+    Task-number: QTBUG-27302
+    Change-Id: I2fc469b4ca8fc3584b849bbe0a94d094d727d04f
+    Reviewed-by: Frederik Gladhorn <frederik.gladhorn@digia.com>
+
+diff --git a/src/plugins/accessible/widgets/simplewidgets.cpp b/src/plugins/accessible/widgets/simplewidgets.cpp
+index 8747367..37b1b25 100644
+--- a/src/plugins/accessible/widgets/simplewidgets.cpp
++++ b/src/plugins/accessible/widgets/simplewidgets.cpp
+@@ -51,6 +51,7 @@
+ #include <qlabel.h>
+ #include <qgroupbox.h>
+ #include <qlcdnumber.h>
++#include <qtextdocument.h>
+ #include <qlineedit.h>
+ #include <private/qlineedit_p.h>
+ #include <qstyle.h>
+@@ -540,7 +541,14 @@ QString QAccessibleDisplay::text(Text t, int child) const
+         str = widget()->accessibleName();
+         if (str.isEmpty()) {
+             if (qobject_cast<QLabel*>(object())) {
+-                str = qobject_cast<QLabel*>(object())->text();
++                QLabel *label = qobject_cast<QLabel*>(object());
++                str = label->text();
++                if (label->textFormat() == Qt::RichText
++                    || (label->textFormat() == Qt::AutoText && Qt::mightBeRichText(str))) {
++                    QTextDocument doc;
++                    doc.setHtml(str);
++                    str = doc.toPlainText();
++                }
+ #ifndef QT_NO_LCDNUMBER
+             } else if (qobject_cast<QLCDNumber*>(object())) {
+                 QLCDNumber *l = qobject_cast<QLCDNumber*>(object());

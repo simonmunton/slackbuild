@@ -1,0 +1,38 @@
+commit 3f13d38b0f0fee28f57c8b5193cbe12511abb042
+Author: Peter Hartmann <phartmann@rim.com>
+Date:   Wed Nov 28 15:14:25 2012 +0100
+
+    QNX: adjust settings for separate debug info feature
+    
+    Patch-by: Greg Bentz
+    Task-number: QTBUG-28247
+    (backport of commit b6250913be2fecedbc61738a47ff147f0a4ea240,
+    Id Ibd1f959969a8678b828c8e8de8be0a200a632b22)
+    
+    Change-Id: I5e5b85fb0fce52ba50a1600bf91212f46b2597c8
+    Reviewed-by: Greg Bentz <gbentz@rim.com>
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+
+diff --git a/mkspecs/features/unix/separate_debug_info.prf b/mkspecs/features/unix/separate_debug_info.prf
+index 1827d11..146e0cd 100644
+--- a/mkspecs/features/unix/separate_debug_info.prf
++++ b/mkspecs/features/unix/separate_debug_info.prf
+@@ -1,8 +1,15 @@
+ 
+ !separate_debug_info_nocopy:!staticlib:!static:!contains(TEMPLATE, subdirs):!isEmpty(QMAKE_OBJCOPY) {
+-    qnx:debug_info_suffix=sym
+-    else:debug_info_suffix=debug
+-    QMAKE_SEPARATE_DEBUG_INFO = test -z \"$(DESTDIR)\" || cd \"$(DESTDIR)\" ; targ=`basename $(TARGET)`; $$QMAKE_OBJCOPY --only-keep-debug \"\$\$targ\" \"\$\$targ.$$debug_info_suffix\" && $$QMAKE_OBJCOPY --strip-debug \"\$\$targ\" && $$QMAKE_OBJCOPY --add-gnu-debuglink=\"\$\$targ.$$debug_info_suffix\" \"\$\$targ\" && chmod -x \"\$\$targ.$$debug_info_suffix\"
++    qnx {
++        debug_info_suffix = sym
++        debug_info_keep = --keep-file-symbols
++        debug_info_strip = --strip-debug -R.ident
++    } else {
++        debug_info_suffix = debug
++        debug_info_keep = --only-keep-debug
++        debug_info_strip = --strip-debug
++    }
++    QMAKE_SEPARATE_DEBUG_INFO = test -z \"$(DESTDIR)\" || cd \"$(DESTDIR)\" ; targ=`basename $(TARGET)`; $$QMAKE_OBJCOPY $$debug_info_keep \"\$\$targ\" \"\$\$targ.$$debug_info_suffix\" && $$QMAKE_OBJCOPY $$debug_info_strip \"\$\$targ\" && $$QMAKE_OBJCOPY --add-gnu-debuglink=\"\$\$targ.$$debug_info_suffix\" \"\$\$targ\" && chmod -x \"\$\$targ.$$debug_info_suffix\"
+     QMAKE_INSTALL_SEPARATE_DEBUG_INFO = test -z \"$(DESTDIR)\" || cd \"$(DESTDIR)\" ; $(INSTALL_FILE) `basename $(TARGET)`.$$debug_info_suffix $(INSTALL_ROOT)/\$\$target_path/
+ 
+     !isEmpty(QMAKE_POST_LINK):QMAKE_POST_LINK = $$escape_expand(\\n\\t)$$QMAKE_POST_LINK

@@ -1,0 +1,101 @@
+commit 760a336f2081ca7e680601f194f1a42ba3b2aafd
+Author: Rafael Roquetto <rafael.roquetto.qnx@kdab.com>
+Date:   Fri Dec 14 17:48:20 2012 -0200
+
+    Add cursor position support to QPlatformCursor
+    
+    Based on qt5 4469de4ce7a72ab6824629bfe8483131aaf22137
+    
+    Change-Id: I5886c11f3dcf72943e2956beaa92464657110ce9
+    Reviewed-by: Laszlo Agocs <lagocs83@gmail.com>
+    Reviewed-by: Sérgio Martins <sergio.martins.qnx@kdab.com>
+    Reviewed-by: Friedemann Kleint <Friedemann.Kleint@digia.com>
+    Reviewed-by: Sean Harmer <sean.harmer@kdab.com>
+
+diff --git a/src/gui/kernel/qcursor_qpa.cpp b/src/gui/kernel/qcursor_qpa.cpp
+index 3f434d8..b1f29d0 100644
+--- a/src/gui/kernel/qcursor_qpa.cpp
++++ b/src/gui/kernel/qcursor_qpa.cpp
+@@ -41,6 +41,7 @@
+ 
+ #include <qcursor.h>
+ #include <private/qcursor_p.h>
++#include <qplatformcursor_qpa.h>
+ #include <qbitmap.h>
+ 
+ QT_BEGIN_NAMESPACE
+@@ -111,17 +112,34 @@ extern int qt_last_x,qt_last_y;
+ 
+ QPoint QCursor::pos()
+ {
++    QList<QWeakPointer<QPlatformCursor> > cursors = QPlatformCursorPrivate::getInstances();
++    int cursorCount = cursors.count();
++    for (int i = 0; i < cursorCount; ++i) {
++        const QWeakPointer<QPlatformCursor> &cursor(cursors.at(i));
++        if (cursor)
++            return cursor.data()->pos();
++    }
+     return QPoint(qt_last_x, qt_last_y);
+ }
+ 
+ void QCursor::setPos(int x, int y)
+ {
++    QPoint target(x, y);
++
+     // Need to check, since some X servers generate null mouse move
+     // events, causing looping in applications which call setPos() on
+     // every mouse move event.
+     //
+-    if (pos() == QPoint(x, y))
++    if (pos() == target)
+         return;
++
++    QList<QWeakPointer<QPlatformCursor> > cursors = QPlatformCursorPrivate::getInstances();
++    int cursorCount = cursors.count();
++    for (int i = 0; i < cursorCount; ++i) {
++        const QWeakPointer<QPlatformCursor> &cursor(cursors.at(i));
++        if (cursor)
++            cursor.data()->setPos(target);
++    }
+ }
+ 
+ QT_END_NAMESPACE
+diff --git a/src/gui/kernel/qplatformcursor_qpa.cpp b/src/gui/kernel/qplatformcursor_qpa.cpp
+index a6b315d..3ec23b0 100644
+--- a/src/gui/kernel/qplatformcursor_qpa.cpp
++++ b/src/gui/kernel/qplatformcursor_qpa.cpp
+@@ -100,6 +100,21 @@ QPlatformCursor::QPlatformCursor(QPlatformScreen *scr )
+     QPlatformCursorPrivate::instances.append(this);
+ }
+ 
++extern int qt_last_x;
++extern int qt_last_y;
++
++QPoint QPlatformCursor::pos() const
++{
++    // As a fallback return the last mouse position seen by QApplication.
++    return QPoint(qt_last_x, qt_last_y);
++}
++
++void QPlatformCursor::setPos(const QPoint &pos)
++{
++    Q_UNUSED(pos);
++    qWarning("This plugin does not support QCursor::setPos()");
++}
++
+ // End of display and pointer event handling code
+ // Beginning of built-in cursor graphics
+ // from src/gui/embedded/QGraphicsSystemCursorImage_qws.cpp
+diff --git a/src/gui/kernel/qplatformcursor_qpa.h b/src/gui/kernel/qplatformcursor_qpa.h
+index 6ba4c4c..8ce1379 100644
+--- a/src/gui/kernel/qplatformcursor_qpa.h
++++ b/src/gui/kernel/qplatformcursor_qpa.h
+@@ -86,6 +86,8 @@ public:
+     // input methods
+     virtual void pointerEvent(const QMouseEvent & event) { Q_UNUSED(event); }
+     virtual void changeCursor(QCursor * widgetCursor, QWidget * widget) = 0;
++    virtual QPoint pos() const;
++    virtual void setPos(const QPoint &pos);
+ 
+ protected:
+     QPlatformScreen* screen;  // Where to request an update

@@ -1,0 +1,36 @@
+commit 0deddff9c8ca7e1a1e9288a09bc015fd7ea0fd03
+Author: Joerg Bornemann <joerg.bornemann@digia.com>
+Date:   Mon Dec 17 12:57:13 2012 +0100
+
+    accept hex/octal values for RC_LANG and RC_CODEPAGE
+    
+    Task-number: QTBUG-28624
+    
+    Change-Id: I6188045b05ebb8b9d285d1b30f8082a2fe46ff8b
+    Reviewed-by: Oswald Buddenhagen <oswald.buddenhagen@digia.com>
+    (cherry picked from commit f0f12ea5f1b6fdaf3e2e38bf8d814dfa41cbca5b)
+
+diff --git a/qmake/project.h b/qmake/project.h
+index c9d2084..d87380b 100644
+--- a/qmake/project.h
++++ b/qmake/project.h
+@@ -189,12 +189,18 @@ inline QString QMakeProject::first(const QString &v)
+     return vals.first();
+ }
+ 
++/*!
++ * For variables that are supposed to contain a single int,
++ * this method returns the numeric value.
++ * Only the first value of the variable is taken into account.
++ * The string representation is assumed to look like a C int literal.
++ */
+ inline int QMakeProject::intValue(const QString &v, int defaultValue)
+ {
+     const QString str = first(v);
+     if (!str.isEmpty()) {
+         bool ok;
+-        int i = str.toInt(&ok);
++        int i = str.toInt(&ok, 0);
+         if (ok)
+             return i;
+     }
