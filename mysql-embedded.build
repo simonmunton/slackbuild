@@ -7,17 +7,17 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=5.1.53
+VERSION=5.5.29
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.mysql.com/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=mysql-embedded
+#PKGNAME=mysql-embedded
 #PKGVERSION=
-#BUILD_SUFFIX=
+BUILD_SUFFIX=_withembedded_sm
 #ARCH=noarch
 
 
@@ -55,41 +55,41 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686 -fPIC"
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-	    --libdir=/usr/lib${LIBDIRSUFFIX} \
-	    --datadir=/usr/share \
-	    --sysconfdir=/etc/mysql \
-	    --libexecdir=/usr/sbin \
-	    --localstatedir=/var/lib/mysql \
-	    --without-docs \
-	    --without-man \
-	    --without-server \
-	    --with-embedded-server \
-	    --without-readline \
-	    --disable-shared \
-	    --with-charset=utf8 \
-	    --without-debug \
-	    --with-pthread \
-	    --without-ssl \
-	    --without-query-cache \
-	    --without-geometry \
-	    --with-pic
-
-#	    --with-mysqld-user=mysql \
-#	    --with-unix-socket-path=/var/run/mysql/mysql.sock \
-#    	    --enable-assembler \
-#    	    --with-raid \
-#            --enable-thread-safe-client \
-#            --without-bench \
-#            --with-extra-charsets=complex \
-#            --with-vio \
-#            --with-openssl
+CXXFLAGS="${SLKCFLAGS} -felide-constructors -fno-exceptions -fno-rtti" \
+CXX=gcc \
+cmake \
+  -DBUILD_CONFIG=mysql_release \
+  -DFEATURE_SET="community" \
+  -DINSTALL_LAYOUT="RPM" \
+  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DINSTALL_LIBDIR="lib${LIBDIRSUFFIX}" \
+  -DINSTALL_SBINDIR=libexec \
+  -DINSTALL_INCLUDEDIR=include/mysql \
+  -DINSTALL_MYSQLSHAREDIR=share/mysql \
+  -DINSTALL_SQLBENCHDIR= \
+  -DINSTALL_MYSQLTESTDIR=mysql-test \
+  -DINSTALL_INFODIR=info \
+  -DINSTALL_MANDIR=man \
+  -DINSTALL_PLUGINDIR="lib${LIBDIRSUFFIX}/mysql/plugin" \
+  -DINSTALL_SCRIPTDIR=bin \
+  -DINSTALL_SUPPORTFILESDIR=share/mysql \
+  -DINSTALL_MYSQLDATADIR="/var/lib/mysql" \
+  -DMYSQL_DATADIR="/var/lib/mysql" \
+  -DMYSQL_UNIX_ADDR="/var/run/mysql/mysql.sock" \
+  -DWITH_EXTRA_CHARSETS=complex \
+  -DWITH_INNOBASE_STORAGE_ENGINE=1 \
+  -DENABLED_LOCAL_INFILE=ON \
+  -DWITH_EMBEDDED_SERVER=ON \
+  -DWITH_READLINE=ON \
+  -DWITH_SSL=system \
+  -DWITH_ZLIB=system \
+  ..
 
 fi
 
@@ -103,8 +103,58 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mysql
-cp libmysqld/libmysqld.a ${PKG}/usr/lib${LIBDIRSUFFIX}/mysql
+make install DESTDIR=${PKG}
+
+# Install sample configuration files:
+mkdir -p ${PKG}/etc/mysql
+cp support-files/my-*.cnf ${PKG}/etc/mysql
+
+# Move mysqlaccess.conf to a more proper place
+mv ${PKG}/usr/bin/mysqlaccess.conf ${PKG}/etc/mysqlaccess.conf.new
+chmod 644 ${PKG}/etc/mysqlaccess.conf.new
+
+cd ..
+
+# install additional headers needed for building external engine plugins:
+mkdir -p ${PKG}/usr/include/mysql/private/atomic
+
+install -m 644 regex/my_regex.h ${PKG}/usr/include/mysql/private/
+
+for i in sql include; do
+  for j in $i/*.h; do
+    install -m 644 $j ${PKG}/usr/include/mysql/private/
+  done
+done
+
+for i in include/atomic/*.h; do
+  install -m 644 $i ${PKG}/usr/include/mysql/private/atomic/
+done
+
+# This is the directory where databases are stored:
+mkdir -p ${PKG}/var/lib/mysql
+chmod 0750 ${PKG}/var/lib/mysql
+
+# This is where the socket is stored:
+mkdir -p ${PKG}/var/run/mysql
+chmod 0755 ${PKG}/var/run/mysql
+
+# Do not package the test suite:
+rm -rf ${PKG}/usr/mysql-test
+
+# More unpackaged things:
+rm -f ${PKG}/usr/info/dir
+rm -f ${PKG}/usr/lib${LIBDIRSUFFIX}/libmysqlclient.a
+rm -f ${PKG}/usr/lib${LIBDIRSUFFIX}/libmysqlclient_r.*
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX} ; ln -sf libmysqlclient.so libmysqlclient_r.so )
+
+# Add init script:
+mkdir -p ${PKG}/etc/rc.d
+# This is intentionally chmod 644.
+cp ${CWD}/mysql-rc.mysqld ${PKG}/etc/rc.d/rc.mysqld.new
+
+doinst_same_perm etc/rc.d/rc.mysqld
+doinst_config etc/rc.d/rc.mysqld.new
+doinst_config etc/mysqlaccess.conf.new
 
 strip_binaries
 
@@ -121,8 +171,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "mysql embedded library"
-mysql embedded library
+make_slack_desc << EOF "SQL-based relational database server"
+MySQL is a fast, multi-threaded, multi-user, and robust SQL
+(Structured Query Language) database server.  It comes with a nice API
+which makes it easy to integrate into other applications.
+
+The home page for MySQL is http://www.mysql.com/
 
 EOF
 
@@ -130,6 +184,8 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
+chown mysql.mysql var/lib/mysql; \
+chown mysql.mysql var/run/mysql; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
