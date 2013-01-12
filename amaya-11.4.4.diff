@@ -1,0 +1,367 @@
+--- amaya-11.4.4/Amaya/build/Mesa/docs/README.MINGW32.orig	2013-01-12 17:34:33.000000000 +0000
++++ amaya-11.4.4/Amaya/build/Mesa/docs/README.MINGW32	2013-01-12 17:34:33.000000000 +0000
+@@ -91,9 +91,11 @@
+ 
+ 
+ 
+-*******************This section is added by Heromyth*****************************
+-Updated on 2007-7-21, by Heromyth <zxpmyth@yahoo.com.cn>
++******This section is added by Heromyth <zxpmyth@yahoo.com.cn>*************
+ 
++====================
++Updated on 2007-7-21
++====================
+ 
+ Notice:
+ 	1) The generated DLLs are *not* compatible with the ones built
+@@ -115,7 +117,7 @@
+ , and delete all the lines where all the wgl*() functions are. Because they would 
+ be conflicted with the ones in <Mesa3D-root>\include\GL\mesa_wgl.h.
+ 
+-======= Conflicted Functions List ======
++>>>>>>>>>> Conflicted Functions List >>>>>>>>>>
+ WINGDIAPI BOOL WINAPI wglCopyContext(HGLRC,HGLRC,UINT);
+ WINGDIAPI HGLRC WINAPI wglCreateContext(HDC);
+ WINGDIAPI HGLRC WINAPI wglCreateLayerContext(HDC,int);
+@@ -134,6 +136,18 @@
+ WINGDIAPI BOOL WINAPI wglUseFontBitmapsW(HDC,DWORD,DWORD,DWORD);
+ WINGDIAPI BOOL WINAPI wglUseFontOutlinesA(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
+ WINGDIAPI BOOL WINAPI wglUseFontOutlinesW(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
+-===================
++<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
++
++====================
++Updated on 2007-7-22
++====================
++	I havn't thought that I would find a better way to solve my problems so soon. 
++I changed the method in which the import-libs and DLLs are made. After this update,
++the DLLs of MESA are more optimized and more compatible. 
++	It seems that there is no need to keep the building way of 'NO-STDCALL'.The 
++way of USING_STDCALL is so nice! The file <Mesa3D-root>\configs\config.mgw is 
++also not needed, and can be deleted safely!
++	
++
+ 
+ *********************************************************************************
+\ No newline at end of file
+--- amaya-11.4.4/Amaya/amaya/Xml2thot.c.orig	2009-10-12 08:35:20.000000000 +0100
++++ amaya-11.4.4/Amaya/amaya/Xml2thot.c	2013-01-12 22:33:11.000000000 +0000
+@@ -244,7 +244,7 @@
+                                ThotBool *isAllowed);
+ static void XmlCheckContext (char *elName, const ElementType *elType,
+                              ThotBool *isAllowed);
+-static void XmlParse (FILE *infile, CHARSET charset, ThotBool *xmlDec,
++static void XmlParse (gzFile infile, CHARSET charset, ThotBool *xmlDec,
+                       ThotBool *xmlDoctype);
+ 
+ /*----------------------------------------------------------------------
+@@ -5351,7 +5351,7 @@
+               if (htmlURL != NULL)
+                 {
+                   strcpy ((char *)htmlURL, (char *)s);
+-                  ParseExternalHTMLDoc (externalDoc, (FILE *)infile, charset, htmlURL);
++                  ParseExternalHTMLDoc (externalDoc, infile, charset, htmlURL);
+                   TtaFreeMemory (htmlURL);
+                 }
+             } 
+@@ -5368,7 +5368,7 @@
+               /* Expat initialization */
+               InitializeExpatParser (charset);
+               /* Expat parsing */
+-              XmlParse ((FILE *)infile, charset, &xmlDec, &docType);
++              XmlParse (infile, charset, &xmlDec, &docType);
+               /* Free expat parser */ 
+               FreeXmlParserContexts ();
+               FreeExpatParser ();
+@@ -5623,7 +5623,7 @@
+   be null
+   Return TRUE if the parsing of the sub-tree has no error.
+   ----------------------------------------------------------------------*/
+-ThotBool ParseIncludedXml (FILE *infile, char **infileBuffer, int infileBufferLength,
++ThotBool ParseIncludedXml (gzFile infile, char **infileBuffer, int infileBufferLength,
+                            ThotBool *infileEnd, ThotBool *infileNotToRead,
+                            char *infilePreviousBuffer, int *infileLastChar,
+                            char *htmlBuffer, int *index,
+@@ -5817,7 +5817,7 @@
+   Parses the XML file infile and builds the equivalent Thot abstract tree.
+   The parameter skipDec is TRUE when the declaration should be sipped.
+   ---------------------------------------------------------------------------*/
+-static void   XmlParse (FILE *infile, CHARSET charset, ThotBool *xmlDec,
++static void   XmlParse (gzFile infile, CHARSET charset, ThotBool *xmlDec,
+                         ThotBool *xmlDoctype)
+ 
+ {
+@@ -6097,7 +6097,7 @@
+       if (useMath)
+         TtaNewNature (doc, DocumentSSchema,  NULL, "MathML", "MathMLP");
+       /* Parse the input file and build the Thot tree */
+-      XmlParse ((FILE*)stream, charset, &xmlDec, &xmlDoctype);
++      XmlParse (stream, charset, &xmlDec, &xmlDoctype);
+ 
+       if (!externalDoc)
+         /* Load the style sheets for xml documents */
+--- amaya-11.4.4/Amaya/amaya/html2thot.c.orig	2010-07-22 10:54:27.000000000 +0100
++++ amaya-11.4.4/Amaya/amaya/html2thot.c	2013-01-12 22:30:54.000000000 +0000
+@@ -2582,7 +2582,7 @@
+           else
+             strcpy ((char *)schemaName, (char *)"SVG");
+           /* Parse the corresponding element with the XML parser */
+-          if (!ParseIncludedXml ((FILE *)stream, &WorkBuffer, INPUT_FILE_BUFFER_SIZE,
++          if (!ParseIncludedXml (stream, &WorkBuffer, INPUT_FILE_BUFFER_SIZE,
+                                  &EndOfHtmlFile, &NotToReadFile,
+                                  PreviousRead, &LastCharInWorkBuffer,
+                                  InputText, &CurrentBufChar,
+@@ -4322,7 +4322,7 @@
+   GetNextHTMLbuffer returns the next buffer to be parsed and update
+   global variables.
+   ----------------------------------------------------------------------*/
+-void GetNextHTMLbuffer (FILE *infile, ThotBool *endOfFile,
++void GetNextHTMLbuffer (gzFile infile, ThotBool *endOfFile,
+                         char **buff, int *lastchar)
+ {
+   CHARSET      charset =  TtaGetDocumentCharset (HTMLcontext.doc);
+@@ -4401,7 +4401,7 @@
+   GetNextChar returns the next character in the imput file or buffer,
+   whatever it is.
+   ----------------------------------------------------------------------*/
+-static char GetNextChar (FILE *infile, char* buffer, int *index,
++static char GetNextChar (gzFile infile, char* buffer, int *index,
+                          ThotBool *endOfFile)
+ {
+   wchar_t        wcharRead = EOS;
+@@ -4547,7 +4547,7 @@
+   GetNextInputChar returns the next non-null character in the input
+   file or buffer.
+   ----------------------------------------------------------------------*/
+-char GetNextInputChar (FILE *infile, int *index, ThotBool *endOfFile)
++char GetNextInputChar (gzFile infile, int *index, ThotBool *endOfFile)
+ {
+   char    charRead;
+   static  ThotBool beg_pair;
+@@ -4620,7 +4620,7 @@
+   build the equivalent Thot abstract tree.
+   One parameter should be NULL.
+   ----------------------------------------------------------------------*/
+-static void HTMLparse (FILE * infile, char* HTMLbuf)
++static void HTMLparse (gzFile infile, char* HTMLbuf)
+ {
+   unsigned char         charRead;
+   PtrTransition         trans;
+@@ -4863,7 +4863,7 @@
+   input text comes from either the infile file or the text
+   buffer textbuf. One parameter should be NULL.
+   ----------------------------------------------------------------------*/
+-static void ReadTextFile (FILE *infile, char *textbuf, Document doc,
++static void ReadTextFile (gzFile infile, char *textbuf, Document doc,
+                           const char *pathURL)
+ {
+   Element             parent, el, prev;
+@@ -7179,7 +7179,7 @@
+   HTMLrootClosingTag = closingTag;
+   /* TODO: the XML parser must call that function with two new parameters:
+      the current infile and current index */
+-  HTMLparse ((FILE*)stream, NULL);
++  HTMLparse (stream, NULL);
+ 
+   HTMLcontext.lastElement = oldLastElement;
+   HTMLcontext.lastElementClosed = oldLastElementClosed;
+@@ -7230,7 +7230,7 @@
+   ParseExternalHTMLDoc
+   Parse an external HTML document called from an other document
+   ------------------------------------------------------------------------------*/
+-void ParseExternalHTMLDoc (Document doc, FILE * infile, CHARSET charset, char *extDocURL)
++void ParseExternalHTMLDoc (Document doc, gzFile infile, CHARSET charset, char *extDocURL)
+ {
+   Element         el, oldel;
+   int             error;
+@@ -7567,12 +7567,12 @@
+ 
+       /* parse the input file and build the Thot document */
+       if (plainText)
+-        ReadTextFile ((FILE*)stream, NULL, doc, pathURL);
++        ReadTextFile (stream, NULL, doc, pathURL);
+       else
+         {
+           /* initialize parsing environment */
+           InitializeHTMLParser (NULL, FALSE, 0);
+-          HTMLparse ((FILE*)stream, NULL);
++          HTMLparse (stream, NULL);
+           /* completes all unclosed elements */
+           el = HTMLcontext.lastElement;
+           while (el != NULL)
+--- amaya-11.4.4/Amaya/amaya/Makefile.in.orig	2009-11-09 16:37:47.000000000 +0000
++++ amaya-11.4.4/Amaya/amaya/Makefile.in	2013-01-12 22:48:34.000000000 +0000
+@@ -21,7 +21,7 @@
+ 	  $(GL_LIBRARIES) $(GTK_GL_LIBRARIES) $(FREETYPE_LIBRARIES) $(XFT_LIBRARIES) \
+ 	  $(AMAYA_LIBWWW_LIBS) \
+ 	   @AMAYA_RAPTOR_LIBS@ \
+-          $(WX_LIBRARIES)
++          $(WX_LIBRARIES) -lpng -ljpeg
+ 
+ AMAYA	= @top_srcdir@/amaya
+ 
+--- amaya-11.4.4/Amaya/amaya/f/html2thot_f.h.orig	2008-05-07 14:49:03.000000000 +0100
++++ amaya-11.4.4/Amaya/amaya/f/html2thot_f.h	2013-01-12 22:23:27.000000000 +0000
+@@ -42,12 +42,12 @@
+                                    Language *lang );
+ extern void InitAutomaton ( void );
+ extern void FreeHTMLParser ( void );
+-extern void GetNextHTMLbuffer ( FILE *infile,
++extern void GetNextHTMLbuffer ( gzFile infile,
+                                 ThotBool *endOfFile,
+                                 char **buff,
+                                 int *lastchar );
+ extern void SetElemLineNumber ( Element el );
+-extern char GetNextInputChar ( FILE *infile,
++extern char GetNextInputChar ( gzFile infile,
+                                int *index,
+                                ThotBool *endOfFile );
+ extern void CheckDocHeader ( char *fileName,
+@@ -75,7 +75,7 @@
+                            ThotBool isclosed,
+                            Document doc );
+ extern void ParseExternalHTMLDoc ( Document doc,
+-                                   FILE * infile,
++                                   gzFile infile,
+                                    CHARSET charset,
+                                    char *extDocURL );
+ extern void ClearHTMLParser ( void );
+@@ -125,12 +125,12 @@
+                                      Language *lang );
+ extern void InitAutomaton ( void );
+ extern void FreeHTMLParser ( void );
+-extern void GetNextHTMLbuffer ( FILE *infile,
++extern void GetNextHTMLbuffer ( gzFile infile,
+                                   ThotBool *endOfFile,
+                                   char **buff,
+                                   int *lastchar );
+ extern void SetElemLineNumber ( Element el );
+-extern char GetNextInputChar ( FILE *infile,
++extern char GetNextInputChar ( gzFile infile,
+                                  int *index,
+                                  ThotBool *endOfFile );
+ extern void CheckDocHeader ( char *fileName,
+@@ -158,7 +158,7 @@
+                              ThotBool isclosed,
+                              Document doc );
+ extern void ParseExternalHTMLDoc ( Document doc,
+-                                     FILE * infile,
++                                     gzFile infile,
+                                      CHARSET charset,
+                                      char *extDocURL );
+ extern void ClearHTMLParser ( void );
+--- amaya-11.4.4/Amaya/amaya/f/Xml2thot_f.h.orig	2008-05-07 14:49:03.000000000 +0100
++++ amaya-11.4.4/Amaya/amaya/f/Xml2thot_f.h	2013-01-12 22:29:37.000000000 +0000
+@@ -41,7 +41,7 @@
+                                  Document doc,
+                                  Language lang,
+                                  char *typeName );
+-extern ThotBool ParseIncludedXml ( FILE *infile,
++extern ThotBool ParseIncludedXml ( gzFile infile,
+                                    char **infileBuffer,
+                                    int infileBufferLength,
+                                    ThotBool *infileEnd,
+@@ -104,7 +104,7 @@
+                                    Document doc,
+                                    Language lang,
+                                    char *typeName );
+-extern ThotBool ParseIncludedXml ( FILE *infile,
++extern ThotBool ParseIncludedXml ( gzFile infile,
+                                      char **infileBuffer,
+                                      int infileBufferLength,
+                                      ThotBool *infileEnd,
+--- amaya-11.4.4/Amaya/thotlib/Makefile.in.orig	2013-01-12 22:52:12.000000000 +0000
++++ amaya-11.4.4/Amaya/thotlib/Makefile.in	2013-01-12 22:51:32.000000000 +0000
+@@ -13,7 +13,7 @@
+ include ../Options
+ 
+ INCLUDES= -DHAVE_CONFIG_H -I.. -I@top_srcdir@/amaya/xpm ${THOTINCLUDES} $(GUI_INCLUDES) $(GL_INCLUDES) $(GTK_GL_INCLUDES) $(XFT_INCLUDES) $(FREETYPE_INCLUDES) ${EXTRA_INCLUDES}
+-LIBS	= -L. -L.. @LIBS@ $(IMGLIBS) $(GL_LIBRARIES) $(GTK_GL_LIBRARIES) $(XFT_LIBRARIES) $(FREETYPE_LIBRARIES) $(GTK_LIBRARIES) $(WX_LIBRARIES)
++LIBS	= -L. -L.. @LIBS@ $(IMGLIBS) $(GL_LIBRARIES) $(GTK_GL_LIBRARIES) $(XFT_LIBRARIES) $(FREETYPE_LIBRARIES) $(GTK_LIBRARIES) $(WX_LIBRARIES) -ljpeg
+ 
+ prefix = @prefix@
+ exec_prefix = @exec_prefix@
+--- amaya-11.4.4/Mesa/docs/README.MINGW32.orig	2009-06-19 11:16:51.000000000 +0100
++++ amaya-11.4.4/Mesa/docs/README.MINGW32	2009-06-19 11:16:51.000000000 +0100
+@@ -91,9 +91,11 @@
+ 
+ 
+ 
+-*******************This section is added by Heromyth*****************************
+-Updated on 2007-7-21, by Heromyth <zxpmyth@yahoo.com.cn>
++******This section is added by Heromyth <zxpmyth@yahoo.com.cn>*************
+ 
++====================
++Updated on 2007-7-21
++====================
+ 
+ Notice:
+ 	1) The generated DLLs are *not* compatible with the ones built
+@@ -115,7 +117,7 @@
+ , and delete all the lines where all the wgl*() functions are. Because they would 
+ be conflicted with the ones in <Mesa3D-root>\include\GL\mesa_wgl.h.
+ 
+-======= Conflicted Functions List ======
++>>>>>>>>>> Conflicted Functions List >>>>>>>>>>
+ WINGDIAPI BOOL WINAPI wglCopyContext(HGLRC,HGLRC,UINT);
+ WINGDIAPI HGLRC WINAPI wglCreateContext(HDC);
+ WINGDIAPI HGLRC WINAPI wglCreateLayerContext(HDC,int);
+@@ -134,6 +136,18 @@
+ WINGDIAPI BOOL WINAPI wglUseFontBitmapsW(HDC,DWORD,DWORD,DWORD);
+ WINGDIAPI BOOL WINAPI wglUseFontOutlinesA(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
+ WINGDIAPI BOOL WINAPI wglUseFontOutlinesW(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
+-===================
++<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
++
++====================
++Updated on 2007-7-22
++====================
++	I havn't thought that I would find a better way to solve my problems so soon. 
++I changed the method in which the import-libs and DLLs are made. After this update,
++the DLLs of MESA are more optimized and more compatible. 
++	It seems that there is no need to keep the building way of 'NO-STDCALL'.The 
++way of USING_STDCALL is so nice! The file <Mesa3D-root>\configs\config.mgw is 
++also not needed, and can be deleted safely!
++	
++
+ 
+ *********************************************************************************
+\ No newline at end of file
+--- amaya-11.3.1/Amaya/thotlib/image/pnghandler.c.orig	2009-09-09 10:54:50.000000000 +0100
++++ amaya-11.3.1/Amaya/thotlib/image/pnghandler.c	2010-06-11 22:46:42.000000000 +0100
+@@ -128,7 +128,7 @@
+   png_byte      **ppbRowPointers;
+   unsigned char  *pixels;
+   unsigned int    i, j, passes;
+-  unsigned long   lw, lh;
++  png_uint_32     lw, lh;
+   int             iBitDepth, iColorType;
+   double          dGamma;
+ 
+@@ -149,7 +149,7 @@
+         png_destroy_read_struct (&png_ptr, NULL, NULL);
+         return NULL;
+       }   
+-    if (setjmp (png_ptr->jmpbuf))
++    if (setjmp (png_jmpbuf(png_ptr)))
+       {
+         /* Free all of the memory associated with the png_ptr and info_ptr */
+         png_destroy_read_struct (&png_ptr, &info_ptr, (png_infopp)NULL);
+@@ -175,7 +175,7 @@
+       png_set_palette_to_rgb (png_ptr);
+     /* 8 bits / channel is needed */
+     if (iColorType == PNG_COLOR_TYPE_GRAY && iBitDepth < 8) 
+-      png_set_gray_1_2_4_to_8(png_ptr);
++      png_set_expand_gray_1_2_4_to_8(png_ptr);
+     /* all transparency type : 1 color, indexed => alpha channel*/
+     if (png_get_valid (png_ptr, info_ptr,PNG_INFO_tRNS)) 
+       png_set_tRNS_to_alpha (png_ptr);
+@@ -858,7 +858,7 @@
+       png_destroy_write_struct(&png, (png_infopp) NULL);
+       return FALSE;
+     }
+-  if (setjmp(png->jmpbuf)) 
++  if (setjmp(png_jmpbuf(png))) 
+     {
+         png_destroy_write_struct(&png, &pngInfo);
+         TtaWriteClose (pngFile);
