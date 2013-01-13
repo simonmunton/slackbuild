@@ -1,0 +1,38 @@
+--- httping-1.5.7/main.c.orig	2013-01-11 22:34:45.000000000 +0000
++++ httping-1.5.7/main.c	2013-01-13 22:07:52.000000000 +0000
+@@ -555,11 +555,13 @@
+ 
+ 		if (strncasecmp(getcopy, "http://", 7) == 0)
+ 		{
+-			getcopy += 7;
++			free(getcopy);
++			getcopy = mystrdup(get + 7, "get request");
+ 		}
+ 		else if (strncasecmp(getcopy, "https://", 8) == 0)
+ 		{
+-			getcopy += 8;
++			free(getcopy);
++			getcopy = mystrdup(get + 8, "get request");
+ 			use_ssl = 1;
+ 		}
+ 
+--- httping-1.5.7/mssl.c.orig	2013-01-11 22:34:45.000000000 +0000
++++ httping-1.5.7/mssl.c	2013-01-13 22:07:52.000000000 +0000
+@@ -32,11 +32,14 @@
+ {
+ 	int rc = SSL_shutdown(ssl_h);
+ 
+-	if (!rc)
++	if (rc >= 0)
+ 	{
+-		shutdown(socket_h, 1);
++		if (rc == 0)
++		{
++			SSL_shutdown(ssl_h);
++		}
+ 
+-		rc = SSL_shutdown(ssl_h);
++		shutdown(socket_h, 1);
+ 	}
+ 
+ 	/* rc == 0 means try again but it seems to be fine
