@@ -82,8 +82,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-make -C plugin/down-root ${NUM_JOBS} || exit
-make -C plugin/auth-pam ${NUM_JOBS} || exit
+#make -C src/plugins/down-root ${NUM_JOBS} || exit
+#make -C src/plugins/auth-pam ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -102,16 +102,16 @@ mkdir -p ${PKG}/etc/openvpn/{certs,keys}
 cp -a ${CWD}/openvpn.conf.sample ${PKG}/etc/openvpn/openvpn.conf.sample
 chmod 644 ${PKG}/etc/openvpn/openvpn.conf.sample
 
-mkdir -p ${PKG}/usr/share/openvpn/plugin/lib
-for pi in auth-pam down-root
-do
-  cp plugin/${pi}/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.${pi}
-  if [ -e plugin/${pi}/openvpn-${pi}.so ]; then
-    cp plugin/${pi}/openvpn-${pi}.so ${PKG}/usr/share/openvpn/plugin/lib/openvpn-${pi}.so
-  fi
-done
+#mkdir -p ${PKG}/usr/share/openvpn/plugin/lib
+#for pi in auth-pam down-root
+#do
+#  cp src/plugins/${pi}/README* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+#  if [ -e src/plugins/${pi}/openvpn-${pi}.so ]; then
+#    cp src/plugins/${pi}/openvpn-${pi}.so ${PKG}/usr/share/openvpn/plugin/lib/openvpn-${pi}.so
+#  fi
+#done
 
-cp plugin/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.plugins
+#cp src/plugins/*/README* ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 cat >> ${PKG}/install/doinst.sh << EOF
 if [ ! -e etc/rc.d/rc.local ]; then
