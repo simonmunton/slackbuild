@@ -1,0 +1,869 @@
+--- google-gadgets-for-linux-0.11.2/cmake/Configure.cmake.orig	2009-04-07 13:01:13.000000000 +0100
++++ google-gadgets-for-linux-0.11.2/cmake/Configure.cmake	2010-01-27 05:59:13.000000000 +0000
+@@ -48,14 +48,17 @@
+ SET(GGL_DEFAULT_BROWSER_PLUGINS_DIR "${LIB_INSTALL_DIR}/firefox/plugins"
+   CACHE PATH "The directory of browser plugins.")
+ 
++SET(GGL_DEFAULT_SSL_CA_FILE ""
++  CACHE PATH "The SSL CA certificate file used by soup-xml-http-request")
++
+ SET(GGL_ENABLE_XDGMIME 1
+   CACHE BOOL "Enable built-in xdgmime support (default is true)")
+ 
+ SET(LIBGGADGET_BINARY_VERSION_UNQUOTED "1.0.0")
+ SET(LIBGGADGET_BINARY_VERSION "\"${LIBGGADGET_BINARY_VERSION_UNQUOTED}\"")
+ SET(GGL_MAJOR_VERSION 0)
+-SET(GGL_MINOR_VERSION 10)
+-SET(GGL_MICRO_VERSION 5)
++SET(GGL_MINOR_VERSION 11)
++SET(GGL_MICRO_VERSION 2)
+ SET(GGL_VERSION_UNQUOTED "${GGL_MAJOR_VERSION}.${GGL_MINOR_VERSION}.${GGL_MICRO_VERSION}")
+ SET(GGL_VERSION "\"${GGL_VERSION_UNQUOTED}\"")
+ SET(GGL_EPOCH "-1.0")
+@@ -70,7 +73,7 @@
+ 
+ # This string is used in auto update request. It should be updated to the
+ # time of a release build is made. Its format is yymmdd-HHMMSS.
+-SET(GGL_VERSION_TIMESTAMP "\"090108-000000\"")
++SET(GGL_VERSION_TIMESTAMP "\"100127-000000\"")
+ 
+ # Define the version of Google Desktop Gadget API that this release supports.
+ SET(GGL_API_MAJOR_VERSION 5)
+@@ -95,6 +98,7 @@
+ INCLUDE(CheckFunctionExists)
+ INCLUDE(GGLCheckFunctionExists)
+ INCLUDE(FindPkgConfig)
++INCLUDE(CheckIncludeFile)
+ 
+ INCLUDE(CheckTypeSize)
+ SET(HAVE_STDDEF_H 1)
+@@ -159,10 +163,13 @@
+   ADD_DEFINITIONS(-DGGL_DEFAULT_BROWSER_PLUGINS_DIR=\\\"${GGL_DEFAULT_BROWSER_PLUGINS_DIR}\\\")
+ ENDIF(GGL_DEFAULT_BROWSER_PLUGINS_DIR)
+ 
++IF(GGL_DEFAULT_SSL_CA_FILE)
++  ADD_DEFINITIONS(-DGGL_DEFAULT_SSL_CA_FILE=\\\"${GGL_DEFAULT_SSL_CA_FILE\\\")
++ENDIF(GGL_DEFAULT_SSL_CA_FILE)
+ 
+ INCLUDE(CheckCCompilerFlag)
+ IF(UNIX)
+-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Werror -Wconversion")
++  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Werror -Wconversion -Wextra")
+   # No "-Wall -Werror" for C flags, to avoid third_party code break.
+   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+   SET(PROJECT_RESOURCE_DIR share/${PRODUCT_NAME})
+@@ -196,15 +203,21 @@
+ SET(GGL_BUILD_LIBGGADGET_DBUS 1)
+ SET(GGL_BUILD_LIBGGADGET_GTK 1)
+ SET(GGL_BUILD_LIBGGADGET_QT 0)
++SET(GGL_BUILD_LIBGGADGET_NPAPI 1)
+ SET(GGL_BUILD_QTWEBKIT_BROWSER_ELEMENT 0)
+ SET(GGL_BUILD_QT_SCRIPT_RUNTIME 0)
+ SET(GGL_BUILD_GTKMOZ_BROWSER_ELEMENT 1)
++SET(GGL_BUILD_GTK_EDIT_ELEMENT 1)
++SET(GGL_BUILD_GTK_FLASH_ELEMENT 1)
+ SET(GGL_BUILD_GST_AUDIO_FRAMEWORK 1)
+ SET(GGL_BUILD_GST_VIDEO_ELEMENT 1)
+ SET(GGL_BUILD_SMJS_SCRIPT_RUNTIME 1)
+ SET(GGL_BUILD_CURL_XML_HTTP_REQUEST 1)
++SET(GGL_BUILD_SOUP_XML_HTTP_REQUEST 1)
+ SET(GGL_BUILD_LIBXML2_XML_PARSER 1)
+ SET(GGL_BUILD_LINUX_SYSTEM_FRAMEWORK 1)
++SET(GGL_BUILD_WEBKIT_SCRIPT_RUNTIME 1)
++SET(GGL_BUILD_GTKWEBKIT_BROWSER_ELEMENT 1)
+ 
+ # Check if flex is installed
+ FIND_PROGRAM(FLEX flex)
+@@ -250,6 +263,10 @@
+ IF(X11_FOUND)
+   GET_CONFIG(xt 1.0 XT XT_FOUND)
+   ADD_DEFINITIONS(-DHAVE_X11=1)
++ELSE(X11_FOUND)
++  SET(GGL_BUILD_GTKMOZ_BROWSER_ELEMENT 0)
++  SET(GGL_BUILD_GTK_FLASH_ELEMENT 0)
++  SET(GGL_BUILD_LIBGGADGET_NPAPI 0)
+ ENDIF(X11_FOUND)
+ 
+ GET_CONFIG(libxml-2.0 2.6.0 LIBXML2 LIBXML2_FOUND)
+@@ -266,6 +283,25 @@
+   ENDIF(GGL_BUILD_CURL_XML_HTTP_REQUEST)
+ ENDIF(NOT LIBCURL_FOUND)
+ 
++GET_CONFIG(libsoup-2.4 2.26.0 LIBSOUP LIBSOUP_FOUND)
++IF(NOT LIBSOUP_FOUND)
++  IF(GGL_BUILD_SOUP_XML_HTTP_REQUEST)
++    MESSAGE("Library soup is not available, soup-xml-http-request extension won't be built.")
++    SET(GGL_BUILD_SOUP_XML_HTTP_REQUEST 0)
++  ENDIF(GGL_BUILD_SOUP_XML_HTTP_REQUEST)
++ELSE(NOT LIBSOUP_FOUND)
++  GET_CONFIG(libsoup-gnome-2.4 2.26.0 LIBSOUP_GNOME LIBSOUP_GNOME_FOUND)
++  IF(LIBSOUP_GNOME_FOUND)
++    LIST(APPEND LIBSOUP_DEFINITIONS "-DHAVE_LIBSOUP_GNOME")
++  ENDIF(LIBSOUP_GNOME_FOUND)
++  SET(CMAKE_REQUIRED_INCLUDES ${LIBSOUP_INCLUDE_DIR})
++  SET(CMAKE_REQUIRED_LIBRARIES ${LIBSOUP_LIBRARIES})
++  CHECK_FUNCTION_EXISTS(soup_message_headers_get_one SOUP_MESSAGE_HEADERS_GET_ONE_FOUND)
++  IF(SOUP_MESSAGE_HEADERS_GET_ONE_FOUND)
++    LIST(APPEND LIBSOUP_DEFINITIONS "-DHAVE_SOUP_MESSAGE_HEADERS_GET_ONE")
++  ENDIF(SOUP_MESSAGE_HEADERS_GET_ONE_FOUND)
++ENDIF(NOT LIBSOUP_FOUND)
++
+ GET_CONFIG(gstreamer-base-0.10 0.10.0 GSTREAMER GSTREAMER_FOUND)
+ GET_CONFIG(gstreamer-plugins-base-0.10 0.10.0 GSTREAMER_PLUGINS_BASE GSTREAMER_PLUGINS_BASE_FOUND)
+ IF(GSTREAMER_FOUND AND GSTREAMER_PLUGINS_BASE_FOUND)
+@@ -297,6 +333,9 @@
+ IF(NOT PANGO_FOUND OR NOT CAIRO_FOUND OR NOT FONTCONFIG_FOUND OR NOT GLIB2_FOUND OR NOT GDK2_FOUND OR NOT GTK2_FOUND OR NOT GTHREAD_FOUND)
+   SET(GGL_BUILD_LIBGGADGET_GTK 0)
+   SET(GGL_BUILD_GTK_HOST 0)
++  SET(GGL_BUILD_GTK_EDIT_ELEMENT 0)
++  SET(GGL_BUILD_GTK_FLASH_ELEMENT 0)
++  SET(GGL_BUILD_GTKMOZ_BROWSER_ELEMENT 0)
+   MESSAGE("Library cairo, pango, fontconfig or gtk-2.0 are not available, gtk-system-framework extension, libggadget-gtk, gtk host won't be built.")
+ ENDIF(NOT PANGO_FOUND OR NOT CAIRO_FOUND OR NOT FONTCONFIG_FOUND OR NOT GLIB2_FOUND OR NOT GDK2_FOUND OR NOT GTK2_FOUND OR NOT GTHREAD_FOUND)
+ 
+@@ -378,6 +417,8 @@
+ #  xulrunner 1.8: xulrunner-gtkmozembed and xulrunner-js
+ #  firefox 2.0: firefox2-gtkmozembed and firefox2-js
+ #  firefox 1.5: firefox-gtkmozembed and firefox-js
++#  seamonkey 1.1: seamonkey-gtkmozembed seamonkey-js
++#  microb(Maemo): microb-engine and microb-engine-js
+ #
+ # Add more rules here if your distribution doesn't support above rules.
+ MACRO(HASH_PUT _hash _key _value)
+@@ -397,6 +438,8 @@
+   HASH_PUT(xul_hash xulrunner-gtkmozembed xulrunner-js)
+   HASH_PUT(xul_hash firefox2-gtkmozembed firefox2-js)
+   HASH_PUT(xul_hash firefox-gtkmozembed firefox-js)
++  HASH_PUT(xul_hash seamonkey-gtkmozembed seamonkey-js)
++  HASH_PUT(xul_hash microb-engine microb-engine-js)
+ 
+   FOREACH(pkg ${xul_hash})
+     IF(NOT GTKMOZEMBED_FOUND)
+@@ -447,14 +490,19 @@
+   SET(CMAKE_REQUIRED_INCLUDES ${SMJS_INCLUDE_DIR})
+   SET(CMAKE_REQUIRED_LIBRARIES ${SMJS_LIBRARIES})
+   SET(CMAKE_REQUIRED_LINK_DIR ${SMJS_LINK_DIR})
++  SET(CMAKE_REQUIRED_DEFINITIONS ${SMJS_DEFINITIONS})
++  CHECK_INCLUDE_FILE(jsversion.h JSVERSION_H_FOUND)
++  IF(JSVERSION_H_FOUND)
++    LIST(APPEND SMJS_DEFINITIONS "-DHAVE_JSVERSION_H")
++  ENDIF(JSVERSION_H_FOUND)
+   GGL_CHECK_FUNCTION_EXISTS(JS_SetOperationCallback JS_SETOPERATIONCALLBACK_FOUND)
+   IF(JS_SETOPERATIONCALLBACK_FOUND)
+     LIST(APPEND SMJS_DEFINITIONS "-DHAVE_JS_SetOperationCallback")
+   ENDIF(JS_SETOPERATIONCALLBACK_FOUND)
+-  GGL_CHECK_FUNCTION_EXISTS(JS_TriggerOperationCallback JS_TRIGGEROPERATIONCALLBACK_FOUND)
+-  IF(JS_TRIGGEROPERATIONCALLBACK_FOUND)
+-    LIST(APPEND SMJS_DEFINITIONS "-DHAVE_JS_TriggerOperationCallback")
+-  ENDIF(JS_TRIGGEROPERATIONCALLBACK_FOUND)
++  GGL_CHECK_FUNCTION_EXISTS(JS_TriggerAllOperationCallbacks JS_TRIGGERALLOPERATIONCALLBACKS_FOUND)
++  IF(JS_TRIGGERALLOPERATIONCALLBACKS_FOUND)
++    LIST(APPEND SMJS_DEFINITIONS "-DHAVE_JS_TriggerAllOperationCallbacks")
++  ENDIF(JS_TRIGGERALLOPERATIONCALLBACKS_FOUND)
+ ENDIF(SMJS_FOUND)
+ 
+ IF(SMJS_FOUND AND GTKMOZEMBED_FOUND)
+@@ -473,6 +521,29 @@
+   MESSAGE("Library SpiderMonkey is not available, smjs-script-runtime extension won't be built.")
+ ENDIF(NOT SMJS_FOUND AND GGL_BUILD_SMJS_SCRIPT_RUNTIME)
+ 
++# Check WebKit/JavaScriptCore
++GET_CONFIG(webkit-1.0 1.0.3 GTKWEBKIT GTKWEBKIT_FOUND)
++IF(GTKWEBKIT_FOUND)
++  IF(GGL_BUILD_WEBKIT_SCRIPT_RUNTIME)
++    # Just copy the config of GTKWEBKIT to JAVA_SCRIPT_CORE.
++    GET_CONFIG(webkit-1.0 1.0.3 JAVA_SCRIPT_CORE JAVA_SCRIPT_CORE_FOUND) 
++    SET(JAVA_SCRIPT_CORE_DEFINITIONS
++      "${JAVA_SCRIPT_CORE_DEFINITIONS} -DHAVE_JAVA_SCRIPT_H")
++    SET(GTKWEBKIT_DEFINITIONS
++      "${GTKWEBKIT_DEFINITIONS} -DGGL_GTK_WEBKIT_SUPPORT_JSC -DHAVE_JAVA_SCRIPT_H")
++  ENDIF(GGL_BUILD_WEBKIT_SCRIPT_RUNTIME)
++ENDIF(GTKWEBKIT_FOUND)
++
++IF(NOT GTKWEBKIT_FOUND AND GGL_BUILD_GTKWEBKIT_BROWSER_ELEMENT)
++  SET(GGL_BUILD_GTKWEBKIT_BROWSER_ELEMENT 0)
++  MESSAGE("Library WebKit is not available, gtkwebkit-browser-element extension won't be built.")
++ENDIF(NOT GTKWEBKIT_FOUND AND GGL_BUILD_GTKWEBKIT_BROWSER_ELEMENT)
++
++IF(NOT JAVA_SCRIPT_CORE_FOUND AND GGL_BUILD_WEBKIT_SCRIPT_RUNTIME)
++  SET(GGL_BUILD_WEBKIT_SCRIPT_RUNTIME 0)
++  MESSAGE("Library JavaScriptCore is not available, webkit-script-runtime extension won't be built.")
++ENDIF(NOT JAVA_SCRIPT_CORE_FOUND AND GGL_BUILD_WEBKIT_SCRIPT_RUNTIME)
++
+ MESSAGE("
+ Build options:
+   Version                          ${GGL_VERSION}
+@@ -484,23 +555,28 @@
+   Build libggadget-gtk             ${GGL_BUILD_LIBGGADGET_GTK}
+   Build libggadget-qt              ${GGL_BUILD_LIBGGADGET_QT}
+   Build libggadget-dbus            ${GGL_BUILD_LIBGGADGET_DBUS}
++  Build libggadget-npapi           ${GGL_BUILD_LIBGGADGET_NPAPI}
+ 
+  Extensions:
++  Build curl-xml-http-request      ${GGL_BUILD_CURL_XML_HTTP_REQUEST}
++  Build soup-xml-http-request      ${GGL_BUILD_SOUP_XML_HTTP_REQUEST}
+   Build dbus-script-class          ${GGL_BUILD_LIBGGADGET_DBUS}
+-  Build gtkmoz-browser-element     ${GGL_BUILD_GTKMOZ_BROWSER_ELEMENT}
+   Build gst-audio-framework        ${GGL_BUILD_GST_AUDIO_FRAMEWORK}
+   Build gst-video-element          ${GGL_BUILD_GST_VIDEO_ELEMENT}
+-  Build linux-system-framework     ${GGL_BUILD_LINUX_SYSTEM_FRAMEWORK}
+-  Build smjs-script-runtime        ${GGL_BUILD_SMJS_SCRIPT_RUNTIME}
+-  Build curl-xml-http-request      ${GGL_BUILD_CURL_XML_HTTP_REQUEST}
++  Build gtkmoz-browser-element     ${GGL_BUILD_GTKMOZ_BROWSER_ELEMENT}
+   Build libxml2-xml-parser         ${GGL_BUILD_LIBXML2_XML_PARSER}
+-  Build gtk-edit-element           ${GGL_BUILD_LIBGGADGET_GTK}
++  Build linux-system-framework     ${GGL_BUILD_LINUX_SYSTEM_FRAMEWORK}
++  Build gtk-edit-element           ${GGL_BUILD_GTK_EDIT_ELEMENT}
++  Build gtk-flash-element          ${GGL_BUILD_GTK_FLASH_ELEMENT}
+   Build gtk-system-framework       ${GGL_BUILD_LIBGGADGET_GTK}
++  Build gtkwebkit-browser-element  ${GGL_BUILD_GTKWEBKIT_BROWSER_ELEMENT}
+   Build qt-edit-element            ${GGL_BUILD_LIBGGADGET_QT}
+-  Build qtwebkit-browser-element   ${GGL_BUILD_QTWEBKIT_BROWSER_ELEMENT}
+-  Build qt-xml-http-request        ${GGL_BUILD_LIBGGADGET_QT}
+   Build qt-script-runtime          ${GGL_BUILD_QT_SCRIPT_RUNTIME}
+   Build qt-system-framework        ${GGL_BUILD_LIBGGADGET_QT}
++  Build qt-xml-http-request        ${GGL_BUILD_LIBGGADGET_QT}
++  Build qtwebkit-browser-element   ${GGL_BUILD_QTWEBKIT_BROWSER_ELEMENT}
++  Build smjs-script-runtime        ${GGL_BUILD_SMJS_SCRIPT_RUNTIME}
++  Build webkit-script-runtime      ${GGL_BUILD_WEBKIT_SCRIPT_RUNTIME}
+ 
+  Hosts:
+   Build gtk host                   ${GGL_BUILD_GTK_HOST}
+--- google-gadgets-for-linux-0.11.2/extensions/html_flash_element/html_flash_element.cc.orig	2009-12-28 10:39:54.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/html_flash_element/html_flash_element.cc	2013-01-17 22:27:03.000000000 +0000
+@@ -30,8 +30,8 @@
+   "<style>*{ margin:0px; padding:0px }</style>\n"
+   "<body oncontextmenu=\"return false;\">\n"
+   "<embed src=\"%s\" "
+-  "quality=\"high\" bgcolor=\"#ffffff\" width=\"100%\" play=\"true\" "
+-  "height=\"100%\" type=\"application/x-shockwave-flash\" "
++  "quality=\"high\" bgcolor=\"#ffffff\" width=\"100%%\" play=\"true\" "
++  "height=\"100%%\" type=\"application/x-shockwave-flash\" "
+   "swLiveConnect=\"true\" wmode=\"transparent\" name=\"movieObject\" "
+   "pluginspage=\"http://www.adobe.com/go/getflashplayer\"/>\n"
+   "</body>\n"
+--- google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/network.h.orig	2009-03-15 04:12:41.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/network.h	2013-01-17 22:07:53.000000000 +0000
+@@ -55,6 +55,7 @@
+  private:
+   void OnSignal(const std::string &name, int argc, const Variant *argv);
+   void Update();
++  bool IsOnlineState(int state);
+ 
+  private:
+   // true if using nm 0.7 or above, false if using nm 0.6.x
+--- google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/wireless.cc.orig	2009-12-28 10:39:53.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/wireless.cc	2013-01-17 22:07:53.000000000 +0000
+@@ -28,11 +28,10 @@
+ #include <ggadget/string_utils.h>
+ #include <ggadget/slot.h>
+ 
+-// defined in <linux/wireless.h>, but we don't want to introduce such
+-// dependency.
+-#define IW_MODE_AUTO 0
+-#define IW_MODE_ADHOC 1
+-#define IW_MODE_INFRA 2
++// Define them anyway for all versions of NM
++static const int kNmWifiModeUnknown = 0;
++static const int kNmWifiModeAdhoc = 1;
++static const int kNmWifiModeInfra = 2;
+ 
+ #if !defined(NM_DBUS_SERVICE) || !defined(NM_DBUS_PATH) || \
+     !defined(NM_DBUS_INTERFACE)
+@@ -77,15 +76,15 @@
+ 
+ using namespace ggadget::dbus;
+ 
+-#ifdef NM_DEVICE_TYPE_WIFI
+-static const int kDeviceTypeWifi = NM_DEVICE_TYPE_WIFI;
+-#else
+-static const int kDeviceTypeWifi = DEVICE_TYPE_802_11_WIRELESS;
+-#endif
++static const int kDeviceTypeWifi = 2;
+ 
+ // Defined in nm 0.7
+-static const int kDeviceStateActivated = 8;
+-static const int kDeviceStateFailed = 9;
++static const int kOldDeviceStateActivated = 8;
++static const int kOldDeviceStateFailed = 9;
++// New 0.9 activated device state
++static const int kDeviceStateActivated = 100;
++static const int kDeviceStateDeactivating = 110;
++static const int kDeviceStateFailed = 120;
+ 
+ class Wireless::Impl {
+   class WirelessAccessPoint : public WirelessAccessPointInterface {
+@@ -191,7 +190,7 @@
+ 
+     void UpdateInfo() {
+       if (ap_) {
+-        int mode = IW_MODE_AUTO;
++        int mode = kNmWifiModeUnknown;
+         if (new_api_) { // nm 0.7.x
+           ResultVariant prop = ap_->GetProperty("Ssid");
+           if (prop.v().type() == Variant::TYPE_SCRIPTABLE) {
+@@ -223,9 +222,9 @@
+           }
+         }
+ 
+-        if (mode == IW_MODE_ADHOC)
++        if (mode == kNmWifiModeAdhoc)
+           type_ = WIRELESS_TYPE_INDEPENDENT;
+-        else if (mode == IW_MODE_INFRA)
++        else if (mode == kNmWifiModeInfra)
+           type_ = WIRELESS_TYPE_INFRASTRUCTURE;
+         else
+           type_ = WIRELESS_TYPE_ANY;
+@@ -404,9 +403,13 @@
+       } else if (signal == "StateChanged") { // nm 0.7.x
+         int new_state;
+         if (argc >= 1 && argv[0].ConvertToInt(&new_state)) {
+-          connected_ = (new_state == kDeviceStateActivated);
++          connected_ = (new_state == kDeviceStateActivated ||
++                        new_state == kOldDeviceStateActivated);
+           connect_performed = (new_state == kDeviceStateActivated ||
+-                               new_state == kDeviceStateFailed);
++                               new_state == kDeviceStateDeactivating ||
++                               new_state == kDeviceStateFailed ||
++                               new_state == kOldDeviceStateActivated ||
++                               new_state == kOldDeviceStateFailed);
+         }
+       } else if (signal == "AccessPointAdded") { // nm 0.7.x
+         std::string ap_path;
+@@ -441,7 +444,9 @@
+       if (new_api_ && dev_ && dev_wireless_) {
+         ResultVariant prop = dev_->GetProperty("State");
+         if (prop.v().type() == Variant::TYPE_INT64) {
+-          connected_ = (VariantValue<int>()(prop.v()) == kDeviceStateActivated);
++          int state = VariantValue<int>()(prop.v());
++          connected_ = (state == kDeviceStateActivated ||
++                        state == kOldDeviceStateActivated);
+         }
+       } else if (!new_api_ && dev_) {
+         DBusBooleanReceiver bool_receiver;
+--- google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/network.cc.orig	2009-03-15 04:12:42.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/network.cc	2013-01-17 22:07:53.000000000 +0000
+@@ -23,19 +23,21 @@
+ namespace framework {
+ namespace linux_system {
+ 
+-#ifdef NM_DEVICE_TYPE_WIFI
+-static const int kDeviceTypeWifi = NM_DEVICE_TYPE_WIFI;
+-#else
+-static const int kDeviceTypeWifi = DEVICE_TYPE_802_11_WIRELESS;
+-#endif
+-
+-#ifdef NM_DEVICE_TYPE_ETHERNET
+-static const int kDeviceTypeEthernet = NM_DEVICE_TYPE_ETHERNET;
+-#else
+-static const int kDeviceTypeEthernet = DEVICE_TYPE_802_3_ETHERNET;
+-#endif
+-
+ static const int kDeviceTypeUnknown = 0;
++static const int kDeviceTypeEthernet = 1;
++static const int kDeviceTypeWifi = 2;
++
++// 0.6, 0.7, and 0.8 connected state
++static const int kOldConnected = 3;
++// New 0.9 connected states
++static const int kConnectedLocal = 50;
++static const int kConnectedSite = 60;
++static const int kConnectedGlobal = 70;
++
++// 0.6, 0.7, and 0.8 activated device state
++static const int kOldDeviceStateActivated = 8;
++// New 0.9 activated device state
++static const int kDeviceStateActivated = 100;
+ 
+ Network::Network()
+   : is_new_api_(false),
+@@ -59,14 +61,14 @@
+     is_new_api_ = true;
+     int state;
+     if (network_manager_->GetProperty("State").v().ConvertToInt(&state)) {
+-      is_online_ = (state == NM_STATE_CONNECTED);
++      is_online_ = IsOnlineState(state);
+     }
+   } else {
+     DLOG("network manager 0.6.x might be used.");
+     DBusIntReceiver result;
+     if (network_manager_->CallMethod("state", true, kDefaultDBusTimeout,
+                                      result.NewSlot(), MESSAGE_TYPE_INVALID)) {
+-      is_online_ = (result.GetValue() == NM_STATE_CONNECTED);
++      is_online_ = IsOnlineState(result.GetValue());
+     }
+   }
+ 
+@@ -87,14 +89,21 @@
+   delete network_manager_;
+ }
+ 
++bool Network::IsOnlineState(int state) {
++  return (state == kOldConnected ||
++          state == kConnectedLocal ||
++          state == kConnectedSite ||
++          state == kConnectedGlobal);
++}
++
+ void Network::OnSignal(const std::string &name, int argc, const Variant *argv) {
+   DLOG("Got signal from network manager: %s", name.c_str());
+   bool need_update = false;
+-  // nm 0.6.x uses "StateChange", 0.7.x uses "StateChanged".
++  // nm 0.6.x uses "StateChange", 0.7.x and later use "StateChanged".
+   if (name == "StateChange" || name == "StateChanged") {
+     int state;
+     if (argc >= 1 && argv[0].ConvertToInt(&state)) {
+-      is_online_ = (state == NM_STATE_CONNECTED);
++      is_online_ = IsOnlineState(state);
+       DLOG("Network is %s.", is_online_ ? "connected" : "disconnected");
+       if (is_online_) {
+         need_update = true;
+@@ -133,7 +142,8 @@
+         if (is_new_api_) {
+           int state;
+           if (dev->GetProperty("State").v().ConvertToInt(&state))
+-            active = (state == 8); // NM_DEVICE_STATE_ACTIVATED
++            active = (state == kOldDeviceStateActivated ||
++                      state == kDeviceStateActivated);
+         } else {
+           DBusBooleanReceiver result;
+           if (dev->CallMethod("getLinkActive", true, kDefaultDBusTimeout,
+--- google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/process.cc.orig	2009-12-28 10:39:53.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/linux_system_framework/process.cc	2013-01-17 22:02:16.000000000 +0000
+@@ -16,6 +16,7 @@
+ 
+ #include <sys/types.h>
+ #include <dirent.h>
++#include <unistd.h>
+ #include <cstdlib>
+ 
+ #ifdef HAVE_X11
+--- google-gadgets-for-linux-0.11.2/extensions/qt_system_framework/qt_system_framework.cc.orig	2009-12-28 10:39:55.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/qt_system_framework/qt_system_framework.cc	2013-01-17 21:59:06.000000000 +0000
+@@ -32,6 +32,7 @@
+ #include <ggadget/xdg/desktop_entry.h>
+ #include <ggadget/xdg/icon_theme.h>
+ #include <ggadget/xdg/utilities.h>
++#include <unistd.h>
+ 
+ #define Initialize qt_system_framework_LTX_Initialize
+ #define Finalize qt_system_framework_LTX_Finalize
+--- google-gadgets-for-linux-0.11.2/extensions/gst_video_element/gadget_videosink.cc.orig	2009-12-28 10:39:54.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/extensions/gst_video_element/gadget_videosink.cc	2013-01-17 21:56:21.000000000 +0000
+@@ -892,9 +892,9 @@
+     gst_value_set_fraction(par_, 1, 1);  // 1:1
+   }
+ 
+-  int nom, den;
+-  nom = gst_value_get_fraction_numerator(par_);
+-  den = gst_value_get_fraction_denominator(par_);
++//  int nom, den;
++//  nom = gst_value_get_fraction_numerator(par_);
++//  den = gst_value_get_fraction_denominator(par_);
+   gst_caps_set_simple(caps_, const_cast<gchar*>("pixel-aspect-ratio"),
+                       GST_TYPE_FRACTION, 1, 1, NULL);
+ }
+--- google-gadgets-for-linux-0.11.2/third_party/unzip/zip.c.orig	2009-03-15 04:12:40.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/third_party/unzip/zip.c	2013-01-17 20:09:29.000000000 +0000
+@@ -130,7 +130,7 @@
+     int  encrypt;
+ #ifndef NOCRYPT
+     unsigned long keys[3];     /* keys defining the pseudo-random sequence */
+-    const unsigned long* pcrc_32_tab;
++    const z_crc_t* pcrc_32_tab;
+     int crypt_header_size;
+ #endif
+ } curfile_info;
+--- google-gadgets-for-linux-0.11.2/third_party/unzip/unzip.c.orig	2009-03-15 04:12:40.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/third_party/unzip/unzip.c	2013-01-17 20:06:37.000000000 +0000
+@@ -147,7 +147,7 @@
+     int encrypted;
+ #    ifndef NOUNCRYPT
+     unsigned long keys[3];     /* keys defining the pseudo-random sequence */
+-    const unsigned long* pcrc_32_tab;
++    const z_crc_t* pcrc_32_tab;
+ #    endif
+ } unz_s;
+ 
+--- google-gadgets-for-linux-0.11.2/third_party/unzip/crypt.h.orig	2009-03-15 04:12:40.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/third_party/unzip/crypt.h	2013-01-17 20:08:50.000000000 +0000
+@@ -32,7 +32,7 @@
+ /***********************************************************************
+  * Return the next byte in the pseudo-random sequence
+  */
+-static int decrypt_byte(unsigned long* pkeys, const unsigned long* pcrc_32_tab)
++static int decrypt_byte(unsigned long* pkeys, const z_crc_t* pcrc_32_tab)
+ {
+     unsigned temp;  /* POTENTIAL BUG:  temp*(temp^1) may overflow in an
+                      * unpredictable manner on 16-bit systems; not a problem
+@@ -45,7 +45,7 @@
+ /***********************************************************************
+  * Update the encryption keys with the next byte of plain text
+  */
+-static int update_keys(unsigned long* pkeys,const unsigned long* pcrc_32_tab,int c)
++static int update_keys(unsigned long* pkeys,const z_crc_t* pcrc_32_tab,int c)
+ {
+     (*(pkeys+0)) = CRC32((*(pkeys+0)), c);
+     (*(pkeys+1)) += (*(pkeys+0)) & 0xff;
+@@ -62,7 +62,7 @@
+  * Initialize the encryption keys and the random header according to
+  * the given password.
+  */
+-static void init_keys(const char* passwd,unsigned long* pkeys,const unsigned long* pcrc_32_tab)
++static void init_keys(const char* passwd,unsigned long* pkeys,const z_crc_t* pcrc_32_tab)
+ {
+     *(pkeys+0) = 305419896L;
+     *(pkeys+1) = 591751049L;
+@@ -92,7 +92,7 @@
+     unsigned char *buf;         /* where to write header */
+     int bufSize;
+     unsigned long* pkeys;
+-    const unsigned long* pcrc_32_tab;
++    const z_crc_t* pcrc_32_tab;
+     unsigned long crcForCrypting;
+ {
+     int n;                       /* index in random header */
+--- google-gadgets-for-linux-0.11.2/gadgets/designer/designer_script_utils.cc.orig	2009-12-28 10:39:59.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/gadgets/designer/designer_script_utils.cc	2013-01-17 22:28:41.000000000 +0000
+@@ -18,6 +18,7 @@
+ #include <cstring>
+ #include <string>
+ #include <vector>
++#include <unistd.h>
+ #include <ggadget/basic_element.h>
+ #include <ggadget/color.h>
+ #include <ggadget/file_manager_factory.h>
+--- google-gadgets-for-linux-0.11.2/hosts/gtk/main.cc.orig	2009-09-22 10:12:00.000000000 +0100
++++ google-gadgets-for-linux-0.11.2/hosts/gtk/main.cc	2013-01-17 22:29:29.000000000 +0000
+@@ -15,7 +15,7 @@
+ */
+ 
+ #include <gtk/gtk.h>
+-#include <glib/gthread.h>
++#include <glib.h>
+ #include <locale.h>
+ #include <signal.h>
+ #include <unistd.h>
+--- google-gadgets-for-linux-0.11.2/ggadget/uuid.cc.orig	2009-03-15 04:12:51.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/uuid.cc	2013-01-17 21:11:56.000000000 +0000
+@@ -24,6 +24,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <ctime>
++#include <unistd.h>
+ 
+ #include "string_utils.h"
+ 
+--- google-gadgets-for-linux-0.11.2/ggadget/docked_main_view_decorator.cc.orig	2009-03-15 04:12:48.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/docked_main_view_decorator.cc	2013-01-17 20:25:51.000000000 +0000
+@@ -65,10 +65,10 @@
+ 
+   void SetupResizeBorder(int borders) {
+     bool visibles[4] = {
+-      borders & BORDER_TOP,
+-      borders & BORDER_LEFT,
+-      borders & BORDER_BOTTOM,
+-      borders & BORDER_RIGHT
++      (bool) (borders & BORDER_TOP),
++      (bool) (borders & BORDER_LEFT),
++      (bool) (borders & BORDER_BOTTOM),
++      (bool) (borders & BORDER_RIGHT)
+     };
+     for (size_t i = 0; i < 4; ++i) {
+       if (!visibles[i] && resize_borders_[i]) {
+--- google-gadgets-for-linux-0.11.2/ggadget/scriptable_enumerator.h.orig	2009-03-15 04:12:48.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/scriptable_enumerator.h	2013-01-17 21:06:57.000000000 +0000
+@@ -68,22 +68,22 @@
+ 
+  protected:
+   virtual void DoClassRegister() {
+-    RegisterMethod("atEnd",
++    this->RegisterMethod("atEnd",
+                    NewSlot(&E::AtEnd,
+                            &ScriptableEnumerator<E, Wrapper, Param, ClassId>
+                                ::enumerator_));
+-    RegisterMethod("moveFirst",
++    this->RegisterMethod("moveFirst",
+                    NewSlot(&E::MoveFirst,
+                            &ScriptableEnumerator<E, Wrapper, Param, ClassId>
+                                ::enumerator_));
+-    RegisterMethod("moveNext",
++    this->RegisterMethod("moveNext",
+                    NewSlot(&E::MoveNext,
+                            &ScriptableEnumerator<E, Wrapper, Param, ClassId>
+                                ::enumerator_));
+-    RegisterMethod("item",
++    this->RegisterMethod("item",
+                    NewSlot(&ScriptableEnumerator<E, Wrapper, Param, ClassId>
+                                ::GetItem));
+-    RegisterProperty("count",
++    this->RegisterProperty("count",
+                      NewSlot(&E::GetCount,
+                              &ScriptableEnumerator<E, Wrapper, Param, ClassId>
+                                  ::enumerator_),
+--- google-gadgets-for-linux-0.11.2/ggadget/xml_dom.cc.orig	2010-01-06 07:17:25.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/xml_dom.cc	2013-01-17 21:21:19.000000000 +0000
+@@ -1327,15 +1327,15 @@
+ 
+   virtual void DoClassRegister() {
+     Super::DoClassRegister();
+-    RegisterProperty("data", NewSlot(&DOMCharacterData::GetData),
++    this->RegisterProperty("data", NewSlot(&DOMCharacterData::GetData),
+                      NewSlot(&DOMCharacterData::SetData));
+-    RegisterProperty("length", NewSlot(&DOMCharacterData::GetLength), NULL);
+-    RegisterMethod("substringData",
++    this->RegisterProperty("length", NewSlot(&DOMCharacterData::GetLength), NULL);
++    this->RegisterMethod("substringData",
+                    NewSlot(&DOMCharacterData::ScriptSubstringData));
+-    RegisterMethod("appendData", NewSlot(&DOMCharacterData::AppendData));
+-    RegisterMethod("insertData", NewSlot(&DOMCharacterData::ScriptInsertData));
+-    RegisterMethod("deleteData", NewSlot(&DOMCharacterData::ScriptDeleteData));
+-    RegisterMethod("replaceData",
++    this->RegisterMethod("appendData", NewSlot(&DOMCharacterData::AppendData));
++    this->RegisterMethod("insertData", NewSlot(&DOMCharacterData::ScriptInsertData));
++    this->RegisterMethod("deleteData", NewSlot(&DOMCharacterData::ScriptDeleteData));
++    this->RegisterMethod("replaceData",
+                    NewSlot(&DOMCharacterData::ScriptReplaceData));
+   }
+ 
+@@ -1377,20 +1377,20 @@
+  private:
+   UTF16String ScriptSubstringData(size_t offset, size_t count) {
+     UTF16String result;
+-    CheckException(SubstringData(offset, count, &result));
++    this->CheckException(SubstringData(offset, count, &result));
+     return result;
+   }
+ 
+   void ScriptInsertData(size_t offset, const UTF16String &arg) {
+-    CheckException(InsertData(offset, arg));
++    this->CheckException(InsertData(offset, arg));
+   }
+ 
+   void ScriptDeleteData(size_t offset, size_t count) {
+-    CheckException(DeleteData(offset, count));
++    this->CheckException(DeleteData(offset, count));
+   }
+ 
+   void ScriptReplaceData(size_t offset, size_t count, const UTF16String &arg) {
+-    CheckException(ReplaceData(offset, count, arg));
++    this->CheckException(ReplaceData(offset, count, arg));
+   }
+ 
+   DOMCharacterDataImpl impl_;
+--- google-gadgets-for-linux-0.11.2/ggadget/gtk/rsvg_image.cc.orig	2009-03-15 04:12:51.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/gtk/rsvg_image.cc	2013-01-17 21:44:37.000000000 +0000
+@@ -17,7 +17,7 @@
+ #include <cmath>
+ #include <string>
+ #include <librsvg/rsvg.h>
+-#include <librsvg/rsvg-cairo.h>
++//#include <librsvg/rsvg-cairo.h>
+ #include <ggadget/color.h>
+ #include <ggadget/logger.h>
+ #include <ggadget/signals.h>
+--- google-gadgets-for-linux-0.11.2/ggadget/gtk/single_view_host.cc.orig	2009-12-28 10:39:59.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/gtk/single_view_host.cc	2013-01-17 21:39:17.000000000 +0000
+@@ -553,13 +553,13 @@
+     }
+ 
+     if (menu_builder.ItemAdded()) {
+-      int gtk_button;
+-      switch (button) {
+-        case MouseEvent::BUTTON_LEFT: gtk_button = 1; break;
+-        case MouseEvent::BUTTON_MIDDLE: gtk_button = 2; break;
+-        case MouseEvent::BUTTON_RIGHT: gtk_button = 3; break;
+-        default: gtk_button = 3; break;
+-      }
++//      int gtk_button;
++//      switch (button) {
++//        case MouseEvent::BUTTON_LEFT: gtk_button = 1; break;
++//        case MouseEvent::BUTTON_MIDDLE: gtk_button = 2; break;
++//        case MouseEvent::BUTTON_RIGHT: gtk_button = 3; break;
++//        default: gtk_button = 3; break;
++//      }
+ 
+       // don't set button parameter, which will cause problem.
+       gtk_menu_popup(GTK_MENU(context_menu_), NULL, NULL, NULL, NULL, 0,
+--- google-gadgets-for-linux-0.11.2/ggadget/gtk/main_loop.cc.orig	2009-12-28 10:39:59.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/gtk/main_loop.cc	2013-01-17 21:37:27.000000000 +0000
+@@ -16,9 +16,8 @@
+ 
+ #include <fcntl.h>
+ #include <stdint.h>
+-#include <glib/ghash.h>
++#include <glib.h>
+ #include <gtk/gtk.h>
+-#include <glib/gthread.h>
+ #include <ggadget/common.h>
+ #include "main_loop.h"
+ #include "utilities.h"
+@@ -56,13 +55,9 @@
+   Impl(MainLoopInterface *main_loop)
+     : main_loop_(main_loop), destroyed_(false),
+       main_thread_(NULL) {
+-    // Initialize the glib thread environment, otherwise the glib main loop
+-    // will not be thread safe.
+-    if (!g_thread_supported())
+-      g_thread_init(NULL);
+ 
+     main_thread_ = g_thread_self();
+-    g_static_mutex_init(&mutex_);
++    g_mutex_init(&mutex_);
+     watches_ = g_hash_table_new_full(g_direct_hash,
+                                      g_direct_equal,
+                                      NULL,
+@@ -71,20 +66,19 @@
+   }
+ 
+   ~Impl() {
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     destroyed_ = true;
+     g_hash_table_foreach_remove(watches_, ForeachRemoveCallback, this);
+     g_hash_table_destroy(watches_);
+-    g_static_mutex_unlock(&mutex_);
+-    g_static_mutex_free(&mutex_);
++    g_mutex_unlock(&mutex_);
+   }
+ 
+   int AddIOWatch(MainLoopInterface::WatchType type, int fd,
+                  WatchCallbackInterface *callback) {
+     if (fd < 0 || !callback) return -1;
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     if (destroyed_) {
+-      g_static_mutex_unlock(&mutex_);
++      g_mutex_unlock(&mutex_);
+       return -1;
+     }
+     GIOCondition cond =
+@@ -100,15 +94,15 @@
+     node->watch_id = watch_id;
+     g_hash_table_insert(watches_, GINT_TO_POINTER(node->watch_id), node);
+     g_io_channel_unref(channel);
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+     return watch_id;
+   }
+ 
+   int AddTimeoutWatch(int interval, WatchCallbackInterface *callback) {
+     if (interval < 0 || !callback) return -1;
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     if (destroyed_) {
+-      g_static_mutex_unlock(&mutex_);
++      g_mutex_unlock(&mutex_);
+       return -1;
+     }
+     WatchNode *node = new WatchNode();
+@@ -124,31 +118,31 @@
+                             node, NULL));
+     node->watch_id = watch_id;
+     g_hash_table_insert(watches_, GINT_TO_POINTER(node->watch_id), node);
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+     return watch_id;
+   }
+ 
+   MainLoopInterface::WatchType GetWatchType(int watch_id) {
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     WatchNode *node = static_cast<WatchNode *>(
+           g_hash_table_lookup(watches_, GINT_TO_POINTER(watch_id)));
+     MainLoopInterface::WatchType type =
+         node ? node->type : MainLoopInterface::INVALID_WATCH;
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+     return type;
+   }
+ 
+   int GetWatchData(int watch_id) {
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     WatchNode *node = static_cast<WatchNode *>(
+         g_hash_table_lookup(watches_, GINT_TO_POINTER(watch_id)));
+     int data = node ? node->data : -1;
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+     return data;
+   }
+ 
+   void RemoveWatch(int watch_id) {
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     if (!destroyed_) {
+       WatchNode *node = static_cast<WatchNode *>(
+           g_hash_table_lookup(watches_, GINT_TO_POINTER(watch_id)));
+@@ -158,14 +152,14 @@
+           g_source_remove(watch_id);
+           WatchCallbackInterface *callback = node->callback;
+           //DLOG("MainLoop::RemoveWatch: id=%d", watch_id);
+-          g_static_mutex_unlock(&mutex_);
++          g_mutex_unlock(&mutex_);
+           callback->OnRemove(main_loop_, watch_id);
+-          g_static_mutex_lock(&mutex_);
++          g_mutex_lock(&mutex_);
+           g_hash_table_remove(watches_, GINT_TO_POINTER(watch_id));
+         }
+       }
+     }
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+   }
+ 
+   void Run() {
+@@ -193,18 +187,18 @@
+ 
+  private:
+   void RemoveWatchNode(WatchNode *node) {
+-    g_static_mutex_lock(&mutex_);
++    g_mutex_lock(&mutex_);
+     if (!node->removing) {
+       node->removing = true;
+       int watch_id = node->watch_id;
+       WatchCallbackInterface *callback = node->callback;
+       //DLOG("MainLoop::RemoveWatchNode: id=%d", watch_id);
+-      g_static_mutex_unlock(&mutex_);
++      g_mutex_unlock(&mutex_);
+       callback->OnRemove(main_loop_, watch_id);
+-      g_static_mutex_lock(&mutex_);
++      g_mutex_lock(&mutex_);
+       g_hash_table_remove(watches_, GINT_TO_POINTER(watch_id));
+     }
+-    g_static_mutex_unlock(&mutex_);
++    g_mutex_unlock(&mutex_);
+   }
+ 
+   static gboolean ForeachRemoveCallback(gpointer key, gpointer value,
+@@ -219,9 +213,9 @@
+     g_source_remove(watch_id);
+     //DLOG("MainLoop::ForeachRemoveCallback: id=%d", watch_id);
+     // mutex is locked in ~Impl().
+-    g_static_mutex_unlock(&impl->mutex_);
++    g_mutex_unlock(&impl->mutex_);
+     callback->OnRemove(impl->main_loop_, watch_id);
+-    g_static_mutex_lock(&impl->mutex_);
++    g_mutex_lock(&impl->mutex_);
+     return TRUE;
+   }
+ 
+@@ -296,7 +290,7 @@
+   MainLoopInterface *main_loop_;
+   GHashTable *watches_;
+ 
+-  GStaticMutex mutex_;
++  GMutex mutex_;
+   bool destroyed_;
+   GThread *main_thread_;
+ };
+--- google-gadgets-for-linux-0.11.2/ggadget/xdg/icon_theme.cc.orig	2009-03-20 09:31:00.000000000 +0000
++++ google-gadgets-for-linux-0.11.2/ggadget/xdg/icon_theme.cc	2013-01-17 21:21:42.000000000 +0000
+@@ -16,6 +16,7 @@
+ #include <sys/time.h>
+ #include <time.h>
+ #include <cstdlib>
++#include <unistd.h>
+ 
+ #include <map>
+ #include <vector>
