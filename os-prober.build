@@ -89,24 +89,29 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/{bin,lib/os-prober} ${PKG}/usr/share/os-prober ${PKG}/var/lib/os-prober
+mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX}/os-prober} ${PKG}/usr/share/os-prober ${PKG}/var/lib/os-prober
 
 cp os-prober linux-boot-prober ${PKG}/usr/bin
-cp newns ${PKG}/usr/lib/os-prober
+cp newns ${PKG}/usr/lib${LIBDIRSUFFIX}/os-prober
 cp common.sh ${PKG}/usr/share/os-prober
+
+sed -i -e "s@/usr/lib@/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/share/os-prober/common.sh
+sed -i -e "s@/usr/lib@/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/bin/os-prober
+sed -i -e "s@/usr/lib@/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/bin/linux-boot-prober
 
 for probes in os-probes os-probes/mounted os-probes/init \
               linux-boot-probes linux-boot-probes/mounted
 do
-  mkdir -p ${PKG}/usr/lib/$probes
-  cp -a $probes/common/* ${PKG}/usr/lib/$probes
+  mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/$probes
+  cp -a $probes/common/* ${PKG}/usr/lib${LIBDIRSUFFIX}/$probes
   if [ -e "$probes/x86" ]
   then
-    cp -a $probes/x86/* ${PKG}/usr/lib/$probes
+    cp -a $probes/x86/* ${PKG}/usr/lib${LIBDIRSUFFIX}/$probes
   fi
+  sed -i -e "s@/usr/lib@/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/$probes/*
 done
 
-cp -a os-probes/mounted/powerpc/20macosx ${PKG}/usr/lib/os-probes/mounted
+cp -a os-probes/mounted/powerpc/20macosx ${PKG}/usr/lib${LIBDIRSUFFIX}/os-probes/mounted
 
 
 strip_binaries
