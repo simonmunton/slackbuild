@@ -1,0 +1,26 @@
+commit 794b14b8af5b610fc3eed6945f93f0c69dd49a9a
+Author: Thiago Macieira <thiago.macieira@intel.com>
+Date:   Fri Jan 18 19:12:34 2013 +0800
+
+    Initialise the mCrossDomain member variable in the cookies
+    
+    For several months now, all my cookies would be forgotten after a kded
+    restart. After debugging the problem, turns out that mCrossDomain was
+    of value 127, which makes no sense for a boolean.
+    
+    This variable has been present since 2002, which means that the
+    "reject cross domain cookies" feature has been broken for 10 years and
+    8 months.
+
+diff --git a/kioslave/http/kcookiejar/kcookiejar.cpp b/kioslave/http/kcookiejar/kcookiejar.cpp
+index 8d94dcf..4f3ac4d 100644
+--- a/kioslave/http/kcookiejar/kcookiejar.cpp
++++ b/kioslave/http/kcookiejar/kcookiejar.cpp
+@@ -183,6 +183,7 @@ KHttpCookie::KHttpCookie(const QString &_host,
+        mExpireDate(_expireDate),
+        mProtocolVersion(_protocolVersion),
+        mSecure(_secure),
++       mCrossDomain(false),
+        mHttpOnly(_httpOnly),
+        mExplicitPath(_explicitPath),
+        mUserSelectedAdvice(KCookieDunno)
