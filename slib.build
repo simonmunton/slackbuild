@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 TARSEP="-"
 #TAR_EXT=.tar.gz
-VERSION=3b1
+VERSION=3b3
 VERSIONEXTRA=
 BUILD=1
 
@@ -56,6 +56,12 @@ fix_perms
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 true
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/share/guile/site \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man \
+            --infodir=/usr/info
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -70,18 +76,19 @@ then
 fi
 
 mkdir -p ${PKG}/usr/share/guile/site/slib 
-make install installinfo DESTDIR=${PKG} prefix=/usr/ libslibdir=/usr/share/guile/site/slib/
+#make install installinfo DESTDIR=${PKG} prefix=/usr/ libslibdir=/usr/share/guile/site/slib/ SCHEME="guile -l guile.init -l guile.use"
+make install DESTDIR=${PKG} SCHEME="guile -l ./guile.init -l ./guile.use"
 
-cp -p *.xyz *.dat *.txt ${PKG}/usr/share/guile/site/slib/
+#cp -p *.xyz *.dat *.txt ${PKG}/usr/share/guile/site/slib/
 
 sed -i -e "s@${PKG}@@" ${PKG}/usr/bin/slib
 #sed -i -e "s/1[.]7/1.9/" ${PKG}/usr/share/guile/site/slib/guile.init
 
-touch ${PKG}/usr/share/guile/site/slibcat
+#touch ${PKG}/usr/share/guile/site/slibcat
 
 cat <<EOF >> $PKG/install/doinst.sh
 #
-rm /usr/share/guile/site/slibcat
+#rm /usr/share/guile/site/slibcat
 
 (cd /usr/share/guile/site/slib
  guile -l guile.init -c "(use-modules (ice-9 slib)) (require 'new-catalog)"

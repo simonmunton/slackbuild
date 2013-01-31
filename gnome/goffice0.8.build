@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=atkmm
+TARNAME=goffice
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.22.6
+VERSION=0.8.17
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=goffice0.8
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/goffice-0.8.17.diff
 )
 fi
 
@@ -54,8 +54,6 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
-
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -66,16 +64,6 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,7 +78,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -102,14 +90,11 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mv ${PKG}/usr/share/doc/* ${PKG}/usr/doc
-rmdir ${PKG}/usr/share/doc
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "atkmm is the C++ binding for the ATK library"
-atkmm is the C++ binding for the ATK library.
+make_slack_desc << EOF "document centric objects for glib/gtk"
+GOffice -- A glib/gtk set of document centric objects and utilities
 
 EOF
 

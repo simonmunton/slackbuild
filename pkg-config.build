@@ -6,9 +6,9 @@ TARNAME=pkg-config
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.25
+VERSION=0.28
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://pkg-config.freedesktop.org/wiki/"
 
@@ -44,7 +44,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/pkg-config-0.25.diff
+# patch -p1 < ${CWD}/pkg-config-0.25.diff
 )
 fi
 
@@ -79,14 +79,15 @@ make install DESTDIR=${PKG}
 
 mkdir -p ${PKG}/etc/profile.d
 cp -a ${CWD}/pkgconfig.{sh,csh} ${PKG}/etc/profile.d
+sed -i -e "s#/lib/#/lib${LIBDIRSUFFIX}/#g" ${PKG}/etc/profile.d/pkgconfig.{sh,csh}
 chmod 755 ${PKG}/etc/profile.d/*
 
 cat >> ${PKG}/install/doinst.sh << EOF
 if [ ! -L usr/share/pkgconfig ]; then
-  mkdir -p usr/lib/pkgconfig
-  mv usr/share/pkgconfig/* usr/lib/pkgconfig 2> /dev/null
+  mkdir -p usr/lib${LIBDIRSUFFIX}/pkgconfig
+  mv usr/share/pkgconfig/* usr/lib${LIBDIRSUFFIX}/pkgconfig 2> /dev/null
   rmdir usr/share/pkgconfig
-  ( cd usr/share ; ln -sf ../lib/pkgconfig . )
+  ( cd usr/share ; ln -sf ../lib${LIBDIRSUFFIX}/pkgconfig . )
 fi
 
 EOF
