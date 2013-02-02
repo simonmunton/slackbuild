@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.5.6
+VERSION=2.6.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -48,6 +48,7 @@ fi
 # patch -p0 < ${CWD}/avidemux-2.5.4_gtk_menu_dont_crash.patch
 # patch -p1 < ${CWD}/avidemux-2.5.4_x264.patch
 # patch -p1 < ${CWD}/avidemux-2.5.5.diff
+ chmod +x bootStrap.bash
 )
 fi
 
@@ -57,19 +58,21 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir build
-cd build
+#mkdir build
+#cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX="/usr" \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      ..
+#cmake -DCMAKE_INSTALL_PREFIX="/usr" \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      ..
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+:
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,9 +80,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+./bootStrap.bash --with-cli
 
-cd ..
+#make install DESTDIR=${PKG}
+
+cp -pr install/* ${PKG}
+
+mkdir -p ${PKG}/usr/man/man1
+cp man/*.1 ${PKG}/usr/man/man1
+
+#cd ..
 
 #strip_binaries
 
@@ -96,7 +106,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A graphical multiplex/demultiplex tool using GTK"
+make_slack_desc << EOF "A graphical multiplex/demultiplex tool"
 Avidemux is a graphical tool to edit AVI. It allows you to multiplex 
 and demultiplex audio to/from video.
 

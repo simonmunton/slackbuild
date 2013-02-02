@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gegl
+TARNAME=chrpath
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.2.0
+VERSION=0.14
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://gegl.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,16 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gegl-0.2.0.diff
-
- #fix iso8859 file to utf8
-# cd operations/external
-# iconv --from-code=ISO-8859-1 --to-code=UTF-8 ff-load.c > ff-load.c.tmp
-# mv ff-load.c ff-load.c.old
-# mv ff-load.c.tmp ff-load.c
-
- # Fix for upstream bug "gegl/gegl-0.1.deps missing from gegl-0.1.8 tarball"
- [ -f gegl/gegl-0.1.deps ] || echo 'Babl-0.1' > gegl/gegl-0.1.deps
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -64,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -72,8 +65,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-docs
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -88,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -103,14 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Generic Graphics Library"
-GEGL (Generic Graphics Library) is a graph based image processing
-framework.
-
-GEGL provides infratructure to do demand based cached non destructive
-image editing on larger than RAM buffers. Through babl it provides
-support for a wide range of color models and pixel storage formats 
-for input and output.
+make_slack_desc << EOF "modify rpath of binaries"
+chrpath allows you to modify the dynamic library load path (rpath) of
+compiled programs. Currently, only removing and modifying the rpath
+is supported.
 
 EOF
 
