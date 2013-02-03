@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/sane-backends-1.0.x-sane_cap_always_settable.diff
 )
 fi
 
@@ -107,6 +107,14 @@ cat tools/udev/libsane.rules \
 # Install the pkgconfig file:
 install -D -m644 tools/sane-backends.pc \
      $PKG/usr/lib$LIBDIRSUFFIX/pkgconfig/sane-backends.pc
+
+# Move config files:
+( cd ${PKG}/etc/sane.d
+  for file in *.conf ; do
+    mv ${file} ${file}.new
+    doinst_config etc/sane.d/${file}.new
+  done
+)
 
 strip_binaries
 

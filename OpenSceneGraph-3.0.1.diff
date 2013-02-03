@@ -1,11 +1,264 @@
---- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp.orig	2011-06-17 09:41:56.000000000 +0100
-+++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp	2011-08-19 22:12:57.000000000 +0100
-@@ -12,6 +12,8 @@
- #include <avcodec.h>
- #include <avformat.h>
- #include <avdevice.h>
-+#include <avutil.h>
-+#include <mathematics.h>
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegParameters.cpp.orig	2011-07-15 11:25:12.000000000 +0100
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegParameters.cpp	2013-02-03 20:47:53.770251301 +0000
+@@ -8,7 +8,7 @@
+ #if LIBAVCODEC_VERSION_MAJOR >= 53
+ extern "C"
+ {
+-    #include <parseutils.h>
++    #include <libavutil/parseutils.h>
+ }
+ #define av_parse_video_frame_size av_parse_video_size
+ #define av_parse_video_frame_rate av_parse_video_rate
+@@ -19,7 +19,7 @@
+ 
+     extern "C"
+     {
+-        #include <pixdesc.h>
++        #include <libavutil/pixdesc.h>
+     }
+     
+     inline PixelFormat osg_av_get_pix_fmt(const char *name) { return av_get_pix_fmt(name); }
+@@ -34,9 +34,9 @@
+ 
+ 
+ FFmpegParameters::FFmpegParameters() :
+-    m_format(0)
++    m_format(0), m_options(0)
+ {
+-    memset(&m_parameters, 0, sizeof(m_parameters));
++//    memset(&m_parameters, 0, sizeof(m_parameters));
+ }
+ 
+ 
+@@ -59,7 +59,8 @@
+     }
+     else if (name == "pixel_format")
+     {
+-        m_parameters.pix_fmt = osg_av_get_pix_fmt(value.c_str());
++        av_dict_set(&m_options, "pixel_format", value.c_str(), 0);
++//        m_parameters.pix_fmt = osg_av_get_pix_fmt(value.c_str());
+     }
+     else if (name == "frame_size")
+     {
+@@ -74,8 +75,8 @@
+             OSG_NOTICE<<"Frame size must be a multiple of 2: "<<frame_width<<"x"<<frame_height<<std::endl;
+             return;
+         }
+-        m_parameters.width = frame_width;
+-        m_parameters.height = frame_height;
++//        m_parameters.width = frame_width;
++//        m_parameters.height = frame_height;
+     }
+     else if (name == "frame_rate")
+     {
+@@ -85,14 +86,14 @@
+             OSG_NOTICE<<"Failed to apply frame rate: "<<value.c_str()<<std::endl;
+             return;
+         }
+-        m_parameters.time_base.den = frame_rate.num;
+-        m_parameters.time_base.num = frame_rate.den;
++//        m_parameters.time_base.den = frame_rate.num;
++//        m_parameters.time_base.num = frame_rate.den;
+     }
+     else if (name == "audio_sample_rate")
+     {
+         int audio_sample_rate = 44100;
+         std::stringstream ss(value); ss >> audio_sample_rate;
+-        m_parameters.sample_rate = audio_sample_rate;
++//        m_parameters.sample_rate = audio_sample_rate;
+     }
+ }
+ 
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp.orig	2013-02-03 10:49:34.130362415 +0000
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp	2013-02-03 10:50:31.041356503 +0000
+@@ -7,13 +7,14 @@
+ #define __STDC_CONSTANT_MACROS
+ #define FF_API_OLD_SAMPLE_FMT 0
+ #include <errno.h>    // for error codes defined in avformat.h
+-#include <stdint.h>
+-#include <avcodec.h>
+-#include <avformat.h>
+-#include <avdevice.h>
++#include <stdint.h> 
++#include <time.h>
++#include <libavcodec/avcodec.h>
++#include <libavformat/avformat.h>
++#include <libavdevice/avdevice.h>
  
  #ifdef USE_SWSCALE    
-     #include <swscale.h>
+-    #include <swscale.h>
++    #include <libswscale/swscale.h>
+ #endif
+ 
+ }
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegParameters.hpp.orig	2011-04-19 12:40:22.000000000 +0100
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegParameters.hpp	2013-02-03 20:38:53.489703414 +0000
+@@ -21,14 +21,16 @@
+     bool isFormatAvailable() const { return m_format!=NULL; }
+     
+     AVInputFormat* getFormat() { return m_format; }
+-    AVFormatParameters* getFormatParameter() { return &m_parameters; }
++    AVDictionary* getOptions() { return m_options; }
++//    AVFormatParameters* getFormatParameter() { return &m_parameters; }
+     
+     void parse(const std::string& name, const std::string& value);
+ 
+ protected:
+ 
+     AVInputFormat* m_format;
+-    AVFormatParameters m_parameters;
++    AVDictionary *m_options;
++//    AVFormatParameters m_parameters;
+ };
+ 
+ 
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp.orig	2011-07-15 11:25:12.000000000 +0100
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp	2013-02-03 20:44:34.767667961 +0000
+@@ -64,21 +64,22 @@
+         
+             OSG_NOTICE<<"Attempting to stream "<<filename<<std::endl;
+ 
+-            AVFormatParameters formatParams;
+-            memset(&formatParams, 0, sizeof(AVFormatParameters));
++            AVDictionary *options = 0;
++//            AVFormatParameters formatParams;
++//            memset(&formatParams, 0, sizeof(AVFormatParameters));
+             AVInputFormat *iformat;
+ 
+-            formatParams.channel = 0;
+-            formatParams.standard = 0;
++//            formatParams.channel = 0;
++//            formatParams.standard = 0;
+ #if 1
+-            formatParams.width = 320;
+-            formatParams.height = 240;
++//            formatParams.width = 320;
++//            formatParams.height = 240;
+ #else
+-            formatParams.width = 640;
+-            formatParams.height = 480;
++//            formatParams.width = 640;
++//            formatParams.height = 480;
+ #endif            
+-            formatParams.time_base.num = 1;
+-            formatParams.time_base.den = 30;
++//            formatParams.time_base.num = 1;
++//            formatParams.time_base.den = 30;
+ 
+             std::string format = "video4linux2";
+             iformat = av_find_input_format(format.c_str());
+@@ -92,7 +93,8 @@
+                 OSG_NOTICE<<"Failed to find input format: "<<format<<std::endl;
+             }
+ 
+-            int error = av_open_input_file(&p_format_context, filename.c_str(), iformat, 0, &formatParams);
++//            int error = av_open_input_file(&p_format_context, filename.c_str(), iformat, 0, &formatParams);
++            int error = avformat_open_input(&p_format_context, filename.c_str(), iformat, &options);
+             if (error != 0)
+             {
+                 std::string error_str;
+@@ -116,9 +118,10 @@
+         else
+         {
+             AVInputFormat* av_format = (parameters ? parameters->getFormat() : 0);
+-            AVFormatParameters* av_params = (parameters ? parameters->getFormatParameter() : 0);
+-            if (av_open_input_file(&p_format_context, filename.c_str(), av_format, 0, av_params) !=0 )
+-                throw std::runtime_error("av_open_input_file() failed");
++//            AVFormatParameters* av_params = (parameters ? parameters->getFormatParameter() : 0);
++            AVDictionary *av_options = (parameters ? parameters->getOptions() : 0);
++            if (avformat_open_input(&p_format_context, filename.c_str(), av_format, &av_options) !=0 )
++                throw std::runtime_error("avformat_open_input() failed");
+         }
+         
+         m_format_context.reset(p_format_context);
+@@ -134,7 +137,7 @@
+         m_clocks.reset(m_start);
+ 
+         // Dump info to stderr
+-        dump_format(p_format_context, 0, filename.c_str(), false);
++//        dump_format(p_format_context, 0, filename.c_str(), false);
+ 
+         // Find and open the first video and audio streams (note that audio stream is optional and only opened if possible)
+ 
+@@ -292,7 +295,7 @@
+         // Read the next frame packet
+         if (av_read_frame(m_format_context.get(), &packet) < 0)
+         {
+-            if (url_ferror(m_format_context->pb) == 0)
++            if (m_format_context->pb->error == 0)
+                 end_of_stream = true;
+             else
+                 throw std::runtime_error("av_read_frame() failed");
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegDecoder.hpp.orig	2011-04-19 12:40:22.000000000 +0100
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/FFmpegDecoder.hpp	2013-02-03 11:07:08.395252896 +0000
+@@ -151,7 +151,18 @@
+ 
+ inline double FFmpegDecoder::creation_time() const
+ {
+-   if(m_format_context) return m_format_context->timestamp;
++   if(m_format_context)
++   {
++      AVDictionaryEntry *t;
++      if (t = av_dict_get(m_format_context->metadata, "creation_time", NULL, 0))
++      {
++        struct tm time = {0};
++        strptime(t->value, "%Y - %m - %dT%T", &time);
++        return mktime(&time);
++      }
++      else
++        return HUGE_VAL;
++   }
+    else return HUGE_VAL;
+ }
+ 
+--- OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/CMakeLists.txt.orig	2011-04-19 12:40:22.000000000 +0100
++++ OpenSceneGraph-3.0.1/src/osgPlugins/ffmpeg/CMakeLists.txt	2013-02-03 10:53:33.928337504 +0000
+@@ -5,7 +5,7 @@
+ 
+ IF(FFMPEG_LIBSWSCALE_FOUND)
+ 
+-    INCLUDE_DIRECTORIES( ${FFMPEG_LIBSWSCALE_INCLUDE_DIRS} ${FFMPEG_LIBSWSCALE_INCLUDE_DIRS}/libswscale )
++    INCLUDE_DIRECTORIES( ${FFMPEG_LIBSWSCALE_INCLUDE_DIRS} )
+ 
+     ADD_DEFINITIONS(-DUSE_SWSCALE)
+ 
+--- OpenSceneGraph-3.0.1/src/osgPlugins/xine/video_out_rgb.c.orig	2009-11-20 11:46:20.000000000 +0000
++++ OpenSceneGraph-3.0.1/src/osgPlugins/xine/video_out_rgb.c	2013-02-03 09:50:19.349657194 +0000
+@@ -2769,8 +2769,8 @@
+ 	clear(rgb_class, sizeof(rgbout_class_t));
+ 
+ 	rgb_class->driver_class.open_plugin     = open_plugin;
+-	rgb_class->driver_class.get_identifier  = get_identifier;
+-	rgb_class->driver_class.get_description = get_description;
++	rgb_class->driver_class.identifier      = get_identifier(NULL);
++	rgb_class->driver_class.description     = get_description(NULL);
+ 	rgb_class->driver_class.dispose         = dispose_class;
+ 
+ 	return(rgb_class);
+--- OpenSceneGraph-3.0.1/CMakeModules/FindFFmpeg.cmake.orig	2011-04-19 12:40:22.000000000 +0100
++++ OpenSceneGraph-3.0.1/CMakeModules/FindFFmpeg.cmake	2013-02-03 10:52:46.333342448 +0000
+@@ -131,20 +131,16 @@
+     SET(FFMPEG_FOUND "YES")
+ 
+     SET(FFMPEG_INCLUDE_DIRS
+-        ${FFMPEG_LIBAVFORMAT_INCLUDE_DIRS} ${FFMPEG_LIBAVFORMAT_INCLUDE_DIRS}/libavformat
+-        ${FFMPEG_LIBAVDEVICE_INCLUDE_DIRS} ${FFMPEG_LIBAVDEVICE_INCLUDE_DIRS}/libavdevice
+-        ${FFMPEG_LIBAVCODEC_INCLUDE_DIRS} ${FFMPEG_LIBAVCODEC_INCLUDE_DIRS}/libavcodec
+-        ${FFMPEG_LIBAVUTIL_INCLUDE_DIRS} ${FFMPEG_LIBAVUTIL_INCLUDE_DIRS}/libavutil
++        ${FFMPEG_LIBAVFORMAT_INCLUDE_DIRS}
++        ${FFMPEG_LIBAVDEVICE_INCLUDE_DIRS}
++        ${FFMPEG_LIBAVCODEC_INCLUDE_DIRS}
++        ${FFMPEG_LIBAVUTIL_INCLUDE_DIRS}
+     )
+ 
+     IF (FFMPEG_STDINT_INCLUDE_DIR)
+         SET(FFMPEG_INCLUDE_DIRS
+             ${FFMPEG_INCLUDE_DIRS}
+             ${FFMPEG_STDINT_INCLUDE_DIR}
+-            ${FFMPEG_STDINT_INCLUDE_DIR}/libavformat
+-            ${FFMPEG_STDINT_INCLUDE_DIR}/libavdevice
+-            ${FFMPEG_STDINT_INCLUDE_DIR}/libavcodec
+-            ${FFMPEG_STDINT_INCLUDE_DIR}/libavutil
+         )
+     ENDIF()
+ 

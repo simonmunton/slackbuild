@@ -1,0 +1,152 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=seyon
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=2.20c
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="ftp://ftp.debian.org/debian/pool/main/s/seyon/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/seyon_2.20c-31.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+chmod 755 makever.sh
+xmkmf
+
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/X11
+make install DESTDIR=${PKG} LIBDIR=/usr/lib${LIBDIRSUFFIX}/X11
+
+mkdir -p ${PKG}/etc/X11/seyon
+touch ${PKG}/etc/X11/seyon/Seyon-modem.new
+mkdir -p ${PKG}/etc/X11/app-defaults
+cp Seyon-co.ad ${PKG}/etc/X11/app-defaults/Seyon-color.new
+cp Seyon.ad ${PKG}/etc/X11/app-defaults/Seyon.new
+
+mkdir -p ${PKG}/usr/doc/seyon-${VERSION}/.seyon
+cp -a \
+  phonelist protocols script.CIS script.PCBoard script.QWK script.unix startup \
+  ${PKG}/usr/doc/seyon-${VERSION}/.seyon
+find ${PKG}/usr/doc/seyon-${VERSION} -type f -exec chmod 644 {} \;
+find ${PKG}/usr/doc/seyon-${VERSION} -type d -exec chmod 755 {} \;
+( cd ${PKG}/usr/doc/seyon-${VERSION} ; ln -sf .seyon HOME.seyon.directory.example )
+
+mkdir -p ${PKG}/usr/man/man1
+cat seyon.man | gzip -9c > ${PKG}/usr/man/man1/seyon.1.gz
+
+doinst_config etc/X11/seyon/Seyon-modem.new
+doinst_config etc/X11/app-defaults/Seyon.new
+doinst_config etc/X11/app-defaults/Seyon-color.new
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO 1-* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "telecommunications package"
+Seyon is a complete full-featured telecommunications package for the
+X Window System.  Some of its features are:  Dialing directory that
+supports an unlimited number of entries.  Terminal emulation window
+supporting DEC VT02, Tektronix 4014, and ANSI.  Script language to
+automate tedious tasks such as logging into remote hosts.  Unlimited
+number of slots for external file transfer protocols.  Support for
+zmodem auto-download.  Seyon is intended to be both simple and
+extensively configurable.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
