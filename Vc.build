@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kturtle
+TARNAME=Vc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.10.0
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=4.10.0
+VERSION=20130205
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://code.compeng.uni-frankfurt.de/projects/vc"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/Vc-20130205.diff
 )
 fi
 
@@ -55,26 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -107,12 +105,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "educational programming environment"
-kturtle is an educational programming environment that aims to make 
-learning how to program as easy as possible. To achieve this kturtle 
-makes all programming tools available from the user interface. The 
-programming language used is turtlescript which allows its commands 
-to be translated.
+make_slack_desc << EOF "Vc: Vector Classes"
+Vc is a free software library to ease explicit vectorization of C++ 
+code. It has an intuitive API and provides portability between 
+different compilers and compiler versions as well as portability 
+between different vector instruction sets. Thus an application 
+written with Vc can be compiled for
+
+    AVX
+    SSE2 up to SSE4.2 or SSE4a
+    Scalar (fallback which works everywhere)
+    LRBni support disabled, waiting for MIC
 
 EOF
 
