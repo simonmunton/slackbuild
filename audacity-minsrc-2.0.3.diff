@@ -235,7 +235,7 @@
                    ((float *)outBuf)[outIndex] = (float) ((double*)mDecodeCache[i]->samplePtr)[inIndex];
                 break;
 --- audacity-minsrc-2.0.3/src/FFmpeg.h.orig	2013-01-18 15:50:58.000000000 +0000
-+++ audacity-minsrc-2.0.3/src/FFmpeg.h	2013-02-04 22:02:27.099410190 +0000
++++ audacity-minsrc-2.0.3/src/FFmpeg.h	2013-02-13 20:43:42.761894747 +0000
 @@ -353,7 +353,7 @@
     int                  m_initialchannels;               // number of channels allocated when we begin the importing. Assumes that number of channels doesn't change on the fly.
  
@@ -383,7 +383,7 @@
     FFMPEG_FUNCTION_WITH_RETURN(
        int,
        avio_read,
-@@ -905,12 +939,14 @@
+@@ -905,12 +939,20 @@
        (AVIOContext *s),
        (s)
     );
@@ -395,11 +395,17 @@
        (protocol, size)
     );
 +#endif
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      av_sample_fmt_is_planar,
++      (enum AVSampleFormat sample_fmt),
++      (sample_fmt)
++   );
  };
  #endif
  
 --- audacity-minsrc-2.0.3/src/FFmpeg.cpp.orig	2013-01-18 15:50:52.000000000 +0000
-+++ audacity-minsrc-2.0.3/src/FFmpeg.cpp	2013-02-04 22:19:47.731460769 +0000
++++ audacity-minsrc-2.0.3/src/FFmpeg.cpp	2013-02-13 20:44:44.743888308 +0000
 @@ -174,6 +174,7 @@
        wxLogDebug(wxT("%s: %s"),cpt.c_str(),printstring.c_str());
  }
@@ -501,7 +507,13 @@
  
     FFMPEG_INITDYN(avutil, av_free);
     FFMPEG_INITDYN(avutil, av_log_set_callback);
-@@ -1059,7 +1082,9 @@
+@@ -1054,12 +1077,15 @@
+    FFMPEG_INITDYN(avutil, av_freep);
+    FFMPEG_INITDYN(avutil, av_rescale_q);
+    FFMPEG_INITDYN(avutil, avutil_version);
++   FFMPEG_INITDYN(avutil, av_sample_fmt_is_planar);
+ 
+    wxLogMessage(wxT("All symbols loaded successfully. Initializing the library."));
  #endif
  
     //FFmpeg initialization
@@ -511,7 +523,7 @@
     avcodec_register_all();
     av_register_all();
     
-@@ -1100,8 +1125,10 @@
+@@ -1100,8 +1126,10 @@
  #if defined(DISABLE_DYNAMIC_LOADING_FFMPEG) && (LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(52, 69, 0))
     av_register_protocol(&ufile_protocol);
  #else
@@ -523,7 +535,7 @@
     return true;
  }
 --- audacity-minsrc-2.0.3/src/import/ImportFFmpeg.cpp.orig	2013-01-18 15:50:57.000000000 +0000
-+++ audacity-minsrc-2.0.3/src/import/ImportFFmpeg.cpp	2013-02-04 21:59:25.280401352 +0000
++++ audacity-minsrc-2.0.3/src/import/ImportFFmpeg.cpp	2013-02-13 20:00:16.232165517 +0000
 @@ -362,7 +362,12 @@
  
     av_log_set_callback(av_log_wx_callback);
@@ -554,7 +566,7 @@
           strinfo.Printf(_("Index[%02x] Codec[%S], Language[%S], Bitrate[%S], Channels[%d], Duration[%d]"),sc->m_stream->id,codec->name,lang.c_str(),bitrate.c_str(),sc->m_stream->codec->channels, duration);
           mStreamInfo->Add(strinfo);
           mScs[mNumStreams++] = sc;
-@@ -491,8 +500,8 @@
+@@ -491,8 +500,10 @@
     {
        switch (mScs[s]->m_stream->codec->sample_fmt)
        {
@@ -562,10 +574,65 @@
 -         case SAMPLE_FMT_S16:
 +         case AV_SAMPLE_FMT_U8:
 +         case AV_SAMPLE_FMT_S16:
++         case AV_SAMPLE_FMT_U8P:
++         case AV_SAMPLE_FMT_S16P:
              mScs[s]->m_osamplesize = sizeof(int16_t);
              mScs[s]->m_osamplefmt = int16Sample;
           break;
-@@ -749,23 +758,23 @@
+@@ -741,6 +752,52 @@
+    uint8_t *in = sc->m_decodedAudioSamples;
+    int index = 0;
+    int pos = 0;
++   if (av_sample_fmt_is_planar(sc->m_samplefmt))
++   {
++      while (pos < insamples)
++      {
++         for (int chn = 0; chn < sc->m_stream->codec->channels; chn++)
++         {
++            if (chn < nChannels)
++            {
++               for (index=0; index < insamples/nChannels; index++)
++               {
++                  switch (sc->m_samplefmt)
++                  {
++                     case AV_SAMPLE_FMT_U8P:
++                        ((int16_t *)tmp[chn])[index] = (int16_t) (*(uint8_t *)in - 0x80) << 8;
++                     break;
++
++                     case AV_SAMPLE_FMT_S16P:
++                        ((int16_t *)tmp[chn])[index] = (int16_t) *(int16_t *)in;
++                     break;
++
++                     case AV_SAMPLE_FMT_S32P:
++                        ((float *)tmp[chn])[index] = (float) *(int32_t *)in * (1.0 / (1 << 31));
++                     break;
++
++                     case AV_SAMPLE_FMT_FLTP:
++                        ((float *)tmp[chn])[index] = (float) *(float *)in;
++                     break;
++
++                     case AV_SAMPLE_FMT_DBLP:
++                        ((float *)tmp[chn])[index] = (float) *(double *)in;
++                     break;
++
++                     default:
++                        wxLogError(wxT("Stream %d has unrecognized sample format %d."), streamid, sc->m_samplefmt);
++                        return 1;
++                     break;
++                  }
++                  in += sc->m_samplesize;
++                  pos++;
++               }
++            }
++         }
++      }
++   }
++   else
++   {
+    while (pos < insamples)
+    {
+       for (int chn = 0; chn < sc->m_stream->codec->channels; chn++)
+@@ -749,23 +806,23 @@
           {
              switch (sc->m_samplefmt)
              {
@@ -594,7 +661,15 @@
                    ((float *)tmp[chn])[index] = (float) *(double *)in;
                 break;
  
-@@ -804,12 +813,14 @@
+@@ -780,6 +837,7 @@
+       }
+       index++;
+    }
++   }
+ 
+    // Write audio into WaveTracks
+    for (int chn=0; chn < nChannels; chn++)
+@@ -804,12 +862,14 @@
        mProgressPos = sc->m_codecCtx->frame_number;
        mProgressLen = sc->m_stream->nb_frames;
     }
@@ -609,7 +684,7 @@
     updateResult = mProgress->Update(mProgressPos, mProgressLen != 0 ? mProgressLen : 1);
  
     return updateResult;
-@@ -831,6 +842,7 @@
+@@ -831,6 +891,7 @@
  
  void FFmpegImportFileHandle::GetMetadata(Tags *tags, const wxChar *tag, const char *name)
  {
@@ -617,7 +692,7 @@
     AVMetadataTag *meta;
  
     meta = av_metadata_get(mFormatContext->metadata, name, NULL, AV_METADATA_IGNORE_SUFFIX);
-@@ -838,6 +850,7 @@
+@@ -838,6 +899,7 @@
     {
        tags->SetTag(tag, wxString::FromUTF8(meta->value));
     }

@@ -94,8 +94,13 @@ fi
 
 make install DESTDIR=${PKG}
 
+ if [ "$(uname -m)" == "x86_64" ]
+ then
+  sed -i 's@lib/X11@lib64/X11@' ${PKG}/usr/lib${LIBDIRSUFFIX}/X11/config/X11.tmpl
+ fi
+
 # Remove the empty host.def:
-rm -f ${PKG}/usr/lib/X11/config/host.def
+rm -f ${PKG}/usr/lib${LIBDIRSUFFIX}/X11/config/host.def
 
 cat << EOF >> ${PKG}/install/doinst.sh
 
