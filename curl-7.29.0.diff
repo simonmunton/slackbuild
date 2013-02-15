@@ -1,0 +1,18 @@
+--- curl-7.29.0/lib/multi.c.orig	2013-02-05 22:01:40.000000000 +0000
++++ curl-7.29.0/lib/multi.c	2013-02-15 19:20:50.593551994 +0000
+@@ -1773,10 +1773,12 @@
+     /* Close all the connections in the connection cache */
+     close_all_connections(multi);
+ 
+-    multi->closure_handle->dns.hostcache = multi->hostcache;
+-    Curl_hostcache_clean(multi->closure_handle);
++    if(multi->closure_handle) {
++      multi->closure_handle->dns.hostcache = multi->hostcache;
++      Curl_hostcache_clean(multi->closure_handle);
+ 
+-    Curl_close(multi->closure_handle);
++      Curl_close(multi->closure_handle);
++    }
+     multi->closure_handle = NULL;
+ 
+     Curl_hash_destroy(multi->sockhash);
