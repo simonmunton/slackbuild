@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=google-talkplugin
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/g
+TAR_EXT=.rpm
+VERSION=3.13.2.0-1
+VERSIONEXTRA=.i386
+BUILD=1
+
+WEBPAGE="http://www.google.com/chrome"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+case `uname -m` in
+    x86_64) VERSIONEXTRA=.x86_64 ;;
+esac
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+
+cd ${PKG}
+
+rpm2cpio ${FULL_TARNAME} | cpio -i -m -d
+
+fix_perms
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+
+LIBDIR=lib${LIBDIRSUFFIX}
+
+rm -rf etc/cron.daily
+rmdir etc
+
+rm -rf usr/lib64/{firefox,iceape,iceweasel,midbrowser,xulrunner,xulrunner-addons}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+#cp -a \
+#  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+#  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Google Talk Plugin"
+The Google Talk Plugin is a browser plugin that enables you to use 
+Google voice and video chat to chat face to face with family and 
+friends.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 4755 opt/google/chrome/chrome-sandbox ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
