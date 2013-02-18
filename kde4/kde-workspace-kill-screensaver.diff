@@ -1,26 +1,49 @@
+--- kde-workspace-4.10.0/ksmserver/screenlocker/ksldapp.cpp.orig	2013-02-08 18:54:56.000000000 +0000
++++ kde-workspace-4.10.0/ksmserver/screenlocker/ksldapp.cpp	2013-02-16 17:02:39.625268231 +0000
+@@ -353,7 +353,11 @@
+         return;
+     }
+     s_graceTimeKill = true;
+-    m_lockProcess->kill();
++    m_lockProcess->terminate();
++    if (!m_lockProcess->waitForFinished(10000))
++    {
++        m_lockProcess->kill();
++    }
+ }
+ 
+ void KSldApp::inhibit()
 --- kde-workspace-4.10.0/ksmserver/screenlocker/greeter/screensaverwindow.cpp.orig	2013-01-23 21:46:34.000000000 +0000
-+++ kde-workspace-4.10.0/ksmserver/screenlocker/greeter/screensaverwindow.cpp	2013-02-12 19:59:13.474509260 +0000
-@@ -131,6 +131,7 @@
++++ kde-workspace-4.10.0/ksmserver/screenlocker/greeter/screensaverwindow.cpp	2013-02-16 17:04:36.777256061 +0000
+@@ -64,6 +64,7 @@
+ 
+ ScreenSaverWindow::~ScreenSaverWindow()
+ {
++    stopXScreenSaver();
+ }
+ 
+ QPixmap ScreenSaverWindow::background() const
+@@ -131,6 +132,7 @@
      m_startMousePos = QPoint(-1, -1);
      //reappear in one minute
      m_reactivateTimer->start(1000 * 60);
-+    stopXScreenSaver();
++//    stopXScreenSaver();
      hide();
      emit hidden();
  }
-@@ -140,6 +141,7 @@
+@@ -140,6 +142,7 @@
  {
      Q_UNUSED(event)
  
-+    stopXScreenSaver();
++//    stopXScreenSaver();
      hide();
      emit hidden();
  }
-@@ -155,6 +157,7 @@
+@@ -155,6 +158,7 @@
      }
      else if ((event->globalPos() - m_startMousePos).manhattanLength() > QApplication::startDragDistance()) {
          m_startMousePos = QPoint(-1, -1);
-+        stopXScreenSaver();
++//        stopXScreenSaver();
          hide();
          emit hidden();
          //reappear in one minute
