@@ -6,7 +6,7 @@ TARNAME=NetworkManager
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.9.6.4
+VERSION=0.9.8.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -84,6 +84,10 @@ fi
 
 make install DESTDIR=${PKG}
 
+mkdir -p ${PKG}/etc/rc.d
+cp initscript/Slackware/rc.networkmanager ${PKG}/etc/rc.d
+sed -i -e "s@/var/run/NetworkManager@/var/run/NetworkManager/NetworkManager@" ${PKG}/etc/rc.d/rc.networkmanager
+
 mkdir -p ${PKG}/var/lib/dhclient
 
 (cd ${PKG}
@@ -94,7 +98,7 @@ mkdir -p ${PKG}/var/lib/dhclient
    doinst_config ${f}.new
  done
 
- for f in etc/dbus-1/system.d/NetworkManager.conf
+ for f in etc/dbus-1/system.d/org.freedesktop.NetworkManager.conf
  do
    mv ${f} ${f}.new
    doinst_config ${f}.new
@@ -102,52 +106,31 @@ mkdir -p ${PKG}/var/lib/dhclient
 )
 
 cat  >> ${PKG}/etc/NetworkManager/NetworkManager.conf.new << EOF
+# /etc/NetworkManager/NetworkManager.conf
+#
+# See NetworkManager.conf(5) for more information on this file
+
 [main]
 plugins=keyfile
 dhcp=dhcpcd
 #no-auto-default=mac_addr
 
 [keyfile]
-#hostname=
+hostname=yourhostname
+
+EOF
+
+cat >> ${PKG}/install/doinst.sh << EOF
+
+if [ -e etc/HOSTNAME ]; then
+  sed -i "s,yourhostname,\$(cat etc/HOSTNAME | cut -f1 -d .)," \
+    etc/NetworkManager/NetworkManager.conf.new
+fi
 
 EOF
 
 doinst_config etc/NetworkManager/NetworkManager.conf.new
 
-cat >> ${PKG}/install/doinst.sh << EOF
-###
-# Use rc.local to start NetworkManager at boot.
-###
-if [ ! -e etc/rc.d/rc.local ]; then
-        echo "#!/bin/sh" > etc/rc.d/rc.local
-        chmod 755 etc/rc.d/rc.local
-fi
-run=\$(grep "sh /etc/rc.d/rc.networkmanager" etc/rc.d/rc.local)
-if [[ "\${run}" == "" ]]; then
-        echo "" >> etc/rc.d/rc.local
-        echo "# start NetworkManager daemon" >> etc/rc.d/rc.local
-        echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local
-        echo "  sh /etc/rc.d/rc.networkmanager start" >> etc/rc.d/rc.local
-        echo "fi" >> etc/rc.d/rc.local
-fi
-
-###
-# Use rc.local_shutdown to stop NetworkManager.
-###
-if [ ! -e etc/rc.d/rc.local_shutdown ]; then
-        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
-        chmod 755 etc/rc.d/rc.local_shutdown
-fi
-run=\$(grep "sh /etc/rc.d/rc.networkmanager" etc/rc.d/rc.local_shutdown)
-if [[ "\${run}" == "" ]]; then
-        echo "" >> etc/rc.d/rc.local_shutdown
-        echo "# stop NetworkManager daemon" >> etc/rc.d/rc.local_shutdown
-        echo "if [ -x /etc/rc.d/rc.networkmanager ]; then" >> etc/rc.d/rc.local_shutdown
-        echo "  sh /etc/rc.d/rc.networkmanager stop" >> etc/rc.d/rc.local_shutdown
-        echo "fi" >> etc/rc.d/rc.local_shutdown
-fi
-
-EOF
 
 #strip_binaries
 
