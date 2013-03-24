@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=qrupdate
+TARNAME=arpack-ng
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/q
+TARSEP="_"
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=1.1.2
+VERSION=3.1.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/qrupdate/"
+#WEBPAGE="http://www.caam.rice.edu/software/ARPACK/"
+WEBPAGE="http://forge.scilab.org/index.php/p/arpack-ng/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=arpack
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +37,8 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/qrupdate-1.1.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,20 +61,20 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -80,7 +82,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} PREFIX=/usr LIBDIR=lib${LIBDIRSUFFIX} lib solib BLAS=-lsatlas LAPACK="" || exit
+make ${NUM_JOBS} home=`pwd` PLAT="" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +90,7 @@ then
   exit
 fi
 
-make install PREFIX=/usr LIBDIR=lib${LIBDIRSUFFIX} DESTDIR=${PKG} BLAS=-lsatlas LAPACK=""
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -105,9 +107,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Fortran library for QR and Cholesky decompositions"
-qrupdate is a Fortran library for fast updates of QR and Cholesky 
-decompositions.
+make_slack_desc << EOF "Fortran eigenvalue library"
+ARPACK is a collection of Fortran77 subroutines designed to solve 
+large scale eigenvalue problems.
 
 EOF
 
