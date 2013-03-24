@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=3.2.2
+VERSION=3.4.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/lapack-3.4.2-bug0101.diff
  cp ${CWD}/blas.makefile BLAS/SRC/Makefile
  sed -i -e "s/3.1.1/${VERSION}/" BLAS/SRC/Makefile
 )
@@ -88,6 +88,10 @@ cp libblas.so.${VERSION} ${PKG}/usr/lib${LIBDIRSUFFIX}
 )
 (cd ${PKG}/usr/lib${LIBDIRSUFFIX}
  ln -s libblas.so.${VERSION} libblas.so
+)
+mkdir ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+(cd BLAS
+ sed -e "s#@prefix@#/usr#; s#@libdir@#/usr/lib${LIBDIRSUFFIX}#; s#@LAPACK_VERSION@#${VERSION}#" blas.pc.in > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/blas.pc
 )
 
 #strip_binaries

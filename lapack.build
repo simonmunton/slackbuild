@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=3.2.2
+VERSION=3.4.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,10 +45,10 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/lapack-3.4.2-bug0101.diff
  cp make.inc.example make.inc
- patch -p1 < ${CWD}/lapack-3.2.1.diff
- sed -i -e "s/3.1.1/${VERSION}/" SRC/Makefile
+# patch -p1 < ${CWD}/lapack-3.4.2.diff
+# sed -i -e "s/3.1.1/${VERSION}/" SRC/Makefile
 )
 fi
 
@@ -75,52 +75,63 @@ fi
 
 mkdir -p  ${PKG}/usr/lib${LIBDIRSUFFIX}
 
-# Build the static dlamch, dsecnd, lsame, second, slamch bits
-pushd INSTALL
+
+echo "Building liblapack_pic.a"
 make clean
-make NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3" || exit
-# dlamch.o dsecnd.o lsame.o second.o slamch.o
-popd
+make lapack_install NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC"
+make lib            NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC"
+mv liblapack.a liblapack_pic.a
 
-# Build the static lapack library
-pushd SRC
+echo "Building liblapack.so.${VERSION} from liblapack_pic.a"
+mkdir -p tmp
+(cd tmp && ar x ../liblapack_pic.a)
+gfortran -shared -Wl,-soname=liblapack.so.3 -o liblapack.so.${VERSION} tmp/*.o  -L. -lblas -lm -lgfortran -lc
+ln -s liblapack.so.${VERSION} liblapack.so.3
+ln -s liblapack.so.${VERSION} liblapack.so
+rm -rf tmp
+
+
+echo "Building liblapacke_pic.a"
+cd lapacke
 make clean
-make NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3" || exit
-popd
-cp lapack.a ${PKG}/usr/lib${LIBDIRSUFFIX}/liblapack.a
+make CFLAGS="-funroll-all-loops -O3 -fPIC"
+cd ..
+mv liblapacke.a liblapacke_pic.a
 
-# Build the shared dlamch, dsecnd, lsame, second, slamch bits
-pushd INSTALL
+echo "Building liblapacke.so.${VERSION} from liblapacke_pic.a"
+mkdir -p tmp
+(cd tmp && ar x ../liblapacke_pic.a)
+gcc -shared -Wl,-soname=liblapacke.so.3 -o liblapacke.so.${VERSION} tmp/*.o  -L. -lblas ./liblapack.so -lm -lgfortran -lc
+ln -s liblapacke.so.${VERSION} liblapacke.so.3
+ln -s liblapacke.so.${VERSION} liblapacke.so
+rm -rf tmp
+
+
+
+
+echo "Building liblapack.a"
 make clean
-make NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" || exit
-#        dlamch.o dsecnd.o lsame.o second.o slamch.o
-popd
+make lapack_install NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3"
+make lib NOOPT="-funroll-all-loops -O0" OPTS="-funroll-all-loops -O3"
 
-# Build the shared lapack library
-pushd SRC
+echo "Building liblapacke.a"
+cd lapacke
 make clean
-make NOOPT="-funroll-all-loops -O0 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" shared || exit
-cp liblapack.so.${VERSION} ${PKG}/usr/lib${LIBDIRSUFFIX}
-(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
- ln -s liblapack.so.${VERSION} liblapack.so
-)
-popd
+make CFLAGS="-funroll-all-loops -O3"
+cd ..
 
-# Build the static with pic dlamch, dsecnd, lsame, second, slamch bits
-#pushd INSTALL
-#make clean
-#make NOOPT="-funroll-all-loops -Os -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" \
-#        dlamch.o dsecnd.o lsame.o second.o slamch.o
-#popd
 
-# Build the static with pic lapack library
-pushd SRC
-#make clean
-make FFLAGS="-funroll-all-loops -O3 -fPIC" OPTS="-funroll-all-loops -O3 -fPIC" || exit
-popd
-cp lapack.a ${PKG}/usr/lib${LIBDIRSUFFIX}/liblapack_pic.a
+
+
+cp -P liblapack* ${PKG}/usr/lib${LIBDIRSUFFIX}
+rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.3
+
 
 #strip_binaries
+
+mkdir ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+sed -e "s#@prefix@#/usr#; s#@libdir@#/usr/lib${LIBDIRSUFFIX}#; s#@LAPACK_VERSION@#${VERSION}#" lapack.pc.in > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lapack.pc
+sed -e "s#@prefix@#/usr#; s#@libdir@#/usr/lib${LIBDIRSUFFIX}#; s#@LAPACK_VERSION@#${VERSION}#" lapacke/lapacke.pc.in > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lapacke.pc
 
 fix_links
 

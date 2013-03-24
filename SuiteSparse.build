@@ -6,7 +6,7 @@ TARNAME=SuiteSparse
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s/SuiteSparse
 #TAR_EXT=.tar.gz
-VERSION=3.6.0
+VERSION=4.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,9 +43,16 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- tar xf ~/tmp/new/m/metis-4.0.tar.gz
+# tar xf ~/tmp/new/m/metis-4.0.3.tar.gz
+# ln -s metis-4.0.3 metis-4.0
 
- sed -i 's/^BLAS.*/BLAS = -lsatlas/; s/^LAPACK.*/LAPACK = -lsatlas/' UFconfig/UFconfig.mk
+ if [ -d /usr/include/metis ]
+ then
+   mkdir -p metis-4.0
+   ln -s /usr/include/metis metis-4.0/Lib
+ fi
+
+# sed -i 's/^BLAS.*/BLAS = -lsatlas/; s/^LAPACK.*/LAPACK = -lsatlas/' SuiteSparse_config/SuiteSparse_config.mk
 )
 fi
 
@@ -66,84 +73,7 @@ pushd metis-4.0
 # make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
 popd
 
-#make ${NUM_JOBS} CC=gcc CFLAGS='-O3 -fexceptions -fPIC -I../Include' || exit
-# gcc -shared -Wl,-soname,libamd.so.2 -o ../Lib/libamd.so.2.0.3 `ls *.o` -lm
-
-AMD_version=2.2.2
-BTF_version=1.1.2
-CAMD_version=2.2.2
-CCOLAMD_version=2.7.3
-CHOLMOD_version=1.7.3
-COLAMD_version=2.7.3
-CSparse_version=2.2.5
-CXSparse_version=2.2.5
-KLU_version=1.1.2
-LDL_version=2.0.3
-UMFPACK_version=5.5.1
-RBio_version=2.0.1
-SPQR_version=1.2.1
-
-(cd AMD/Lib && pwd &&
- gcc -shared -Wl,-soname,libamd.so.${AMD_version%.*.*} -o libamd.so.${AMD_version} -lm `ls *.o` &&
- ln -sf libamd.so.${AMD_version} libamd.so.${AMD_version%.*.*} &&
- ln -sf libamd.so.${AMD_version} libamd.so)
-(cd CAMD/Lib && pwd &&
- gcc -shared -Wl,-soname,libcamd.so.${CAMD_version%.*.*} -o libcamd.so.${CAMD_version} -lm `ls *.o` &&
- ln -sf libcamd.so.${CAMD_version} libcamd.so.${CAMD_version%.*.*} &&
- ln -sf libcamd.so.${CAMD_version} libcamd.so)
-(cd CCOLAMD/Lib && pwd &&
- gcc -shared -Wl,-soname,libccolamd.so.${CCOLAMD_version%.*.*} -o libccolamd.so.${CCOLAMD_version} -lm `ls *.o` &&
- ln -sf libccolamd.so.${CCOLAMD_version} libccolamd.so.${CCOLAMD_version%.*.*} &&
- ln -sf libccolamd.so.${CCOLAMD_version} libccolamd.so)
-(cd COLAMD/Lib && pwd &&
- gcc -shared -Wl,-soname,libcolamd.so.${COLAMD_version%.*.*} -o libcolamd.so.${COLAMD_version} -lm `ls *.o` &&
- ln -sf libcolamd.so.${COLAMD_version} libcolamd.so.${COLAMD_version%.*.*} &&
- ln -sf libcolamd.so.${COLAMD_version} libcolamd.so)
-(cd BTF/Lib && pwd &&
- gcc -shared -Wl,-soname,libbtf.so.${BTF_version%.*.*} -o libbtf.so.${BTF_version} `ls *.o` &&
- ln -sf libbtf.so.${BTF_version} libbtf.so.${BTF_version%.*.*} &&
- ln -sf libbtf.so.${BTF_version} libbtf.so)
-(cd KLU/Lib && pwd &&
- gcc -shared -Wl,-soname,libklu.so.${KLU_version%.*.*} -o libklu.so.${KLU_version} -L../../BTF/Lib -lbtf -L../../COLAMD/Lib -lcolamd -L../../AMD/Lib -lamd  `ls *.o` &&
- ln -sf libklu.so.${KLU_version} libklu.so.${KLU_version%.*.*} &&
- ln -sf libklu.so.${KLU_version} libklu.so)
-(cd LDL/Lib/ && pwd &&
- gcc -shared -Wl,-soname,libldl.so.${LDL_version%.*.*} -o libldl.so.${LDL_version} `ls *.o` &&
- ln -sf libldl.so.${LDL_version} libldl.so.${LDL_version%.*.*} &&
- ln -sf libldl.so.${LDL_version} libldl.so)
-(cd CSparse/Lib/ && pwd &&
- gcc -shared -Wl,-soname,libcsparse.so.${CSparse_version%.*.*} -o libcsparse.so.${CSparse_version} -lm `ls *.o` &&
- ln -sf libcsparse.so.${CSparse_version} libcsparse.so.${CSparse_version%.*.*} &&
- ln -sf libcsparse.so.${CSparse_version} libcsparse.so)
-(cd CXSparse/Lib/ && pwd &&
- gcc -shared -Wl,-soname,libcxsparse.so.${CXSparse_version%.*.*} -o libcxsparse.so.${CXSparse_version} -lm `ls *.o` &&
- ln -sf libcxsparse.so.${CXSparse_version} libcxsparse.so.${CXSparse_version%.*.*} &&
- ln -sf libcxsparse.so.${CXSparse_version} libcxsparse.so)
-(cd CHOLMOD/Lib && pwd &&
- gcc -shared -Wl,-soname,libcholmod.so.${CHOLMOD_version%.*.*} -o libcholmod.so.${CHOLMOD_version} -lm -L../../AMD/Lib -lamd -L../../CAMD/Lib -lcamd -L../../COLAMD/Lib -lcolamd -L../../CCOLAMD/Lib -lccolamd -lmetis -lsatlas `ls *.o` &&
- ln -sf libcholmod.so.${CHOLMOD_version} libcholmod.so.${CHOLMOD_version%.*.*} &&
- ln -sf libcholmod.so.${CHOLMOD_version} libcholmod.so)
-(cd UMFPACK/Lib && pwd &&
- gcc -shared -Wl,-soname,libumfpack.so.${UMFPACK_version%.*.*} -o libumfpack.so.${UMFPACK_version} -L../../AMD/Lib -lamd -L../../CHOLMOD/Lib -lcholmod -lsatlas `ls *.o` &&
- ln -sf libumfpack.so.${UMFPACK_version} libumfpack.so.${UMFPACK_version%.*.*} &&
- ln -sf libumfpack.so.${UMFPACK_version} libumfpack.so)
-(cd SPQR/Lib && pwd &&
- gcc -shared -Wl,-soname,libspqr.so.${SPQR_version%.*.*} -o libspqr.so.${SPQR_version} -lm -L../../CHOLMOD/Lib -lcholmod -lsatlas `ls *.o` -lstdc++ &&
- ln -sf libspqr.so.${SPQR_version} libspqr.so.${SPQR_version%.*.*} &&
- ln -sf libspqr.so.${SPQR_version} libspqr.so)
-(cd RBio/Lib && pwd &&
- gcc -shared -Wl,-soname,librbio.so.${RBio_version%.*.*} -o librbio.so.${RBio_version} -lm `ls *.o` ../../UFconfig/libufconfig.a &&
- ln -sf librbio.so.${RBio_version} librbio.so.${RBio_version%.*.*} &&
- ln -sf librbio.so.${RBio_version} librbio.so)
-
-#(cd CHOLMOD/LibMetis && $(MAKE) CHOLMOD_CONFIG="-I/usr/include/metis -I/usr/include/mpi")
-#(cd CHOLMOD/LibMetis && gcc -shared -Wl,-soname,libcholmod.so.${version%.*.*} -o ../LibMetis/libcholmod.so.${version
-#(cd CHOLMOD/LibMetis && ln -sf libcholmod.so.${version} libcholmod.so.${version%.*.*})
-#(cd CHOLMOD/LibMetis && ln -sf libcholmod.so.${version} libcholmod.so)
-
-( cd CHOLMOD/Doc && cp UserGuide.pdf  CHOLMOD_UserGuide.pdf && cp UserGuide.bib  CHOLMOD_UserGuide.bib )
-( cd UMFPACK/Doc && cp UserGuide.pdf  UMFPACK_UserGuide.pdf && cp UserGuide.bib  UMFPACK_UserGuide.bib )
-( cd UMFPACK/Doc && cp QuickStart.pdf  UMFPACK_QuickStart.pdf )
+make ${NUM_JOBS} BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" INSTALL_LIB=/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=/usr/include/suitesparse || exit
 
 fi
 
@@ -153,15 +83,42 @@ then
 fi
 
 #make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX} ${PKG}/usr/include/suitesparse
+make install BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse
 
-mkdir -p ${PKG}/usr/{include/suitesparse/CSparse,lib}
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ find . -type l -exec rm {} \;
+ for f in libsuitesparseconfig*.a libamd*.a libcamd*.a libccolamd*.a libcolamd*.a libbtf*.a libcholmod*.a libcxsparse*.a libldl*.a libspqr*.a libumfpack*.a libklu*.a librbio*.a
+ do
+  mkdir tmp 
+  cd tmp
+  ar x ../$f
+  cd ..
+  bf=${f%%.*}
+  v=${f%.a}
+  v=${v#*.}
+  extra_lib=""
+  case $bf in
+    libcholmod) extra_lib="-lamd -lcolamd -lccolamd -lcamd -lsuitesparseconfig -lmetis" ;;
+    librbio) extra_lib="-lsuitesparseconfig" ;;
+    libklu) extra_lib="-lamd -lcolamd  -lbtf -lsuitesparseconfig" ;;
+    libspqr) extra_lib="-lcholmod -lccolamd -lsuitesparseconfig" ;;
+    libumfpack) extra_lib="-lamd -lcholmod -lccolamd -lsuitesparseconfig" ;;
+    libsuitesparseconfig) extra_lib="-lrt" ;;
+    *) ;;
+  esac
+  echo "Building ${bf}.so.${v}"
+  gcc -shared -Wl,-soname=${bf}.so.${v%%.*} -Wl,--as-needed -o ${bf}.so.${v} tmp/*.o  -L. $extra_lib -lsatlas -lm -lgfortran -lc
+  ln -s ${bf}.so.${v} ${bf}.so
+  ln -s ${bf}.so.${v} ${bf}.so.${v%%.*}
+  rm -rf tmp
+ done
+ rm *.a
+)
 
-cp -d {AMD,CAMD,CCOLAMD,COLAMD,BTF,KLU,LDL,CSparse,CXSparse,UMFPACK,CHOLMOD,SPQR,RBio}/Lib/lib* ${PKG}/usr/lib
-rm ${PKG}/usr/lib/{*.a,*.def}
-
-cp {AMD,CAMD,CCOLAMD,COLAMD,BTF,KLU,LDL,CXSparse,UMFPACK,CHOLMOD,SPQR,RBio}/Include/*.h ${PKG}/usr/include/suitesparse
-cp CSparse/Include/*.h ${PKG}/usr/include/suitesparse/CSparse
-cp UFconfig/*.h ${PKG}/usr/include/suitesparse
+#( cd CHOLMOD/Doc && cp UserGuide.pdf  CHOLMOD_UserGuide.pdf && cp UserGuide.bib  CHOLMOD_UserGuide.bib )
+#( cd UMFPACK/Doc && cp UserGuide.pdf  UMFPACK_UserGuide.pdf && cp UserGuide.bib  UMFPACK_UserGuide.bib )
+#( cd UMFPACK/Doc && cp QuickStart.pdf  UMFPACK_QuickStart.pdf )
 
 #strip_binaries
 
@@ -176,19 +133,19 @@ cp -a \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/{AMD,BTF,CAMD,CCOLAMD,CHOLMOD,COLAMD,CSparse,CXSparse,KLU,LDL,UMFPACK,SPQR,RBio}
-cp AMD/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/AMD
-cp BTF/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/BTF
-cp CAMD/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CAMD
-cp CCOLAMD/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CCOLAMD
-cp CHOLMOD/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CHOLMOD
-cp COLAMD/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/COLAMD
-cp CSparse/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CSparse
-cp CXSparse/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CXSparse
-cp KLU/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/KLU
-cp LDL/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/LDL
-cp UMFPACK/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/UMFPACK
-cp SPQR/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/SPQR
-cp RBio/Doc/{*pdf,License,lesser.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}/RBio
+cp AMD/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/AMD
+cp BTF/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/BTF
+cp CAMD/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/CAMD
+cp CCOLAMD/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CCOLAMD
+cp CHOLMOD/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CHOLMOD
+cp COLAMD/{README*,Doc/{*pdf,License,lesser.txt}}   ${PKG}/usr/doc/${TARNAME}-${VERSION}/COLAMD
+cp CSparse/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CSparse
+cp CXSparse/{README*,Doc/{*pdf,License,lesser.txt}} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CXSparse
+cp KLU/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/KLU
+cp LDL/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/LDL
+cp RBio/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/RBio
+cp SPQR/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/SPQR
+cp UMFPACK/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/UMFPACK
 
 
 fix_docs

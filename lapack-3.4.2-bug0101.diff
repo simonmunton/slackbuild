@@ -1,0 +1,136 @@
+--- lapack-3.4.2/SRC/chsein.f.orig	2011-11-11 19:34:11.000000000 +0000
++++ lapack-3.4.2/SRC/chsein.f	2013-03-24 06:26:24.723102202 +0000
+@@ -104,6 +104,7 @@
+ *> \verbatim
+ *>          H is COMPLEX array, dimension (LDH,N)
+ *>          The upper Hessenberg matrix H.
++*>          If a NaN is detected in H, the routine will return with INFO=-6.
+ *> \endverbatim
+ *>
+ *> \param[in] LDH
+@@ -276,9 +277,9 @@
+       COMPLEX            CDUM, WK
+ *     ..
+ *     .. External Functions ..
+-      LOGICAL            LSAME
++      LOGICAL            LSAME, SISNAN
+       REAL               CLANHS, SLAMCH
+-      EXTERNAL           LSAME, CLANHS, SLAMCH
++      EXTERNAL           LSAME, CLANHS, SLAMCH, SISNAN
+ *     ..
+ *     .. External Subroutines ..
+       EXTERNAL           CLAEIN, XERBLA
+@@ -399,7 +400,10 @@
+ *              has not ben computed before.
+ *
+                HNORM = CLANHS( 'I', KR-KL+1, H( KL, KL ), LDH, RWORK )
+-               IF( HNORM.GT.RZERO ) THEN
++               IF( SISNAN( HNORM ) ) THEN
++                  INFO = -6
++                  RETURN
++               ELSE IF( (HNORM.GT.RZERO) ) THEN
+                   EPS3 = HNORM*ULP
+                ELSE
+                   EPS3 = SMLNUM
+--- lapack-3.4.2/SRC/zhsein.f.orig	2011-11-11 19:34:11.000000000 +0000
++++ lapack-3.4.2/SRC/zhsein.f	2013-03-24 06:26:24.724102202 +0000
+@@ -104,6 +104,7 @@
+ *> \verbatim
+ *>          H is COMPLEX*16 array, dimension (LDH,N)
+ *>          The upper Hessenberg matrix H.
++*>          If a NaN is detected in H, the routine will return with INFO=-6.
+ *> \endverbatim
+ *>
+ *> \param[in] LDH
+@@ -276,9 +277,9 @@
+       COMPLEX*16         CDUM, WK
+ *     ..
+ *     .. External Functions ..
+-      LOGICAL            LSAME
++      LOGICAL            LSAME, DISNAN
+       DOUBLE PRECISION   DLAMCH, ZLANHS
+-      EXTERNAL           LSAME, DLAMCH, ZLANHS
++      EXTERNAL           LSAME, DLAMCH, ZLANHS, DISNAN
+ *     ..
+ *     .. External Subroutines ..
+       EXTERNAL           XERBLA, ZLAEIN
+@@ -399,7 +400,10 @@
+ *              has not ben computed before.
+ *
+                HNORM = ZLANHS( 'I', KR-KL+1, H( KL, KL ), LDH, RWORK )
+-               IF( HNORM.GT.RZERO ) THEN
++               IF( DISNAN( HNORM ) ) THEN
++                  INFO = -6
++                  RETURN
++               ELSE IF( HNORM.GT.RZERO ) THEN
+                   EPS3 = HNORM*ULP
+                ELSE
+                   EPS3 = SMLNUM
+--- lapack-3.4.2/SRC/shsein.f.orig	2011-11-11 19:34:11.000000000 +0000
++++ lapack-3.4.2/SRC/shsein.f	2013-03-24 06:26:24.723102202 +0000
+@@ -108,6 +108,7 @@
+ *> \verbatim
+ *>          H is REAL array, dimension (LDH,N)
+ *>          The upper Hessenberg matrix H.
++*>          If a NaN is detected in H, the routine will return with INFO=-6.
+ *> \endverbatim
+ *>
+ *> \param[in] LDH
+@@ -291,9 +292,9 @@
+      $                   WKR
+ *     ..
+ *     .. External Functions ..
+-      LOGICAL            LSAME
++      LOGICAL            LSAME, SISNAN
+       REAL               SLAMCH, SLANHS
+-      EXTERNAL           LSAME, SLAMCH, SLANHS
++      EXTERNAL           LSAME, SLAMCH, SLANHS, SISNAN
+ *     ..
+ *     .. External Subroutines ..
+       EXTERNAL           SLAEIN, XERBLA
+@@ -423,7 +424,10 @@
+ *              has not ben computed before.
+ *
+                HNORM = SLANHS( 'I', KR-KL+1, H( KL, KL ), LDH, WORK )
+-               IF( HNORM.GT.ZERO ) THEN
++               IF( SISNAN( HNORM ) ) THEN
++                  INFO = -6
++                  RETURN
++               ELSE IF( HNORM.GT.ZERO ) THEN
+                   EPS3 = HNORM*ULP
+                ELSE
+                   EPS3 = SMLNUM
+--- lapack-3.4.2/SRC/dhsein.f.orig	2011-11-11 19:34:11.000000000 +0000
++++ lapack-3.4.2/SRC/dhsein.f	2013-03-24 06:26:24.724102202 +0000
+@@ -108,6 +108,7 @@
+ *> \verbatim
+ *>          H is DOUBLE PRECISION array, dimension (LDH,N)
+ *>          The upper Hessenberg matrix H.
++*>          If a NaN is detected in H, the routine will return with INFO=-6.
+ *> \endverbatim
+ *>
+ *> \param[in] LDH
+@@ -291,9 +292,9 @@
+      $                   WKR
+ *     ..
+ *     .. External Functions ..
+-      LOGICAL            LSAME
++      LOGICAL            LSAME, DISNAN
+       DOUBLE PRECISION   DLAMCH, DLANHS
+-      EXTERNAL           LSAME, DLAMCH, DLANHS
++      EXTERNAL           LSAME, DLAMCH, DLANHS, DISNAN
+ *     ..
+ *     .. External Subroutines ..
+       EXTERNAL           DLAEIN, XERBLA
+@@ -423,7 +424,10 @@
+ *              has not ben computed before.
+ *
+                HNORM = DLANHS( 'I', KR-KL+1, H( KL, KL ), LDH, WORK )
+-               IF( HNORM.GT.ZERO ) THEN
++               IF( DISNAN( HNORM ) ) THEN
++                  INFO = -6
++                  RETURN
++               ELSE IF( HNORM.GT.ZERO ) THEN
+                   EPS3 = HNORM*ULP
+                ELSE
+                   EPS3 = SMLNUM
