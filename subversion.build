@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
 VERSION=1.7.8
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #WEBPAGE="http://subversion.tigris.org"
 WEBPAGE="http://subversion.apache.org/"
@@ -79,6 +79,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+make swig-py swig-pl-lib ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,7 +87,25 @@ then
   exit
 fi
 
-make install install-docs DESTDIR=${PKG}
+make install install-docs install-tools DESTDIR=${PKG}
+make install-swig-py DESTDIR=$PKG
+
+PYTHON_VER=$(python -c 'import sys; print "%d.%d" % sys.version_info[:2]')
+mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages
+mv $PKG/usr/lib${LIBDIRSUFFIX}/svn-python/* \
+  $PKG/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages
+rmdir $PKG/usr/lib${LIBDIRSUFFIX}/svn-python
+
+# Perl bindings
+make install-swig-pl-lib DESTDIR=$PKG
+( cd subversion/bindings/swig/perl/native
+  perl Makefile.PL
+  make install_vendor DESTDIR=$PKG
+)
+eval $(perl '-V:archlib')
+mv $PKG/$archlib/perllocal.pod $PKG/$archlib/subversion.pod
+
+#make install-swig-rb DESTDIR=$PKG
 
 #strip_binaries
 
