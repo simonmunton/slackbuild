@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.0.35
-VERSIONEXTRA=
-BUILD=4
+VERSION=2.0.36-rc1
+VERSIONEXTRA=-dfsg
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.boutell.com/gd/"
+#http://www.libgd.org/
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +37,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +46,11 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gd.png15.diff
+# patch -p1 < ${CWD}/gd.png15.diff
+ patch -p1 < ${CWD}/gd-0001_fix_leak_in_gdImageCopyResized.patch
+ patch -p1 < ${CWD}/gd-0002_CVE-2009-3546.patch
+ patch -p1 < ${CWD}/gd-0003_fix_support_large_images.patch
+ patch -p1 < ${CWD}/gd-0004_fix_fprint_string_formatting.patch
 )
 fi
 
