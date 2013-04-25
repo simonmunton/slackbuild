@@ -7,13 +7,14 @@ DO_CONFIGURE=yes
 DO_MAKE=yes
 DO_INSTALL=yes
 NUM_JOBS="-j 1"
+FORCE_32=no
 
 
 # Note that we use `"$@"' to let each command-line parameter expand to a
 # separate word. The quotes around `$@' are essential!
 # We need OPTS as the `eval set --' would nuke the return value of getopt.
 
-OPTS=`getopt -o cmij:v --long disable-configure,disable-make,disable-install,num-jobs,check-version: \
+OPTS=`getopt -o cmij:v3 --long disable-configure,disable-make,disable-install,num-jobs,check-version,32: \
      -n "$0" -- "$@"`
 
 # Note the quotes around `$OPTS': they are essential!
@@ -26,6 +27,7 @@ while true ; do
     -i|--disable-install)    DO_INSTALL=no; shift ;;
     -j|--num-jobs)	     NUM_JOBS="-j $2"; shift 2 ;;
     -v|--check-version)	     DO_CHECK_VERSION=yes; shift ;;
+    -3|--32)		     FORCE_32=yes; shift ;;
     --) shift ; break ;;
   esac
 done
@@ -101,6 +103,16 @@ case `uname -m` in
     ;;
 esac
 
+if [ ${FORCE_32} == "yes" ]
+then
+    if [ ${ARCH} == "x86_64" ]
+    then
+      ARCH=i486
+    fi
+    LIBDIRSUFFIX=""
+    SLKCFLAGS="-m32 -O2 -march=i486 -mtune=i686"
+    EXTRA_CONFIGURE_FLAGS="--host=i486"
+fi
 
 # MINICPAN
 if [[ ${FULL_TARNAME} =~ MINICPAN ]]
