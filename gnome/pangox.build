@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=soundkonverter
+TARNAME=pangox-compat
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.0.1
+VERSION=0.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/pango-1.28.4.diff
 )
 fi
 
@@ -55,26 +55,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+            --enable-debug=minimal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,9 +79,14 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
+mkdir -p ${PKG}/etc/pango
+touch ${PKG}/etc/pango/pango.modules
 
-make_debug_files
+cat <<EOF >> ${PKG}/install/doinst.sh
+#
+pango-querymodules > /etc/pango/pango.modules
+EOF
+
 #strip_binaries
 
 fix_links
@@ -107,11 +102,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "sound format converter for KDE"
-soundKonverter supports reading and writing tags for many formats, so
-the tags are preserved when converting files.
-It comes with an Amarok script that allows you to easily transcode
-files when transfering to your media device.
+make_slack_desc << EOF "compatibility library providing the obsolete pangox library"
+This is a compatibility library providing the obsolete pangox library
+that is not shipped by Pango itself anymore.
 
 EOF
 
