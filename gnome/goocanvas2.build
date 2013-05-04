@@ -1,21 +1,19 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=rekonq
+TARNAME=goocanvas
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.3.0
+VERSION=2.0.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://rekonq.kde.org/"
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=goocanvas2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,26 +53,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,9 +76,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
 #strip_binaries
 
 fix_links
@@ -107,11 +91,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "webkit based web browser for KDE"
-Rekonq is a web browser for KDE based on WebKit. It first focuses on 
-being a light, fast & clean way to access to net. Its development is 
-doubly based on using the new amazing features offered by the WebKit 
-rendering engine and on the rock solid network KDE technologies.
+make_slack_desc << EOF "cairo-based canvas widget for GTK+"
+GooCanvas is similar in many ways to GnomeCanvas and FooCanvas.
+But it uses cairo for rendering, has an optional model/view split,
+and uses interfaces for items & models (so you can easily turn any
+application object into a canvas item or model).
 
 EOF
 
