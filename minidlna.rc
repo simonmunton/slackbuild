@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# chkconfig: 345 99 10
+# description: Startup/shutdown script for MiniDLNA daemon
+#
+# Based on the MiniUPnPd script by Thomas Bernard
+# Modified for MiniDLNA by Justin Maggard <jmaggard@users.sourceforge.net>
+# Status function added by Igor Drobot
+#
+### BEGIN INIT INFO
+# Provides:          minidlna
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop::    $network $local_fs $remote_fs
+# Should-Start:      $all
+# Should-Stop:       $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DLNA/UPnP-AV media server
+### END INIT INFO
+
+MINIDLNA=/usr/sbin/minidlnad
+PIDFILE=/var/run/minidlnad.pid
+CONF=/etc/minidlna.conf
+ARGS="-f $CONF"
+
+test -f $MINIDLNA || exit 0
+
+#. /lib/lsb/init-functions
+
+case "$1" in
+start)  echo "Starting minidlnad"
+        $MINIDLNA $ARGS -P $PIDFILE
+        ;;
+stop)   echo "Stopping minidlnad"
+        killall minidlna
+        ;;
+restart|reload|force-reload)
+        echo "Restarting minidlnad"
+        killall minidlna
+        $MINIDLNA $ARGS -P $PIDFILE
+        ;;
+*)      echo "Usage: /etc/rc.d/rc.minidlna {start|stop|restart|reload|force-reload}"
+        exit 2
+        ;;
+esac
+exit 0
