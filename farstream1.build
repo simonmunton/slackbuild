@@ -2,24 +2,20 @@
 #
 . build_funcs
 
-TARNAME=telepathy-qt4
+TARNAME=farstream
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t/telepathy
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=0.8.0
+VERSION=0.1.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://telepathy.freedesktop.org/releases/telepathy-qt4/"
-
-echo "use telepathy-qt now"
-exit 1
-
+WEBPAGE="http://www.freedesktop.org/wiki/Software/Farstream"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=farstream1
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -49,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -63,22 +59,23 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#            --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-introspection=no
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -109,10 +106,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library for qt based telepathy"
-telepathy-qt is a Qt4 package containing base classes for use in 
-connection managers, and proxy classes for use in clients. It's used 
-in at least TapiocaQt. 
+make_slack_desc << EOF "audio/video conferencing protocols framework"
+The Farstream (formerly Farsight) project is an effort to create a 
+framework to deal with all known audio/video conferencing protocols.
+On one side it offers a generic API that makes it possible to write 
+plugins for different streaming protocols, on the other side it offers 
+an API for clients to use those plugins.
+
+The main target clients for Farstream are Instant Messaging 
+applications. These applications should be able to use Farstream for 
+all their Audio/Video conferencing needs without having to worry about 
+any of the lower level streaming and NAT traversal issues. 
 
 EOF
 
