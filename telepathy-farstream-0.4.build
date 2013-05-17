@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libotr
+TARNAME=telepathy-farstream
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/t/telepathy
 #TAR_EXT=.tar.gz
-VERSION=3.2.1
+VERSION=0.4.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.cypherpunks.ca/otr"
+WEBPAGE="http://telepathy.freedesktop.org/releases/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=telepathy-farstream-0.4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/telepathy-farstream-0.4-Set-RemoteContact-when-accepting-updating-media-desc.patch
 )
 fi
 
@@ -72,6 +72,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -89,6 +90,28 @@ fi
 
 make install DESTDIR=${PKG}
 
+mv ${PKG}/usr/include/telepathy-1.0 \
+   ${PKG}/usr/include/telepathy-1.0-compat
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream.so \
+   ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream-0.4.so
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream.a \
+   ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream-0.4.a
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/telepathy-farstream.pc \
+   ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/telepathy-farstream-0.4.pc
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream.la \
+   ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream-0.4.la
+
+sed -i -e 's/-ltelepathy-farstream/-ltelepathy-farstream-0.4/' \
+       -e 's!-I\$${includedir}/telepathy-1.0!-I\$${includedir}/telepathy-1.0-compat!' \
+          ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/telepathy-farstream-0.4.pc
+
+sed -i -e "s/libtelepathy-farstream.so'/libtelepathy-farstream-0.4.so'/" \
+       -e 's/libtelepathy-farstream.a/libtelepathy-farstream-0.4.a/' \
+          ${PKG}/usr/lib${LIBDIRSUFFIX}/libtelepathy-farstream-0.4.la
+
+mv ${PKG}/usr/share/gtk-doc/html/telepathy-farstream \
+   ${PKG}/usr/share/gtk-doc/html/telepathy-farstream-0.4
+
 strip_binaries
 
 fix_links
@@ -104,13 +127,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Off-the-Record (OTR) Messaging"
-Off-the-Record (OTR) Messaging allows you to have private 
-conversations over instant messaging by providing:
-    Encryption
-    Authentication
-    Deniability
-    Perfect forward secrecy
+make_slack_desc << EOF "Telepathy client library that uses Farstream"
+Telepathy Farstream is a Telepathy client library that uses Farstream
+to handle Call channels.
+
+Telepathy is a D-Bus framework for unifying real time communication,
+including instant messaging, voice calls and video calls. It abstracts
+differences between protocols to provide a unified interface for
+applications.
 
 EOF
 

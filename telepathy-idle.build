@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=ktp-kded-integration-module
+TARNAME=telepathy-idle
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=/home/simon/tmp/new/k/ktelepathy
+TARDIR=~/tmp/new/t/telepathy
 #TAR_EXT=.tar.gz
-VERSION=0.6.1
+VERSION=0.1.16
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://projects.kde.org/projects/extragear/network/telepathy"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,22 +59,23 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+LIBS="-lgnutls" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
@@ -90,8 +91,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
-make_debug_files
+strip_binaries
 
 fix_links
 
@@ -106,10 +106,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KTp KDED"
-This module sits in KDED and takes care of various bits of system 
-integration like setting user to auto-away or handling connection 
-errors.
+make_slack_desc << EOF "IRC telepathy"
+Idle implements the Telepathy D-Bus specification for Internet Relay 
+Chat, allowing Telepathy clients like empathy to connect to IRC 
+servers.
+
 
 EOF
 
