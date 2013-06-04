@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libX11
+TARNAME=pulseaudio
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/lib
+TARDIR=~/tmp/new/p/pulseaudio
 #TAR_EXT=.tar.gz
-VERSION=1.6.0
+VERSION=4.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.pulseaudio.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=pulseaudio4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/pulseaudio-2.1.diff
+# ./bootstrap.sh
 )
 fi
 
@@ -55,8 +56,6 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -64,21 +63,9 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
+            --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static \
-	    --with-xcb=yes
-
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+	    --disable-hal
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -93,7 +80,26 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+(cd ${PKG}/etc/pulse
+ for f in client.conf  daemon.conf  default.pa system.pa
+ do
+  mv ${f} ${f}.new
+  doinst_config etc/pulse/${f}.new
+ done
+)
+
+doinst_addusergrp pulse pulse
+doinst_addgrp pulse-access
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/pulseaudio
+fi
+
+EOF
+
+#strip_binaries
 
 fix_links
 
@@ -108,15 +114,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-libX11 is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "networked low-latency sound server"
+PulseAudio is a sound server for POSIX and Win32 systems. A sound 
+server is basically a proxy for your sound applications. It allows 
+you to do advanced operations on your sound data as it passes between 
+your application and your hardware. Things like transferring the audio 
+to a different machine, changing the sample format or channel count 
+and mixing several sounds into one are easily achieved using a sound 
+server.
 
 EOF
 
@@ -125,5 +130,6 @@ post_install
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/pulseaudio usr/libexec/pulse/bt-proximity-helper ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
