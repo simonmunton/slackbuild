@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=lua
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=5.2.2
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 -b -z .orig < ${CWD}/lua-5.1.x-autotoolize.patch
+# mv Makefile Makefile.lua
+# mv src/Makefile src/Makefile.lua
+# mv etc/lua.pc etc/lua.pc.lua
+# sed -i "s/5.1.3/$VERSION/" configure.ac
+# chmod +x autogen.sh
+# ./autogen.sh
+ sed -i "s@/lib@/lib${LIBDIRSUFFIX}@" Makefile
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+# hack so that only /usr/bin/lua gets linked with readline as it is the
+# only one which needs this
+#make ${NUM_JOBS} LIBS="-lm -ldl" luac_LDADD="liblua.la -lm -ldl" || exit
+make ${NUM_JOBS} linux INSTALL_TOP=/usr MYLIBS=-ltermcap || exit
+# also remove readline from lua.pc
+#sed -i 's/-lreadline -lncurses //g' etc/lua.pc
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install linux INSTALL_TOP=${PKG}/usr MYLIBS=-ltermcap
+
+#mkdir -p ${PKG}/usr/share/lua/5.1 ${PKG}/usr/lib${LIBDIRSUFFIX}/lua/5.1
+
+#mv ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua5.1.pc
+#ln -s lua5.1.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua.pc
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* COPYRIGHT HISTORY INSTALL NEWS PLANS README* TODO doc \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc/*.1
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+Lua is a powerful, fast, light-weight, embeddable scripting language.
+
+Lua combines simple procedural syntax with powerful data description 
+constructs based on associative arrays and extensible semantics. Lua 
+is dynamically typed, runs by interpreting bytecode for a register-
+based virtual machine, and has automatic memory management with 
+incremental garbage collection, making it ideal for configuration, 
+scripting, and rapid prototyping. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
