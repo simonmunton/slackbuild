@@ -96,12 +96,26 @@ then
 fi
 
 
-(cd qcad
+(cd release
 
-mkdir -p $PKG/opt/qcad/bin
-cp -pr qcad README doc data fonts library patterns qm scripts $PKG/opt/qcad/
-ln -sf /usr/bin/assistant $PKG/opt/qcad/bin/assistant
+mkdir -p ${PKG}/opt/qcad/
+cp * ${PKG}/opt/qcad/
+rm ${PKG}/opt/qcad/*.a
+
+cd ..
+cp -pr examples fonts libraries patterns plugins scripts ts ${PKG}/opt/qcad/
+
+#ln -sf /usr/bin/assistant $PKG/opt/qcad/bin/assistant
 )
+
+mkdir -p ${PKG}/usr/bin
+cat > ${PKG}/usr/bin/qcad << EOF
+#! /bin/bash
+
+LD_LIBRARY_PATH=/opt/qcad /opt/qcad/qcad-bin "\$@"
+EOF
+
+chmod +x ${PKG}/usr/bin/qcad
 
 #make install DESTDIR=${PKG}
 
@@ -114,7 +128,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* readme*TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
