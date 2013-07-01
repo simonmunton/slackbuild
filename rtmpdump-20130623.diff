@@ -1,0 +1,32 @@
+--- rtmpdump-20130623/rtmpsrv.c.orig	2013-06-23 09:26:43.000000000 +0100
++++ rtmpdump-20130623/rtmpsrv.c	2013-07-01 14:25:06.505360255 +0100
+@@ -269,7 +269,7 @@
+ SendPlayStart(RTMP *r)
+ {
+   RTMPPacket packet;
+-  char pbuf[512], *pend = pbuf+sizeof(pbuf);
++  char pbuf[4096], *pend = pbuf+sizeof(pbuf);
+ 
+   packet.m_nChannel = 0x03;     // control channel (invoke)
+   packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
+@@ -301,7 +301,7 @@
+ SendPlayStop(RTMP *r)
+ {
+   RTMPPacket packet;
+-  char pbuf[512], *pend = pbuf+sizeof(pbuf);
++  char pbuf[4096], *pend = pbuf+sizeof(pbuf);
+ 
+   packet.m_nChannel = 0x03;     // control channel (invoke)
+   packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
+@@ -410,6 +410,11 @@
+   for (i=0, len=0; i < obj->o_num; i++)
+     {
+       AMFObjectProperty *p = &obj->o_props[i];
++      if (p->p_type < 0 || p->p_type >= strlen(opt) || (opt[p->p_type] == ' ' && !p->p_name.av_val))
++        {
++          RTMP_Log(RTMP_LOGERROR, "%s, Bad p_type %d", __FUNCTION__, p->p_type);
++          continue;
++        }
+       argv[ac].av_val = ptr+1;
+       argv[ac++].av_len = 2;
+       ptr += sprintf(ptr, " -C ");
