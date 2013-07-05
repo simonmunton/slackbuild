@@ -1,6 +1,6 @@
---- xsane-0.998/src/xsane-preview.c.orig	2010-11-16 20:52:39.000000000 +0000
-+++ xsane-0.998/src/xsane-preview.c	2013-07-05 19:38:44.157983434 +0100
-@@ -6327,8 +6327,8 @@
+--- xsane-0.998/src/xsane-preview.c.orig	2013-07-05 20:46:03.215147829 +0100
++++ xsane-0.998/src/xsane-preview.c	2013-07-05 20:46:03.220147829 +0100
+@@ -6326,8 +6326,8 @@
   cmsHPROFILE hOutProfile = NULL;
   cmsHPROFILE hProofProfile = NULL;
   cmsHTRANSFORM hTransform = NULL;
@@ -11,7 +11,7 @@
   int proof = 0;
   char *cms_proof_icm_profile = NULL;
   int linesize = 0;
-@@ -6336,7 +6336,7 @@
+@@ -6335,7 +6335,7 @@
  
    DBG(DBG_proc, "preview_do_color_correction\n");
  
@@ -21,7 +21,7 @@
    if (preferences.cms_bpc)
    {
 --- xsane-0.998/src/xsane-viewer.c.orig	2010-11-16 20:26:34.000000000 +0000
-+++ xsane-0.998/src/xsane-viewer.c	2013-07-05 19:49:26.113309915 +0100
++++ xsane-0.998/src/xsane-viewer.c	2013-07-05 20:46:03.220147829 +0100
 @@ -1795,6 +1795,8 @@
  {
   Viewer *v = (Viewer *) data;
@@ -110,9 +110,9 @@
  #endif
    if (selection_filetype)
    {
---- xsane-0.998/src/xsane-save.c.orig	2013-07-05 19:20:06.000000000 +0100
-+++ xsane-0.998/src/xsane-save.c	2013-07-05 20:08:25.841255535 +0100
-@@ -830,9 +830,9 @@
+--- xsane-0.998/src/xsane-save.c.orig	2013-07-05 20:46:03.200147830 +0100
++++ xsane-0.998/src/xsane-save.c	2013-07-05 20:47:16.710286822 +0100
+@@ -832,9 +832,9 @@
   cmsHPROFILE hInProfile = NULL;
   cmsHPROFILE hOutProfile = NULL;
   cmsHTRANSFORM hTransform = NULL;
@@ -125,7 +125,7 @@
  
    if (cms_function == XSANE_CMS_FUNCTION_EMBED_SCANNER_ICM_PROFILE)
    {
-@@ -841,7 +841,7 @@
+@@ -843,7 +843,7 @@
  
    DBG(DBG_info, "Prepare CMS transform\n");
  
@@ -134,7 +134,7 @@
  
    if (cms_bpc)
    {
-@@ -888,10 +888,10 @@
+@@ -890,10 +890,10 @@
      if (image_info->channels == 1) /* == 1 (grayscale) */
      {
  #if 1 /* xxx oli */
@@ -147,7 +147,7 @@
  #endif
      }
      else
-@@ -2894,7 +2894,7 @@
+@@ -2904,7 +2904,7 @@
      return -1;
    }
  
@@ -156,7 +156,7 @@
    if (n == 0)
    {
      return -2;
-@@ -2906,7 +2906,7 @@
+@@ -2916,7 +2916,7 @@
      return -3;
    }
  
@@ -165,7 +165,7 @@
    buffer[n] = 0;
  
    fprintf(outfile, "%s", buffer);
-@@ -2925,7 +2925,7 @@
+@@ -2935,7 +2935,7 @@
   cmsHPROFILE hProfile;
   size_t n;
   char* buffer;
@@ -174,7 +174,7 @@
  
    hProfile = cmsOpenProfileFromFile(output_profile, "r");
    if (!hProfile)
-@@ -2938,7 +2938,7 @@
+@@ -2948,7 +2948,7 @@
      flags |= cmsFLAGS_BLACKPOINTCOMPENSATION;
    }
  
@@ -183,7 +183,7 @@
    if (n == 0)
    {
      return -2;
-@@ -2950,7 +2950,7 @@
+@@ -2960,7 +2960,7 @@
      return -3;
    }
  
@@ -192,7 +192,7 @@
    buffer[n] = 0;
  
    fprintf(outfile, "%s", buffer);
-@@ -4333,7 +4333,7 @@
+@@ -4352,7 +4352,7 @@
  {
   FILE *icm_profile;
   size_t size, embed_len;
@@ -201,7 +201,7 @@
  
    DBG(DBG_proc, "xsane_jpeg_embed_scanner_icm_profile(%s)\n", icm_filename);
  
-@@ -4347,7 +4347,7 @@
+@@ -4366,7 +4366,7 @@
    size = ftell(icm_profile);
    fseek(icm_profile, 0, SEEK_SET);
  
@@ -210,8 +210,26 @@
    if (embed_buffer)
    {
      embed_len = fread(embed_buffer, 1, size, icm_profile);
---- xsane-0.998/src/xsane.h.orig	2010-11-16 21:00:33.000000000 +0000
-+++ xsane-0.998/src/xsane.h	2013-07-05 19:30:11.924007874 +0100
+@@ -4929,7 +4929,7 @@
+     return -1; /* error */
+   }
+ 
+-  if (setjmp(png_ptr->jmpbuf))
++  if (setjmp(png_jmpbuf(png_ptr)))
+   {
+     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
+     xsane_back_gtk_error(buf, TRUE);
+@@ -5119,7 +5119,7 @@
+     return -1; /* error */
+   }
+ 
+-  if (setjmp(png_ptr->jmpbuf))
++  if (setjmp(png_jmpbuf(png_ptr)))
+   {
+     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
+     xsane_back_gtk_error(buf, TRUE);
+--- xsane-0.998/src/xsane.h.orig	2013-07-05 20:46:03.218147829 +0100
++++ xsane-0.998/src/xsane.h	2013-07-05 20:46:03.221147829 +0100
 @@ -70,7 +70,7 @@
  #include <gtk/gtk.h>
  
@@ -222,7 +240,7 @@
  # define cmsHTRANSFORM void *
  #endif
 --- xsane-0.998/configure.orig	2007-12-17 10:18:11.000000000 +0000
-+++ xsane-0.998/configure	2013-07-05 19:31:21.220004568 +0100
++++ xsane-0.998/configure	2013-07-05 20:46:03.223147829 +0100
 @@ -5811,7 +5811,7 @@
    echo $ECHO_N "(cached) $ECHO_C" >&6
  else
