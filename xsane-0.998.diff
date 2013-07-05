@@ -1,130 +1,243 @@
---- xsane-0.998/src/Makefile.in.orig	2005-12-21 21:20:24.000000000 +0000
-+++ xsane-0.998/src/Makefile.in	2008-03-29 09:51:00.000000000 +0000
-@@ -23,6 +23,8 @@
- configdir = ${sysconfdir}/sane.d
- sanedatadir = ${datadir}/sane
- xsanedocdir = ${datadir}/sane/xsane/doc
-+desktopappdir = @datadir@/applications
-+pixmapdir = @datadir@/pixmaps
+--- xsane-0.998/src/xsane-preview.c.orig	2010-11-16 20:52:39.000000000 +0000
++++ xsane-0.998/src/xsane-preview.c	2013-07-05 19:38:44.157983434 +0100
+@@ -6327,8 +6327,8 @@
+  cmsHPROFILE hOutProfile = NULL;
+  cmsHPROFILE hProofProfile = NULL;
+  cmsHTRANSFORM hTransform = NULL;
+- DWORD input_format, output_format;
+- DWORD cms_flags = 0;
++ cmsUInt32Number input_format, output_format;
++ cmsUInt32Number cms_flags = 0;
+  int proof = 0;
+  char *cms_proof_icm_profile = NULL;
+  int linesize = 0;
+@@ -6336,7 +6336,7 @@
  
- MKINSTALLDIRS = @MKINSTALLDIRS@
- INSTALL = @INSTALL@
-@@ -63,37 +65,43 @@
- all: $(PROGRAMS)
+   DBG(DBG_proc, "preview_do_color_correction\n");
  
- install: $(PROGRAMS)
--	$(MKINSTALLDIRS) $(bindir) $(sbindir) $(datadir) $(sanedatadir) $(xsanedocdir) $(sanedatadir)/xsane
-+	$(MKINSTALLDIRS) $(DESTDIR)$(bindir) $(DESTDIR)$(sbindir) $(DESTDIR)$(datadir) $(DESTDIR)$(sanedatadir) $(DESTDIR)$(xsanedocdir) $(DESTDIR)$(sanedatadir)/xsane $(DESTDIR)$(desktopappdir) $(DESTDIR)$(pixmapdir)
- 	@for program in $(BINPROGS); do \
--	  $(INSTALL_PROGRAM) $${program} $(bindir)/$${program}; \
-+	  $(INSTALL_PROGRAM) $${program} $(DESTDIR)$(bindir)/$${program}; \
- 	done
--	$(INSTALL_DATA) $(srcdir)/xsane-style.rc $(sanedatadir)/xsane/xsane-style.rc
--	$(INSTALL_DATA) $(srcdir)/xsane-startimage.pnm $(sanedatadir)/xsane/xsane-startimage.pnm
--	$(INSTALL_DATA) $(srcdir)/xsane-calibration.pnm $(sanedatadir)/xsane/xsane-calibration.pnm
--	$(INSTALL_DATA) $(srcdir)/xsane-logo.xpm $(sanedatadir)/xsane/xsane-logo.xpm
--	$(INSTALL_DATA) $(srcdir)/xsane-gpl.txt $(sanedatadir)/xsane/xsane-gpl.txt
--	$(INSTALL_DATA) $(srcdir)/xsane-eula.txt $(sanedatadir)/xsane/xsane-eula.txt
-+	$(INSTALL_DATA) $(srcdir)/xsane-style.rc $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc
-+	$(INSTALL_DATA) $(srcdir)/xsane-startimage.pnm $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm
-+	$(INSTALL_DATA) $(srcdir)/xsane-calibration.pnm $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm
-+	$(INSTALL_DATA) $(srcdir)/xsane-logo.xpm $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm
-+	$(INSTALL_DATA) $(srcdir)/xsane-gpl.txt $(DESTDIR)$(sanedatadir)/xsane/xsane-gpl.txt
-+	$(INSTALL_DATA) $(srcdir)/xsane-eula.txt $(DESTDIR)$(sanedatadir)/xsane/xsane-eula.txt
-+	$(INSTALL_DATA) $(srcdir)/xsane.desktop $(DESTDIR)$(desktopappdir)/xsane.desktop
-+	$(INSTALL_DATA) $(srcdir)/xsane.xpm $(DESTDIR)$(pixmapdir)/xsane.xpm
- 	@for logo in *-logo.xpm; do \
--	  echo installing $(sanedatadir)/xsane/$${logo}; \
--	  $(INSTALL_DATA) $(srcdir)/$${logo} $(sanedatadir)/xsane/$${logo}; \
-+	  echo installing $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
-+	  $(INSTALL_DATA) $(srcdir)/$${logo} $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
- 	done 
+-  cmsErrorAction(LCMS_ERROR_SHOW);
++//  cmsErrorAction(LCMS_ERROR_SHOW);
  
- uninstall:
- 	@for program in $(BINPROGS); do \
--	  echo uninstalling $(bindir)/$${program}...; \
--	  rm -f $(bindir)/$${program}; \
-+	  echo uninstalling $(DESTDIR)$(bindir)/$${program}...; \
-+	  rm -f $(DESTDIR)$(bindir)/$${program}; \
- 	done
--	echo uninstalling $(sanedatadir)/xsane/xsane-style.rc...
--	rm -f $(sanedatadir)/xsane/xsane-style.rc
--	echo uninstalling $(sanedatadir)/xsane/xsane-startimage.pnm...
--	rm -f $(sanedatadir)/xsane/xsane-startimage.pnm
--	echo uninstalling $(sanedatadir)/xsane/xsane-calibration.pnm...
--	rm -f $(sanedatadir)/xsane/xsane-calibration.pnm
--	echo uninstalling $(sanedatadir)/xsane/xsane-logo.xpm...
--	rm -f $(sanedatadir)/xsane/xsane-logo.xpm
-+	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc...
-+	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-style.rc
-+	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm...
-+	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-startimage.pnm
-+	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm...
-+	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-calibration.pnm
-+	echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm...
-+	rm -f $(DESTDIR)$(sanedatadir)/xsane/xsane-logo.xpm
-+	echo uninstalling $(DESTDIR)$(desktopappdir)/xsane.desktop
-+	rm -f $(DESTDIR)$(desktopappdir)/xsane.desktop
-+	echo uninstalling $(DESTDIR)$(pixmapdir)/xsane.xpm
-+	rm -f $(DESTDIR)$(pixmapdir)/xsane.xpm
- 	@for logo in *-logo.xpm; do \
--	  echo uninstalling $(sanedatadir)/xsane/$${logo}; \
--	  rm -f $(sanedatadir)/xsane/$${logo}; \
-+	  echo uninstalling $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
-+	  rm -f $(DESTDIR)$(sanedatadir)/xsane/$${logo}; \
- 	done 
+   if (preferences.cms_bpc)
+   {
+--- xsane-0.998/src/xsane-viewer.c.orig	2010-11-16 20:26:34.000000000 +0000
++++ xsane-0.998/src/xsane-viewer.c	2013-07-05 19:49:26.113309915 +0100
+@@ -1795,6 +1795,8 @@
+ {
+  Viewer *v = (Viewer *) data;
+  int val;
++ cmsUInt16Number alarm[cmsMAXCHANNELS];
++ memset(alarm, 0, sizeof alarm);
  
- xsane: $(XSANE_OBJS) $(LIBLIB)
-@@ -108,7 +116,7 @@
- 	rm -rf .libs
+   g_signal_handlers_block_by_func(GTK_OBJECT(v->cms_gamut_alarm_color_widget[0]), (GtkSignalFunc) xsane_viewer_set_cms_gamut_alarm_color_callback, v);
+   g_signal_handlers_block_by_func(GTK_OBJECT(v->cms_gamut_alarm_color_widget[1]), (GtkSignalFunc) xsane_viewer_set_cms_gamut_alarm_color_callback, v);
+@@ -1815,27 +1817,36 @@
+   {
+     default:
+     case 0: /* black */
+-      cmsSetAlarmCodes(0, 0, 0);
++      cmsSetAlarmCodes(alarm);
+      break;
  
- distclean: clean
--	rm -f Makefile $(PROGRAMS)
-+	rm -f Makefile $(PROGRAMS) 
+     case 1: /* gray */
+-      cmsSetAlarmCodes(128, 128, 128);
++      alarm[0] = 128 << 8;
++      alarm[1] = 128 << 8;
++      alarm[1] = 128 << 8;
++      cmsSetAlarmCodes(alarm);
+      break;
  
- depend:
- 	makedepend $(INCLUDES) *.c
-@@ -138,6 +146,7 @@
- xsane-back-gtk.o: xsane-front-gtk.h
- xsane-back-gtk.o: xsane-preferences.h
- xsane-back-gtk.o: xsane-gamma.h
-+xsane-back-gtk.o: xsane-text.h
+     case 2: /* white */
+-      cmsSetAlarmCodes(255, 255, 255);
++      alarm[0] = 255 << 8;
++      alarm[1] = 255 << 8;
++      alarm[1] = 255 << 8;
++      cmsSetAlarmCodes(alarm);
+      break;
  
- xsane-front-gtk.o: xsane.h
- xsane-front-gtk.o: xsane-back-gtk.h
-@@ -146,6 +155,7 @@
- xsane-front-gtk.o: xsane-save.h
- xsane-front-gtk.o: xsane-gamma.h
- xsane-front-gtk.o: xsane-setup.h
-+xsane-front-gtk.o: xsane-text.h
+     case 3: /* red */
+-      cmsSetAlarmCodes(255, 0, 0);
++      alarm[0] = 255 << 8;
++      cmsSetAlarmCodes(alarm);
+      break;
  
- xsane-batch-scan.o: xsane.h
- xsane-batch-scan.o: xsane-scan.h
-@@ -230,6 +240,7 @@
- xsane-multipage-project.o: xsane-preferences.h
- xsane-multipage-project.o: xsane-multipage-project.h
- xsane-multipage-project.o: xsane-text.h
-+xsane-multipage-project.o: xsane-save.h
+     case 4: /* green */
+-      cmsSetAlarmCodes(0, 255, 0);
++      alarm[1] = 255 << 8;
++      cmsSetAlarmCodes(alarm);
+      break;
  
- xsane-fax-project.o: xsane.h
- xsane-fax-project.o: xsane-back-gtk.h
---- xsane-0.998/src/xsane-save.c.orig	2010-11-16 21:06:00.000000000 +0000
-+++ xsane-0.998/src/xsane-save.c	2012-06-23 08:22:06.000000000 +0100
-@@ -4910,7 +4910,7 @@
-     return -1; /* error */
+     case 5: /* blue */
+-      cmsSetAlarmCodes(0, 0, 255);
++      alarm[1] = 255 << 8;
++      cmsSetAlarmCodes(alarm);
+      break;
    }
  
--  if (setjmp(png_ptr->jmpbuf))
-+  if (setjmp(png_jmpbuf(png_ptr)))
+@@ -2172,9 +2183,9 @@
+  cmsHTRANSFORM hTransform = NULL;
+  int proof = 0;
+  char *cms_proof_icm_profile = NULL;
+- DWORD cms_input_format;
+- DWORD cms_output_format;
+- DWORD cms_flags = 0;
++ cmsUInt32Number cms_input_format;
++ cmsUInt32Number cms_output_format;
++ cmsUInt32Number cms_flags = 0;
+ #endif
+ 
+   /* open imagefile */
+@@ -2203,7 +2214,7 @@
+ 
+   if ((v->enable_color_management) && (v->cms_enable))
    {
-     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
-     xsane_back_gtk_error(buf, TRUE);
-@@ -5100,7 +5100,7 @@
-     return -1; /* error */
+-    cmsErrorAction(LCMS_ERROR_SHOW);
++//    cmsErrorAction(LCMS_ERROR_SHOW);
+ 
+     if (v->cms_bpc)
+     {
+@@ -2830,7 +2841,12 @@
+   v->cms_proofing_intent = INTENT_ABSOLUTE_COLORIMETRIC;
+   v->cms_gamut_check = 0;
+   v->cms_gamut_alarm_color = 3; /* red */
+-  cmsSetAlarmCodes(255, 0, 0);
++  {
++  cmsUInt16Number alarm[cmsMAXCHANNELS];
++  memset(alarm, 0, sizeof alarm);
++  alarm[0] = 0xffff;
++  cmsSetAlarmCodes(alarm);
++  }
+ #endif
+   if (selection_filetype)
+   {
+--- xsane-0.998/src/xsane-save.c.orig	2013-07-05 19:20:06.000000000 +0100
++++ xsane-0.998/src/xsane-save.c	2013-07-05 20:08:25.841255535 +0100
+@@ -830,9 +830,9 @@
+  cmsHPROFILE hInProfile = NULL;
+  cmsHPROFILE hOutProfile = NULL;
+  cmsHTRANSFORM hTransform = NULL;
+- DWORD cms_input_format;
+- DWORD cms_output_format;
+- DWORD cms_flags = 0;
++ cmsUInt32Number cms_input_format;
++ cmsUInt32Number cms_output_format;
++ cmsUInt32Number cms_flags = 0;
+ 
+   if (cms_function == XSANE_CMS_FUNCTION_EMBED_SCANNER_ICM_PROFILE)
+   {
+@@ -841,7 +841,7 @@
+ 
+   DBG(DBG_info, "Prepare CMS transform\n");
+ 
+-  cmsErrorAction(LCMS_ERROR_SHOW);
++//  cmsErrorAction(LCMS_ERROR_SHOW);
+ 
+   if (cms_bpc)
+   {
+@@ -888,10 +888,10 @@
+     if (image_info->channels == 1) /* == 1 (grayscale) */
+     {
+ #if 1 /* xxx oli */
+-     LPGAMMATABLE Gamma = cmsBuildGamma(256, 2.2);
++     cmsToneCurve *Gamma = cmsBuildGamma(NULL, 2.2);
+ 
+       hOutProfile = cmsCreateGrayProfile(cmsD50_xyY(), Gamma);
+-      cmsFreeGamma(Gamma);
++      cmsFreeToneCurve(Gamma);
+ #endif
+     }
+     else
+@@ -2894,7 +2894,7 @@
+     return -1;
    }
  
--  if (setjmp(png_ptr->jmpbuf))
-+  if (setjmp(png_jmpbuf(png_ptr)))
+-  n = cmsGetPostScriptCSA(hProfile, intent, NULL, 0);
++  n = cmsGetPostScriptCSA(NULL, hProfile, intent, 0, NULL, 0);
+   if (n == 0)
    {
-     snprintf(buf, sizeof(buf), "%s %s", ERR_DURING_SAVE, ERR_LIBPNG);
-     xsane_back_gtk_error(buf, TRUE);
+     return -2;
+@@ -2906,7 +2906,7 @@
+     return -3;
+   }
+ 
+-  cmsGetPostScriptCSA(hProfile, intent, buffer, n);
++  cmsGetPostScriptCSA(NULL, hProfile, intent, 0, buffer, n);
+   buffer[n] = 0;
+ 
+   fprintf(outfile, "%s", buffer);
+@@ -2925,7 +2925,7 @@
+  cmsHPROFILE hProfile;
+  size_t n;
+  char* buffer;
+- DWORD flags = cmsFLAGS_NODEFAULTRESOURCEDEF;
++ cmsUInt32Number flags = cmsFLAGS_NODEFAULTRESOURCEDEF;
+ 
+   hProfile = cmsOpenProfileFromFile(output_profile, "r");
+   if (!hProfile)
+@@ -2938,7 +2938,7 @@
+     flags |= cmsFLAGS_BLACKPOINTCOMPENSATION;
+   }
+ 
+-  n = cmsGetPostScriptCRDEx(hProfile, intent, flags, NULL, 0);
++  n = cmsGetPostScriptCRD(NULL, hProfile, intent, flags, NULL, 0);
+   if (n == 0)
+   {
+     return -2;
+@@ -2950,7 +2950,7 @@
+     return -3;
+   }
+ 
+-  cmsGetPostScriptCRDEx(hProfile, intent, flags, buffer, n);
++  cmsGetPostScriptCRD(NULL, hProfile, intent, flags, buffer, n);
+   buffer[n] = 0;
+ 
+   fprintf(outfile, "%s", buffer);
+@@ -4333,7 +4333,7 @@
+ {
+  FILE *icm_profile;
+  size_t size, embed_len;
+- LPBYTE embed_buffer;
++ unsigned char *embed_buffer;
+ 
+   DBG(DBG_proc, "xsane_jpeg_embed_scanner_icm_profile(%s)\n", icm_filename);
+ 
+@@ -4347,7 +4347,7 @@
+   size = ftell(icm_profile);
+   fseek(icm_profile, 0, SEEK_SET);
+ 
+-  embed_buffer = (LPBYTE) malloc(size + 1);
++  embed_buffer = (unsigned char *) malloc(size + 1);
+   if (embed_buffer)
+   {
+     embed_len = fread(embed_buffer, 1, size, icm_profile);
+--- xsane-0.998/src/xsane.h.orig	2010-11-16 21:00:33.000000000 +0000
++++ xsane-0.998/src/xsane.h	2013-07-05 19:30:11.924007874 +0100
+@@ -70,7 +70,7 @@
+ #include <gtk/gtk.h>
+ 
+ #ifdef HAVE_LIBLCMS
+-# include "lcms.h"
++# include "lcms2.h"
+ #else
+ # define cmsHTRANSFORM void *
+ #endif
+--- xsane-0.998/configure.orig	2007-12-17 10:18:11.000000000 +0000
++++ xsane-0.998/configure	2013-07-05 19:31:21.220004568 +0100
+@@ -5811,7 +5811,7 @@
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS="-llcms  $LIBS"
++LIBS="-llcms2  $LIBS"
+ cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -5874,7 +5874,7 @@
+ #define HAVE_LIBLCMS 1
+ _ACEOF
+ 
+-  LIBS="-llcms $LIBS"
++  LIBS="-llcms2 $LIBS"
+ 
+ fi
+ 
