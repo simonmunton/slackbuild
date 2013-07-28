@@ -1,0 +1,34 @@
+--- pulseaudio-4.0/src/pulsecore/sink-input.c.orig	2013-06-03 06:43:49.000000000 +0100
++++ pulseaudio-4.0/src/pulsecore/sink-input.c	2013-07-26 21:49:12.685248654 +0100
+@@ -610,12 +610,14 @@
+     if (i->state == state)
+         return;
+ 
++#if 0
+     if (i->state == PA_SINK_INPUT_CORKED && state == PA_SINK_INPUT_RUNNING && pa_sink_used_by(i->sink) == 0 &&
+         !pa_sample_spec_equal(&i->sample_spec, &i->sink->sample_spec)) {
+         /* We were uncorked and the sink was not playing anything -- let's try
+          * to update the sample rate to avoid resampling */
+         pa_sink_update_rate(i->sink, i->sample_spec.rate, pa_sink_input_is_passthrough(i));
+     }
++#endif
+ 
+     pa_assert_se(pa_asyncmsgq_send(i->sink->asyncmsgq, PA_MSGOBJECT(i), PA_SINK_INPUT_MESSAGE_SET_STATE, PA_UINT_TO_PTR(state), 0, NULL) == 0);
+ 
+--- pulseaudio-4.0/src/pulsecore/source-output.c.orig	2013-06-03 06:43:49.000000000 +0100
++++ pulseaudio-4.0/src/pulsecore/source-output.c	2013-07-26 21:49:45.455247090 +0100
+@@ -527,12 +527,14 @@
+     if (o->state == state)
+         return;
+ 
++#if 0
+     if (o->state == PA_SOURCE_OUTPUT_CORKED && state == PA_SOURCE_OUTPUT_RUNNING && pa_source_used_by(o->source) == 0 &&
+         !pa_sample_spec_equal(&o->sample_spec, &o->source->sample_spec)) {
+         /* We were uncorked and the source was not playing anything -- let's try
+          * to update the sample rate to avoid resampling */
+         pa_source_update_rate(o->source, o->sample_spec.rate, pa_source_output_is_passthrough(o));
+     }
++#endif
+ 
+     pa_assert_se(pa_asyncmsgq_send(o->source->asyncmsgq, PA_MSGOBJECT(o), PA_SOURCE_OUTPUT_MESSAGE_SET_STATE, PA_UINT_TO_PTR(state), 0, NULL) == 0);
+ 
