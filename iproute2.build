@@ -1,0 +1,149 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=iproute2
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/i
+#TAR_EXT=.tar.gz
+VERSION=3.10.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+if [ ${ARCH} = "x86_64" ]
+then
+ patch -p1 < ${CWD}/iproute2-x86_64.diff
+fi
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+./configure
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make \
+  CCOPTS="${SLKCFLAGS}" \
+  LIBDIR=/usr/lib${LIBDIRSUFFIX} \
+  CONFDIR=/etc/iproute2 \
+  DOCDIR=/usr/doc/iproute2-${VERSION} \
+  MANDIR=/usr/man \
+  DBM_INCLUDE=/usr/include/db44 \
+  ${NUM_JOBS} || exit 1
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install \
+  LIBDIR=/usr/lib${LIBDIRSUFFIX} \
+  CONFDIR=/etc/iproute2 \
+  DOCDIR=/usr/doc/iproute2-${VERSION} \
+  MANDIR=/usr/man \
+  DBM_INCLUDE=/usr/include/db44 \
+  DESTDIR=${PKG} || exit 1
+
+mkdir ${PKG}/usr/sbin
+(cd ${PKG}/sbin
+ for f in *
+ do  
+   ln -s ../../sbin/$f ../usr/sbin/$f
+ done
+)
+
+# Don't clobber existing config files
+(cd $PKG
+for file in etc/iproute2/* ; do
+  mv $file ${file}.new
+  doinst_config ${file}.new
+done
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "IP routing utilities"
+These are tools used to administer many advanced IP routing features
+in the kernel.  See Configure.help in the kernel documentation 
+(search for iproute2) for more information on which kernel options
+these tools are used with.
+
+These utilities were written by Alexey Kuznetsov.  The current
+maintainer of iproute2 is Stephen Hemminger.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
