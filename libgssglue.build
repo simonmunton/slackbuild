@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=rdesktop
+TARNAME=libgssglue
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.8.0
+VERSION=0.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.rdesktop.org"
+WEBPAGE="http://www.citi.umich.edu/projects/nfsv4/linux/libgssglue/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -63,8 +65,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-smartcard
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -94,12 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Remote Desktop Protocol client"
-rdesktop is a client for Remote Desktop Protocol (RDP), used in a
-number of Microsoft products including Windows NT Terminal Server,
-Windows 2000 Server, Windows XP, and Windows 2003 Server.
-
-For more information, see:  http://www.rdesktop.org
+make_slack_desc << EOF
+This library exports a gssapi interface, but doesn't implement any 
+gssapi mechanisms itself; instead it calls gssapi routines in other 
+libraries, depending on the mechanism. 
 
 EOF
 
