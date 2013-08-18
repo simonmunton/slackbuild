@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=calligra
+TARNAME=gawk
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/gnu/gawk
 #TAR_EXT=.tar.gz
-VERSION=2.7.1
+VERSION=4.1.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/calligra-2.4.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,27 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      -DIHAVEPATCHEDQT=1 \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,10 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -103,17 +100,21 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS FUTURES LIMITATIONS POSIX.STD \
+  PROBLEMS \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE office suite"
-Calligra is an integrated suite of applications that cover office, 
-creative and management needs. Its the most comprehensive free suite 
-of applications anywhere and we expect the number of applications to 
-grow as the project matures. Calligra offers its applications on both 
-desktop computers and mobile platforms like tablets and smartphones.
+make_slack_desc << EOF "pattern scanning and processing language"
+Gawk is the GNU Project's implementation of the AWK programming
+language.  It conforms to the definition of the language in the POSIX
+1003.2 Command Language And Utilities Standard.  This version in turn
+is based on the description in The AWK Programming Language, by Aho,
+Kernighan, and Weinberger, with the additional features found in the
+System V Release 4 version of UNIX awk.  Gawk also provides more
+recent Bell Labs awk extensions, and some GNU-specific extensions.
 
 EOF
 

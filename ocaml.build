@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=3.11.0
+VERSION=4.00.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,15 +59,16 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix /usr
+./configure --prefix /usr --libdir /usr/lib${LIBDIRSUFFIX}/ocaml
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} world || exit
-#make ${NUM_JOBS} bootstrap || exit
-make ${NUM_JOBS} opt || exit
-make ${NUM_JOBS} opt.opt || exit
+#make ${NUM_JOBS} world || exit
+##make ${NUM_JOBS} bootstrap || exit
+#make ${NUM_JOBS} opt || exit
+#make ${NUM_JOBS} opt.opt || exit
+make ${NUM_JOBS} world.opt || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,7 +76,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} PREFIX=${PKG}/usr
+make install PREFIX=${PKG}/usr LIBDIR=${PKG}/usr/lib${LIBDIRSUFFIX}/ocaml
 
 #strip_binaries
 
