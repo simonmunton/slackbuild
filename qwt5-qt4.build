@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qwt
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=5.2.3
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qwt5
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+ cp qwtconfig.pri qwtconfig.pri.in
+
+# sed -i -e '/CONFIG.*QwtSVGItem/ s/#//' qwtconfig.pri.in
+# sed -i 's/error/#error/' qwtbuild.pri
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+#export QTDIR=/usr/lib/qt4
+#PATH=/usr/lib/qt4/bin:$PATH
+
+if [ -f qt3build ]
+then
+  rm qt3build
+  make distclean
+fi
+
+touch qt4build
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+sed -e "s@/usr/local/qwt-\$\$VERSION@/usr/lib${LIBDIRSUFFIX}/qt@ ; s@\$\$INSTALLBASE/doc@/usr/doc@ ; /QwtSVGItem/ s@#CONFIG@CONFIG@; s@INSTALLBASE/include@INSTALLBASE/include/qwt5@" qwtconfig.pri.in > qwtconfig.pri
+#sed -e "s@/usr/local/qwt-\$\$QWT_VERSION@/usr/lib${LIBDIRSUFFIX}/qt@" qwtconfig.pri.in > qwtconfig.pri
+
+qmake
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+
+#mv ${PKG}/usr/lib/qt-*/* ${PKG}/usr/lib/qt4
+#rmdir ${PKG}/usr/lib/qt-*
+
+mv ${PKG}/usr/doc/man ${PKG}/usr
+mv ${PKG}/usr/doc/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+ln -s qt/lib/libqwt.so ${PKG}/usr/lib${LIBDIRSUFFIX}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF
+The Qwt Widget Library
+
+Qwt is an extension to the Qt GUI library from Troll Tech AS. The Qwt 
+library contains widgets and components which are primarily useful for 
+technical and scientifical purposes. It includes a 2-D plotting 
+widget, different kinds of sliders, and much more.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
