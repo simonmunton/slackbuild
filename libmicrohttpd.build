@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mpeg2dec
+TARNAME=libmicrohttpd
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/gnu/libmicrohttpd
 #TAR_EXT=.tar.gz
-VERSION=0.4.1
+VERSION=0.9.29
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://libmpeg2.sourceforge.net/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -64,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -93,9 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
-libmpeg2 is a free library for decoding mpeg-2 and mpeg-1 video 
-streams. It is released under the terms of the GPL license.
+make_slack_desc << EOF "Small HTTP server library"
+GNU libmicrohttpd is a small C library that is supposed to make it 
+easy to run an HTTP server as part of another application. GNU GNU 
+Libmicrohttpd is free software and part of the GNU project.
 
 EOF
 
