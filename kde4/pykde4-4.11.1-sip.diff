@@ -1,0 +1,33 @@
+commit 783d073f30e253e8db52d8801c1c829e6f405e60
+Author: Luca Beltrame <lbeltrame@kde.org>
+Date:   Sun Sep 1 17:33:30 2013 +0200
+
+    First step in trying to make PyKDE4 work with newer SIP.
+    Context is http://lists.kde.org/?l=kde-bindings&m=137759567504203&w=2
+    
+    Notice that this change alone will not fix the issues: a newer SIP
+    (unreleased) is needed and more work is needed in the bindings to fix issues
+    
+    CCBUG: 323899
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 09fcc34..469a812 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -114,14 +114,14 @@ set(SIP_DISABLE_FEATURES VendorID PyQt_NoPrintRangeBug)
+ if (PYTHON_VERSION_MAJOR GREATER 2)
+     if(PYQT4_VERSION STRGREATER "040904")
+ 	    # Disable for newer PyQt
+-	    set(SIP_EXTRA_OPTIONS -g -x PyKDE_QVector)
++	    set(SIP_EXTRA_OPTIONS -P -g -x PyKDE_QVector)
+     else ()
+ 	    set(SIP_EXTRA_OPTIONS -g)
+     endif()
+ else (PYTHON_VERSION_MAJOR GREATER 2)
+     if(PYQT4_VERSION STRGREATER "040904")
+ 	# Disable for newer PyQt
+-    	set(SIP_EXTRA_OPTIONS -g -x PyKDE_QVector -x Py_v3)
++    	set(SIP_EXTRA_OPTIONS -P -g -x PyKDE_QVector -x Py_v3)
+     else ()
+ 	    set(SIP_EXTRA_OPTIONS -g -x Py_v3)
+     endif()
