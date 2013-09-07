@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=1.7.0
+VERSION=1.11.0
 VERSIONEXTRA=-src
 BUILD=1
 
@@ -55,12 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
+export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+#PATH=/usr/lib/qt4/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+sed -i -e "/unix_lib_path = / s@'lib.*'@'lib${LIBDIRSUFFIX}'@" src/SConscript
+sed -i -e "s@'lib.*/mixxx'@'lib${LIBDIRSUFFIX}/mixxx'@" build/depends.py
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,12 +79,12 @@ scons install prefix=/usr install_root=${PKG}/usr qtdir=${QTDIR} script=1
 
 strip_binaries
 
-mv ${PKG}/usr/bin/mixxx ${PKG}/usr/bin/mixxx.bin
-cat >  ${PKG}/usr/bin/mixxx << EOF
-#!/bin/sh
-LD_LIBRARY_PATH=${QTDIR}/lib mixxx.bin "\$@"
-EOF
-chmod +x ${PKG}/usr/bin/mixxx
+#mv ${PKG}/usr/bin/mixxx ${PKG}/usr/bin/mixxx.bin
+#cat >  ${PKG}/usr/bin/mixxx << EOF
+##!/bin/sh
+#LD_LIBRARY_PATH=${QTDIR}/lib mixxx.bin "\$@"
+#EOF
+#chmod +x ${PKG}/usr/bin/mixxx
 
 
 fix_links
