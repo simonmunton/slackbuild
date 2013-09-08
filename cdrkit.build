@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libdvbpsi
+TARNAME=cdrkit
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.1.0
+VERSION=1.1.11
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.videolan.org/developers/libdvbpsi.html"
+WEBPAGE="http://www.cdrkit.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,21 +59,22 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+  .
 
 fi
 
@@ -88,6 +89,16 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/usr/bin
+  for f in cdda2mp3 cdda2ogg devdump isodebug isodump isoinfo isovfy
+  do
+    mv $f $f-cdrkit
+  done
+)
+(cd ${PKG}/usr/share/man/man1
+  mv cdda2ogg.1 cdda2ogg-cdrkit.1
+)
 
 strip_binaries
 
@@ -104,11 +115,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A library for decoding and generating MPEG 2 and DVB PSI sections"
-libdvbpsi is a simple library designed for MPEG 2 TS and DVB PSI 
-tables decoding and generating. The important features are:
- * PAT decoder and genarator.
- * PMT decoder and generator.
+make_slack_desc << EOF "cdrkit - portable command-line CD/DVD recorder software"
+ cdrkit is a suite of programs for recording CDs and DVDs, blanking 
+CD-RW media, creating ISO-9660 filesystem images, extracting audio CD 
+data, and more. The programs included in the cdrkit package were 
+originally derived from several sources, most notably mkisofs by Eric 
+Youngdale and others, cdda2wav by Heiko Eissfeldt, and cdrecord by 
+Jorg Schilling. However, cdrkit is not affiliated with any of these 
+authors; it is now an independent project.
 
 EOF
 
