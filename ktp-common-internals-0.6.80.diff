@@ -1,0 +1,29 @@
+--- ktp-common-internals-0.6.80/KTp/core.cpp.orig	2013-09-23 21:46:32.000000000 +0100
++++ ktp-common-internals-0.6.80/KTp/core.cpp	2013-10-11 12:24:00.443971378 +0100
+@@ -21,6 +21,7 @@
+ #include "core.h"
+ 
+ #ifdef HAVE_KPEOPLE
++#include <Nepomuk2/ResourceManager>
+ #include <QDBusMessage>
+ #include <QDBusReply>
+ #endif
+@@ -39,11 +40,13 @@
+ {
+     //if built with kpeople support, enable kpeople if Nepomuk is running
+     #ifdef HAVE_KPEOPLE
+-    QDBusInterface nepomukServer(QLatin1String("org.kde.NepomukServer"), QLatin1String("/servicemanager"), QLatin1String("org.kde.nepomuk.ServiceManager"));
+-    QDBusReply<bool> reply = nepomukServer.call(QLatin1String("startService"), QLatin1String("nepomuktelepathyservice"));
+-    if (reply.isValid()) {
+-        if (reply.value()) {
+-            m_kPeopleEnabled = true;
++    if (Nepomuk2::ResourceManager::instance()->initialized()) {
++        QDBusInterface nepomukServer(QLatin1String("org.kde.NepomukServer"), QLatin1String("/servicemanager"), QLatin1String("org.kde.nepomuk.ServiceManager"));
++        QDBusReply<bool> reply = nepomukServer.call(QLatin1String("startService"), QLatin1String("nepomuktelepathyservice"));
++        if (reply.isValid()) {
++            if (reply.value()) {
++                m_kPeopleEnabled = true;
++            }
+         }
+     }
+     //else if it can't be started, or nepomukServer doesn't reply lave it disabled.
