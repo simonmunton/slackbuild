@@ -2,17 +2,16 @@
 #
 . build_funcs
 
-TARNAME=polkit
+TARNAME=urfkill
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=0.112
+VERSION=0.3.0
 VERSIONEXTRA=
 BUILD=1
 
-#WEBPAGE="http://hal.freedesktop.org/releases/"
-WEBPAGE="http://www.freedesktop.org/wiki/Software/polkit/"
+WEBPAGE="http://freedesktop.org/wiki/Software/urfkill/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -46,11 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- if [ -n "${LIBDIRSUFFIX}" ]
- then
-   patch -p1 < ${CWD}/polkit-0.112-lib64.diff
- fi
- ./autogen.sh
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -60,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -67,15 +64,23 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
-#	    --enable-introspection=no
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make libprivdir=/usr/lib${LIBDIRSUFFIX}/polkit-1 ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,9 +88,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} libprivdir=/usr/lib${LIBDIRSUFFIX}/polkit-1
+make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -100,20 +105,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "framework for defining system-wide policy"
-polkit is a framework for defining policy for system-wide 
-components and for desktop pieces to configure it.
+make_slack_desc << EOF "userspace rfkill events"
+urfkill is a project to handle rfkill events in userspace and
+aimed to replace the rfkill input handler in kernel, i.e.
+rfkill-input, and provide a flexible policy for rfkill keys.
 
 EOF
 
 post_install
 
-doinst_addusergrp polkitd polkitd x x
-
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-chmod 700 var/lib/polkit-1 etc/polkit-1/localauthority ; \
-chmod 4755 usr/lib${LIBDIRSUFFIX}/polkit-1/polkit-agent-helper-1 usr/bin/pkexec ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
