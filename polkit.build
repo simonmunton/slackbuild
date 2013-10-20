@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.107
+VERSION=0.112
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,7 +46,10 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ if [ -n "${LIBDIRSUFFIX}" ]
+ then
+   patch -p1 < ${CWD}/polkit-0.112-lib64.diff
+ fi
  ./autogen.sh
 )
 fi
@@ -72,7 +75,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make libprivdir=/usr/lib${LIBDIRSUFFIX}/polkit-1 ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -80,7 +83,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} libprivdir=/usr/lib${LIBDIRSUFFIX}/polkit-1
 
 #strip_binaries
 
@@ -111,6 +114,6 @@ cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
 chmod 700 var/lib/polkit-1 etc/polkit-1/localauthority ; \
-chmod 4755 usr/libexec/polkit-agent-helper-1 usr/bin/pkexec ; \
+chmod 4755 usr/lib${LIBDIRSUFFIX}/polkit-1/polkit-agent-helper-1 usr/bin/pkexec ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
