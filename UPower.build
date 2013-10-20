@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=0.9.22
+VERSION=0.9.23
 VERSIONEXTRA=
 BUILD=1
 
@@ -65,7 +65,8 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-deprecated
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -88,6 +89,9 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mv ${PKG}/etc/UPower/UPower.conf ${PKG}/etc/UPower/UPower.conf.new
+doinst_config etc/UPower/UPower.conf.new
 
 strip_binaries
 

@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=2.0.0
+VERSION=2.1.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/udisks-1.0.0.diff
+ patch -p1 < ${CWD}/udisks-2.1.1.diff
 )
 fi
 
@@ -56,7 +56,7 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+export LIBDIRSUFFIX
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -89,6 +89,21 @@ then
 fi
 
 make install DESTDIR=${PKG} pkgconfigdir=/usr/lib${LIBDIRSUFFIX}/pkgconfig
+
+cat << EOF > ${PKG}/install/doinst.sh
+# udisks2 is stupid about testing files before using them.  If /etc/crypttab
+# does not exist, it will fill the log with "errors" as it tries to open the
+# nonexistent file.  There's really no reason that a system without encrypted
+# volumes should require this file, but nobody upstream cares to fix the
+# problem (and the code's too messy for me to find it), so we have little
+# choice but to trowel over this.  (sigh)
+
+if [ ! -r etc/crypttab ]; then
+  # echo "HEY, EVERYONE SHOULD HAVE A CRYPTTAB!!!"  (just kidding)
+  touch etc/crypttab
+fi
+
+EOF
 
 strip_binaries
 
