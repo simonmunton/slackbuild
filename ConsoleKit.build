@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.4.5
+VERSION=0.4.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/consolekit-0.2.10-cleanup_console_tags.patch
+ patch -p1 < ${CWD}/consolekit-0.4.2-revert.patch
 )
 fi
 
@@ -63,7 +64,11 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
+	    --with-pid-file=/var/run/ConsoleKit/pid \
+	    --enable-docbook-docs \
+	    --disable-static
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,6 +82,22 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+mkdir -p $PKG/usr/lib/ConsoleKit/run-session.d
+cat $CWD/ConsoleKit-pam-foreground-compat.ck > \
+  $PKG/usr/lib/ConsoleKit/run-session.d/pam-foreground-compat.ck
+chmod 0755 $PKG/usr/lib/ConsoleKit/run-session.d/pam-foreground-compat.ck
+
+# Let's not clobber config files
+mv $PKG/etc/ConsoleKit/seats.d/00-primary.seat \
+  $PKG/etc/ConsoleKit/seats.d/00-primary.seat.new
+doinst_config etc/ConsoleKit/seats.d/00-primary.seat.new
+
+# Add an init script
+mkdir -p $PKG/etc/rc.d
+cat $CWD/ConsoleKit-rc.consolekit > $PKG/etc/rc.d/rc.consolekit.new
+chmod 0755 $PKG/etc/rc.d/rc.consolekit.new
+doinst_config etc/rc.d/rc.consolekit.new
 
 #strip_binaries
 
