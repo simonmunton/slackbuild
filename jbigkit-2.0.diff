@@ -1,0 +1,400 @@
+--- jbigkit-2.0/pbmtools/Makefile.orig	2008-08-25 23:26:39.000000000 +0100
++++ jbigkit-2.0/pbmtools/Makefile	2013-10-27 07:30:15.502884892 +0000
+@@ -6,23 +6,25 @@
+ 
+ # Options for the compiler
+ CFLAGS = -g -Wall -ansi -pedantic -I../libjbig # --coverage
++export LD_LIBRARY_PATH = ../libjbig/.libs
+ 
++.PHONY: all test test82 test85
+ .SUFFIXES: .1 .5 .txt $(SUFFIXES)
+ 
+ all: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 \
+ 	pbmtojbg.txt jbgtopbm.txt pbm.txt pgm.txt
+ 
+ pbmtojbg: pbmtojbg.o ../libjbig/libjbig.a
+-	$(CC) $(CFLAGS) -o pbmtojbg pbmtojbg.o -L../libjbig -ljbig
++	$(CC) $(CFLAGS) -o pbmtojbg pbmtojbg.o -L../libjbig/.libs -ljbig
+ 
+ jbgtopbm: jbgtopbm.o ../libjbig/libjbig.a
+-	$(CC) $(CFLAGS) -o jbgtopbm jbgtopbm.o -L../libjbig -ljbig
++	$(CC) $(CFLAGS) -o jbgtopbm jbgtopbm.o -L../libjbig/.libs -ljbig
+ 
+-pbmtojbg85: pbmtojbg85.o ../libjbig/libjbig85.a
+-	$(CC) $(CFLAGS) -o pbmtojbg85 pbmtojbg85.o -L../libjbig -ljbig85
++pbmtojbg85: pbmtojbg85.o ../libjbig/libjbig.a
++	$(CC) $(CFLAGS) -o pbmtojbg85 pbmtojbg85.o -L../libjbig/.libs -ljbig
+ 
+-jbgtopbm85: jbgtopbm85.o ../libjbig/libjbig85.a
+-	$(CC) $(CFLAGS) -o jbgtopbm85 jbgtopbm85.o -L../libjbig -ljbig85
++jbgtopbm85: jbgtopbm85.o ../libjbig/libjbig.a
++	$(CC) $(CFLAGS) -o jbgtopbm85 jbgtopbm85.o -L../libjbig/.libs -ljbig
+ 
+ jbgtopbm.o: jbgtopbm.c ../libjbig/jbig.h
+ pbmtojbg.o: pbmtojbg.c ../libjbig/jbig.h
+@@ -33,10 +35,6 @@
+ 	../libjbig/jbig_ar.c ../libjbig/jbig_ar.h
+ 	make -C ../libjbig libjbig.a
+ 
+-../libjbig/libjbig85.a: ../libjbig/jbig85.c ../libjbig/jbig85.h \
+-	../libjbig/jbig_ar.c ../libjbig/jbig_ar.h
+-	make -C ../libjbig libjbig85.a
+-
+ test: test82 test85
+ 
+ test82: pbmtojbg jbgtopbm
+@@ -91,6 +89,8 @@
+ 	cmp test-$(IMG).pgm ../examples/$(IMG).pgm
+ 
+ test85: pbmtojbg jbgtopbm pbmtojbg85 jbgtopbm85 test-t82.pbm
++	export LD_LIBRARY_PATH=`pwd`/../libjbig/.libs
++	echo $(LD_LIBRARY_PATH)
+ 	make IMG=t82 "OPTIONSP=-p 0"      dotest85
+ 	make IMG=t82 "OPTIONSP=-p 8"      dotest85
+ 	make IMG=t82 "OPTIONSP=-p 8 -r"   dotest85b
+--- jbigkit-2.0/pbmtools/pbmtojbg.c.orig	2008-07-16 21:59:41.000000000 +0100
++++ jbigkit-2.0/pbmtools/pbmtojbg.c	2013-10-27 07:30:23.534884509 +0000
+@@ -88,7 +88,11 @@
+       while ((c = getc(f)) != EOF && !(c == 13 || c == 10)) ;
+   if (c != EOF) {
+     ungetc(c, f);
+-    fscanf(f, "%lu", &i);
++    if (fscanf(f, "%lu", &i) != 1) {
++      /* should never fail, since c must be a digit */
++      fprintf(stderr, "Unexpected failure reading digit '%c'\n", c);
++      exit(1);
++    }
+   }
+ 
+   return i;
+@@ -302,7 +306,9 @@
+     break;
+   case '4':
+     /* PBM raw binary format */
+-    fread(bitmap[0], bitmap_size, 1, fin);
++    if (fread(bitmap[0], bitmap_size, 1, fin) != 1) {
++      /* silence compiler warnings; ferror/feof checked below */
++    }
+     break;
+   case '2':
+   case '5':
+@@ -314,8 +320,18 @@
+ 	for (j = 0; j < bpp; j++)
+ 	  image[x * bpp + (bpp - 1) - j] = v >> (j * 8);
+       }
+-    } else
+-      fread(image, width * height, bpp, fin);
++    } else {
++      if (fread(image, width * height, bpp, fin) != (size_t) bpp) {
++	if (ferror(fin)) {
++	  fprintf(stderr, "Problem while reading input file '%s", fnin);
++	  perror("'");
++	  exit(1);
++	} else {
++	  fprintf(stderr, "Unexpected end of input file '%s'!\n", fnin);
++	  exit(1);
++	}
++      }
++    }
+     jbg_split_planes(width, height, planes, encode_planes, image, bitmap,
+ 		     use_graycode);
+     free(image);
+--- jbigkit-2.0/pbmtools/jbgtopbm.c.orig	2008-08-27 22:37:45.000000000 +0100
++++ jbigkit-2.0/pbmtools/jbgtopbm.c	2013-10-27 07:30:23.534884509 +0000
+@@ -110,7 +110,7 @@
+   for (i = 0; i < len && i < max; i++)
+     fprintf(f, "%02x ", p[i]);
+   if (len > i)
+-    fprintf(f, "... %d bytes total", len);
++    fprintf(f, "... %zd bytes total", len);
+   fprintf(f, "\n");
+ }
+ 
+@@ -134,7 +134,7 @@
+   /* read BIH */
+   read_file(&bie, &buflen, &len, fin);
+   if (len < 20) {
+-    fprintf(f, "Error: Input file is %d < 20 bytes long and therefore "
++    fprintf(f, "Error: Input file is %zd < 20 bytes long and therefore "
+ 	    "does not contain an intact BIE header!\n", len);
+     return;
+   }
+@@ -188,18 +188,18 @@
+       == (JBG_DPON | JBG_DPPRIV))
+     p += 1728;  /* skip DPTABLE */
+   if (p > bie + len) {
+-    fprintf(f, "Error: Input file is %d < 20+1728 bytes long and therefore "
++    fprintf(f, "Error: Input file is %zd < 20+1728 bytes long and therefore "
+ 	    "does not contain an intact BIE header with DPTABLE!\n", len);
+     return;
+   }
+   while (p != bie + len) {
+     if (p > bie + len - 2) {
+-      fprintf(f, "%06x: Error: single byte 0x%02x left\n", p - bie, *p);
++      fprintf(f, "%06tx: Error: single byte 0x%02x left\n", p - bie, *p);
+       return;
+     }
+     pnext = jbg_next_pscdms(p, len - (p - bie));
+     if (p[0] != MARKER_ESC || p[1] == MARKER_STUFF) {
+-      fprintf(f, "%06x: PSCD: ", p - bie);
++      fprintf(f, "%06tx: PSCD: ", p - bie);
+       fprint_bytes(f, p, pnext ? (size_t) (pnext - p) : len - (p - bie), 60);
+       if (!pnext) {
+ 	fprintf(f, "Error: PSCD not terminated by SDNORM or SDRST marker\n");
+@@ -209,7 +209,7 @@
+       switch (p[1]) {
+       case MARKER_SDNORM:
+       case MARKER_SDRST:
+-	fprintf(f, "%06x: ESC %s, ending SDE #%lu", p - bie,
++	fprintf(f, "%06tx: ESC %s, ending SDE #%lu", p - bie,
+ 		(p[1] == MARKER_SDNORM) ? "SDNORM" : "SDRST", ++sde);
+ 	if (sde == sdes)
+ 	  fprintf(f, " (final SDE)");
+@@ -219,10 +219,10 @@
+ 	fprintf(f, "\n");
+ 	break;
+       case MARKER_ABORT:
+-	fprintf(f, "%06x: ESC ABORT\n", p - bie);
++	fprintf(f, "%06tx: ESC ABORT\n", p - bie);
+ 	break;
+       case MARKER_NEWLEN:
+-	fprintf(f, "%06x: ESC NEWLEN ", p - bie);
++	fprintf(f, "%06tx: ESC NEWLEN ", p - bie);
+ 	if (p + 5 < bie + len) {
+ 	  fprintf(f, "YD = %lu\n",
+ 		  yd = (((long) p[2] << 24) | ((long) p[3] << 16) |
+@@ -242,7 +242,7 @@
+ 	  fprintf(f, "unexpected EOF\n");
+ 	break;
+       case MARKER_ATMOVE:
+-	fprintf(f, "%06x: ESC ATMOVE ", p - bie);
++	fprintf(f, "%06tx: ESC ATMOVE ", p - bie);
+ 	if (p + 7 < bie + len)
+ 	  fprintf(f, "YAT = %lu, tX = %d, tY = %d\n",
+ 		  (((long) p[2] << 24) | ((long) p[3] << 16) |
+@@ -251,7 +251,7 @@
+ 	  fprintf(f, "unexpected EOF\n");
+ 	break;
+       case MARKER_COMMENT:
+-	fprintf(f, "%06x: ESC COMMENT ", p - bie);
++	fprintf(f, "%06tx: ESC COMMENT ", p - bie);
+ 	if (p + 5 < bie + len)
+ 	  fprintf(f, "LC = %lu\n",
+ 		  (((long) p[2] << 24) | ((long) p[3] << 16) |
+@@ -260,7 +260,7 @@
+ 	  fprintf(f, "unexpected EOF\n");
+ 	break;
+       default:
+-	fprintf(f, "%06x: ESC 0x%02x\n", p - bie, p[1]);
++	fprintf(f, "%06tx: ESC 0x%02x\n", p - bie, p[1]);
+       }
+     if (!pnext) {
+       fprintf(f, "Error encountered!\n");
+@@ -372,7 +372,7 @@
+   /* read BIH first to check VLENGTH */
+   len = fread(buffer, 1, 20, fin);
+   if (len < 20) {
+-    fprintf(stderr, "Input file '%s' (%d bytes) must be at least "
++    fprintf(stderr, "Input file '%s' (%zd bytes) must be at least "
+ 	    "20 bytes long\n", fnin, len);
+     if (fout != stdout) {
+       fclose(fout);
+--- jbigkit-2.0/pbmtools/pbmtojbg85.c.orig	2008-08-25 23:26:39.000000000 +0100
++++ jbigkit-2.0/pbmtools/pbmtojbg85.c	2013-10-27 07:30:23.534884509 +0000
+@@ -72,7 +72,11 @@
+       while ((c = getc(f)) != EOF && !(c == 13 || c == 10)) ;
+   if (c != EOF) {
+     ungetc(c, f);
+-    fscanf(f, "%lu", &i);
++    if (fscanf(f, "%lu", &i) != 1) {
++      /* should never fail, since c must be a digit */
++      fprintf(stderr, "Unexpected failure reading digit '%c'\n", c);
++      exit(1);
++    }
+   }
+ 
+   return i;
+@@ -239,7 +243,9 @@
+       break;
+     case '4':
+       /* PBM raw binary format */
+-      fread(next_line, bpl, 1, fin);
++      if (fread(next_line, bpl, 1, fin) != 1) {
++	/* silence compiler warnings; ferror/feof checked below */
++      }
+       break;
+     default:
+       fprintf(stderr, "Unsupported PBM type P%c!\n", type);
+--- jbigkit-2.0/Makefile.orig	2008-08-30 21:40:22.000000000 +0100
++++ jbigkit-2.0/Makefile	2013-10-27 07:35:52.102868832 +0000
+@@ -10,10 +10,12 @@
+ 
+ CFLAGS = $(CCFLAGS) -I../libjbig
+ 
++libdir = /usr/lib
++
+ VERSION=2.0
++.PHONY: all lib pbm test clean install
+ 
+ all: lib pbm
+-	@echo "Enter 'make test' in order to start some automatic tests."
+ 
+ lib:
+ 	(cd libjbig;  make "CC=$(CC)" "CFLAGS=$(CFLAGS)")
+@@ -30,9 +32,15 @@
+ 	(cd libjbig; make clean)
+ 	(cd pbmtools; make clean)
+ 
+-distribution: clean
+-	rm -f libjbig/libjbig*.a
+-	(cd ..; tar -c -v --exclude .svn -f jbigkit-$(VERSION).tar jbigkit ; \
+-	  gzip -9f jbigkit-$(VERSION).tar )
+-	scp ../jbigkit-$(VERSION).tar.gz slogin-serv1.cl.cam.ac.uk:public_html/download/
+-	scp CHANGES slogin-serv1.cl.cam.ac.uk:public_html/jbigkit/
++install: all
++	install -d $(DESTDIR)/$(libdir)
++	install -s -m 644 libjbig/.libs/*.so.*.*.* libjbig/.libs/*.a $(DESTDIR)/$(libdir)
++	install -m 644 libjbig/.libs/*.la $(DESTDIR)/$(libdir)
++	/sbin/ldconfig -n $(DESTDIR)/$(libdir)
++	ln -s libjbig.so.0.0.0 $(DESTDIR)/$(libdir)/libjbig.so
++	install -d $(DESTDIR)/usr/include
++	install -m 644 libjbig/*.h $(DESTDIR)/usr/include
++	install -d $(DESTDIR)/usr/bin
++	install -s -m 755 pbmtools/jbgtopbm pbmtools/jbgtopbm85 pbmtools/pbmtojbg pbmtools/pbmtojbg85 $(DESTDIR)/usr/bin
++	install -d $(DESTDIR)/usr/man/man1
++	install -m 644 pbmtools/*.1 $(DESTDIR)/usr/man/man1
+--- jbigkit-2.0/libjbig/tstcodec.c.orig	2008-08-30 18:20:58.000000000 +0100
++++ jbigkit-2.0/libjbig/tstcodec.c	2013-10-27 07:30:23.533884509 +0000
+@@ -399,7 +399,7 @@
+   for (i = 0; i < 16 * 16 && !trouble; i++) {
+     pix = arith_decode(sd, (t82cx[i >> 4] >> ((15 - i) & 15)) & 1);
+     if (pix < 0) {
+-      printf("Problem at pixel %ld, byte %d.\n\n",
++      printf("Problem at pixel %ld, byte %td.\n\n",
+ 	     i+1, sd->pscd_ptr - sd->pscd_end);
+       trouble++;
+       break;
+@@ -411,7 +411,7 @@
+     }
+   }
+   if (!trouble && sd->pscd_ptr != sd->pscd_end - 2) {
+-    printf("%d bytes left after decoder finished.\n\n",
++    printf("%td bytes left after decoder finished.\n\n",
+ 	   sd->pscd_end - sd->pscd_ptr - 2);
+     trouble++;
+   }
+@@ -439,7 +439,7 @@
+       pix = arith_decode(sd, (t82cx[i >> 4] >> ((15 - i) & 15)) & 1);
+     }
+     if (pix < 0) {
+-      printf("Problem at pixel %ld, byte %d.\n\n",
++      printf("Problem at pixel %ld, byte %td.\n\n",
+ 	     i+1, sd->pscd_ptr - sd->pscd_end);
+       trouble++;
+       break;
+@@ -451,7 +451,7 @@
+     }
+   }
+   if (!trouble && sd->pscd_ptr != sd->pscd_end - 2) {
+-    printf("%d bytes left after decoder finished.\n\n",
++    printf("%td bytes left after decoder finished.\n\n",
+ 	   sd->pscd_end - sd->pscd_ptr - 2);
+     trouble++;
+   }
+--- jbigkit-2.0/libjbig/tstcodec85.c.orig	2008-08-23 21:06:31.000000000 +0100
++++ jbigkit-2.0/libjbig/tstcodec85.c	2013-10-27 07:30:23.534884509 +0000
+@@ -334,7 +334,7 @@
+   for (i = 0; i < 16 * 16 && !trouble; i++) {
+     pix = arith_decode(sd, (t82cx[i >> 4] >> ((15 - i) & 15)) & 1);
+     if (pix < 0) {
+-      printf("Problem at pixel %ld, byte %d.\n\n",
++      printf("Problem at pixel %ld, byte %td.\n\n",
+ 	     i+1, sd->pscd_ptr - sd->pscd_end);
+       trouble++;
+       break;
+@@ -346,7 +346,7 @@
+     }
+   }
+   if (!trouble && sd->pscd_ptr != sd->pscd_end - 2) {
+-    printf("%d bytes left after decoder finished.\n\n",
++    printf("%td bytes left after decoder finished.\n\n",
+ 	   sd->pscd_end - sd->pscd_ptr - 2);
+     trouble++;
+   }
+@@ -374,7 +374,7 @@
+       pix = arith_decode(sd, (t82cx[i >> 4] >> ((15 - i) & 15)) & 1);
+     }
+     if (pix < 0) {
+-      printf("Problem at pixel %ld, byte %d.\n\n",
++      printf("Problem at pixel %ld, byte %td.\n\n",
+ 	     i+1, sd->pscd_ptr - sd->pscd_end);
+       trouble++;
+       break;
+@@ -386,7 +386,7 @@
+     }
+   }
+   if (!trouble && sd->pscd_ptr != sd->pscd_end - 2) {
+-    printf("%d bytes left after decoder finished.\n\n",
++    printf("%td bytes left after decoder finished.\n\n",
+ 	   sd->pscd_end - sd->pscd_ptr - 2);
+     trouble++;
+   }
+--- jbigkit-2.0/libjbig/Makefile.orig	2008-08-30 18:20:52.000000000 +0100
++++ jbigkit-2.0/libjbig/Makefile	2013-10-27 07:30:18.738884738 +0000
+@@ -7,29 +7,30 @@
+ # Options for the compiler: A high optimization level is suggested
+ CFLAGS = -g -O -Wall -ansi -pedantic # --coverage
+ 
+-all: libjbig.a tstcodec tstcodec85
++.PHONY: all clean test
+ 
+-tstcodec: tstcodec.o jbig.o jbig_ar.o
++%.lo %.o: %.c
++	libtool --mode=compile $(CC) $(CFLAGS) -c $<
++
++all: libjbig.la
++
++tstcodec: tstcodec.o libjbig.a
+ 	$(CC) $(CFLAGS) -o tstcodec $+
+ 
+-tstcodec85: tstcodec85.o jbig85.o jbig_ar.o
++tstcodec85: tstcodec85.o libjbig.a
+ 	$(CC) $(CFLAGS) -o tstcodec85 $+
+ 
+-libjbig.a: jbig.o jbig_ar.o
+-	rm -f libjbig.a
+-	ar rc libjbig.a jbig.o jbig_ar.o
+-	-ranlib libjbig.a
+-
+-libjbig85.a: jbig85.o jbig_ar.o
+-	rm -f libjbig85.a
+-	ar rc libjbig85.a jbig85.o jbig_ar.o
+-	-ranlib libjbig85.a
+-
+-jbig.o: jbig.c jbig.h jbig_ar.h
+-jbig85.o: jbig85.c jbig85.h jbig_ar.h
+-jbig_ar.o: jbig_ar.c jbig_ar.h
+-tstcodec.o: tstcodec.c jbig.h
+-tstcodec85.o: tstcodec85.c jbig85.h
++libjbig.a: libjbig.la
++	cp .libs/libjbig.a .
++
++libjbig.la: jbig.lo jbig_ar.lo jbig85.lo
++	libtool --mode=link $(CC) -o libjbig.la $+ -rpath /usr/lib
++
++jbig.lo: jbig.c jbig.h jbig_ar.h
++jbig85.lo: jbig85.c jbig85.h jbig_ar.h
++jbig_ar.lo: jbig_ar.c jbig_ar.h
++tstcodec.o: tstcodec.c libjbig.a
++tstcodec85.o: tstcodec85.c libjbig.a
+ 
+ jbig.pot: jbig.c
+ 	xgettext -o$@ -k_ \
+@@ -44,5 +45,6 @@
+ 	./tstcodec $@
+ 
+ clean:
+-	rm -f *.{o,gcda,gcno,gcov} *~ core gmon.out dbg_d\=??.pbm t82test.pbm
++	rm -rf .libs
++	rm -f *.gcda *.gcno *.gcov *.a *.la *.o *.lo *~ core gmon.out dbg_d\=??.pbm t82test.pbm
+ 	rm -f tstcodec tstcodec85
