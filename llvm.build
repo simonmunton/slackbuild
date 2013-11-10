@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l/llvm
 #TAR_EXT=.tar.gz
-VERSION=3.2
+VERSION=3.3
 VERSIONEXTRA=.src
 BUILD=1
 
@@ -45,11 +45,22 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
+ (cd tools
+  tar xf ${TARDIR}/cfe-${VERSION}.src.tar.gz
+  mv cfe* clang
+ )
+
  if [ -n "${LIBDIRSUFFIX}" ]
  then
-   patch -p1 -b -z .orig < ${CWD}/llvm-3.2-x86_64.diff
+#   patch -p1 -b -z .orig < ${CWD}/llvm-3.2-x86_64.diff
 
    sed -i "/^PROJ_libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.config.in
+   sed -i "s@\$(PROJ_prefix)/lib@\$(PROJ_prefix)/lib$LIBDIRSUFFIX@" tools/clang/lib/Headers/Makefile
+   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Frontend/CompilerInvocation.cpp
+   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Driver/Tools.cpp
+   sed -i "/ActiveLibDir =/ s@/lib@/lib${LIBDIRSUFFIX}@g" tools/llvm-config/llvm-config.cpp
+   sed -i "/LibDir / s@/lib@/lib${LIBDIRSUFFIX}@; s@/lib/@/lib${LIBDIRSUFFIX}/@; /RPATH/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.rules
+
  fi
 )
 fi
@@ -72,9 +83,10 @@ CXXFLAGS="${SLKCFLAGS}" \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
 	    --enable-pic \
-	    --with-pic \
 	    --enable-optimized \
-	    --disable-assertions
+	    --disable-assertions \
+	    --enable-experimental-targets=R600 \
+	    --with-clang-resource-dir="../lib${LIBDIRSUFFIX}/clang/${VERSION}"
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -89,7 +101,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-fi
+fi                       
 
 if [ ${DO_INSTALL} != "yes" ]
 then
