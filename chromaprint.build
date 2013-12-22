@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gdk-pixbuf
+TARNAME=chromaprint
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=2.30.2
+VERSION=1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://acoustid.org/chromaprint"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gdk-pixbuf-0.22.0.diff
-# patch -p1 < ${CWD}/gdk-pixbuf-2.22.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,17 +55,27 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-gtk-doc \
-	    --with-x11
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,12 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cat >> ${PKG}/install/doinst.sh << EOF
-usr/bin/gdk-pixbuf-query-loaders > usr/lib${LIBDIRSUFFIX}/gdk-pixbuf-2.0/2.10.0/loaders.cache
-
-EOF
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -101,14 +105,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The GdkPixBuf image handling library"
-The GdkPixBuf library provides a number of features, including :
-    o  GdkPixbuf structure for representing images.
-    o  Image loading facilities.
-    o  Rendering of a GdkPixBuf into various formats:
-       drawables (windows, pixmaps), GdkRGB buffers.
-    o  Fast scaling and compositing of pixbufs.
-    o  Simple animation loading (ie. animated gifs)
+make_slack_desc << EOF "AcoustID fingerprint library"
+Chromaprint is the core component of the AcoustID project. It's a 
+client-side library that implements a custom algorithm for extracting 
+fingerprints from any audio source.
 
 EOF
 
