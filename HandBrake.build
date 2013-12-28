@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=HandBrake
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/h
+#TAR_EXT=.tar.gz
+VERSION=0.9.9
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://handbrake.fr/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/HandBrake-0.9.9.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+pushd build
+make ${NUM_JOBS} || exit
+popd
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+pushd build
+make install DESTDIR=${PKG}
+popd
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "The open source video transcoder"
+HandBrake is a tool for converting video from nearly any format to a 
+selection of modern, widely supported codecs.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
