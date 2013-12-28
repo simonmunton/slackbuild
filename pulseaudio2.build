@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/p/pulseaudio
 #TAR_EXT=.tar.gz
 VERSION=2.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 WEBPAGE="http://www.pulseaudio.org/"
 
@@ -63,7 +63,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --disable-hal
 fi
@@ -87,6 +87,8 @@ make install DESTDIR=${PKG}
   doinst_config etc/pulse/${f}.new
  done
 )
+
+mkdir -p ${PKG}/var/run/pulse
 
 doinst_addusergrp pulse pulse
 doinst_addgrp pulse-access
@@ -129,6 +131,7 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
+chown pulse.pulse ${PKG}/var/run/pulse; \
 find . -type d -exec chmod 755 {} \; ; \
 chmod u+s usr/bin/pulseaudio usr/libexec/pulse/bt-proximity-helper ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
