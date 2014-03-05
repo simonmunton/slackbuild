@@ -2,19 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gnutls
+TARNAME=trousers
 TARNAMEEXTRA=
 TARSEP="-"
-#TARDIR=~/tmp/gnu/gnutls
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=3.2.12
+VERSION=0.3.11.2
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://trousers.sourceforge.net"
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=gnutls2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -54,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -61,12 +64,18 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-            --infodir=/usr/info \
-            --with-included-libtasn1 \
-            --mandir=/usr/man \
-            --enable-static=no \
-            --disable-rpath
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,9 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -92,20 +99,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* doc/TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU TLS library"
-This is a TLS (Transport Layer Security) 1.0 and SSL (Secure Sockets
-Layer) 3.0 implementation.  In brief, GnuTLS can be described as a
-library which offers an API to access secure communication protocols.
-These protocols provide privacy over insecure lines, and were designed
-to prevent eavesdropping, tampering, or message forgery.
-
-Homepage: http://www.gnu.org/software/gnutls/
+make_slack_desc << EOF "The open-source TCG Software Stack"
+TrouSerS is an CPL (Common Public License) licensed Trusted Computing 
+Software Stack. 
 
 EOF
 
