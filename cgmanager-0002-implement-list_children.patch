@@ -1,0 +1,458 @@
+From bf02b3ec5b1954d0195af592bd4d60941d0bccf5 Mon Sep 17 00:00:00 2001
+From: Serge Hallyn <serge.hallyn@ubuntu.com>
+Date: Thu, 27 Feb 2014 20:14:50 -0600
+Subject: [PATCH 1/1] implement list_children
+
+Signed-off-by: Serge Hallyn <serge.hallyn@ubuntu.com>
+---
+ cgmanager-proxy.c                 |  82 ++++++++++++++++++++++++
+ cgmanager.c                       |  25 ++++++++
+ frontend.c                        | 128 ++++++++++++++++++++++++++++++++++++++
+ frontend.h                        |   4 ++
+ fs.c                              |  56 +++++++++++++++++
+ fs.h                              |   1 +
+ org.linuxcontainers.cgmanager.xml |  12 +++-
+ tests/test20.sh                   |  28 +++++++++
+ 8 files changed, 335 insertions(+), 1 deletion(-)
+ create mode 100644 tests/test20.sh
+
+diff --git a/cgmanager-proxy.c b/cgmanager-proxy.c
+index a405d6e..8a356cb 100644
+--- a/cgmanager-proxy.c
++++ b/cgmanager-proxy.c
+@@ -735,6 +735,88 @@ out:
+ 	return ret;
+ }
+ 
++int list_children_main (void *parent, const char *controller, const char *cgroup,
++		    struct ucred p, struct ucred r, char ***output)
++{
++	DBusMessage *message;
++	DBusMessageIter iter;
++	int sv[2], ret = -1;
++	uint32_t len;
++	int32_t nrkids;
++	nih_local char * paths = NULL;
++	char *s;
++	int i;
++
++	*output = NULL;
++	if (memcmp(&p, &r, sizeof(struct ucred)) != 0) {
++		nih_error("%s: proxy != requestor", __func__);
++		return -1;
++	}
++
++	if (!sane_cgroup(cgroup)) {
++		nih_error("unsafe cgroup");
++		return -1;
++	}
++
++	if (!(message = start_dbus_request("ListChildrenScm", sv))) {
++		nih_error("%s: error starting dbus request", __func__);
++		return -1;
++	}
++
++	dbus_message_iter_init_append(message, &iter);
++	if (! dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &controller)) {
++		nih_error("%s: out of memory", __func__);
++		goto out;
++	}
++	if (! dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &cgroup)) {
++		nih_error("%s: out of memory", __func__);
++		goto out;
++	}
++	if (! dbus_message_iter_append_basic (&iter, DBUS_TYPE_UNIX_FD, &sv[1])) {
++		nih_error("%s: out of memory", __func__);
++		goto out;
++	}
++
++	if (!complete_dbus_request(message, sv, &r, NULL)) {
++		nih_error("%s: error completing dbus request", __func__);
++		goto out;
++	}
++
++	if (recv(sv[0], &nrkids, sizeof(int32_t), 0) != sizeof(int32_t))
++		goto out;
++	if (nrkids == 0) {
++		ret = 0;
++		goto out;
++	}
++	if (nrkids < 0) {
++		nih_error("Server encountered an error: bad cgroup?");
++		ret = -1;
++		goto out;
++	}
++	if (recv(sv[0], &len, sizeof(uint32_t), 0) != sizeof(uint32_t))
++		goto out;
++
++	paths = nih_alloc(NULL, len);
++	if (read(sv[0], paths, len) != len) {
++		nih_error("%s: Failed getting paths from server", __func__);
++		goto out;
++	}
++
++	*output = NIH_MUST( nih_alloc(parent, sizeof( char*)*(nrkids+1)) );
++
++	s = paths;
++	(*output)[nrkids] = NULL;
++	for (i=0; i<nrkids; i++) {
++		(*output)[i] = NIH_MUST( nih_strdup(parent, s) );
++		s += strlen(s) + 1;
++	}
++	ret = nrkids;
++out:
++	close(sv[0]);
++	close(sv[1]);
++	return ret;
++}
++
+ /**
+  * options:
+  *
+diff --git a/cgmanager.c b/cgmanager.c
+index 7c38c25..56c0b34 100644
+--- a/cgmanager.c
++++ b/cgmanager.c
+@@ -641,6 +641,31 @@ int get_tasks_main(void *parent, const char *controller, const char *cgroup,
+ 	return file_read_pids(parent, path, pids);
+ }
+ 
++int list_children_main(void *parent, const char *controller, const char *cgroup,
++			struct ucred p, struct ucred r, char ***output)
++{
++	char path[MAXPATHLEN];
++
++	*output = NULL;
++	if (!sane_cgroup(cgroup)) {
++		nih_error("unsafe cgroup");
++		return -1;
++	}
++
++	if (!compute_pid_cgroup(r.pid, controller, cgroup, path, NULL)) {
++		nih_error("Could not determine the requested cgroup");
++		return -1;
++	}
++
++	/* Check access rights to the cgroup directory */
++	if (!may_access(r.pid, r.uid, r.gid, path, O_RDONLY)) {
++		nih_error("Pid %d may not access %s\n", r.pid, path);
++		return -1;
++	}
++
++	return get_child_directories(parent, path, output);
++}
++
+ char *extra_cgroup_mounts;
+ 
+ static int
+diff --git a/frontend.c b/frontend.c
+index 3f618e7..fc28fdb 100644
+--- a/frontend.c
++++ b/frontend.c
+@@ -89,6 +89,7 @@ static const char *req_type_to_str(enum req_type r)
+ 		case REQ_TYPE_REMOVE: return "remove";
+ 		case REQ_TYPE_GET_TASKS: return "get_tasks";
+ 		case REQ_TYPE_CHMOD: return "chmod";
++		case REQ_TYPE_LIST_CHILDREN: return "list_children";
+ 		default: return "invalid";
+ 	}
+ }
+@@ -182,6 +183,7 @@ static void sock_scm_reader(struct scm_sock_data *data,
+ 	case REQ_TYPE_SET_VALUE: set_value_complete(data); break;
+ 	case REQ_TYPE_REMOVE: remove_scm_complete(data); break;
+ 	case REQ_TYPE_GET_TASKS: get_tasks_scm_complete(data); break;
++	case REQ_TYPE_LIST_CHILDREN: list_children_scm_complete(data); break;
+ 	default:
+ 		nih_fatal("%s: bad req_type %d", __func__, data->type);
+ 		exit(1);
+@@ -1170,6 +1172,132 @@ int cgmanager_get_tasks (void *data, NihDBusMessage *message, const char *contro
+ 	return ret;
+ }
+ 
++void list_children_scm_complete(struct scm_sock_data *data)
++{
++	int i, ret;
++	uint32_t len = 0, remainlen;
++	int32_t nrkids;
++	char **output; // nih_alloced with data as parent; freed at io_shutdown
++	nih_local char * path = NULL;
++	char *p;
++
++	nrkids = list_children_main(data, data->controller, data->cgroup,
++			data->pcred, data->rcred, &output);
++	if (write(data->fd, &nrkids, sizeof(int32_t)) != sizeof(int32_t)) {
++		nih_error("%s: error writing results", __func__);
++		return;
++	}
++	if (nrkids < 0) {
++		nih_error("Error getting children for %s:%s for pid %d",
++			data->controller, data->cgroup, data->rcred.pid);
++		return;
++	}
++	if (nrkids == 0)  /* no names to write, we are done */
++		return;
++
++	for (i=0; i < nrkids; i++)
++		len += strlen(output[i]) + 1;
++	path = nih_alloc(NULL, len);
++	if (!path) {
++		nih_error("Out of memory");
++		return;
++	}
++	p = path;
++	remainlen = len;
++	for (i=0; i < nrkids; i++) {
++		ret = snprintf(p, remainlen, "%s", output[i]);
++		if (ret < 0 || ret >= remainlen) // bogus
++			return;
++		p += ret + 1;
++		remainlen -= ret + 1;
++	}
++
++	if (write(data->fd, &len, sizeof(uint32_t)) != sizeof(uint32_t)) {
++		nih_error("%s: error writing results", __func__);
++		return;
++	}
++
++	if (write(data->fd, path, len) != len) {
++		nih_error("list_children_scm: Error writing final result to client");
++		return;
++	}
++}
++
++int cgmanager_list_children_scm (void *data, NihDBusMessage *message,
++		 const char *controller, const char *cgroup, int sockfd)
++{
++	struct scm_sock_data *d;
++
++	d = alloc_scm_sock_data(message, sockfd, REQ_TYPE_LIST_CHILDREN);
++	if (!d)
++		return -1;
++	d->controller = NIH_MUST( nih_strdup(d, controller) );
++	d->cgroup = NIH_MUST( nih_strdup(d, cgroup) );
++
++	if (!nih_io_reopen(NULL, sockfd, NIH_IO_MESSAGE,
++				(NihIoReader) sock_scm_reader,
++				(NihIoCloseHandler) scm_sock_close,
++				scm_sock_error_handler, d)) {
++		NihError *error = nih_error_steal ();
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++			"Failed queue scm message: %s", error->message);
++		nih_free(error);
++		return -1;
++	}
++	if (!kick_fd_client(sockfd)) {
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++			"Error writing to client: %s", strerror(errno));
++		return -1;
++	}
++	return 0;
++}
++
++/* 
++ * This is one of the dbus callbacks.
++ * Caller requests the number of tasks in @cgroup in @controller
++ * returns nrpids, or -1 on error.
++ */
++int cgmanager_list_children (void *data, NihDBusMessage *message,
++		const char *controller, const char *cgroup, char ***output)
++{
++	int fd = 0, ret;
++	struct ucred rcred;
++	socklen_t len;
++
++	nih_assert(output);
++
++	if (message == NULL) {
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++			"message was null");
++		return -1;
++	}
++
++	if (!dbus_connection_get_socket(message->connection, &fd)) {
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++					     "Could not get client socket.");
++		return -1;
++	}
++
++	len = sizeof(struct ucred);
++	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &rcred, &len) < 0) {
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++					     "Could not get peer cred: %s",
++					     strerror(errno));
++		return -1;
++	}
++
++	nih_info (_("ListChildren: Client fd is: %d (pid=%d, uid=%u, gid=%u)"),
++			fd, rcred.pid, rcred.uid, rcred.gid);
++
++	ret = list_children_main(message, controller, cgroup, rcred, rcred, output);
++	if (ret >= 0)
++		ret = 0;
++	else
++		nih_dbus_error_raise_printf (DBUS_ERROR_INVALID_ARGS,
++					     "invalid request");
++	return ret;
++}
++
+ int
+ cgmanager_get_api_version(void *data, NihDBusMessage *message, int *version)
+ {
+diff --git a/frontend.h b/frontend.h
+index 4f39d3f..935231f 100644
+--- a/frontend.h
++++ b/frontend.h
+@@ -102,6 +102,7 @@ enum req_type {
+ 	REQ_TYPE_GET_TASKS,
+ 	REQ_TYPE_CHMOD,
+ 	REQ_TYPE_MOVE_PID_ABS,
++	REQ_TYPE_LIST_CHILDREN,
+ };
+ 
+ int get_pid_cgroup_main(void *parent, const char *controller,
+@@ -136,6 +137,9 @@ void remove_scm_complete(struct scm_sock_data *data);
+ int get_tasks_main (void *parent, const char *controller, const char *cgroup,
+ 		struct ucred p, struct ucred r, int32_t **pids);
+ void get_tasks_scm_complete(struct scm_sock_data *data);
++int list_children_main (void *parent, const char *controller, const char *cgroup,
++		struct ucred p, struct ucred r, char ***output);
++void list_children_scm_complete(struct scm_sock_data *data);
+ 
+ int cgmanager_ping (void *data, NihDBusMessage *message, int junk);
+ 
+diff --git a/fs.c b/fs.c
+index 32a06a5..821af8c 100644
+--- a/fs.c
++++ b/fs.c
+@@ -887,3 +887,59 @@ bool move_self_to_root(void)
+ 	}
+ 	return true;
+ }
++
++/*
++ * get_child_directories:
++ *
++ * @parent: parent which will be given a reference to the returned string
++ * (to allow the returned value to be freed automatically when @parent is
++ * freed).
++ * @path: Full path whose child directories to list.
++ * output: pointer to which the list of directory names will be stored.
++ *
++ * Read all child directories under @path.
++ *
++ * Returns: Number of directories read.  The names will be placed in the
++ * null-terminated array @output.
++ */
++int get_child_directories(void *parent, const char *path, char ***output)
++{
++	int used = 0, alloced = 5;
++	DIR *d;
++	struct dirent dirent, *direntp;
++
++	nih_assert(output);
++	d = opendir(path);
++	if (!d) {
++		nih_error("%s: failed to open directory %s: %s",
++			__func__, path, strerror(errno));
++		return -1;
++	}
++	*output = NIH_MUST( nih_alloc(parent, alloced * sizeof(char *)) );
++	(*output)[0] = NULL;
++	while (readdir_r(d, &dirent, &direntp) == 0 && direntp) {
++		if (!strcmp(direntp->d_name, ".") || !strcmp(direntp->d_name, ".."))
++			continue;
++		if (DT_DIR != direntp->d_type)
++			continue;
++		if (used+1 >= alloced) {
++			char **tmp;
++			alloced += 5;
++			tmp = nih_realloc(*output, parent, alloced * sizeof(char *));
++			if (!tmp) {
++				if (*output)
++					nih_free(*output);
++				output = NULL;
++				nih_error("%s: Out of memory", __func__);
++				closedir(d);
++				return -1;
++			}
++			*output = tmp;
++		}
++		(*output)[used] = NIH_MUST( nih_strdup(parent, direntp->d_name) );
++		(*output)[used+1] = NULL;
++		used++;
++	}
++	closedir(d);
++	return used;
++}
+diff --git a/fs.h b/fs.h
+index 6067e23..d595613 100644
+--- a/fs.h
++++ b/fs.h
+@@ -44,3 +44,4 @@ bool realpath_escapes(char *path, char *safety);
+ bool file_exists(const char *path);
+ bool dir_exists(const char *path);
+ bool move_self_to_root(void);
++int get_child_directories(void *parent, const char *path, char ***output);
+diff --git a/org.linuxcontainers.cgmanager.xml b/org.linuxcontainers.cgmanager.xml
+index bd31c24..619125b 100644
+--- a/org.linuxcontainers.cgmanager.xml
++++ b/org.linuxcontainers.cgmanager.xml
+@@ -160,10 +160,20 @@
+       <arg name="cgroup" type="s" direction="in" />
+       <arg name="output" type="ai" direction="out" />
+     </method>
++    <method name="ListChildrenScm">
++      <arg name="controller" type="s" direction="in" />
++      <arg name="cgroup" type="s" direction="in" />
++      <arg name="sockfd" type="h" direction="in" />
++      <!-- names will be returned over sockfd -->
++    </method>
++    <method name="ListChildren">
++      <arg name="controller" type="s" direction="in" />
++      <arg name="cgroup" type="s" direction="in" />
++      <arg name="output" type="as" direction="out" />
++    </method>
+     <!-- still to add: low priority,
+ 	 Prune (remove all empty decendents)
+ 	 removeWhenEmpty
+-	 listChildren
+ 	 getEventfd
+ 	 -->
+     <property name="api_version" type="i" access="read" />
+diff --git a/tests/test20.sh b/tests/test20.sh
+new file mode 100644
+index 0000000..e49115a
+--- /dev/null
++++ b/tests/test20.sh
+@@ -0,0 +1,28 @@
++#!/bin/bash
++
++echo "Test 20: ListChildren"
++
++# Simple case: current directory
++dbus-send --print-reply --address=unix:path=/sys/fs/cgroup/cgmanager/sock --type=method_call /org/linuxcontainers/cgmanager org.linuxcontainers.cgmanager0_0.ListChildren string:'memory' string:''
++if [ $? -ne 0 ]; then
++	echo "Failed to read current directory"
++	exit 1
++fi
++
++# nonexistent cgroup
++dbus-send --print-reply --address=unix:path=/sys/fs/cgroup/cgmanager/sock --type=method_call /org/linuxcontainers/cgmanager org.linuxcontainers.cgmanager0_0.Remove string:'memory' string:'ooga2' int32:1 || true
++dbus-send --print-reply --address=unix:path=/sys/fs/cgroup/cgmanager/sock --type=method_call /org/linuxcontainers/cgmanager org.linuxcontainers.cgmanager0_0.ListChildren string:'memory' string:'ooga2'
++if [ $? -eq 0 ]; then
++	echo "Wrong result listing nonexistent directory"
++	exit 1
++fi
++
++# empty cgroup
++dbus-send --print-reply --address=unix:path=/sys/fs/cgroup/cgmanager/sock --type=method_call /org/linuxcontainers/cgmanager org.linuxcontainers.cgmanager0_0.Create string:'memory' string:'ooga'
++dbus-send --print-reply --address=unix:path=/sys/fs/cgroup/cgmanager/sock --type=method_call /org/linuxcontainers/cgmanager org.linuxcontainers.cgmanager0_0.ListChildren string:'memory' string:'ooga'
++if [ $? -ne 0 ]; then
++	echo "Failed to list empty directory"
++	exit 1
++fi
++
++exit 0
+-- 
+1.9.0
+

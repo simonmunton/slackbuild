@@ -1,0 +1,229 @@
+From 6e2597ed2d323d0260f3b0341a194d38f97dc769 Mon Sep 17 00:00:00 2001
+From: Serge Hallyn <serge.hallyn@ubuntu.com>
+Date: Wed, 26 Feb 2014 10:18:35 -0600
+Subject: [PATCH 1/1] add a configurable maximum cgroup depth
+
+Signed-off-by: Serge Hallyn <serge.hallyn@ubuntu.com>
+---
+ cgmanager.c | 42 +++++++++++++++++++++++++++++-------------
+ fs.c        | 21 ++++++++++++++++++++-
+ fs.h        |  4 +++-
+ 3 files changed, 52 insertions(+), 15 deletions(-)
+
+diff --git a/cgmanager.c b/cgmanager.c
+index b77220a..7c38c25 100644
+--- a/cgmanager.c
++++ b/cgmanager.c
+@@ -19,6 +19,14 @@
+ 
+ #include <frontend.h>
+ 
++/*
++ * Maximum depth of directories we allow in Create
++ * Default is 16.  Figure 4 directories per level of container
++ * nesting (/user/1000.user/c2.session/c1), that lets us nest
++ * 4 containers deep.
++ * */
++static int maxdepth = 16;
++
+ /* GetPidCgroup */
+ int get_pid_cgroup_main(void *parent, const char *controller,struct ucred p,
+ 			 struct ucred r, struct ucred v, char **output)
+@@ -26,13 +34,13 @@ int get_pid_cgroup_main(void *parent, const char *controller,struct ucred p,
+ 	char rcgpath[MAXPATHLEN], vcgpath[MAXPATHLEN];
+ 
+ 	// Get r's current cgroup in rcgpath
+-	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath, NULL)) {
+ 		nih_error("Could not determine the requestor cgroup");
+ 		return -1;
+ 	}
+ 
+ 	// Get v's cgroup in vcgpath
+-	if (!compute_pid_cgroup(v.pid, controller, "", vcgpath)) {
++	if (!compute_pid_cgroup(v.pid, controller, "", vcgpath, NULL)) {
+ 		nih_error("Could not determine the victim cgroup");
+ 		return -1;
+ 	}
+@@ -57,7 +65,7 @@ static bool victim_under_proxy_cgroup(char *rcgpath, pid_t v,
+ {
+ 	char vcgpath[MAXPATHLEN];
+ 
+-	if (!compute_pid_cgroup(v, controller, "", vcgpath)) {
++	if (!compute_pid_cgroup(v, controller, "", vcgpath, NULL)) {
+ 		nih_error("Could not determine the victim's cgroup");
+ 		return false;
+ 	}
+@@ -87,7 +95,7 @@ int do_move_pid_main(const char *controller, const char *cgroup, struct ucred p,
+ 	// Get r's current cgroup in rcgpath
+ 	if (escape)
+ 		query = p.pid;
+-	if (!compute_pid_cgroup(query, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(query, controller, "", rcgpath, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -163,7 +171,7 @@ int move_pid_abs_main(const char *controller, const char *cgroup, struct ucred p
+ int create_main(const char *controller, const char *cgroup, struct ucred p,
+ 		struct ucred r, int32_t *existed)
+ {
+-	int ret;
++	int ret, depth;
+ 	char rcgpath[MAXPATHLEN], path[MAXPATHLEN], dirpath[MAXPATHLEN];
+ 	nih_local char *copy = NULL;
+ 	size_t cgroup_len;
+@@ -179,11 +187,17 @@ int create_main(const char *controller, const char *cgroup, struct ucred p,
+ 	}
+ 
+ 	// Get r's current cgroup in rcgpath
+-	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath, &depth)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+ 
++	depth += get_path_depth(cgroup);
++	if (depth > maxdepth) {
++		nih_error("Cgroup too deep: %s/%s", rcgpath, cgroup);
++		return -1;
++	}
++
+ 	cgroup_len = strlen(cgroup);
+ 
+ 	if (strlen(rcgpath) + cgroup_len > MAXPATHLEN) {
+@@ -200,7 +214,7 @@ int create_main(const char *controller, const char *cgroup, struct ucred p,
+ 		oldp2 = *p2;
+ 		*p2 = '\0';
+ 		if (strcmp(p1, "..") == 0) {
+-			nih_error("Out of memory copying cgroup name");
++			nih_error("Invalid cgroup path at create: %s", p1);
+ 			return -1;
+ 		}
+ 		strncat(path, "/", MAXPATHLEN-1);
+@@ -272,7 +286,7 @@ int chown_main(const char *controller, const char *cgroup, struct ucred p,
+ 	}
+ 
+ 	// Get r's current cgroup in rcgpath
+-	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -327,7 +341,7 @@ int chmod_main(const char *controller, const char *cgroup, const char *file,
+ 	}
+ 
+ 	// Get r's current cgroup in rcgpath
+-	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -372,7 +386,7 @@ int get_value_main(void *parent, const char *controller, const char *cgroup,
+ 		return -1;
+ 	}
+ 
+-	if (!compute_pid_cgroup(r.pid, controller, cgroup, path)) {
++	if (!compute_pid_cgroup(r.pid, controller, cgroup, path, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -421,7 +435,7 @@ int set_value_main(const char *controller, const char *cgroup,
+ 		return -1;
+ 	}
+ 
+-	if (!compute_pid_cgroup(r.pid, controller, cgroup, path)) {
++	if (!compute_pid_cgroup(r.pid, controller, cgroup, path, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -545,7 +559,7 @@ int remove_main(const char *controller, const char *cgroup, struct ucred p,
+ 	}
+ 
+ 	// Get r's current cgroup in rcgpath
+-	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath)) {
++	if (!compute_pid_cgroup(r.pid, controller, "", rcgpath, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -604,7 +618,7 @@ int get_tasks_main(void *parent, const char *controller, const char *cgroup,
+ 		return -1;
+ 	}
+ 
+-	if (!compute_pid_cgroup(r.pid, controller, cgroup, path)) {
++	if (!compute_pid_cgroup(r.pid, controller, cgroup, path, NULL)) {
+ 		nih_error("Could not determine the requested cgroup");
+ 		return -1;
+ 	}
+@@ -643,6 +657,8 @@ my_setter (NihOption *option, const char *arg)
+  * Command-line options accepted by this program.
+  **/
+ static NihOption options[] = {
++	{ 0, "max-depth", N_("Maximum cgroup depth"),
++		NULL, NULL, &maxdepth, NULL },
+ 	{ 'm', "mount", N_("Extra subsystems to mount"),
+ 		NULL, "subsystems to mount", NULL, my_setter },
+ 	{ 0, "daemon", N_("Detach and run in the background"),
+diff --git a/fs.c b/fs.c
+index b6dd4fd..32a06a5 100644
+--- a/fs.c
++++ b/fs.c
+@@ -455,6 +455,21 @@ const char *get_controller_path(const char *controller)
+ 	return NULL;
+ }
+ 
++int get_path_depth(const char *p)
++{
++	int depth = 0;
++
++	while (*p) {
++		while (*p && *p == '/')
++			p++;
++		if (*p)
++			depth++;
++		while (*p && *p != '/')
++			p++;
++	}
++	return depth;
++}
++
+ /*
+  * Calculate a full path to the cgroup being requested.
+  * @pid is the process making the request
+@@ -464,7 +479,8 @@ const char *get_controller_path(const char *controller)
+  *    "a/b", then we concatenate "/cgroup/for/pid" with "a/b"
+  *    If @cgroup is "/a/b", then we use "/a/b"
+  */
+-bool compute_pid_cgroup(pid_t pid, const char *controller, const char *cgroup, char *path)
++bool compute_pid_cgroup(pid_t pid, const char *controller, const char *cgroup,
++		char *path, int *depth)
+ {
+ 	int ret;
+ 	char requestor_cgpath[MAXPATHLEN], fullpath[MAXPATHLEN], *cg;
+@@ -479,6 +495,9 @@ bool compute_pid_cgroup(pid_t pid, const char *controller, const char *cgroup, c
+ 	} else
+ 		abspath = true;
+ 
++	if (depth)
++		*depth = get_path_depth(cg);
++
+ 	if ((cont_path = get_controller_path(controller)) == NULL) {
+ 		nih_error("Controller %s not mounted", controller);
+ 		return false;
+diff --git a/fs.h b/fs.h
+index b5d3868..6067e23 100644
+--- a/fs.h
++++ b/fs.h
+@@ -25,7 +25,9 @@
+  */
+ 
+ int setup_cgroup_mounts(char *extra_mounts);
+-bool compute_pid_cgroup(pid_t pid, const char *controller, const char *cgroup, char *path);
++bool compute_pid_cgroup(pid_t pid, const char *controller, const char *cgroup,
++		char *path, int *depth);
++int get_path_depth(const char *path);
+ bool may_access(pid_t pid, uid_t uid, gid_t gid, const char *path, int mode);
+ void get_pid_creds(pid_t pid, uid_t *uid, gid_t *gid);
+ char *file_read_string(void *parent, const char *path);
+-- 
+1.9.0
+

@@ -1,0 +1,155 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=libcgroup
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=0.41
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://libcg.sourceforge.net/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/libcgroup.conf.diff
+ patch -p1 < ${CWD}/libcgroup.init.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --disable-static
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+# If this directory is empty, do not include it in the package:
+rmdir ${PKG}/usr/lib${LIBDIRSUFFIX}/security 2> /dev/null
+
+# Install init scripts:
+mkdir -p ${PKG}/etc/rc.d
+cp -a scripts/init.d/cgconfig ${PKG}/etc/rc.d/rc.cgconfig.new
+cp -a scripts/init.d/cgred ${PKG}/etc/rc.d/rc.cgred.new
+chmod 644 ${PKG}/etc/rc.d/*
+
+# Install sample config files:
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/samples
+( cd samples
+  for conffile in cgconfig.conf cgred.conf cgrules.conf cgsnapshot_blacklist.conf ; do
+    cp -a ${conffile} ${PKG}/etc/${conffile}.new
+    cp -a ${conffile} ${PKG}/usr/doc/${TARNAME}-${VERSION}/samples
+  done
+)
+
+doinst_same_perm etc/rc.d/rc.cgconfig
+doinst_same_perm etc/rc.d/rc.cgred
+
+doinst_config etc/rc.d/rc.cgconfig.new
+doinst_config etc/rc.d/rc.cgred.new
+
+doinst_config etc/cgconfig.conf.new
+doinst_config etc/cgred.conf.new
+doinst_config etc/cgrules.conf.new
+doinst_config etc/cgsnapshot_blacklist.conf.new
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "library and utilities for kernel control groups"
+Control Groups provide a mechanism for aggregating/partitioning sets of
+tasks, and all their future children, into hierarchical groups with
+specialized behaviour.  It makes use of a filesystem interface.
+This package contains a library for developing applications that use
+control groups, as well as some basic userspace tools for controlling
+and monitoring control groups.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
