@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=imlib2_loaders
+TARNAME=kprinter4
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=1.4.6
+VERSION=9
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://web.enlightenment.org/"
+WEBPAGE="https://github.com/credativ/kprinter4"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,26 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,7 +89,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -104,10 +107,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "additional  loaders for imlib2"
-This package contains additional image loaders for Imlib2 which for
-some reason (such as license issues) are not distributed with Imlib2
-directly.
+make_slack_desc << EOF "stand-alone PostScript document printer"
+KPrinter4 is a simple stand-alone PostScript document printer modelled 
+after the KDE 4 print dialog. It can be used in place of /bin/lpr in 
+order to better control the print setup of non KDE applications.
+
+This work has been sponsored by the City of Munich's LiMux project. 
 
 EOF
 
