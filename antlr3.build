@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=antlr3
+TARNAME=antlr
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.5.1
+VERSION=3.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE="http://www.antlr2.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=antlr
+PKGNAME=antlr3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,11 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/antlr-2.7.7.diff
+ chmod -R +w * ._*
+
+ find . -name "._*" -exec rm {} \;
+
+# patch -p1 < ${CWD}/antlr-3.4.diff
 
  mvn -N install
 )
@@ -85,6 +89,8 @@ then
 #make ${NUM_JOBS} || exit
 :
 #mvn -Dgpg.skip=true -Duser.name="Your_Name" -DskipTests=true  -Djava6.home=/usr/lib${LIBDIRSUFFIX}/java install
+
+#mvn -Dgpg.skip=true -DskipTests=true -Duber package assembly:assembly
 mvn -Dgpg.skip=true -DskipTests=true package
 
 fi
@@ -97,13 +103,13 @@ fi
 #make install DESTDIR=${PKG} prefix=${PKG}/usr libdir=${PKG}/usr/lib${LIBDIRSUFFIX} mandir=${PKG}/usr/man
 
 mkdir -p ${PKG}/usr/share/java
-cp antlr-complete/target/antlr-complete-${VERSION}.jar ${PKG}/usr/share/java/antlr3.jar
+cp lib/antlr-${VERSION}-complete.jar ${PKG}/usr/share/java/antlr3.jar
 
 mkdir -p ${PKG}/usr/bin
 cat << EOF > ${PKG}/usr/bin/antlr3
 #!/bin/sh
 
-CLASSPATH=/usr/share/java/stringtemplate.jar:/usr/share/java/antlr3.jar:/usr/share/java/antlr3-runtime.jar
+CLASSPATH=/usr/share/java/stringtemplate.jar:/usr/share/java/antlr3.jar
 exec java -cp \$CLASSPATH org.antlr.Tool "\$@"
 EOF
 chmod +x ${PKG}/usr/bin/antlr3
