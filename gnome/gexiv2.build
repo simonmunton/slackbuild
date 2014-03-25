@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gramps
+TARNAME=gexiv2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=4.0.3
+VERSION=0.9.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.gramps-project.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,20 +59,21 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-introspection
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -80,8 +81,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
-python setup.py build || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,10 +89,7 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-python setup.py install --root=${PKG}
-
-sed -i "s@${PKG}@@" ${PKG}/usr/lib${LIBDIRSUFFIX}/python*/site-packages/gramps/gen/utils/resource-path
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -109,11 +106,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "genealogy program"
-Gramps is a free software project and community. We strive to produce 
-a genealogy program that is both intuitive for hobbyists and feature-
-complete for professional genealogists. It is a community project, 
-created, developed and governed by genealogists.
+make_slack_desc << EOF "gexiv2 - A GObject-based Exiv2 wrapper"
+gexiv2 is a GObject-based wrapper around the Exiv2 library.  It makes 
+the basic features of Exiv2 available to GNOME applications.
 
 EOF
 
