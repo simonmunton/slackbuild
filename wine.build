@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=1.5.31
+VERSION=1.6.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -20,6 +20,7 @@ BUILD=1
 
 #WINE_GECKO=${TARDIR}/wine_gecko-1.0.0-x86.cab
 WINE_GECKO=${TARDIR}/wine_gecko-2.21-x86.msi
+WINE_MONO=${TARDIR}/wine-mono-4.5.2.msi
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
@@ -60,18 +61,46 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+mkdir wine64
+cd wine64
+../configure --prefix=/usr \
             --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --libdir=/usr/lib64 \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-win64 \
+	    | tee configure.log
+cd ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+cd wine64
 make ${NUM_JOBS} || exit
+cd ..
+fi
+
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+mkdir wine32
+cd wine32
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-wine64=../wine64 \
+	    | tee configure.log
+cd ..
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+cd wine32
+make ${NUM_JOBS} || exit
+cd ..
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,11 +108,22 @@ then
   exit
 fi
 
+cd wine32
 make install DESTDIR=${PKG}
+cd ..
+
+cd wine64
+make install DESTDIR=${PKG}
+cd ..
+
 
 mkdir -p ${PKG}/usr/share/wine/gecko
 cp ${WINE_GECKO} ${PKG}/usr/share/wine/gecko/
+cp ${WINE_GECKO/x86/x86_64} ${PKG}/usr/share/wine/gecko/
 chmod a+r ${PKG}/usr/share/wine/gecko/*
+mkdir -p ${PKG}/usr/share/wine/mono
+cp ${WINE_MONO} ${PKG}/usr/share/wine/mono/
+chmod a+r ${PKG}/usr/share/wine/mono/*
 
 #strip_binaries
 

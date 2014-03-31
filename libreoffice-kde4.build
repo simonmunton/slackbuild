@@ -1,0 +1,88 @@
+#!/bin/sh
+#
+
+# Set initial variables:
+PKG=/tmp/package-libo-kde4
+
+VERSION=4.2.2.1
+
+case `uname -m` in
+  x86_64)
+    ARCH=x86_64
+    ARCH_RPM=x86-64
+    ;;
+  *)
+    ARCH=i586
+    ARCH_RPM=x86
+    ;;
+esac
+
+BUILD=1
+
+# http://rpmfind.net/linux/rpm2html/search.php?query=libreoffice-kde4
+
+
+INPUT=~/tmp/new/l/libreoffice/libreoffice-kde-${VERSION}-8.fc20.x86_64.rpm
+
+if [ ! -r $INPUT ]; then
+echo "Cannot find $INPUT Terminating..."
+echo "Check that VERSION and INPUT are correct, and that you are running this SlackBuild in the same \
+directory as the input file."
+exit
+fi
+
+# Extract a package, and then delete the original RPM file
+# Argument 1: Package Name
+# Argument 2: Architecture
+function extractPackage
+{
+      RPM=$1
+
+      rpm2cpio $RPM | cpio -imd -R 0:0 2> /dev/null
+#      rm $RPM
+
+      # Fix directory permissions problem
+      find . -type d -perm 700 -exec chmod 755 {} \;
+}
+
+
+rm -rf $PKG
+mkdir -p $PKG/usr/{bin,share}
+
+if [ -d libo ]
+then
+  rm -rf libo
+fi
+mkdir libo
+cd libo
+
+mkdir -p $PKG/usr/doc/libreoffice-kde4-$VERSION
+
+CWD=`pwd`
+
+cd $PKG
+
+extractPackage $INPUT
+
+mkdir -p $PKG/opt/libreoffice4.2
+mv usr/lib64/libreoffice/program opt/libreoffice4.2
+rmdir -p usr/lib64/libreoffice
+
+
+mkdir -p $PKG/install
+
+cat > $PKG/install/slack-desc << EOF
+libreoffice-kde4: libreoffice-kde4 (libreoffice kde4 integration)
+libreoffice-kde4:
+libreoffice-kde4: KDE4 integration for libreoffice
+libreoffice-kde4:
+EOF
+
+USERNAME=`id -un`
+GROUP=`id -gn`
+
+cd $PKG
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n /tmp/packages/libreoffice-kde4-$VERSION-$ARCH-$BUILD.tgz; \
+chown -R $USERNAME.$GROUP $PKG"
