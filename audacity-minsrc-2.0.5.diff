@@ -1,0 +1,890 @@
+--- audacity-minsrc-2.0.5/src/export/ExportFFmpeg.cpp.orig	2013-10-19 08:31:49.000000000 +0100
++++ audacity-minsrc-2.0.5/src/export/ExportFFmpeg.cpp	2014-04-06 17:36:17.129876672 +0100
+@@ -265,7 +265,9 @@
+ 
+    av_log_set_callback(av_log_wx_callback);
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    AVFormatParameters	fpOutFile;
++#endif
+ 
+    // See if libavformat has modules that can write our output format. If so, mEncFormatDesc
+    // will describe the functions used to write the format (used internally by libavformat)
+@@ -295,18 +297,25 @@
+    }
+ 
+    mEncAudioStream->id = 0;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    mEncFormatCtx->timestamp = 0;
++#endif
+ 
+    // Open the output file.
+    if (!(mEncFormatDesc->flags & AVFMT_NOFILE))
+    {
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       if ((err = ufile_fopen(&mEncFormatCtx->pb, mName, URL_WRONLY)) < 0)
++#else
++      err = 0;
++#endif
+       {
+          wxLogError(wxT("FFmpeg : ERROR - Can't open output file \"%s\" to write. Error code is %d."), mName.c_str(),err);
+          return false;
+       }
+    }
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    // Set default parameters on the format context.
+    memset(&fpOutFile, 0, sizeof(AVFormatParameters));
+    if ((err = av_set_parameters(mEncFormatCtx, &fpOutFile)) < 0)
+@@ -314,9 +323,12 @@
+       wxLogError(wxT("FFmpeg : ERROR - Can't set output parameters for output file \"%s\". Error code is %d."), mName.c_str(),err);
+       return false;
+    }
++#endif
+ 
+    // I have no idea what is this
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    mEncFormatCtx->preload   = (int)(0.5 * AV_TIME_BASE);
++#endif
+    mEncFormatCtx->max_delay = (int)(0.7 * AV_TIME_BASE);
+ 
+    // Open the audio stream's codec and initialise any stream related data.
+@@ -334,7 +346,11 @@
+    }
+ 
+    // Write headers to the output file.
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    if ((err = av_write_header(mEncFormatCtx)) < 0)
++#else
++   if ((err = avformat_write_header(mEncFormatCtx, NULL)) < 0)
++#endif
+    {
+       wxLogError(wxT("FFmpeg : ERROR - Can't write headers to output file \"%s\". Error code is %d."), mName.c_str(),err);
+ 
+@@ -359,7 +375,11 @@
+    // Configure the audio stream's codec context.
+    mEncAudioCodecCtx = mEncAudioStream->codec;
+   
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 0, 0)
+    avcodec_get_context_defaults(mEncAudioCodecCtx);
++#else
++   avcodec_get_context_defaults3(mEncAudioCodecCtx, NULL);
++#endif
+    mEncAudioCodecCtx->codec_id = ExportFFmpegOptions::fmts[mSubFormat].codecid;
+    mEncAudioCodecCtx->codec_type = CODEC_TYPE_AUDIO;
+    mEncAudioCodecCtx->codec_tag = av_codec_get_tag((const AVCodecTag **)mEncFormatCtx->oformat->codec_tag,mEncAudioCodecCtx->codec_id);
+@@ -399,10 +419,16 @@
+       mEncAudioCodecCtx->bit_rate = gPrefs->Read(wxT("/FileFormats/WMABitRate"), 198000);
+       if (!CheckSampleRate(mSampleRate,ExportFFmpegWMAOptions::iWMASampleRates[0], ExportFFmpegWMAOptions::iWMASampleRates[4], &ExportFFmpegWMAOptions::iWMASampleRates[0]))
+          mSampleRate = AskResample(mEncAudioCodecCtx->bit_rate,mSampleRate, ExportFFmpegWMAOptions::iWMASampleRates[0], ExportFFmpegWMAOptions::iWMASampleRates[4], &ExportFFmpegWMAOptions::iWMASampleRates[0]);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       mEncAudioCodecCtx->flags2 |= CODEC_FLAG2_BIT_RESERVOIR | 0x0004;
++#else
++      mEncAudioCodecCtx->flags2 |= 0x0004;
++#endif
+       break;
+    case FMT_OTHER:
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       av_metadata_set2(&mEncAudioStream->metadata, "language", gPrefs->Read(wxT("/FileFormats/FFmpegLanguage"),wxT("")).ToUTF8(), 0);
++#endif
+       mEncAudioCodecCtx->sample_rate = gPrefs->Read(wxT("/FileFormats/FFmpegSampleRate"),(long)0);
+       if (mEncAudioCodecCtx->sample_rate != 0) mSampleRate = mEncAudioCodecCtx->sample_rate;
+       mEncAudioCodecCtx->bit_rate = gPrefs->Read(wxT("/FileFormats/FFmpegBitRate"), (long)0);
+@@ -410,22 +436,28 @@
+       mEncAudioCodecCtx->global_quality = gPrefs->Read(wxT("/FileFormats/FFmpegQuality"),(long)-99999);
+       mEncAudioCodecCtx->cutoff = gPrefs->Read(wxT("/FileFormats/FFmpegCutOff"),(long)0);
+       mEncAudioCodecCtx->flags2 = 0;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       if (gPrefs->Read(wxT("/FileFormats/FFmpegBitReservoir"),true)) mEncAudioCodecCtx->flags2 |= CODEC_FLAG2_BIT_RESERVOIR;
++#endif
+       if (gPrefs->Read(wxT("/FileFormats/FFmpegVariableBlockLen"),true)) mEncAudioCodecCtx->flags2 |= 0x0004; //WMA only?
+ #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
+       mEncAudioCodecCtx->use_lpc = gPrefs->Read(wxT("/FileFormats/FFmpegUseLPC"),true);
+ #endif
+       mEncAudioCodecCtx->compression_level = gPrefs->Read(wxT("/FileFormats/FFmpegCompLevel"),-1);
+       mEncAudioCodecCtx->frame_size = gPrefs->Read(wxT("/FileFormats/FFmpegFrameSize"),(long)0);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       mEncAudioCodecCtx->lpc_coeff_precision = gPrefs->Read(wxT("/FileFormats/FFmpegLPCCoefPrec"),(long)0);
++#endif
+       mEncAudioCodecCtx->min_prediction_order = gPrefs->Read(wxT("/FileFormats/FFmpegMinPredOrder"),(long)-1);
+       mEncAudioCodecCtx->max_prediction_order = gPrefs->Read(wxT("/FileFormats/FFmpegMaxPredOrder"),(long)-1);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       mEncAudioCodecCtx->min_partition_order = gPrefs->Read(wxT("/FileFormats/FFmpegMinPartOrder"),(long)-1);
+       mEncAudioCodecCtx->max_partition_order = gPrefs->Read(wxT("/FileFormats/FFmpegMaxPartOrder"),(long)-1);
+       mEncAudioCodecCtx->prediction_order_method = gPrefs->Read(wxT("/FileFormats/FFmpegPredOrderMethod"),(long)0);
+       mEncFormatCtx->mux_rate = gPrefs->Read(wxT("/FileFormats/FFmpegMuxRate"),(long)0);
++#endif
+       mEncFormatCtx->packet_size = gPrefs->Read(wxT("/FileFormats/FFmpegPacketSize"),(long)0);
+-      mEncAudioCodecCtx->codec_id = (CodecID)gPrefs->Read(wxT("/FileFormats/FFmpegCodec"), mEncFormatDesc->audio_codec);
++      mEncAudioCodecCtx->codec_id = (AVCodecID)gPrefs->Read(wxT("/FileFormats/FFmpegCodec"), mEncFormatDesc->audio_codec);
+       break;
+    default:
+       return false;
+@@ -439,12 +471,14 @@
+       mEncAudioCodecCtx->flags |= CODEC_FLAG_QSCALE;
+    }
+    else mEncAudioCodecCtx->global_quality = -99999;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    this->mEncAudioStream->quality = mEncAudioCodecCtx->global_quality = mEncAudioCodecCtx->global_quality * FF_QP2LAMBDA;
++#endif
+    mEncAudioCodecCtx->sample_rate = mSampleRate;
+    mEncAudioCodecCtx->channels = mChannels;
+    mEncAudioCodecCtx->time_base.num = 1;
+    mEncAudioCodecCtx->time_base.den = mEncAudioCodecCtx->sample_rate;
+-   mEncAudioCodecCtx->sample_fmt = SAMPLE_FMT_S16;
++   mEncAudioCodecCtx->sample_fmt = AV_SAMPLE_FMT_S16;
+    //mEncAudioCodecCtx->strict_std_compliance = FF_COMPLIANCE_STRICT;
+ 
+    if (mEncAudioCodecCtx->codec_id == CODEC_ID_AC3)
+@@ -476,7 +510,11 @@
+    }
+ 
+    // Open the codec.
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 0, 0)
+    if (avcodec_open(mEncAudioCodecCtx, codec) < 0 || mEncAudioCodecCtx->frame_size == 0) 
++#else
++   if (avcodec_open2(mEncAudioCodecCtx, codec, NULL) < 0 || mEncAudioCodecCtx->frame_size == 0) 
++#endif
+    {
+       wxLogError(wxT("FFmpeg : ERROR - Can't open audio codec 0x%x."),mEncAudioCodecCtx->codec_id);
+       return false;
+@@ -536,7 +574,7 @@
+          // Fill audio buffer with zeroes. If codec tries to read the whole buffer,
+          // it will just read silence. If not - who cares?
+          memset(mEncAudioFifoOutBuf,0,nAudioFrameSizeOut);
+-         AVCodec *codec = mEncAudioCodecCtx->codec;
++         const AVCodec *codec = mEncAudioCodecCtx->codec;
+ 
+          // We have an incomplete buffer of samples left.  Is it OK to encode it?
+          // If codec supports CODEC_CAP_SMALL_LAST_FRAME, we can feed it with smaller frame
+@@ -805,7 +843,9 @@
+    {
+       wxString value = tags->GetTag(tag);
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+       av_metadata_set2(&mEncFormatCtx->metadata, name, mSupportsUTF8 ? value.ToUTF8() : value.mb_str(), 0);
++#endif
+    }
+ }
+ 
+--- audacity-minsrc-2.0.5/src/export/ExportFFmpegDialogs.cpp.orig	2013-10-19 08:31:49.000000000 +0100
++++ audacity-minsrc-2.0.5/src/export/ExportFFmpegDialogs.cpp	2014-04-06 16:46:25.585648881 +0100
+@@ -1251,7 +1251,7 @@
+       DoOnFormatList();
+ 
+       //Select the codec that was selected last time this dialog was closed
+-      AVCodec *codec = avcodec_find_encoder((CodecID)gPrefs->Read(wxT("/FileFormats/FFmpegCodec"),(long)CODEC_ID_NONE));
++      AVCodec *codec = avcodec_find_encoder((AVCodecID)gPrefs->Read(wxT("/FileFormats/FFmpegCodec"),(long)CODEC_ID_NONE));
+       if (codec != NULL) mCodecList->Select(mCodecList->FindString(wxString::FromUTF8(codec->name)));
+       DoOnCodecList();
+    }
+@@ -1288,7 +1288,7 @@
+    while ((codec = av_codec_next(codec)))
+    {
+       // We're only interested in audio and only in encoders
+-      if (codec->type == CODEC_TYPE_AUDIO && codec->encode)
++      if (codec->type == CODEC_TYPE_AUDIO && codec->encode2)
+       {
+          mCodecNames.Add(wxString::FromUTF8(codec->name));
+          mCodecLongNames.Add(wxString::Format(wxT("%s - %s"),mCodecNames.Last().c_str(),wxString::FromUTF8(codec->long_name).c_str()));
+@@ -1506,7 +1506,7 @@
+ 
+ ///
+ ///
+-int ExportFFmpegOptions::FetchCompatibleCodecList(const wxChar *fmt, CodecID id)
++int ExportFFmpegOptions::FetchCompatibleCodecList(const wxChar *fmt, AVCodecID id)
+ {
+    // By default assume that id is not in the list
+    int index = -1;
+@@ -1533,7 +1533,7 @@
+          // Find the codec, that is claimed to be compatible
+          AVCodec *codec = avcodec_find_encoder(CompatibilityList[i].codec);
+          // If it exists, is audio and has encoder
+-         if (codec != NULL && (codec->type == CODEC_TYPE_AUDIO) && codec->encode)
++         if (codec != NULL && (codec->type == CODEC_TYPE_AUDIO) && codec->encode2)
+          {
+             // If it was selected - remember it's new index
+             if ((id >= 0) && codec->id == id) index = mShownCodecNames.GetCount();
+@@ -1548,7 +1548,7 @@
+       AVCodec *codec = NULL;
+       while ((codec = av_codec_next(codec)))
+       {
+-         if (codec->type == CODEC_TYPE_AUDIO && codec->encode)
++         if (codec->type == CODEC_TYPE_AUDIO && codec->encode2)
+          {
+             if (mShownCodecNames.Index(wxString::FromUTF8(codec->name)) < 0)
+             {
+@@ -1568,7 +1568,7 @@
+       if (format != NULL)
+       {
+          AVCodec *codec = avcodec_find_encoder(format->audio_codec);
+-         if (codec != NULL && (codec->type == CODEC_TYPE_AUDIO) && codec->encode)
++         if (codec != NULL && (codec->type == CODEC_TYPE_AUDIO) && codec->encode2)
+          {
+             if ((id >= 0) && codec->id == id) index = mShownCodecNames.GetCount();
+             mShownCodecNames.Add(wxString::FromUTF8(codec->name));
+@@ -1584,7 +1584,7 @@
+ 
+ ///
+ ///
+-int ExportFFmpegOptions::FetchCompatibleFormatList(CodecID id, wxString *selfmt)
++int ExportFFmpegOptions::FetchCompatibleFormatList(AVCodecID id, wxString *selfmt)
+ {
+    int index = -1;
+    mShownFormatNames.Clear();
+@@ -1824,7 +1824,7 @@
+          selcdcid = cdc->id;
+       }
+    }
+-   int newselcdc = FetchCompatibleCodecList(selfmt->c_str(), (CodecID)selcdcid);
++   int newselcdc = FetchCompatibleCodecList(selfmt->c_str(), (AVCodecID)selcdcid);
+    if (newselcdc >= 0) mCodecList->Select(newselcdc);
+ 
+    AVCodec *cdc = NULL;
+--- audacity-minsrc-2.0.5/src/export/ExportFFmpegDialogs.h.orig	2013-10-19 08:31:49.000000000 +0100
++++ audacity-minsrc-2.0.5/src/export/ExportFFmpegDialogs.h	2014-04-06 16:51:22.164156629 +0100
+@@ -43,7 +43,7 @@
+    int canmetadata;           //!< !=0 if format supports metadata, -1 any avformat version, otherwise version support added
+    bool canutf8;              //!< true if format supports metadata in UTF-8, false otherwise
+    const wxChar *description; //!< format description (will be shown in export dialog)
+-   CodecID codecid;           //!< codec ID (see libavcodec/avcodec.h)
++   AVCodecID codecid;         //!< codec ID (see libavcodec/avcodec.h)
+    bool compiledIn;           //!< support for this codec/format is compiled in (checked at runtime)
+ };
+ 
+@@ -52,7 +52,7 @@
+ struct CompatibilityEntry
+ {
+    const wxChar *fmt; //!< format, recognizeable by guess_format()
+-   CodecID codec;     //!< codec ID
++   AVCodecID codec;   //!< codec ID
+ };
+ 
+ 
+@@ -148,7 +148,7 @@
+ {
+    bool                 enable;  //!< true if this control should be enabled, false otherwise
+    int                  control; //!< control ID
+-   CodecID              codec;   //!< Codec ID
++   AVCodecID            codec;   //!< Codec ID
+    const char          *format;  //!< Format short name
+ };
+ 
+@@ -258,7 +258,7 @@
+    ///\param id Codec ID
+    ///\param selfmt format selected at the moment
+    ///\return index of the selfmt in new format list or -1 if it is not in the list
+-   int FetchCompatibleFormatList(CodecID id, wxString *selfmt);
++   int FetchCompatibleFormatList(AVCodecID id, wxString *selfmt);
+ 
+    /// Retreives codec list from libavcodec
+    void FetchCodecList();
+@@ -267,7 +267,7 @@
+    ///\param fmt Format short name
+    ///\param id id of the codec selected at the moment
+    ///\return index of the id in new codec list or -1 if it is not in the list
+-   int FetchCompatibleCodecList(const wxChar *fmt, CodecID id);
++   int FetchCompatibleCodecList(const wxChar *fmt, AVCodecID id);
+ 
+    /// Retreives list of presets from configuration file
+    void FetchPresetList();
+--- audacity-minsrc-2.0.5/src/ondemand/ODDecodeFFmpegTask.cpp.orig	2013-10-19 08:31:48.000000000 +0100
++++ audacity-minsrc-2.0.5/src/ondemand/ODDecodeFFmpegTask.cpp	2014-04-06 16:46:25.585648881 +0100
+@@ -44,7 +44,7 @@
+    sampleCount start;
+    sampleCount len;
+    int         numChannels;
+-   SampleFormat samplefmt; // input (from libav) sample format
++   AVSampleFormat samplefmt; // input (from libav) sample format
+ 
+ } FFMpegDecodeCache;
+ 
+@@ -407,9 +407,9 @@
+             // 16 bit int out.
+             // 32 bit int, float, double mean float out.
+             if (format == int16Sample)
+-               cache->samplefmt = SAMPLE_FMT_S16;
++               cache->samplefmt = AV_SAMPLE_FMT_S16;
+             else
+-               cache->samplefmt = SAMPLE_FMT_FLT;
++               cache->samplefmt = AV_SAMPLE_FMT_FLT;
+ 
+             cache->samplePtr = (uint8_t*) malloc(amt * cache->numChannels * SAMPLE_SIZE(format));
+ 
+@@ -533,27 +533,27 @@
+             inIndex = (hitStartInCache + j) * nChannels + channel;
+             switch (mDecodeCache[i]->samplefmt)
+             {
+-               case SAMPLE_FMT_U8:
++               case AV_SAMPLE_FMT_U8:
+                   //printf("u8 in %llu out %llu cachelen %llu outLen %llu\n", inIndex, outIndex, mDecodeCache[i]->len, len);
+                   ((int16_t *)outBuf)[outIndex] = (int16_t) (((uint8_t*)mDecodeCache[i]->samplePtr)[inIndex] - 0x80) << 8;
+                break;
+                
+-               case SAMPLE_FMT_S16:
++               case AV_SAMPLE_FMT_S16:
+                   //printf("u16 in %llu out %llu cachelen %llu outLen %llu\n", inIndex, outIndex, mDecodeCache[i]->len, len);
+                   ((int16_t *)outBuf)[outIndex] = ((int16_t*)mDecodeCache[i]->samplePtr)[inIndex];
+                break;
+                
+-               case SAMPLE_FMT_S32:
++               case AV_SAMPLE_FMT_S32:
+                   //printf("s32 in %llu out %llu cachelen %llu outLen %llu\n", inIndex, outIndex, mDecodeCache[i]->len, len);                  
+                   ((float *)outBuf)[outIndex] = (float) ((int32_t*)mDecodeCache[i]->samplePtr)[inIndex] * (1.0 / (1 << 31));
+                break;
+                
+-               case SAMPLE_FMT_FLT:
++               case AV_SAMPLE_FMT_FLT:
+                   //printf("f in %llu out %llu cachelen %llu outLen %llu\n", inIndex, outIndex, mDecodeCache[i]->len, len);
+                   ((float *)outBuf)[outIndex] = (float) ((float*)mDecodeCache[i]->samplePtr)[inIndex];
+                break;
+                
+-               case SAMPLE_FMT_DBL:
++               case AV_SAMPLE_FMT_DBL:
+                   //printf("dbl in %llu out %llu cachelen %llu outLen %llu\n", inIndex, outIndex, mDecodeCache[i]->len, len);            
+                   ((float *)outBuf)[outIndex] = (float) ((double*)mDecodeCache[i]->samplePtr)[inIndex];
+                break;
+--- audacity-minsrc-2.0.5/src/FFmpeg.h.orig	2013-10-19 08:31:52.000000000 +0100
++++ audacity-minsrc-2.0.5/src/FFmpeg.h	2014-04-06 17:37:32.254868868 +0100
+@@ -353,7 +353,7 @@
+    int                  m_initialchannels;               // number of channels allocated when we begin the importing. Assumes that number of channels doesn't change on the fly.
+ 
+    int                  m_samplesize;                    // input sample size in bytes
+-   SampleFormat         m_samplefmt;                     // input sample format
++   AVSampleFormat       m_samplefmt;                     // input sample format
+ 
+    int                  m_osamplesize;                   // output sample size in bytes
+    sampleFormat         m_osamplefmt;                    // output sample format
+@@ -510,15 +510,17 @@
+       (void),
+       ()
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_NO_RETURN(
+       avcodec_init,
+       (void),
+       ()
+    );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVCodec*,
+       avcodec_find_encoder,
+-      (enum CodecID id),
++      (enum AVCodecID id),
+       (id)
+    );
+    FFMPEG_FUNCTION_WITH_RETURN(
+@@ -530,15 +532,16 @@
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVCodec*,
+       avcodec_find_decoder,
+-      (enum CodecID id),
++      (enum AVCodecID id),
+       (id)
+    );
+    FFMPEG_FUNCTION_WITH_RETURN(
+       unsigned int,
+       av_codec_get_tag,
+-      (const struct AVCodecTag * const *tags, enum CodecID id),
++      (const struct AVCodecTag * const *tags, enum AVCodecID id),
+       (tags, id)
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 0, 0)
+    FFMPEG_FUNCTION_NO_RETURN(
+       avcodec_get_context_defaults,
+       (AVCodecContext *s),
+@@ -550,6 +553,20 @@
+       (AVCodecContext *avctx, AVCodec *codec),
+       (avctx, codec);
+    );
++#else
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      avcodec_get_context_defaults3,
++      (AVCodecContext *s, const AVCodec *codec),
++      (s, codec)
++   );
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      avcodec_open2,
++      (AVCodecContext *avctx, const AVCodec *codec,  AVDictionary **dict),
++      (avctx, codec, dict);
++   );
++#endif
+ #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52, 25, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+@@ -582,10 +599,11 @@
+       (void),
+       ()
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_get_bits_per_sample_format,
+-      (enum SampleFormat sample_fmt),
++      (enum AVSampleFormat sample_fmt),
+       (sample_fmt)
+    );
+    FFMPEG_FUNCTION_WITH_RETURN(
+@@ -594,7 +612,14 @@
+       (enum AVSampleFormat sample_fmt),
+       (sample_fmt)
+    );
+-
++#else
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      av_get_bytes_per_sample,
++      (enum AVSampleFormat sample_fmt),
++      (sample_fmt)
++   );
++#endif
+    //
+    // libavformat
+    //
+@@ -619,12 +644,21 @@
+       (ptr, size, min_size)
+    );
+ #endif
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_open_input_stream,
+       (AVFormatContext **ic_ptr, AVIOContext *pb, const char *filename, AVInputFormat *fmt, AVFormatParameters *ap),
+       (ic_ptr, pb, filename, fmt, ap)
+    );
++#else
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      avformat_open_input,
++      (AVFormatContext **ps, const char *filename, AVInputFormat *fmt, AVDictionary **options),
++      (ps, filename, fmt, options)
++   );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       get_buffer,
+@@ -636,12 +670,14 @@
+       (void),
+       ()
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_register_protocol,
+       (URLProtocol *protocol),
+       (protocol)
+    );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_find_stream_info,
+@@ -665,12 +701,21 @@
+       (AVFormatContext *s),
+       (s)
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_write_header,
+       (AVFormatContext *s),
+       (s)
+    );
++#else
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      avformat_write_header,
++      (AVFormatContext *s, AVDictionary **options),
++      (s, options)
++   );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVInputFormat*,
+       av_iformat_next,
+@@ -686,9 +731,10 @@
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVCodec*,
+       av_codec_next,
+-      (AVCodec *c),
++      (const AVCodec *c),
+       (c)
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_set_parameters,
+@@ -743,6 +789,7 @@
+       (AVIOContext *s),
+       (s)
+    );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVStream*,
+       av_new_stream,
+@@ -869,6 +916,7 @@
+       (AVFifoBuffer *f, unsigned int size),
+       (f, size)
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       AVMetadataTag *,
+       av_metadata_get,
+@@ -887,6 +935,7 @@
+       (AVMetadata **pm, const char *key, const char *value, int flags),
+       (pm, key, value, flags)
+    );
++#endif
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       avio_read,
+@@ -905,12 +954,20 @@
+       (AVIOContext *s),
+       (s)
+    );
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_FUNCTION_WITH_RETURN(
+       int,
+       av_register_protocol2,
+       (URLProtocol *protocol, int size),
+       (protocol, size)
+    );
++#endif
++   FFMPEG_FUNCTION_WITH_RETURN(
++      int,
++      av_sample_fmt_is_planar,
++      (enum AVSampleFormat sample_fmt),
++      (sample_fmt)
++   );
+ };
+ #endif
+ 
+--- audacity-minsrc-2.0.5/src/FFmpeg.cpp.orig	2013-10-19 08:31:50.000000000 +0100
++++ audacity-minsrc-2.0.5/src/FFmpeg.cpp	2014-04-06 17:33:41.365892853 +0100
+@@ -25,6 +25,10 @@
+ 
+ #include <wx/file.h>
+ 
++#ifndef AVCODEC_MAX_AUDIO_FRAME_SIZE
++#define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
++#endif
++
+ #ifdef _DEBUG
+    #ifdef _MSC_VER
+       #undef THIS_FILE
+@@ -174,6 +178,7 @@
+       wxLogDebug(wxT("%s: %s"),cpt.c_str(),printstring.c_str());
+ }
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+ //======================= Unicode aware uri protocol for FFmpeg
+ // Code inspired from ffmpeg-users mailing list sample
+ 
+@@ -299,7 +304,6 @@
+    return 0;
+ }
+ 
+-
+ // Size of probe buffer, for guessing file type from file contents
+ #define PROBE_BUF_MIN 2048
+ #define PROBE_BUF_MAX (1<<20)
+@@ -421,6 +425,7 @@
+ 
+    return err;
+ }
++#endif
+ 
+ streamContext *import_ffmpeg_read_next_frame(AVFormatContext* formatContext,
+                                              streamContext** streams,
+@@ -483,7 +488,11 @@
+    }
+ 
+    sc->m_samplefmt = sc->m_codecCtx->sample_fmt;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    sc->m_samplesize = av_get_bits_per_sample_format(sc->m_samplefmt) / 8;
++#else
++   sc->m_samplesize = av_get_bytes_per_sample(sc->m_samplefmt);
++#endif
+ 
+    unsigned int newsize = FFMAX(sc->m_pkt.size * sc->m_samplesize, AVCODEC_MAX_AUDIO_FRAME_SIZE);
+    // Reallocate the audio sample buffer if it's smaller than the frame size.
+@@ -981,10 +990,15 @@
+    FFMPEG_INITDYN(avformat, av_read_frame);
+    FFMPEG_INITDYN(avformat, av_seek_frame);
+    FFMPEG_INITDYN(avformat, av_close_input_file);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITDYN(avformat, av_write_header);
++#else
++   FFMPEG_INITDYN(avformat, avformat_write_header);
++#endif
+    FFMPEG_INITDYN(avformat, av_interleaved_write_frame);
+    FFMPEG_INITDYN(avformat, av_iformat_next);
+    FFMPEG_INITDYN(avformat, av_oformat_next);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITDYN(avformat, av_set_parameters);
+    FFMPEG_INITDYN(avformat, url_open_protocol);
+    FFMPEG_INITDYN(avformat, url_open);
+@@ -992,19 +1006,26 @@
+    FFMPEG_INITDYN(avformat, url_close);
+    FFMPEG_INITDYN(avformat, url_fseek);
+    FFMPEG_INITDYN(avformat, url_fclose);
++#endif
+    FFMPEG_INITDYN(avformat, av_new_stream);
+    FFMPEG_INITDYN(avformat, avformat_alloc_context);
+    FFMPEG_INITDYN(avformat, av_write_trailer);
+    FFMPEG_INITDYN(avformat, av_codec_get_tag);
+    FFMPEG_INITDYN(avformat, avformat_version);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITDYN(avformat, av_open_input_stream);
+    FFMPEG_INITDYN(avformat, av_metadata_get);
+ 
+    FFMPEG_INITALT(avformat, av_register_protocol2, av_register_protocol);
++#else
++   FFMPEG_INITDYN(avformat, avformat_open_input);
++#endif
+    FFMPEG_INITALT(avformat, avio_read, get_buffer);
+    FFMPEG_INITALT(avformat, avio_seek, url_fseek);
+    FFMPEG_INITALT(avformat, avio_close, url_fclose);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITALT(avformat, av_metadata_set2, av_metadata_set);
++#endif
+    FFMPEG_INITALT(avformat, av_guess_format, guess_format);
+    FFMPEG_INITALT(avformat, av_match_ext, match_ext);
+ 
+@@ -1017,12 +1038,19 @@
+ #if LIBAVFORMAT_VERSION_INT > AV_VERSION_INT(52, 31, 0)
+    FFMPEG_INITDYN(avcodec, av_free_packet);
+ #endif
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITDYN(avcodec, avcodec_init);
++#endif
+    FFMPEG_INITDYN(avcodec, avcodec_find_encoder);
+    FFMPEG_INITDYN(avcodec, avcodec_find_encoder_by_name);
+    FFMPEG_INITDYN(avcodec, avcodec_find_decoder);
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 0, 0)
+    FFMPEG_INITDYN(avcodec, avcodec_get_context_defaults);
+    FFMPEG_INITDYN(avcodec, avcodec_open);
++#else
++   FFMPEG_INITDYN(avcodec, avcodec_get_context_defaults3);
++   FFMPEG_INITDYN(avcodec, avcodec_open2);
++#endif
+ #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52, 25, 0)
+    FFMPEG_INITDYN(avcodec, avcodec_decode_audio3);
+ #else
+@@ -1035,7 +1063,11 @@
+    FFMPEG_INITDYN(avcodec, av_fast_realloc);
+    FFMPEG_INITDYN(avcodec, av_codec_next);
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    FFMPEG_INITALT(avcodec, av_get_bits_per_sample_format, av_get_bits_per_sample_fmt);
++#else
++   FFMPEG_INITDYN(avutil, av_get_bytes_per_sample);
++#endif
+ 
+    FFMPEG_INITDYN(avutil, av_free);
+    FFMPEG_INITDYN(avutil, av_log_set_callback);
+@@ -1054,12 +1086,15 @@
+    FFMPEG_INITDYN(avutil, av_freep);
+    FFMPEG_INITDYN(avutil, av_rescale_q);
+    FFMPEG_INITDYN(avutil, avutil_version);
++   FFMPEG_INITDYN(avutil, av_sample_fmt_is_planar);
+ 
+    wxLogMessage(wxT("All symbols loaded successfully. Initializing the library."));
+ #endif
+ 
+    //FFmpeg initialization
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    avcodec_init();
++#endif
+    avcodec_register_all();
+    av_register_all();
+    
+@@ -1100,8 +1135,10 @@
+ #if defined(DISABLE_DYNAMIC_LOADING_FFMPEG) && (LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(52, 69, 0))
+    av_register_protocol(&ufile_protocol);
+ #else
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    av_register_protocol2(&ufile_protocol, sizeof(ufile_protocol));
+ #endif
++#endif
+ 
+    return true;
+ }
+--- audacity-minsrc-2.0.5/src/import/ImportFFmpeg.cpp.orig	2013-10-19 08:31:52.000000000 +0100
++++ audacity-minsrc-2.0.5/src/import/ImportFFmpeg.cpp	2014-04-06 17:38:56.968860068 +0100
+@@ -362,7 +362,12 @@
+ 
+    av_log_set_callback(av_log_wx_callback);
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    int err = ufile_fopen_input(&mFormatContext, mName);
++#else
++   wxString url(wxString(wxT("file")) + wxT(":") + mName);
++   int err = avformat_open_input(&mFormatContext, (const char *) url.ToUTF8(), NULL, NULL);
++#endif
+    if (err < 0)
+    {
+       wxLogError(wxT("FFmpeg : av_open_input_file() failed for file %s"),mName.c_str());
+@@ -413,7 +418,11 @@
+             continue;
+          }
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 0, 0)
+          if (avcodec_open(sc->m_codecCtx, codec) < 0)
++#else
++         if (avcodec_open2(sc->m_codecCtx, codec, NULL) < 0)
++#endif
+          {
+             wxLogError(wxT("FFmpeg : avcodec_open() failed. Index[%02d], Codec[%02x - %s]"),i,sc->m_codecCtx->codec_id,sc->m_codecCtx->codec_name);
+             //Can't open decoder - skip this stream
+@@ -434,12 +443,16 @@
+          else
+            bitrate.Printf(wxT("?"));
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+          AVMetadataTag *tag = av_metadata_get(sc->m_stream->metadata, "language", NULL, 0);
++#endif
+          wxString lang;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+          if (tag)
+          {
+             lang.FromUTF8(tag->value);
+          }
++#endif
+          strinfo.Printf(_("Index[%02x] Codec[%S], Language[%S], Bitrate[%S], Channels[%d], Duration[%d]"),sc->m_stream->id,codec->name,lang.c_str(),bitrate.c_str(),sc->m_stream->codec->channels, duration);
+          mStreamInfo->Add(strinfo);
+          mScs[mNumStreams++] = sc;
+@@ -491,8 +504,10 @@
+    {
+       switch (mScs[s]->m_stream->codec->sample_fmt)
+       {
+-         case SAMPLE_FMT_U8:
+-         case SAMPLE_FMT_S16:
++         case AV_SAMPLE_FMT_U8:
++         case AV_SAMPLE_FMT_S16:
++         case AV_SAMPLE_FMT_U8P:
++         case AV_SAMPLE_FMT_S16P:
+             mScs[s]->m_osamplesize = sizeof(int16_t);
+             mScs[s]->m_osamplefmt = int16Sample;
+          break;
+@@ -741,6 +756,52 @@
+    uint8_t *in = sc->m_decodedAudioSamples;
+    int index = 0;
+    int pos = 0;
++   if (av_sample_fmt_is_planar(sc->m_samplefmt))
++   {
++      while (pos < insamples)
++      {
++         for (int chn = 0; chn < sc->m_stream->codec->channels; chn++)
++         {
++            if (chn < nChannels)
++            {
++               for (index=0; index < insamples/nChannels; index++)
++               {
++                  switch (sc->m_samplefmt)
++                  {
++                     case AV_SAMPLE_FMT_U8P:
++                        ((int16_t *)tmp[chn])[index] = (int16_t) (*(uint8_t *)in - 0x80) << 8;
++                     break;
++
++                     case AV_SAMPLE_FMT_S16P:
++                        ((int16_t *)tmp[chn])[index] = (int16_t) *(int16_t *)in;
++                     break;
++
++                     case AV_SAMPLE_FMT_S32P:
++                        ((float *)tmp[chn])[index] = (float) *(int32_t *)in * (1.0 / (1 << 31));
++                     break;
++
++                     case AV_SAMPLE_FMT_FLTP:
++                        ((float *)tmp[chn])[index] = (float) *(float *)in;
++                     break;
++
++                     case AV_SAMPLE_FMT_DBLP:
++                        ((float *)tmp[chn])[index] = (float) *(double *)in;
++                     break;
++
++                     default:
++                        wxLogError(wxT("Stream %d has unrecognized sample format %d."), streamid, sc->m_samplefmt);
++                        return 1;
++                     break;
++                  }
++                  in += sc->m_samplesize;
++                  pos++;
++               }
++            }
++         }
++      }
++   }
++   else
++   {
+    while (pos < insamples)
+    {
+       for (int chn = 0; chn < sc->m_stream->codec->channels; chn++)
+@@ -749,23 +810,23 @@
+          {
+             switch (sc->m_samplefmt)
+             {
+-               case SAMPLE_FMT_U8:
++               case AV_SAMPLE_FMT_U8:
+                   ((int16_t *)tmp[chn])[index] = (int16_t) (*(uint8_t *)in - 0x80) << 8;
+                break;
+                
+-               case SAMPLE_FMT_S16:
++               case AV_SAMPLE_FMT_S16:
+                   ((int16_t *)tmp[chn])[index] = (int16_t) *(int16_t *)in;
+                break;
+                
+-               case SAMPLE_FMT_S32:
++               case AV_SAMPLE_FMT_S32:
+                   ((float *)tmp[chn])[index] = (float) *(int32_t *)in * (1.0 / (1 << 31));
+                break;
+                
+-               case SAMPLE_FMT_FLT:
++               case AV_SAMPLE_FMT_FLT:
+                   ((float *)tmp[chn])[index] = (float) *(float *)in;
+                break;
+                
+-               case SAMPLE_FMT_DBL:
++               case AV_SAMPLE_FMT_DBL:
+                   ((float *)tmp[chn])[index] = (float) *(double *)in;
+                break;
+ 
+@@ -780,6 +841,7 @@
+       }
+       index++;
+    }
++   }
+ 
+    // Write audio into WaveTracks
+    for (int chn=0; chn < nChannels; chn++)
+@@ -804,12 +866,14 @@
+       mProgressPos = sc->m_codecCtx->frame_number;
+       mProgressLen = sc->m_stream->nb_frames;
+    }
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    // When number of frames is unknown, use position in file
+    else if (mFormatContext->file_size > 0 && sc->m_pkt.pos > 0 && sc->m_pkt.pos <= mFormatContext->file_size)
+    {
+       mProgressPos = sc->m_pkt.pos;
+       mProgressLen = mFormatContext->file_size;
+    }
++#endif
+    updateResult = mProgress->Update(mProgressPos, mProgressLen != 0 ? mProgressLen : 1);
+ 
+    return updateResult;
+@@ -831,6 +895,7 @@
+ 
+ void FFmpegImportFileHandle::GetMetadata(Tags *tags, const wxChar *tag, const char *name)
+ {
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 0, 0)
+    AVMetadataTag *meta;
+ 
+    meta = av_metadata_get(mFormatContext->metadata, name, NULL, AV_METADATA_IGNORE_SUFFIX);
+@@ -838,6 +903,7 @@
+    {
+       tags->SetTag(tag, wxString::FromUTF8(meta->value));
+    }
++#endif
+ }
+ 
+ 
