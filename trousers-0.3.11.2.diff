@@ -1,12 +1,31 @@
---- trousers-0.3.11.2/src/tspi/rpc/hosttable.c.orig	2013-07-12 17:27:37.000000000 +0100
-+++ trousers-0.3.11.2/src/tspi/rpc/hosttable.c	2014-04-08 21:56:07.077736145 +0100
-@@ -51,6 +51,9 @@
+--- trousers-0.3.11.2/src/tspi/obj.c.orig	2013-07-12 17:27:37.000000000 +0100
++++ trousers-0.3.11.2/src/tspi/obj.c	2014-04-08 22:48:26.541620006 +0100
+@@ -39,7 +39,7 @@
+ DELFAMILY_LIST_DECLARE;
+ MIGDATA_LIST_DECLARE;
+ 
+-void
++static void
+ list_init(struct obj_list *list)
  {
- 	struct host_table_entry *hte, *next = NULL;
- 
-+	if (ht == NULL)
-+		return;
-+
- 	MUTEX_LOCK(ht->lock);
- 
- 	for (hte = ht->entries; hte; hte = next) {
+ 	list->head = NULL;
+--- trousers-0.3.11.2/src/tspi/rpc/hosttable.c.orig	2013-07-12 17:27:37.000000000 +0100
++++ trousers-0.3.11.2/src/tspi/rpc/hosttable.c	2014-04-08 22:47:39.556129392 +0100
+@@ -39,7 +39,7 @@
+ #pragma init(_init)
+ void _init(void)
+ #else
+-void __attribute__ ((constructor)) my_init(void)
++static void __attribute__ ((constructor)) my_init(void)
+ #endif
+ {
+ 	host_table_init();
+@@ -73,7 +73,7 @@
+ #pragma fini(_fini)
+ void _fini(void)
+ #else
+-void __attribute__ ((destructor)) my_fini(void)
++static void __attribute__ ((destructor)) my_fini(void)
+ #endif
+ {
+ 	host_table_final();
