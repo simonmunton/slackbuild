@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=3.12
+VERSION=3.18
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/highlight-3.18-lua5.1.diff
 )
 fi
 
@@ -80,7 +80,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make all gui ${NUM_JOBS} || exit
+make all gui ${NUM_JOBS} QMAKE=qmake || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +88,7 @@ then
   exit
 fi
 
-make install install-gui DESTDIR=${PKG}
+make QMAKE=qmake install install-gui DESTDIR=${PKG}
 
 strip_binaries
 
