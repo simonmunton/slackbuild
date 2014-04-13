@@ -7,13 +7,13 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=5.2.2
+VERSION=5.2.3
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=lua52
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/lua-5.1.x-autotoolize.patch
+ patch -p1 -b -z .orig < ${CWD}/lua-5.2.3.diff
 # mv Makefile Makefile.lua
 # mv src/Makefile src/Makefile.lua
 # mv etc/lua.pc etc/lua.pc.lua
@@ -51,6 +51,7 @@ fi
 # chmod +x autogen.sh
 # ./autogen.sh
  sed -i "s@/lib@/lib${LIBDIRSUFFIX}@" Makefile
+ sed -i "s@lib/lua@lib${LIBDIRSUFFIX}/lua@" src/luaconf.h
 )
 fi
 
@@ -93,6 +94,15 @@ make install linux INSTALL_TOP=${PKG}/usr MYLIBS=-ltermcap
 
 #mv ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua5.1.pc
 #ln -s lua5.1.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua.pc
+
+mkdir ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+sed -e "s#@VER_M@#${VERSION%.*}#; s#@VER@#${VERSION}#; s#@LIBDIRSUFFIX@#${LIBDIRSUFFIX}#" ${CWD}/lua52-lua.pc.in \
+    > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/lua5.2.pc
+
+(cd ${PKG}/usr/bin
+ ln -s lua5.2 lua
+ ln -s luac5.2 luac
+)
 
 #strip_binaries
 
