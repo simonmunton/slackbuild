@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=ilmbase
+TARNAME=CCfits
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/o/OpenEXR
+TARSEP="-"
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.0.3
+VERSION=2.4
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://heasarc.gsfc.nasa.gov/fitsio/CCfits/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+ln -s ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ilmbase-1.0.2.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -51,6 +54,8 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -61,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -75,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -90,14 +105,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "libraries used by openEXR"
-ilmbase contains libraries used by openEXR:
-  * Half is a class that encapsulates a 16-bit floating-point format.
-  * IlmThread is a thread abstraction library for use with OpenEXR
-    and other software packages.
-  * Imath implements 2D and 3D vectors, 3x3 and 4x4 matrices, 
-    quaternions and other useful 2D and 3D math functions.
-  * Iex is an exception-handling library.
+make_slack_desc << EOF "CCfits - an object oriented interface to cfitsio"
+CCfits is an object oriented interface to the cfitsio library. It is 
+designed to make the capabilities of cfitsio available to programmers 
+working in C++. It is written in ANSI C++ and implemented using the 
+C++ Standard Library with namespaces, exception handling, and member 
+template functions. 
 
 EOF
 
