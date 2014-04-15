@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/x/xorg/X11R7/xcb
 #TAR_EXT=.tar.gz
 VERSION=0.3.9
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -91,6 +91,15 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+# The libraries libxcb-{atom,aux,event} have been merged into the
+# libxcb-util library.  To maintain compatibility with existing
+# binaries, add some runtime-only compat symlinks:
+( cd $PKG/usr/lib${LIBDIRSUFFIX}
+  ln -sf libxcb-util.so.?.?.? libxcb-atom.so.1
+  ln -sf libxcb-util.so.?.?.? libxcb-aux.so.0
+  ln -sf libxcb-util.so.?.?.? libxcb-event.so.1
+)
 
 strip_binaries
 
