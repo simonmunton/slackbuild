@@ -1,0 +1,328 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qt-everywhere-opensource-src
+#TARNAME=qt
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=5.2.1
+#-patched-20091007
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qt5
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+PKG1=/tmp/package-${PKGNAME}-debug
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv qt-kde-qt ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+#patch -p1 < ${CWD}/.diff
+
+#patch -p1 < ${CWD}/qt4.7-patches/0180-c119289d63c7357c515c9ecf8f79393c806364b2.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0195-f89482f9bf1cdc8d6ded43ede7c9c0070d43ff8e.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0209-44899291f7a82d2ffae6aaf4019dcfad823ec889.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0216-fa7f6e0ee0547341967c2da559ce731c756ece30.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0225-88300b961bec2d4a5063f6221dbeee4f77a72150.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0250-77e7acc841d412eff7d2693e7445f12ab7956b29.patch
+#patch -p1 < ${CWD}/qt4.7-patches/0253-fixed.patch
+
+# patch -p1 < ${CWD}/qt4.8-patches/qt48setx.patch
+
+# patch -p1 < ${CWD}/qt4.8-patches/gmutex.diff
+# patch -p1 < ${CWD}/qt4.8-patches/gcc-4.7.0.diff
+# patch -p1 < ${CWD}/qt4.8-patches/moc-boost.patch
+# patch -p1 < ${CWD}/qt4.8-patches/QTBUG-21900_Buttons_in_Qt_applications_not_clickable_when_run_under_gnome-shell.patch
+# patch -p1 < ${CWD}/qt4.8-patches/qt.assistant.memcpy-crash.diff
+
+# patch -p1 < ${CWD}/qt4.8-patches/055-85e95859047d2c198e495cd4cb6a4352df76e6d4.diff
+# patch -p1 < ${CWD}/qt4.8-patches/061-4badd8ed24f4f20e46a6a2c2c9970e5e02ebd520.diff
+# patch -p1 < ${CWD}/qt4.8-patches/064-a7965832a46af1c9d58c6aca38084b6436f48302.diff
+# patch -p1 < ${CWD}/qt4.8-patches/066-966d08028c8499db2c12c33a4de79ea261a689a6.diff
+# patch -p1 < ${CWD}/qt4.8-patches/072-d1dfc461276ba53d870289b00a97d08df005e0b3.diff
+# patch -p1 < ${CWD}/qt4.8-patches/074-b898c4ed69caec14d51a2be4fc44a4ed54a06c48.diff
+# patch -p1 < ${CWD}/qt4.8-patches/075-9773ed039a3e5f46fcdc1732828b40fe3668b7ad.diff
+# patch -p1 < ${CWD}/qt4.8-patches/078-1c67edff4baff0ac61e04141bca5cc68a1161d4d.diff
+# patch -p1 < ${CWD}/qt4.8-patches/082-e5e5238a7c6a8188166119111a57a81d272aa28d.diff
+# patch -p1 < ${CWD}/qt4.8-patches/086-fc27933affb49f70a8a5dc93dd7f4b2d105ccdfe.diff
+# patch -p1 < ${CWD}/qt4.8-patches/087-712ecafd07eae7e5e3bd2ca5f50703debf966a63.diff
+# patch -p1 < ${CWD}/qt4.8-patches/095-f7e941785e811e305445d5544cffcfe889a3abc2.diff
+# patch -p1 < ${CWD}/qt4.8-patches/096-439aa67582e715ddc0ca7e30305b0c9498a71f81.diff
+# patch -p1 < ${CWD}/qt4.8-patches/097-691e78e5061d4cbc0de212d23b06c5dffddf2098.diff
+# patch -p1 < ${CWD}/qt4.8-patches/098-ad601ceb3b953c042c70b462605f87c84b7179a6.diff
+
+
+
+# patch -p1 < ${CWD}/qt4.8-patches/resourceloader.diff
+
+ # set correct X11 prefix
+# perl -pi -e "s,QMAKE_LIBDIR_X11.*,QMAKE_LIBDIR_X11\t=," mkspecs/*/*.conf
+# perl -pi -e "s,QMAKE_INCDIR_X11.*,QMAKE_INCDIR_X11\t=," mkspecs/*/*.conf
+# perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
+# perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
+
+ patch -p1 < ${CWD}/qt5.mysql.h.diff
+ patch -p1 < ${CWD}/qt5-platformplugin-install-path-fix.patch
+
+if echo "${ARCH}" | grep -q "i.86" 2>/dev/null; then
+  sed -i "/^QMAKE_CFLAGS_RELEASE/ s|+=.*|+= ${SLKCFLAGS}|" qtbase/mkspecs/common/gcc-base.conf
+fi
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PRGNAM=qt5
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+OPENSOURCE_CXXFLAGS="${SLKCFLAGS}" \
+./configure -v \
+	    -confirm-license \
+	    -opensource \
+	    -prefix /usr/lib${LIBDIRSUFFIX}/${PRGNAM} \
+	    -sysconfdir "/etc/xdg" \
+	    -docdir "/usr/doc/${PRGNAM}-${VERSION}" \
+            -system-libpng \
+            -system-libjpeg \
+            -system-zlib \
+	    -system-sqlite \
+	    -system-pcre \
+            -plugin-sql-mysql \
+            -plugin-sql-odbc \
+            -plugin-sql-sqlite \
+	    -icu \
+	    -openssl \
+	    -verbose \
+	    -optimized-qmake \
+	    -dbus-linked \
+	    -reduce-relocations \
+	    -qpa xcb \
+	    -xcb \
+	    -glib \
+	    -accessibility \
+	    -javascript-jit \
+	    -system-harfbuzz \
+	    -nomake examples \
+	    -no-separate-debug-info \
+	    -no-pch \
+	    -no-rpath \
+	    -no-strip \
+	    -release \
+	    -dbus \
+	    -separate-debug-info
+
+
+#            -plugin-sql-psql \
+
+#            -I /usr/include/mysql -L/usr/lib/mysql -R/usr/lib/mysql \
+#            -no-g++-exceptions \
+#           -release \
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install INSTALL_ROOT=${PKG}
+
+ln -s ${PRGNAM} ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}
+
+# Put a ton of links to more "normal" places.  I'd just use a prefix of /usr, but it
+# creates a ton of new (and ambiguously named) /usr directories...
+mkdir -p ${PKG}/usr/bin
+for BIN in ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/bin/*; do
+  TMP_FILE=$(echo ${BIN} | sed -e "s|${PKG}||")
+  case $(basename ${BIN}) in
+    syncqt.pl)
+      ln -s ${TMP_FILE} ${PKG}/usr/bin/$(basename ${BIN})
+      ;;
+    *)
+      ln -s ${TMP_FILE} ${PKG}/usr/bin/$(basename ${BIN})-${PRGNAM}
+      ;;
+  esac
+done
+
+for LIBS in ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/*so*; do
+  TMP_FILE=$(echo ${LIBS} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/$(basename ${LIBS})
+done
+
+# Add profile scripts
+mkdir -p ${PKG}/etc/profile.d
+sed -e "s|@LIBDIRSUFFIX@|${LIBDIRSUFFIX}|g" ${CWD}/${PRGNAM}.sh > ${PKG}/etc/profile.d/${PRGNAM}.sh
+sed -e "s#usr/lib/#usr/lib${LIBDIRSUFFIX}/#g" ${CWD}/${PRGNAM}.csh > ${PKG}/etc/profile.d/${PRGNAM}.csh
+chmod 755 ${PKG}/etc/profile.d/*
+
+cat > ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/pkgconfig/Qt5.pc << EOF
+prefix=/usr/lib${LIBDIRSUFFIX}/${PRGNAM}
+bindir=\${prefix}/bin
+datadir=\${prefix}
+docdir=/usr/doc/${PRGNAM}-${VERSION}
+archdatadir=\${prefix}
+examplesdir=\${prefix}/examples
+headerdir=\${prefix}/include
+importdir=\${prefix}/imports
+qmldir=\${prefix}/qml
+libdir=\${prefix}/lib
+libexec=\${prefix}/libexec
+moc=\${bindir}/moc
+plugindir=\${prefix}/plugins
+qmake=\${bindir}/qmake
+sysconfdir=/etc/xdg
+translationdir=\${prefix}/translations
+
+Name: Qt5
+Description: Qt5 Configuration
+Version: ${VERSION}
+EOF
+
+# Fix internal linking for Qt5WebKit.pc.
+sed -i \
+  -e "s|-Wl,-whole-archive -lWebKit1 -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/WebKit[^ ]* ||" \
+  -e "s|-Wl,-whole-archive -lWebKit2 -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/WebKit2[^ ]* ||" \
+  -e "s|-Wl,-whole-archive -lWebCore -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/WebCore[^ ]* ||" \
+  -e "s|-Wl,-whole-archive -lANGLE -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/ThirdParty/ANGLE[^ ]* ||" \
+  -e "s|-Wl,-whole-archive -lJavaScriptCore -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/JavaScriptCore[^ ]* ||" \
+  -e "s|-Wl,-whole-archive -lWTF -Wl,-no-whole-archive -L${PWD}/qtwebkit/Source/WTF[^ ]* ||" \
+  ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/pkgconfig/Qt5WebKit.pc
+
+# While we are at it, there isn't any reason to keep references to ${PKG} in the *.prl files.
+for PRL in ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/*.prl; do
+  sed -i '/^QMAKE_PRL_BUILD_DIR/d' ${PRL}
+done
+
+# One more for the road.
+sed -i "s|${PWD}/qtbase|/usr/lib${LIBDIRSUFFIX}/${PRGNAM}|" \
+  ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/mkspecs/modules/qt_lib_bootstrap_private.pri
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+for PKGCONFIG in ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/pkgconfig/*.pc; do
+  TMP_FILE=$(echo ${PKGCONFIG} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/$(basename ${PKGCONFIG})
+done
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+for CMAKE in $(find ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/cmake -maxdepth 1); do
+  TMP_FILE=$(echo ${CMAKE} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/$(basename ${CMAKE})
+done
+
+for i in ${CWD}/${PRGNAM}-*.desktop; do
+  install -D -m 0644 ${i} ${PKG}/usr/share/applications/$(basename ${i})
+done
+sed -i "s|@LIBDIR@|${LIBDIRSUFFIX}|" ${PKG}/usr/share/applications/*
+
+for i in $(find . -name "assistant.ico" -o -name "designer.ico" \
+  -o -name "linguist.ico" -o -name "qdbusviewer.ico"); do
+  for j in 16 24 32 48 64 96 128; do
+    convert ${i} -resize ${j}x${j}! $(basename ${i})-${j}.png
+    install -D -m 0644 $(basename ${i})-${j}-0.png \
+      ${PKG}/usr/share/icons/hicolor/${j}x${j}/apps/$(basename ${i} | sed 's|.ico||')-${PRGNAM}.png
+  done
+done
+
+# Remove executable bits from files.
+find ${PKG} \( -name "*.qml" -o -name "*.app" \) -perm 755 -exec chmod 644 '{}' \;
+
+
+# make a debug package for webkit if not there
+LQTWK=`readlink ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/libQtWebKit.so`
+if [ ! -e ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug ]
+then
+  objcopy --only-keep-debug lib/${LQTWK} ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
+  (cd ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib
+    objcopy --add-gnu-debuglink=${LQTWK}.debug ${LQTWK}
+  )
+  chmod -x ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
+fi
+
+# split out the debug stuff
+rm -rf ${PKG1}
+mkdir -p ${PKG1}
+(cd ${PKG}
+ for f in `find . -name "*.debug"`
+ do
+   mkdir -p ${PKG1}/`dirname ${f}`
+   mv ${f} ${PKG1}/`dirname ${f}`
+ done
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  GPL_EXCEPTION.TXT GPL_EXCEPTION_ADDENDUM.TXT INSTALL LICENSE.GPL \
+  LICENSE.QPL OPENSOURCE-NOTICE.TXT changes-${VERSION} \
+  README qtbase/{header*,LGPL_EXCEPTION.txt,LICENSE.*L} \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+( cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  ln -sf /usr/lib${LIBDIRSUFFIX}/${PRGNAM}/doc/html .
+)
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "a multi-platform C++ graphical user interface toolkit"
+Qt is a complete and well-developed object-oriented framework for
+developing graphical user interface (GUI) applications using C++.
+
+This release is free only for development of free software for the X
+Window System.  If you use Qt for developing commercial or other
+non-free software, you must have a professional license.  Please see
+http://www.trolltech.com/purchase.html for information on how to
+obtain a professional license.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG} ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+cd ${PKG1}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-debug-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG} ${PKG1}"
