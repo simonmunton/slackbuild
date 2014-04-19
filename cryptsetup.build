@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.5.1
+VERSION=1.6.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -49,7 +49,7 @@ fi
 )
 
 #mkdir ${TARNAME}-${VERSION}.static
-cp -lr ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}.static
+#cp -lr ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}.static
 fi
 
 pre_configure
@@ -73,30 +73,30 @@ CXXFLAGS="${SLKCFLAGS}" \
             --enable-libgcrypt \
             --enable-libdevmapper
 
-(cd ${CWD}/${TARNAME}-${VERSION}.static
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --datarootdir=/usr \
-            --datadir=/usr/share \
-            --enable-libgcrypt \
-            --enable-libdevmapper \
-            --enable-static \
-            --disable-shared \
-            --disable-shared-library
-)
+#(cd ${CWD}/${TARNAME}-${VERSION}.static
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --datarootdir=/usr \
+#            --datadir=/usr/share \
+#            --enable-libgcrypt \
+#            --enable-libdevmapper \
+#            --enable-static \
+#            --disable-shared \
+#            --disable-shared-library
+#)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-(cd ${CWD}/${TARNAME}-${VERSION}.static
-make ${NUM_JOBS} || exit
-)
+#(cd ${CWD}/${TARNAME}-${VERSION}.static
+#make ${NUM_JOBS} || exit
+#)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -109,13 +109,13 @@ make install DESTDIR=${PKG}
 strip_binaries
 
 # This is small, so save it:
-mv ${PKG}/usr/sbin/cryptsetup ${PKG}/usr/sbin/cryptsetup.dynamic
+#mv ${PKG}/usr/sbin/cryptsetup ${PKG}/usr/sbin/cryptsetup.dynamic
 
-(cd ${CWD}/${TARNAME}-${VERSION}.static
-mkdir -p ${PKG}/sbin
-cat src/cryptsetup > ${PKG}/sbin/cryptsetup.static
-chmod 755 ${PKG}/sbin/cryptsetup.static
-)
+#(cd ${CWD}/${TARNAME}-${VERSION}.static
+#mkdir -p ${PKG}/sbin
+#cat src/cryptsetup > ${PKG}/sbin/cryptsetup.static
+#chmod 755 ${PKG}/sbin/cryptsetup.static
+#)
 
 # Now that we have the .static version, it only makes sense to
 # use it by default (even when calling /usr/sbin/cryptsetup).
@@ -123,10 +123,29 @@ chmod 755 ${PKG}/sbin/cryptsetup.static
 # encrypted system using only the A package series.
 #
 # Replace with a link:
-( cd ${PKG}/usr/sbin ; ln -sf ../../sbin/cryptsetup.static cryptsetup )
+#( cd ${PKG}/usr/sbin ; ln -sf ../../sbin/cryptsetup.static cryptsetup )
 # Put one in /sbin too, in case someone tries to use /sbin/cryptsetup:
-( cd ${PKG}/sbin ; ln -sf cryptsetup.static cryptsetup )
+#( cd ${PKG}/sbin ; ln -sf cryptsetup.static cryptsetup )
 
+
+# Move the shared library to ${PKG}/lib${LIBDIRSUFFIX}:
+mkdir -p ${PKG}/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  for file in lib*.so.?.* ; do
+    mv ${file} ../../lib${LIBDIRSUFFIX}
+    ln -sf ../../lib${LIBDIRSUFFIX}/${file} .
+  done
+  cp -a lib*.so.? ../../lib${LIBDIRSUFFIX}
+)
+
+# Move the cryptsetup binary to ${PKG}/sbin:
+mkdir -p ${PKG}/sbin
+( cd ${PKG}/usr/sbin
+  mv cryptsetup ../../sbin
+  ln -sf ../../sbin/cryptsetup .
+  mv veritysetup ../../sbin
+  ln -sf ../../sbin/veritysetup .
+)
 
 
 fix_links
