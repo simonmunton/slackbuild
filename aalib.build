@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=lyx
+TARNAME=aalib
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.0.7
+VERSION=1.4rc5
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-1.4.0 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/aalib-aclocal.patch
+ patch -p1 < ${CWD}/aalib-1.4rc5.diff
 )
 fi
 
@@ -55,7 +56,7 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PATH=/usr/lib/qt4/bin:${PATH}
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -65,8 +66,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-frontend=qt4
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +91,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -96,10 +106,20 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "WYSIWYM document processor"
-LyX is a document processor that encourages an approach to writing
-based on the structure of your documents, not their appearance. It is
-released under a Free Software / Open Source license.
+make_slack_desc << EOF "ASCII Art library"
+                                        _1l1vlvlvlvlvlvlvlvlvvl=.
+                                     __111llvl+' __...._   +1lv11=.
+                                    _11vllvlv+  =vlvlvl1=  /1vlvv1i=_
+AA-lib is an ASCII art graphics    _vvllvlvlv=  -+vlvlvlvlvlvlvlvdvl=_
+library.  Internally, the AA-lib  _:lvlvlvlvlv=.     --^-^1lvlvlrlvv1s
+API is similar to other graphics  =llvlvvlvlvv11lvl=....   -lvlevlvlvv
+libraries, but it renders the     =lvlvlvlvll-^+1vv11111v_  vlkllvllvl
+the output into ASCII art (like   =lvlvlvlvl1   +1vv1v1lv  _llvlvlvlvl
+the example to the right :^)       +1lv |vlvl'    -^-^-   _1olvlvlvlv'
+The developers of AA-lib are       -1vl |lvlvlvlvlvlvlvlvv1vlvlvlvlv+.
+Jan Hubicka, Thomas A. K. Kjaer,     +1 ^^^^^^^^^^^^^^^^^^^^^^^^vlv-
+Tim Newsome, and Kamil Toman.         -+uvlvlvlvlvlvlvlvlvlvlvlvl+_
+                                        -vlvlvlvlvlvlvlvllvlvl-'
 
 EOF
 
