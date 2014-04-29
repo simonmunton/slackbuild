@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=htop
+TARNAME=iotop
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/h
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=1.0.3
+VERSION=0.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://htop.sourceforge.net/"
+WEBPAGE="http://guichaz.free.fr/iotop/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,20 +59,20 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -80,7 +80,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +89,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -105,10 +107,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "htop - an interactive process viewer for Linux"
-This is htop, an interactive process viewer for Linux. It is a 
-text-mode application (for console or X terminals) and requires 
-ncurses. 
+make_slack_desc << EOF "Per process I/O bandwidth monitor"
+Iotop is a Python program with a top like UI used to show of behalf 
+of which process is the I/O going on.
 
 EOF
 
