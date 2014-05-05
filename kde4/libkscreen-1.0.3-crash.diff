@@ -1,0 +1,24 @@
+commit 221dff2e2f9fbd1c18eae9b59f23b1dbbdb1870b
+Author: Aleix Pol <aleixpol@kde.org>
+Date:   Mon May 5 15:13:25 2014 +0200
+
+    Fix crash
+    
+    If we don't have a primary output, don't query it. Set a new primary
+    output instead.
+    
+    Reviewed by Alex Fiestas
+
+diff --git a/backends/xrandr/xrandrconfig.cpp b/backends/xrandr/xrandrconfig.cpp
+index 0236a3a..a842173 100644
+--- a/backends/xrandr/xrandrconfig.cpp
++++ b/backends/xrandr/xrandrconfig.cpp
+@@ -157,7 +157,7 @@ void XRandRConfig::updateKScreenConfig(Config *config) const
+         output->updateKScreenOutput(kscreenOutput);
+     }
+ 
+-    if (config->primaryOutput()->id() != m_primaryOutput) {
++    if (!config->primaryOutput() || config->primaryOutput()->id() != m_primaryOutput) {
+         config->setPrimaryOutput(config->output(m_primaryOutput));
+     }
+ }
