@@ -1,0 +1,46 @@
+--- chromaprint-1.1/src/ext/ffmpeg_decoder.h.orig	2013-11-23 15:43:42.000000000 +0000
++++ chromaprint-1.1/src/ext/ffmpeg_decoder.h	2014-05-05 20:38:46.565813977 +0100
+@@ -28,6 +28,10 @@
+ }
+ #include "audio_consumer.h"
+ 
++#ifndef AVCODEC_MAX_AUDIO_FRAME_SIZE
++#define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
++#endif
++
+ class Decoder
+ {
+ public:
+@@ -80,7 +84,7 @@
+ 		avcodec_close(m_codec_ctx);
+ 	}
+ 	if (m_format_ctx) {
+-		av_close_input_file(m_format_ctx);
++		avformat_close_input(&m_format_ctx);
+ 	}
+ 	//av_audio_convert_free(m_convert_ctx);
+ 	av_free(m_buffer2);
+@@ -89,12 +93,12 @@
+ 
+ inline bool Decoder::Open()
+ {
+-	if (av_open_input_file(&m_format_ctx, m_file_name.c_str(), NULL, 0, NULL) != 0) {
++	if (avformat_open_input(&m_format_ctx, m_file_name.c_str(), NULL, NULL) != 0) {
+ 		m_error = "Couldn't open the file." + m_file_name;
+ 		return false;
+ 	}
+ 
+-	if (av_find_stream_info(m_format_ctx) < 0) {
++	if (avformat_find_stream_info(m_format_ctx, NULL) < 0) {
+ 		m_error = "Couldn't find stream information in the file.";
+ 		return false;
+ 	}
+@@ -129,7 +133,7 @@
+ 		return false;
+ 	}
+ 
+-	if (m_codec_ctx->sample_fmt != SAMPLE_FMT_S16) {
++	if (m_codec_ctx->sample_fmt != AV_SAMPLE_FMT_S16) {
+ 		m_error = "Unsupported sample format.\n";
+ 		return false;
+ 	}
