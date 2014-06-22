@@ -2,21 +2,20 @@
 #
 . build_funcs
 
-#TARNAME=skype_static
-TARNAME=skype
+TARNAME=wayland
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=4.3.0.37
+VERSION=1.5.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.skype.com"
+WEBPAGE="http://wayland.freedesktop.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=skype
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -37,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv skype_staticQT-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -60,13 +59,28 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,33 +88,9 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/bin
-mkdir -p ${PKG}/usr/share/skype
-mkdir -p ${PKG}/usr/share/applications
-mkdir -p ${PKG}/etc/dbus-1/system.d
-
-cp skype ${PKG}/usr/bin
-cp -r avatars lang sounds ${PKG}/usr/share/skype
-cp -r icons ${PKG}/usr/share
-cp skype.desktop ${PKG}/usr/share/applications
-cp skype.conf ${PKG}/etc/dbus-1/system.d
-
-(cd ${PKG}/usr/share/icons
- ln -s SkypeBlue_48x48.png skype.png
-)
-
-#(cd ${PKG}/usr/bin
-# mv skype skype.bin
-# cat > skype << EOF
-##!/bin/bash
-#PULSE_LATENCY_MSEC=60 LD_PRELOAD=/usr/lib/libv4l/v4l1compat.so /usr/bin/skype.bin "\$@"
-#EOF
-# chmod +x skype
-#)
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -110,14 +100,18 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  LICENSE* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Skype VOIP package"
-Skype VOIP package
+make_slack_desc << EOF "Wayland compositor protocol"
+Wayland is a project to define a protocol for a compositor to talk to
+its clients as well as a library implementation of the protocol.  The
+compositor can be a standalone display server running on Linux kernel
+modesetting and evdev input devices, an X application, or a wayland
+client itself.  The clients can be traditional applications, X servers
+(rootless or fullscreen) or other display servers.
 
 EOF
 
