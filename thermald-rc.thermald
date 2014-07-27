@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+THERMALD="/usr/sbin/thermald"
+
+# Check for daemon presence
+[ -x "$THERMALD" ] || exit 0
+
+OPTIONS=""
+MODULES=""
+
+
+case "$1" in
+  start)
+    echo "Starting thermald..."
+    $THERMALD $OPTIONS
+    ;;
+  stop)
+    echo "Stopping thermald..."
+    killall $THERMALD
+    ;;
+  restart)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+  reload|force-reload) 
+    echo "Reloading thermald..."
+    killall -HUP $THERMALD
+    ;;
+  *)
+    echo "Usage: /etc/rc.d/rc,thermald {start|stop|restart|reload|force-reload}"
+    exit 1
+esac
