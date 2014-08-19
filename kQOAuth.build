@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=openconnect
+TARNAME=kQOAuth
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/o
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=6.00
+VERSION=0.98
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.infradead.org/openconnect/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/kQOAuth-0.98.diff
 )
 fi
 
@@ -59,24 +59,27 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-vpnc-script=/etc/vpnc/vpnc-script
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+	    --mandir=/usr/man
+elif [ -c ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+qmake LIB_SUFFIX=${LIBDIRSUFFIX}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,11 +92,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/etc/vpnc
-cp ${CWD}/openconnect-vpnc-script ${PKG}/etc/vpnc/vpnc-script
-chmod +x ${PKG}/etc/vpnc/vpnc-script
+make install INSTALL_ROOT=${PKG}
 
 strip_binaries
 
@@ -110,11 +109,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenConnect"
-OpenConnect is a client for Cisco's AnyConnect SSL VPN, which is 
-supported by the ASA5500 Series, by IOS 12.4(9)T or later on Cisco 
-SR500, 870, 880, 1800, 2800, 3800, 7200 Series and Cisco 7301 Routers, 
-and probably others.
+make_slack_desc << EOF "Easy and Powerful OAuth library for Qt"
+kQOAuth is a powerful yet easy way to integrate OAuth authentication 
+to your Qt application. kQOAuth handles OAuth request signing, request 
+submitting and reply parsing for you. It also provides an easy way to 
+retrieve user authorization to protected resources with a built in 
+HTTP server. All this is done with Qt programming in mind, so you can 
+use Qt's signals to react to OAuth events in your own application. 
+This also means that the library works fully asynchronously. kQOAuth 
+is licensed under the LGPL license.
 
 EOF
 
