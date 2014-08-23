@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=Imaging
+TARNAME=apsw
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=1.1.6
+VERSION=3.8.5-r1
 VERSIONEXTRA=
-BUILD=4
+BUILD=1
 
-WEBPAGE="http://www.pythonware.com/products/pil/"
+WEBPAGE="https://github.com/rogerbinns/apsw"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,13 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+#make ${NUM_JOBS} || exit
 python setup.py build || exit
 fi
 
@@ -70,9 +89,10 @@ then
   exit
 fi
 
-python setup.py install --prefix=${PKG}/usr
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -81,17 +101,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUILDME CHANGES* CONTENTS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Python Imaging Library"
-The Python Imaging Library (PIL) adds image processing capabilities
-to your Python environment.  This library provides extensive file
-format support, an efficient internal representation, and powerful
-image processing capabilities.
+make_slack_desc << EOF "Another Python SQLite wrapper"
+APSW is a Python wrapper for the SQLite embedded relational database 
+engine. In contrast to other wrappers such as pysqlite it focuses on 
+being a minimal layer over SQLite attempting just to translate the 
+complete SQLite API into Python. The documentation has a section on 
+the differences between APSW and pysqlite. APSW supports CPython 2.3 
+onwards and CPython 3.1 onwards.
 
 EOF
 

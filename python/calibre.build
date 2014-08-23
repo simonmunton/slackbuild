@@ -2,17 +2,17 @@
 #
 . build_funcs
 
-TARNAME=lxml
+TARNAME=calibre
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=3.3.5
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://lxml.de/"
-#"http://codespeak.net/"
+WEBPAGE="http://calibre-ebook.com/"
+#http://sourceforge.net/projects/calibre/
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -47,6 +47,11 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+
+ if [ $ARCH = "x86_64" ]
+ then
+   patch -p1 < ${CWD}/calibre-2.0.0-x86_64.diff
+ fi
 )
 fi
 
@@ -79,8 +84,11 @@ then
 
 fi
 
+export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
+
 if [ ${DO_MAKE} == "yes" ]
 then
+#make ${NUM_JOBS} || exit
 python setup.py build || exit
 fi
 
@@ -89,7 +97,11 @@ then
   exit
 fi
 
-python setup.py install --root=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}`python -c "import distutils.sysconfig as s; print s.get_python_lib()"`
+python setup.py install --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --root=${PKG}/usr --staging-libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
+
+rm ${PKG}/usr/bin/calibre-uninstall
 
 strip_binaries
 
@@ -106,13 +118,18 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python binding for libxml2 and libxslt"
-lxml is a Pythonic, mature binding for the libxml2 and libxslt 
-libraries. It provides safe and convenient access to these libraries 
-using the ElementTree API.
+make_slack_desc << EOF "calibre - Ebook management"
+calibre is a free and open source e-book library management 
+application developed by users of e-books for users of e-books. It has 
+a cornucopia of features divided into the following main categories:
 
-It extends the ElementTree API significantly to offer support for 
-XPath, RelaxNG, XML Schema, XSLT, C14N and much more.
+    Library Management
+    E-book conversion
+    Syncing to e-book reader devices
+    Downloading news from the web and converting it into e-book form
+    Comprehensive e-book viewer
+    Content server for online access to your book collection
+    E-book editor for the major e-book formats
 
 EOF
 

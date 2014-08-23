@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=libkgapi
+TARNAME=signon
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.2.0
+VERSION=8.56
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://code.google.com/p/accounts-sso/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,26 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -c ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+qmake
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -87,12 +92,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install INSTALL_ROOT=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -107,9 +109,19 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library to access Google services"
-LibKGAPI (previously called LibKGoogle) is a C++ library that 
-implements APIs for various Google services.
+make_slack_desc << EOF "Accounts and Single Sign-On framework for Linux and POSIX based platforms"
+The Accounts & SSO framework consists of a set of components and 
+libraries which implement an account manager for a user's online 
+accounts and a single-sign-on daemon which handles the authentication 
+to the remote services on behalf of the client applications.
+
+This software was initially developed for embedded devices as part of 
+the Meego Linux-based platform with a special attention to performance 
+and security. Its high modularity has made it possible to deploy it in 
+very different Linux machines, from smartphones to desktop computers, 
+working with diverse user interface technologies and designs, storage 
+back-ends and varying levels of security  yet always providing the 
+same client API to applications. 
 
 EOF
 
