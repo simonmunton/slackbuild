@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=TEMPLATE
+TARNAME=gtest
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=
+VERSION=1.7.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://code.google.com/p/googletest/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,7 +59,7 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if false # [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -77,6 +77,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -Dgtest_build_tests=ON \
       .
 fi
 
@@ -84,7 +85,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} GTEST_DIR=/usr/src/gtest GTEST_HEADERS="/usr/include/gtest/*.h /usr/include/gtest/internal/*.h" || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +93,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/src/gtest ${PKG}/usr/include ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
+
+cp -pr make samples ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
+cp -pr include/gtest ${PKG}/usr/include
+cp -pr src ${PKG}/usr/src/gtest
+cp -pr CMakeLists.txt ${PKG}/usr/src/gtest
+cp -pr cmake ${PKG}/usr/src/gtest
 
 strip_binaries
 
@@ -109,7 +117,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "Google C++ Testing Framework"
+Google's framework for writing C++ tests on a variety of platforms 
+(Linux, Mac OS X, Windows, Cygwin, Windows CE, and Symbian). Based on 
+the xUnit architecture. Supports automatic test discovery, a rich set 
+of assertions, user-defined assertions, death tests, fatal and 
+non-fatal failures, value- and type-parameterized tests, various 
+options for running the tests, and XML test report generation. 
+
 EOF
 
 post_install

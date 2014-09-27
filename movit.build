@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mlt
+TARNAME=movit
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.9.2
+VERSION=20140927
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="http://git.sesse.net/movit"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/mlt-0.8.2.diff
+ #patch -p1 < ${CWD}/
+
+ ./autogen.sh
 )
 fi
 
@@ -52,7 +57,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -60,16 +69,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-gpl \
-	    --enable-gpl3 \
-	    --swig-languages=all
+	    --mandir=/usr/man
+elif [ -d ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
-#	    --avformat-swscale \
-#	    --enable-motion-est \
-#	    --qimage-libdir=/usr/lib${LIBDIRSUFFIX}/qt/lib \
-#	    --qimage-includedir=/usr/lib${LIBDIRSUFFIX}/qt/include \
-#	    --disable-sox
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -84,12 +96,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
-cp src/swig/python/mlt.py src/swig/python/_mlt.so \
-   ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -104,10 +111,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "multimedia framework for television broadcasting"
-MLT is a LGPL multimedia framework designed for television 
-broadcasting, and Miracle is a GPL multi-unit video playout server 
-with realtime effects.
+make_slack_desc << EOF "library for GPU-side video processing"
+library for GPU-side video processing
 
 EOF
 
