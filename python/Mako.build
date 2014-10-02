@@ -1,21 +1,21 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kmymoney
+TARNAME=Mako
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=4.7.0
+VERSION=1.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://kmymoney2.sourceforge.net/index-home.html"
+WEBPAGE="http://www.makotemplates.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=kmymoney2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kmymoney-4.6.2.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,8 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+:
 #CFLAGS="${SLKCFLAGS}" \
 #CXXFLAGS="${SLKCFLAGS}" \
 #./configure --prefix=/usr \
@@ -65,19 +68,20 @@ then
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -85,9 +89,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -102,11 +107,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Personal Finance Manager for KDE"
-KMyMoney is the Personal Finance Manager for the KDE environment. It
-provides the functions required to balance your checkbooks, manage
-your personal loans and categorise your incomes and expenses using a
-checkbook style graphical user interface.
+make_slack_desc << EOF "Mako Templates for Python"
+Mako is a template library written in Python. It provides a familiar, 
+non-XML syntax which compiles into Python modules for maximum 
+performance. Mako's syntax and API borrows from the best ideas of many 
+others, including Django templates, Cheetah, Myghty, and Genshi. 
+Conceptually, Mako is an embedded Python (i.e. Python Server Page) 
+language, which refines the familiar ideas of componentized layout and 
+inheritance to produce one of the most straightforward and flexible 
+models available, while also maintaining close ties to Python calling 
+and scoping semantics
 
 EOF
 

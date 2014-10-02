@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mercurial
+TARNAME=bdec
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=3.1.2
+VERSION=0.8.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://selenic.com/mercurial"
+WEBPAGE="http://www.protocollogic.com/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,9 +89,10 @@ then
   exit
 fi
 
-make install PREFIX=${PKG}/usr
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,8 +107,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Scalable distributed SCM"
-Mercurial source code management system
+make_slack_desc << EOF "'bdec', tools for decoding binary files"
+Manually writing decoders for binary formats is a time consuming, 
+frustrating, and costly process; it is also the source of many bugs.
+
+Using bdec, developers can write specifications for binary formats 
+using simple low-level constructs that combine in powerful ways, 
+allowing many binary formats to be partially (and often fully) 
+specified. From this specification, bdec will generate source code 
+for decoders and encoders.
 
 EOF
 

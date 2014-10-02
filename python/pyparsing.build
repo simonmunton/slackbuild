@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mercurial
+TARNAME=pyparsing
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=3.1.2
+VERSION=2.0.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://selenic.com/mercurial"
+WEBPAGE="http://pyparsing.wikispaces.com/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,9 +89,10 @@ then
   exit
 fi
 
-make install PREFIX=${PKG}/usr
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,8 +107,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Scalable distributed SCM"
-Mercurial source code management system
+make_slack_desc << EOF "PyParsing -- A Python Parsing Module"
+The pyparsing module is an alternative approach to creating and 
+executing simple grammars, vs. the traditional lex/yacc approach, or 
+the use of regular expressions.  The pyparsing module provides a 
+library of classes that client code uses to construct the grammar 
+directly in Python code.
 
 EOF
 
