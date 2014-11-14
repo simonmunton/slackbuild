@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libquicktime
+TARNAME=libguess
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.2.4
+VERSION=1.2
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
-WEBPAGE="http://libquicktime.sourceforge.net/"
+WEBPAGE="https://github.com/kaniini/libguess"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/libquicktime-1.2.4.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -63,10 +67,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-gpl \
-	    --with-libdv \
-	    --with-vorbis-libraries=/usr/lib${LIBDIRSUFFIX}
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,10 +94,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cp include/quicktime/qtprivate.h ${PKG}/usr/include/lqt
-ln -s lqt ${PKG}/usr/include/quicktime
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -99,16 +109,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library for reading and writing QuickTime files"
-Libquicktime is a library for reading and writing QuickTime files on 
-UNIX systems. Video CODECs supported by this library are OpenDivX, 
-MJPA, JPEG Photo, PNG, RGB, YUV 4:2:2, and YUV 4:2:0 compression.  
-Supported audio CODECs are Ogg Vorbis, IMA4, ulaw, and any linear 
-PCM format.
-
-Libquicktime is based on the quicktime4linux library. Libquicktime add
-features such as a GNU build tools-based build process and dynamically
-loadable CODECs.
+make_slack_desc << EOF "libguess - a high-speed character set detection library"
+a high-speed character set detection library
 
 EOF
 

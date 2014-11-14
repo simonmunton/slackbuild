@@ -3,13 +3,15 @@
 . build_funcs
 
 TARNAME=clucene
-TARNAMEEXTRA=
+TARNAMEEXTRA=-core
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=20121221
+VERSION=2.3.3.4
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://clucene.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/clucene-20121221.diff
+ patch -p1 < ${CWD}/clucene.pkgconfig.diff
+ patch -p1 < ${CWD}/clucene.install_contribs_lib.diff
 )
 fi
 
@@ -63,6 +66,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DBUILD_CONTRIBS_LIB:BOOL=ON \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .. \
@@ -93,13 +97,13 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  APACHE.license ChangeLog AUTHORS COPYING* INSTALL NEWS PLANS README* TODO LGPL.license REQUESTS \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "CLucene is a C++ port of Lucene."
 CLucene is a C++ port of Lucene.
 It is a high-performance, full-featured text search engine written in 
 C++. CLucene is faster than lucene as it is written in C++.
