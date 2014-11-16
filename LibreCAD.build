@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=simgear
+TARNAME=LibreCAD
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f/Flightgear
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=3.2.0
+VERSION=2.0.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://librecad.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=SimGear
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -57,11 +57,19 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir build
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-pushd build
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -69,15 +77,16 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-popd
+      .
+fi
+
+qmake librecad.pro
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd build
 make ${NUM_JOBS} || exit
-popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -85,9 +94,39 @@ then
   exit
 fi
 
-pushd build
 make install DESTDIR=${PKG}
-popd
+
+
+(cd unix
+
+mkdir -p ${PKG}/opt/LibreCAD/
+cp -pr * ${PKG}/opt/LibreCAD/
+)
+
+mkdir -p ${PKG}/usr/man/man1
+cp desktop/librecad.1 ${PKG}/usr/man/man1
+
+mkdir -p ${PKG}/usr/share/applications
+cp desktop/librecad.desktop ${PKG}/usr/share/applications
+
+mkdir -p ${PKG}/usr/share/mime/packages
+cp desktop/librecad.sharedmimeinfo ${PKG}/usr/share/mime/packages
+
+#cp desktop/librecad.mime xxx
+
+
+mkdir -p ${PKG}/usr/bin
+#ln -s /opt/LibreCAD/librecad ${PKG}/usr/bin/librecad
+
+cat > ${PKG}/usr/bin/librecad << EOF
+#! /bin/bash
+
+cd /opt/LibreCAD
+/opt/LibreCAD/librecad "\$@"
+EOF
+
+chmod +x ${PKG}/usr/bin/librecad
+
 
 strip_binaries
 
@@ -104,10 +143,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "3d simulations library"
-SimGear is a set of open-source libraries designed to be used as
-building blocks for quickly assembling 3d simulations, games, and
-visualization applications.
+make_slack_desc << EOF "Open Source CAD application"
+LibreCAD is a free Open Source CAD application for Windows, Apple and 
+Linux. Support and documentation is free from our large, dedicated 
+community of users, contributors and developers.
 
 EOF
 
