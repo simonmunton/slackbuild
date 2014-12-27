@@ -89,6 +89,21 @@ fi
 
 make install DESTDIR=${PKG}
 
+# It might be advisable to have the libraries in /lib${LIBDIRSUFFIX}:
+mkdir -p ${PKG}/lib${LIBDIRSUFFIX}
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/liblzma.so.* ${PKG}/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  rm -f liblzma.so
+  ln -sf ../../lib${LIBDIRSUFFIX}/liblzma.so.? liblzma.so
+)
+
+# At least the xz binary should also be in /bin:
+mkdir -p ${PKG}/bin
+mv ${PKG}/usr/bin/xz ${PKG}/bin
+( cd ${PKG}/usr/bin
+  ln -sf ../../bin/xz .
+)
+
 strip_binaries
 
 fix_links
