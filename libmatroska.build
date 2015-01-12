@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.4.0
+VERSION=1.4.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,16 +55,19 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd make/linux
- CFLAGS="${SLKCFLAGS}" \
- CXXFLAGS="${SLKCFLAGS}" \
- make prefix=/usr ${NUM_JOBS} || exit
-)
+ make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,10 +75,7 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-(cd make/linux
- make install DESTDIR=${PKG} prefix=${PKG}/usr libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
-)
+make install DESTDIR=${PKG}
 
 #strip_binaries
 

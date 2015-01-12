@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.3.0
+VERSION=1.3.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -60,13 +60,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,11 +80,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-cd make/linux
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-make prefix=/usr || exit
-cd ../..
+ make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,9 +88,7 @@ then
   exit
 fi
 
-(cd make/linux
-make install DESTDIR=${PKG} prefix=${PKG}/usr libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
-)
+make install DESTDIR=${PKG}
 
 strip_binaries
 

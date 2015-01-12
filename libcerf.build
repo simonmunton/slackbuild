@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=lensfun
+TARNAME=libcerf
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.2.8
-VERSIONEXTA=
+VERSION=1.4
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/lensfun/"
+WEBPAGE="http://apps.jcns.fz-juelich.de/doku/sc/libcerf"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,6 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 if [ -f ./configure ]
@@ -64,8 +66,8 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --docdir=/usr/doc/${TARNAME}-${VERSION}
-
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -92,7 +94,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -107,11 +109,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "photographic lens correction library"
-This package provides a database of photographic lenses and a library 
-that allows advanced access to the database including functions to 
-correct images based on intimate knowledge of lens characteristics 
-and calibration data.
+make_slack_desc << EOF "complex error functions"
+Self-contained numeric library that provides an efficient and accurate 
+implementation of complex error functions, along with Dawson, Faddeeva, 
+and Voigt functions.
 
 EOF
 
