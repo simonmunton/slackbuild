@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=stellarium
+TARNAME=strongswan
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.13.2
+VERSION=5.2.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.stellarium.org/"
+WEBPAGE="http://www.strongswan.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#export QTDIR=/usr/lib/qt4
-#PATH=/usr/lib${LIBDIRSUFFIX}/qt4/bin:${PATH}
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX:STRING="/usr" \
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
       .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,17 +94,15 @@ fi
 
 make install DESTDIR=${PKG}
 
-#(cd ${PKG}/usr/bin
-# mv stellarium stellarium.bin
-# cat > stellarium << EOF
-##!/bin/bash
-##
-#LD_LIBRARY_PATH=/usr/lib${LIBDIRSUFFIX}/qt4/lib stellarium.bin "$@"
-#EOF
-# chmod +x stellarium
-#)
+(cd ${PKG}/
+ for f in `find etc -name "*.conf"`
+ do
+   mv $f $f.new
+   doinst_config $f.new
+ done
+)
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -102,10 +117,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "planetarium software"
-Stellarium is a free software available for Windows, Linux/Unix and
-MacOSX. It renders 3D photo-realistic skies in real time.u can see
-with your eyes, binoculars or a small telescope.
+make_slack_desc << EOF "OpenSource IPsec-based VPN Solution"
+strongSwan is an OpenSource IPsec implementation for the Linux 
+operating system. It is based on the discontinued FreeS/WAN project 
+and the X.509 patch which we developped over the last three years. In
+order to have a stable IPsec platform to base our future extensions of 
+the X.509 capability on, we decided to lauch the strongSwan project.
+
+The focus is on
+    simplicity of configuration
+    strong encryption and authentication methods
+    powerful IPsec policies supporting large and complex VPN networks
 
 EOF
 
