@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=digikam
+TARNAME=QtSOAP
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=4.7.0
-VERSIONEXTRA=-1
-BUILD=2
+VERSION=20150207
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://www.digikam.org"
+WEBPAGE="https://github.com/commontk/QtSOAP"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/digikam-2.0.0.diff
-# patch -p1 -b -z .orig < ${CWD}/digikam-3.1.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,28 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-SLKCFLAGS="${SLKCFLAGS} -I/usr/include/libpgf"
-
-mkdir build
-cd build
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+#if [ -f ./configure ]
+#then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+if [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DDIGIKAMSC_USE_PRIVATE_KDEGRAPHICS=OFF \
-      -DDIGIKAMSC_USE_PRIVATE_SHAREDLIBS=ON \
-      -DDIGIKAMSC_COMPILE_LIBKFACE=ON \
-      -DDIGIKAMSC_COMPILE_LIBKGEOMAP=ON \
-      -DDIGIKAMSC_COMPILE_LIBMEDIAWIKI=ON \
-      -DDIGIKAMSC_COMPILE_LIBKVKONTAKTE=ON \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,14 +92,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{include/QtSoap,lib${LIBDIRSUFFIX}}
+cp bin/libQtSOAP.so ${PKG}/usr/lib${LIBDIRSUFFIX}/libqtsoap.so
+cp src/qtsoap.h src/QtSoap* ${PKG}/usr/include/QtSoap
 
-cd ..
 
-sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -106,19 +108,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "digital photo management"
-digiKam is an easy to use and powerful digital photo management
-application, which makes importing, organizing and manipulating
-digital photos a "snap".  An easy to use interface is provided
-to connect to your digital camera, preview the images and download
-and/or delete them.
-
+make_slack_desc << EOF "The Qt SOAP project"
+The Qt SOAP project provides basic web service support with version 
+1.1 of the SOAP protocol. 
 
 EOF
 
