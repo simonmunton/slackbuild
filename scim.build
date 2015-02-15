@@ -1,0 +1,249 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=scim
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=1.4.15
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.scim-im.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+ if [ ! -e configure ]
+ then
+  ./bootstrap
+ fi
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --disable-static \
+	    --with-gtk-version=2 \
+	    --with-qt4-im-module-dir=/usr/lib${LIBDIRSUFFIX}/qt/plugins/inputmethods
+
+#	    --disable-gtk3-immodule \
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+ 
+# hack to rebuild gtk2 immodule
+(cd extras/immodules/client-gtk
+ rm *.lo .libs/*.o
+ cd gtk3
+ rm *.la .libs/*
+ make
+)
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+strip_binaries
+
+# Add a profile script that sets up the environment:
+mkdir -p ${PKG}/etc/profile.d
+
+cat <<EOT > ${PKG}/etc/profile.d/scim.sh.new
+#!/bin/sh
+
+# SCIM (Smart Common Input Method platform).  This is used to support the
+# entering of text in non-US-English languages.
+
+# For SCIM to work, you need to use a UTF-8 locale.  Make sure it ends on
+# ".UTF-8", not "utf-8"!  As an example, you would need to use en_US.UTF-8
+# for a US locale (export LANG=en_US.UTF-8), not en_US.
+#
+# The locale (LANG variable) is set in /etc/profile.d/lang.sh.
+
+if [ -x /usr/bin/scim ]; then
+  # Enable legacy X applications to use scim:
+  export XMODIFIERS="@im=SCIM"
+  # Let GTK applications like Firefox/Thunderbird use scim as
+  # default immodule:
+  export GTK_IM_MODULE="scim"
+  # Enable Qt/KDE applications to use scim:
+  export QT_IM_MODULE="scim"
+  # Make scim start automatically if the "magic key" Ctrl-Space is pressed:
+  export XIM_PROGRAM="/usr/bin/scim -d"
+fi
+
+# This ensures scim starts when you logon.
+# This will only work if you login through runlevel 4 (graphical login)!!!
+# Better is to have it start through Ctrl-Space like configured higher up ^^.
+#if [ ! \`ls /tmp/scim-socket*\` ]; then
+#  /usr/bin/scim -d
+#fi
+
+EOT
+
+cat <<EOT > ${PKG}/etc/profile.d/scim.csh.new
+#!/bin/csh
+
+# SCIM (Smart Common Input Method platform).  This is used to support the
+# entering of text in non-US-English languages.
+
+# For SCIM to work, you need to use a UTF-8 locale.  Make sure it ends on
+# ".UTF-8", not "utf-8"!  As an example, you would need to use en_US.UTF-8
+# for a US locale (setenv LANG en_US.UTF-8), not en_US.
+#
+# The locale (LANG variable) is set in /etc/profile.d/lang.csh.
+
+[ -x /usr/bin/scim ]
+if (\$status == 0) then
+  # Enable legacy X applications to use scim:
+  setenv XMODIFIERS "@im=SCIM"
+  # Let GTK applications like Firefox/Thunderbird use scim as
+  # default immodule:
+  setenv GTK_IM_MODULE "scim"
+  # Enable Qt/KDE applications to use scim (does not work for kde4):
+  setenv QT_IM_MODULE "scim"
+  # Make scim start automatically if the "magic key" Ctrl-Space is pressed:
+  setenv XIM_PROGRAM "/usr/bin/scim -d"
+endif
+
+# This ensures scim starts when you logon.
+# This will only work if you login through runlevel 4 (graphical login)!!!
+# Better is to have it start through Ctrl-Space like configured higher up ^^.
+#[ ! \`ls /tmp/scim-socket*\` ]
+#if (\$status == 0) then
+#  /usr/bin/scim -d
+#endif
+
+EOT
+
+chmod 755 ${PKG}/etc/profile.d/scim.sh.new
+chmod 755 ${PKG}/etc/profile.d/scim.csh.new
+
+mkdir -p ${PKG}/usr/share/applications
+cat ${CWD}/scim.desktop > ${PKG}/usr/share/applications/scim.desktop
+cat ${CWD}/scim-setup.desktop > ${PKG}/usr/share/applications/scim-setup.desktop
+
+# Protect config files from being overwritten:
+mv ${PKG}/etc/scim/config{,.new}
+mv ${PKG}/etc/scim/global{,.new}
+
+doinst_same_perm etc/scim/config
+doinst_config etc/scim/config.new
+
+doinst_same_perm etc/scim/global
+doinst_config etc/scim/global.new
+
+doinst_same_perm etc/profile.d/scim.sh
+doinst_config etc/profile.d/scim.sh.new
+
+doinst_same_perm etc/profile.d/scim.csh
+doinst_config etc/profile.d/scim.csh.new
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/manual/zh_CN/figures
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ABOUT-NLS TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+# Install documentation and user manual
+cp -a docs/manual/zh_CN/user-manual.html \
+   ${PKG}/usr/doc/${TARNAME}-${VERSION}/manual/zh_CN/
+cp -a docs/manual/zh_CN/figures/*.png \
+   ${PKG}/usr/doc/${TARNAME}-${VERSION}/manual/zh_CN/figures/
+
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF Smart Common Input Method platform
+SCIM is an input platform for CJK and other languages.
+It aims to significantly reduce the difficulty of input method
+development.
+
+See the scim scripts in /etc/profile.d/ for setup info.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
