@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=xlockmore
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/x
+#TAR_EXT=.tar.gz
+VERSION=5.45
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.tux.org/~bagleyd/xlockmore.html"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/xlockmore.bitmap.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS} -DFTGL213" \
+CXXFLAGS="${SLKCFLAGS} -DFTGL213 -I/usr/include/freetype2" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --without-dtsaver \
+	    --without-ttf \
+	    --without-rplay \
+	    --without-nas \
+	    --disable-bomb \
+	    --without-motif \
+	    --without-esound \
+	    --without-gtk
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+(cd xlock
+
+mkdir -p $PKG/etc/X11/app-defaults
+cat XLock.ad > $PKG/etc/X11/app-defaults/XLock
+mkdir -p $PKG/usr/bin
+cat xlock > $PKG/usr/bin/xlock
+chown root.shadow $PKG/usr/bin/xlock
+chmod 2751 $PKG/usr/bin/xlock
+
+mkdir -p $PKG/usr/man/man1
+cat xlock.man | gzip -9c > $PKG/usr/man/man1/xlock.1.gz
+)
+
+mkdir -p $PKG/usr/include/X11/bitmaps
+cp $CWD/xlockmore-l-bob.xbm $PKG/usr/include/X11/bitmaps/l-bob.xbm
+cp $CWD/xlockmore-s-bob.xbm $PKG/usr/include/X11/bitmaps/s-bob.xbm
+cp $CWD/xlockmore-l-linux.xbm $PKG/usr/include/X11/bitmaps/l-linux.xbm
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp $CWD/xlockmore-l-bob.README ${PKG}/usr/doc/${TARNAME}-${VERSION}/l-bob.README
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "screen locker for X"
+Patrick J. Naughton's xlock screensaver/locker for X, with many
+more modes added by David A. Bagley.
+
+The 'Bob' bitmap has been included especially for Slackware, as well
+as a Linux penguin logo.  (NOTE: the image of J. R. "Bob" Dobbs is a
+registered trademark of The Subgenius Foundation, used by permission)
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
