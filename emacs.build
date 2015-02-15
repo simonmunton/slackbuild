@@ -1,0 +1,195 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=emacs
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/emacs
+#TAR_EXT=.tar.gz
+VERSION=24.4
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.gnu.org/software/emacs/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --without-gconf \
+	    --without-gsettings \
+	    --with-x \
+	    --with-x-toolkit=gtk2
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} == "yes" ]
+then
+make install DESTDIR=${PKG}
+
+( cd ${PKG}/usr/bin
+  rm emacs
+  mv emacs-${VERSION} emacs-${VERSION}-with-x11
+  ln -sf emacs-${VERSION}-with-x11 emacs
+)
+fi
+
+
+# Also add a version of the binary that is not linked to X11:
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --infodir=/usr/info \
+	    --without-gconf \
+	    --without-gsettings \
+	    --with-x=no
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+# Install the non-x version:
+cat src/emacs > ${PKG}/usr/bin/emacs-${VERSION}-no-x11
+chown root:root ${PKG}/usr/bin/emacs-${VERSION}-no-x11
+chmod 1755 ${PKG}/usr/bin/emacs-${VERSION}-no-x11
+
+
+# This avoids a collision with Exuberant Ctags...
+mv ${PKG}/usr/bin/ctags ${PKG}/usr/bin/ctags-emacs
+mv ${PKG}/usr/man/man1/ctags.1.gz ${PKG}/usr/man/man1/ctags-emacs.1.gz
+
+
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "GNU Emacs"
+Emacs is the extensible, customizable, self-documenting real-time
+display editor. If this seems to be a bit of a mouthful, an
+easier explanation is that Emacs is a text editor and more. At
+its core is an interpreter for Emacs Lisp, a dialect of the Lisp
+programming language with extensions to support text editing.
+This version supports X.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 755 var/games/emacs ; \
+chown -R games:root var/games/emacs ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
