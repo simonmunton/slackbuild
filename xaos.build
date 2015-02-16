@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kde-runtime
+TARNAME=xaos
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.14.3
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=4.14.3
+VERSION=3.6
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://matek.hu/xaos/doku.php"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kde-runtime-4.11.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,26 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-gsl=$GSL_OPT \
+	    --with-sffe=$SFFE_OPT \
+	    --with-pthread=yes
+
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,13 +98,20 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
+# Replace bogus manpage:
+rm -f ${PKG}/usr/man/man6/xaos.6
+cat ${CWD}/xaos.6 > ${PKG}/usr/man/man6/xaos.6
 
-# Create a symlink in /usr/bin to the kdesu binary
-( cd ${PKG}/usr/bin ; ln -s /usr/lib${LIBDIRSUFFIX}/kde4/libexec/kdesu . )
+mv ${PKG}/usr/share/XaoS/doc ${PKG}/usr/doc/${TARNAME}-${VERSION}
+( cd ${PKG}/usr/share/XaoS ; ln -sf ../../doc/${TARNAME}-${VERSION} doc )
 
-make_debug_files
-#strip_binaries
+mkdir -p ${PKG}/usr/share/applications
+cat ${CWD}/xaos.desktop > ${PKG}/usr/share/applications/xaos.desktop
+
+mkdir -p ${PKG}/usr/share/pixmaps
+cat ${CWD}/xaos.png > ${PKG}/usr/share/pixmaps/xaos.png
+
+strip_binaries
 
 fix_links
 
@@ -110,8 +126,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE runtime module"
-This package contains core components of the KDE runtime module.
+make_slack_desc << EOF "an interactive fractal zoomer"
+XaoS is a fast portable real-time interactive fractal zoomer.  It
+displays the Mandelbrot set (and other popular fractals), and allows
+the user to smoothly zoom in or out of a fractal.  Other features
+include autopilot mode, palette changing, PNG saving, and fractal
+inversion.
 
 EOF
 
