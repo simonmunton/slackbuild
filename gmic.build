@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=nasm
+TARNAME=gmic
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/n
+TARSEP="_"
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.11.08
+VERSION=1.6.0.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://gmic.eu/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gmic-1.6.0.4.diff
 )
 fi
 
@@ -55,7 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -64,13 +68,24 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+(cd src
 make ${NUM_JOBS} || exit
-(cd doc
- make ${NUM_JOBS} || exit
 )
 fi
 
@@ -79,13 +94,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALLROOT=${PKG}
-(cd doc
- mkdir -p ${PKG}/usr/info
- make install DESTDIR=${PKG} INSTALLROOT=${PKG} infodir=/usr/info
+(cd src
+make install DESTDIR=${PKG}
 )
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -100,10 +113,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Netwide Assembler, a portable x86 assembler with Intel-like syntax"
-NASM is the Netwide Assembler, a free portable assembler for the Intel
-80x86 microprocessor series, using primarily the traditional Intel
-instruction mnemonics and syntax.
+make_slack_desc << EOF "image processing framework"
+G'MIC is an open and full-featured framework for image processing, 
+providing several different user interfaces to convert/manipulate/
+filter/visualize generic image datasets, from 1d scalar signals to 
+3d+t sequences of multi-spectral volumetric images.
 
 EOF
 
