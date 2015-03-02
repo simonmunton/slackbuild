@@ -14,3 +14,71 @@
  install_files(/include/rfb FILES
      rfb/keysym.h
      rfb/rfb.h
+--- LibVNCServer-0.9.10/libvncclient.pc.in.orig	2014-10-21 16:57:11.000000000 +0100
++++ LibVNCServer-0.9.10/libvncclient.pc.in	2015-03-02 21:49:23.508801551 +0000
+@@ -1,14 +1,14 @@
+-prefix=@prefix@
+-exec_prefix=@exec_prefix@
+-libdir=@libdir@
+-includedir=@includedir@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${exec_prefix}/lib@LIB_SUFFIX@
++includedir=${prefix}/include
+ 
+ Name: LibVNCClient
+ Description: A library for easy implementation of a VNC client.
+-Version: @VERSION@
++Version: @PACKAGE_VERSION@
+ Requires:
+ Requires.private: zlib
+ Libs: -L${libdir} -lvncclient
+-Libs.private: @LIBS@ @WSOCKLIB@
++Libs.private: @PRIVATE_LIBS@
+ Cflags: -I${includedir}
+ 
+--- LibVNCServer-0.9.10/libvncserver.pc.in.orig	2014-10-21 16:57:11.000000000 +0100
++++ LibVNCServer-0.9.10/libvncserver.pc.in	2015-03-02 21:49:38.645229606 +0000
+@@ -1,14 +1,14 @@
+-prefix=@prefix@
+-exec_prefix=@exec_prefix@
+-libdir=@libdir@
+-includedir=@includedir@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${exec_prefix}/lib@LIB_SUFFIX@
++includedir=${prefix}/include
+ 
+ Name: LibVNCServer
+ Description: A library for easy implementation of a VNC server.
+-Version: @VERSION@
++Version: @PACKAGE_VERSION@
+ Requires:
+ Requires.private: zlib
+ Libs: -L${libdir} -lvncserver
+-Libs.private: @LIBS@ @WSOCKLIB@
++Libs.private: @PRIVATE_LIBS@
+ Cflags: -I${includedir}
+ 
+--- LibVNCServer-0.9.10/CMakeLists.txt.orig	2015-03-02 21:39:47.000000000 +0000
++++ LibVNCServer-0.9.10/CMakeLists.txt	2015-03-02 21:43:40.574587186 +0000
+@@ -353,6 +353,19 @@
+   )
+ endif(HAVE_FFMPEG)
+ 
++include(FindPkgConfig QUIET)
++if(PKG_CONFIG_FOUND)
++    # convert lists of link libraries into -lstdc++ -lm etc..
++    foreach(LIB ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES} ${PLATFORM_LIBS})
++        set(PRIVATE_LIBS "${PRIVATE_LIBS} -l${LIB}")
++    endforeach()
++    # Produce a pkg-config file for linking against the shared lib
++    configure_file("libvncclient.pc.in" "libvncclient.pc" @ONLY)
++    configure_file("libvncserver.pc.in" "libvncserver.pc" @ONLY)
++    install(FILES       "${CMAKE_CURRENT_BINARY_DIR}/libvncclient.pc" "${CMAKE_CURRENT_BINARY_DIR}/libvncserver.pc"
++            DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/pkgconfig")
++endif()
++
+ 
+ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
+ foreach(test ${LIBVNCSERVER_TESTS})
