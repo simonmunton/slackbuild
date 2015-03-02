@@ -1,0 +1,58 @@
+Description: Use the locally renamed telepathy-farstream-0.4 package instead of
+ 'telepathy-farstream', which will become the GStreamer 1.0 0.6 series.
+Author: Rex Dieter <rdieter@unl.edu>
+Forwarded: not-needed
+
+Index: b/cmake/modules/FindTelepathyFarstream.cmake
+===================================================================
+--- a/cmake/modules/FindTelepathyFarstream.cmake
++++ b/cmake/modules/FindTelepathyFarstream.cmake
+@@ -23,9 +23,9 @@
+     # in the find_path() and find_library() calls
+     find_package(PkgConfig)
+     if (TELEPATHY_FARSTREAM_MIN_VERSION)
+-        PKG_CHECK_MODULES(PC_TELEPATHY_FARSTREAM telepathy-farstream>=${TELEPATHY_FARSTREAM_MIN_VERSION})
++        PKG_CHECK_MODULES(PC_TELEPATHY_FARSTREAM telepathy-farstream-0.4>=${TELEPATHY_FARSTREAM_MIN_VERSION} telepathy-farstream>=${TELEPATHY_FARSTREAM_MIN_VERSION})
+     else (TELEPATHY_FARSTREAM_MIN_VERSION)
+-        PKG_CHECK_MODULES(PC_TELEPATHY_FARSTREAM telepathy-farstream)
++        PKG_CHECK_MODULES(PC_TELEPATHY_FARSTREAM telepathy-farstream-0.4 telepathy-farstream)
+     endif (TELEPATHY_FARSTREAM_MIN_VERSION)
+     set(TELEPATHY_FARSTREAM_DEFINITIONS ${PC_TELEPATHY_FARSTREAM_CFLAGS_OTHER})
+ endif (NOT WIN32)
+@@ -34,10 +34,10 @@
+    PATHS
+    ${PC_TELEPATHY_FARSTREAM_INCLUDEDIR}
+    ${PC_TELEPATHY_FARSTREAM_INCLUDE_DIRS}
+-   PATH_SUFFIXES telepathy-1.0
++   PATH_SUFFIXES telepathy-1.0-compat telepathy-1.0
+    )
+ 
+-find_library(TELEPATHY_FARSTREAM_LIBRARIES NAMES telepathy-farstream
++find_library(TELEPATHY_FARSTREAM_LIBRARIES NAMES telepathy-farstream-0.4 telepathy-farstream
+    PATHS
+    ${PC_TELEPATHY_FARSTREAM_LIBDIR}
+    ${PC_TELEPATHY_FARSTREAM_LIBRARY_DIRS}
+Index: b/TelepathyQt/Farstream/TelepathyQtFarstream.pc.in
+===================================================================
+--- a/TelepathyQt/Farstream/TelepathyQtFarstream.pc.in
++++ b/TelepathyQt/Farstream/TelepathyQtFarstream.pc.in
+@@ -6,6 +6,6 @@
+ Name: TelepathyQt${QT_VERSION_MAJOR}Farstream
+ Description: Qt Telepathy Farstream utility library for the Telepathy framework
+ Version: ${PACKAGE_VERSION}
+-Requires.private: QtCore >= ${QT_MIN_VERSION}, QtCore < ${QT_MAX_VERSION}, QtDBus >= ${QT_MIN_VERSION}, QtDBus < ${QT_MAX_VERSION}, telepathy-glib >= ${TELEPATHY_GLIB_MIN_VERSION}, telepathy-farstream >= ${TELEPATHY_FARSTREAM_MIN_VERSION}, TelepathyQt${QT_VERSION_MAJOR} = ${PACKAGE_VERSION}
++Requires.private: QtCore >= ${QT_MIN_VERSION}, QtCore < ${QT_MAX_VERSION}, QtDBus >= ${QT_MIN_VERSION}, QtDBus < ${QT_MAX_VERSION}, telepathy-glib >= ${TELEPATHY_GLIB_MIN_VERSION}, telepathy-farstream-0.4 >= ${TELEPATHY_FARSTREAM_MIN_VERSION}, TelepathyQt${QT_VERSION_MAJOR} = ${PACKAGE_VERSION}
+ Libs: -L${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR} -ltelepathy-qt${QT_VERSION_MAJOR}-farstream
+ Cflags: -I${CMAKE_INSTALL_PREFIX}/${INCLUDE_INSTALL_DIR}/telepathy-qt${QT_VERSION_MAJOR}
+Index: b/TelepathyQt/Farstream/TelepathyQtFarstream-uninstalled.pc.in
+===================================================================
+--- a/TelepathyQt/Farstream/TelepathyQtFarstream-uninstalled.pc.in
++++ b/TelepathyQt/Farstream/TelepathyQtFarstream-uninstalled.pc.in
+@@ -6,6 +6,6 @@
+ Name: TelepathyQt${QT_VERSION_MAJOR}Farstream (uninstalled copy)
+ Description: Qt Telepathy Farstream utility library for the Telepathy framework
+ Version: ${PACKAGE_VERSION}
+-Requires.private: QtCore >= ${QT_MIN_VERSION}, QtCore < ${QT_MAX_VERSION}, QtDBus >= ${QT_MIN_VERSION}, QtDBus < ${QT_MAX_VERSION}, telepathy-glib >= ${TELEPATHY_GLIB_MIN_VERSION}, telepathy-farstream >= ${TELEPATHY_FARSTREAM_MIN_VERSION}, TelepathyQt${QT_VERSION_MAJOR} = ${PACKAGE_VERSION}
++Requires.private: QtCore >= ${QT_MIN_VERSION}, QtCore < ${QT_MAX_VERSION}, QtDBus >= ${QT_MIN_VERSION}, QtDBus < ${QT_MAX_VERSION}, telepathy-glib >= ${TELEPATHY_GLIB_MIN_VERSION}, telepathy-farstream-0.4 >= ${TELEPATHY_FARSTREAM_MIN_VERSION}, TelepathyQt${QT_VERSION_MAJOR} = ${PACKAGE_VERSION}
+ Libs: ${CMAKE_BINARY_DIR}/TelepathyQt${QT_VERSION_MAJOR}/Farstream/libtelepathy-qt${QT_VERSION_MAJOR}-farstream.so
+ Cflags: -I${CMAKE_SOURCE_DIR} -I${CMAKE_BINARY_DIR}
