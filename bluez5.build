@@ -1,0 +1,162 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=bluez
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/b
+#TAR_EXT=.tar.gz
+VERSION=5.28
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.bluez.org"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/bluez.enable.audio.socket.diff
+
+# Fixup the dbus config file for our usage:
+# patch -p1 < ${CWD}/bluez-dbus-config.patch
+
+# Use a wrapper to check rc.bluetooth mode before starting bluetoothd
+# patch -p1 < ${CWD}/bluez-run_udev_helper.patch
+
+# Unbreak a Dell USB mouse
+# https://bugzilla.novell.com/show_bug.cgi?id=522287
+# https://bugzilla.redhat.com/show_bug.cgi?id=517088
+# patch -p1 < ${CWD}/bluez-unbreak_dell_mouse.patch
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+LDFLAGS="-lncurses" \
+./configure --prefix=/usr \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --sysconfdir=/etc \
+            --mandir=/usr/man \
+            --localstatedir=/var \
+            --enable-datafiles \
+            --enable-tools\
+            --enable-cups \
+            --enable-test \
+            --disable-silent-rules \
+            --enable-library \
+            --disable-systemd
+
+
+#            --enable-test \
+#            --disable-silent-rules \
+#            --disable-systemd \
+#            --enable-library
+
+#	    --enable-udevrules \
+#	    --enable-configfiles \
+
+
+
+#	    --enable-initscripts \
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+# -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+# -DCMAKE_BUILD_TYPE=Release \
+# -DCMAKE_INSTALL_PREFIX=/usr \
+# -DMAN_INSTALL_DIR=/usr/man \
+# -DSYSCONF_INSTALL_DIR=/etc \
+# .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+ exit
+fi
+
+make install DESTDIR=${PKG}
+
+
+# Add an init script
+mkdir -p ${PKG}/etc/rc.d
+cat ${CWD}/bluez-utils-rc.bluetooth > ${PKG}/etc/rc.d/rc.bluetooth.new
+
+doinst_same_perm etc/rc.d/rc.bluetooth
+doinst_config etc/rc.d/rc.bluetooth.new
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+ AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+ ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp ${CWD}/bluez-utils-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Bluetooth protocol stack for Linux"
+Bluetooth protocol stack for Linux
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod 700 etc/bluetooth/passkeys; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
