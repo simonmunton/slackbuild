@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=calligra-l10n-en_GB
+TARNAME=smem
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.9.1
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.koffice.org"
+WEBPAGE="http://www.selenic.com/smem/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-ARCH=noarch
+#ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -55,31 +55,36 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+: #make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,9 +92,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
-cd ..
+mkdir -p ${PKG}/usr/{bin,man/man8}
+cp smem ${PKG}/usr/bin
+cp smem.8 ${PKG}/usr/man/man8
 
 strip_binaries
 
@@ -106,8 +113,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Calligra localisation"
-English (UK) language support for Calligra.
+make_slack_desc << EOF "smem memory reporting tool"
+
+smem is a tool that can give numerous reports on memory usage on Linux
+systems. Unlike existing tools, smem can report proportional set size 
+(PSS), which is a more meaningful representation of the amount of 
+memory used by libraries and applications in a virtual memory system.
 
 EOF
 
