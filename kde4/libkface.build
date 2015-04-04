@@ -1,19 +1,21 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=gst-plugins-bad
+TARNAME=libkface
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.4.5
+VERSION=20150402
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gst-plugins-bad-1
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gst-plugins-bad-0.10.10.diff
- sed -i -e 's/-lfaad -lm/-lfaad -lmpeg4ip_faad -lm/' configure
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -54,15 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -77,6 +89,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -92,17 +107,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "bad quality GStreamer Plugins"
-GStreamer is a streaming media framework, based on graphs of filters
-which operate on media data. Applications using this library can do
-anything from real-time sound processing to playing videos, and just
-about anything else media-related.  Its plugin-based architecture
-means that new data types or processing capabilities can be added
-simply by installing new plug-ins.
-
-This package contains GStreamer Plugins that are considered to be of
-bad quality, even though they might work.
-
+make_slack_desc << EOF
 EOF
 
 post_install
