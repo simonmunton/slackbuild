@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=imlib2_loaders
+TARNAME=leveldb
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.4.7
+VERSION=1.18
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://web.enlightenment.org/"
+WEBPAGE="http://leveldb.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,14 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -87,7 +92,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/{include,lib${LIBDIRSUFFIX}}
+cp -pr include/* ${PKG}/usr/include
+cp -d libleveldb.* ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 strip_binaries
 
@@ -98,16 +107,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "additional  loaders for imlib2"
-This package contains additional image loaders for Imlib2 which for
-some reason (such as license issues) are not distributed with Imlib2
-directly.
+make_slack_desc << EOF "light-weight, single-purpose library for persistence"
+LevelDB is a light-weight, single-purpose library for persistence 
+with bindings to many platforms.
 
 EOF
 

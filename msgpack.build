@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=imlib2_loaders
+TARNAME=msgpack
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/i
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=1.4.7
+VERSION=0.5.9
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://web.enlightenment.org/"
+WEBPAGE="http://msgpack.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,14 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -104,10 +109,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "additional  loaders for imlib2"
-This package contains additional image loaders for Imlib2 which for
-some reason (such as license issues) are not distributed with Imlib2
-directly.
+make_slack_desc << EOF "It's like JSON, but fast and small"
+MessagePack is an efficient binary serialization format. It lets you 
+exchange data among multiple languages like JSON. But it's faster and 
+smaller. Small integers are encoded into a single byte, and typical 
+short strings require only one extra byte in addition to the strings 
+themselves.
 
 EOF
 
