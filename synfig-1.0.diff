@@ -1,0 +1,181 @@
+--- synfig-1.0/src/modules/mod_libavcodec/trgt_av.cpp.orig	2015-03-28 10:15:00.000000000 +0000
++++ synfig-1.0/src/modules/mod_libavcodec/trgt_av.cpp	2015-05-03 19:36:26.305701388 +0100
+@@ -121,14 +121,14 @@
+     picture = avcodec_alloc_frame();
+     if (!picture)
+         return NULL;
+-    size = avpicture_get_size(pix_fmt, width, height);
++    size = avpicture_get_size((enum ::PixelFormat) pix_fmt, width, height);
+     picture_buf = (uint8_t *)malloc(size);
+     if (!picture_buf) {
+         av_free(picture);
+         return NULL;
+     }
+     avpicture_fill((AVPicture *)picture, picture_buf,
+-                   pix_fmt, width, height);
++                   (enum ::PixelFormat) pix_fmt, width, height);
+     return picture;
+ }
+ 
+@@ -346,7 +346,7 @@
+ 		}
+ 
+ 		//try to open the codec
+-		if(avcodec_open(context, codec) < 0)
++		if(avcodec_open2(context, codec, NULL) < 0)
+ 		{
+ 			synfig::warning("open_video: could not open desired codec");
+ 			return 0;
+@@ -446,7 +446,7 @@
+ 		if( context->coded_frame )
+ 			pkt.pts = context->coded_frame->pts;
+ 		if( context->coded_frame && context->coded_frame->key_frame)
+-			pkt.flags |= PKT_FLAG_KEY;
++			pkt.flags |= AV_PKT_FLAG_KEY;
+ 
+ 		//kluge for raw picture format (they said they'd fix)
+ 		if (formatc->oformat->flags & AVFMT_RAWPICTURE)
+@@ -468,7 +468,7 @@
+ 				if( context->coded_frame )
+ 					pkt.pts = context->coded_frame->pts;
+ 				if( context->coded_frame && context->coded_frame->key_frame)
+-					pkt.flags |= PKT_FLAG_KEY;
++					pkt.flags |= AV_PKT_FLAG_KEY;
+ 
+ 				ret = av_write_frame(formatc, &pkt);
+ 
+@@ -572,17 +572,17 @@
+ 		if (typestring)
+ 		{
+ 			//formatptr guess_format(type, filename, MIME type)
+-			format = guess_format(typestring,NULL,NULL);
++			format = av_guess_format(typestring,NULL,NULL);
+ 		}
+ 		else
+ 		{
+-			format = guess_format(NULL, filename, NULL);
++			format = av_guess_format(NULL, filename, NULL);
+ 		}
+ 
+ 		if(!format)
+ 		{
+ 			synfig::warning("Unable to Guess the output, defaulting to mpeg");
+-			format = guess_format("mpeg", NULL, NULL);
++			format = av_guess_format("mpeg", NULL, NULL);
+ 		}
+ 
+ 		if(!format)
+@@ -632,7 +632,7 @@
+ 		video_st->codec->pix_fmt = PIX_FMT_YUV420P;
+ 
+ 		//dump the formatting information as the file header
+-		dump_format(formatc, 0, filename, 1);
++		av_dump_format(formatc, 0, filename, 1);
+ 
+ 		//open codecs and allocate buffers
+ 		if(video_st)
+@@ -656,7 +656,7 @@
+ 		if(!(format->flags & AVFMT_NOFILE))
+ 		{
+ 			//use libav's file open function (what does it do differently????)
+-			if(url_fopen(&formatc->pb, filename, URL_WRONLY) < 0)
++			if(avio_open(&formatc->pb, filename, AVIO_FLAG_WRITE) < 0)
+ 			{
+ 				synfig::warning("Unable to open file: %s", filename);
+ 				return 0;
+@@ -677,7 +677,7 @@
+ 		//vInfo.h = video_st->codec.height;
+ 
+ 		//write the stream header
+-		av_write_header(formatc);
++		avformat_write_header(formatc, NULL);
+ 
+ 		return true;
+ 	}
+@@ -717,7 +717,7 @@
+ 			{
+ 				/* close the output file */
+ #if LIBAVFORMAT_VERSION_INT >= (52<<16)
+-				url_fclose(formatc->pb);
++				avio_close(formatc->pb);
+ #else
+ 				url_fclose(&formatc->pb);
+ #endif
+@@ -749,7 +749,7 @@
+ 		AVCodecContext *context;
+ 		AVStream *st;
+ 
+-		st = av_new_stream(formatc, 0);
++		st = avformat_new_stream(formatc, NULL);
+ 		if(!st)
+ 		{
+ 			synfig::warning("video-add_stream: Unable to allocate stream");
+@@ -757,8 +757,8 @@
+ 		}
+ 
+ 		context = st->codec;
+-		context->codec_id = (CodecID)codec_id;
+-		context->codec_type = CODEC_TYPE_VIDEO;
++		context->codec_id = (AVCodecID)codec_id;
++		context->codec_type = AVMEDIA_TYPE_VIDEO;
+ 
+ 		//PARAMETERS MUST BE PASSED IN SOMEHOW (ANOTHER FUNCTION PARAMETER???)
+ 
+@@ -796,16 +796,17 @@
+ 		AVCodecContext *context;
+ 		AVStream *stream;
+ 
+-		stream = av_new_stream(formatc, 1);
++		stream = avformat_new_stream(formatc, NULL);
+ 		if(!stream)
+ 		{
+ 			synfig::warning("could not alloc stream");
+ 			return 0;
+ 		}
++		stream->id = 1;
+ 
+ 		context = stream->codec;
+-		context->codec_id = (CodecID)codec_id;
+-		context->codec_type = CODEC_TYPE_AUDIO;
++		context->codec_id = (AVCodecID)codec_id;
++		context->codec_type = AVMEDIA_TYPE_AUDIO;
+ 
+ 		/* put sample parameters */
+ 		context->bit_rate = 64000;
+@@ -827,7 +828,7 @@
+ 		registered = true;
+ 		av_register_all();
+ 	}
+-	set_remove_alpha();
++	//set_remove_alpha();
+ 
+ 	data = new LibAVEncoder;
+ }
+--- synfig-1.0/configure.orig	2015-04-25 14:08:18.000000000 +0100
++++ synfig-1.0/configure	2015-05-03 19:36:26.308701388 +0100
+@@ -23201,13 +23201,13 @@
+ TARGET_PNG="yes"
+ TARGET_MNG="yes"
+ 
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_write_row in -lpng14" >&5
+-$as_echo_n "checking for png_write_row in -lpng14... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_write_row in -lpng15" >&5
++$as_echo_n "checking for png_write_row in -lpng15... " >&6; }
+ if ${ac_cv_lib_png14_png_write_row+:} false; then :
+   $as_echo_n "(cached) " >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS="-lpng14 -lz -L${exec_prefix}/lib $LIBS"
++LIBS="-lpng15 -lz -L${exec_prefix}/lib $LIBS"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+@@ -23239,7 +23239,7 @@
+ $as_echo "$ac_cv_lib_png14_png_write_row" >&6; }
+ if test "x$ac_cv_lib_png14_png_write_row" = xyes; then :
+ 
+-	PNG_LIBS="-lpng14"
++	PNG_LIBS="-lpng15"
+ 
+ $as_echo "#define HAVE_LIBPNG14 /**/" >>confdefs.h
+ 
