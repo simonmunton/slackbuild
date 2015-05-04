@@ -10,7 +10,7 @@ TARDIR=~/tmp/new/q
 VERSION=4.8.6
 #-patched-20091007
 VERSIONEXTRA=
-BUILD=3
+BUILD=4
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -85,6 +85,27 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
  perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
 
  patch -p1 < ${CWD}/qt46.mysql.h.diff
+
+ # Stupid idea - remove it:
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.webkit-no_Werror.patch
+
+ # Fix crash on malformed GIF images (CVE-2014-0190):
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.fix.broken.gif.crash.diff
+
+ # Implement qsystemtrayicon support for Qt4 applications in Plasma 5:
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.qsystemtrayicon-plugin-system.diff
+
+ # Apply LibreOffice fixes (QTBUG-37380, QTBUG-34614, QTBUG-38585),
+ # Native KDE4 file pickers will be disabled at runtime otherwise.
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.glib-honor-ExcludeSocketNotifiers-flag.diff
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.qclipboard_fix_recursive.patch
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.qclipboard_delay.patch
+
+ # Image handling security patches:
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.CVE-2015-0295.bmp.div.zero.dos.diff
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.CVE-2015-1858,1859.bmp.ico.overflow.diff
+ patch -p1 < ${CWD}/qt4.8.6-patches/qt.CVE-2015-1860.gif.overflow.diff
+
 )
 fi
 
