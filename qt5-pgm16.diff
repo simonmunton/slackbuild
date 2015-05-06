@@ -1,0 +1,37 @@
+--- qt-everywhere-opensource-src-5.4.1/qtbase/src/gui/image/qppmhandler.cpp.orig	2015-02-17 04:56:48.000000000 +0000
++++ qt-everywhere-opensource-src-5.4.1/qtbase/src/gui/image/qppmhandler.cpp	2015-05-06 18:21:56.630324684 +0100
+@@ -173,10 +173,30 @@
+             }
+             delete[] buf24;
+         } else {                                // type 4,5
+-            for (y=0; y<h; y++) {
+-                if (device->read((char *)outImage->scanLine(y), pbm_bpl)
+-                        != pbm_bpl)
+-                    return false;
++            if (mcc < 256) {
++                for (y=0; y<h; y++) {
++                    if (device->read((char *)outImage->scanLine(y), pbm_bpl)
++                            != pbm_bpl)
++                        return false;
++                }
++            } else {
++                pbm_bpl *= 2;
++                uchar *buf16 = new uchar[pbm_bpl], *b;
++                char *p, *end;
++                for (y=0; y<h; y++) {
++                    if (device->read((char *)buf16, pbm_bpl) != pbm_bpl) {
++                        delete[] buf16;
++                        return false;
++                    }
++                    p = (char *)outImage->scanLine(y);
++                    end = p + w;
++                    b = buf16;
++                    while (p < end) {
++                        *p++ = ((int(b[0]) * 256 + int(b[1]) + 1) * 256) / (mcc + 1) - 1;
++                        b += 2;
++                    }
++                }
++                delete[] buf16;
+             }
+         }
+     } else {                                        // read ascii data
