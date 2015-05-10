@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=calligra
+TARNAME=adwaita-icon-theme
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.9.4
+VERSION=3.16.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -18,7 +18,7 @@ WEBPAGE=""
 #PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/calligra-2.8.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,32 +55,36 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DIHAVEPATCHEDQT=1 \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} DATADIRNAME=share || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,12 +92,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} DATADIRNAME=share pkgconfigdir=/usr/lib${LIBDIRSUFFIX}/pkgconfig
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -108,13 +109,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE office suite"
-Calligra is an integrated suite of applications that cover office, 
-creative and management needs. Its the most comprehensive free suite 
-of applications anywhere and we expect the number of applications to 
-grow as the project matures. Calligra offers its applications on both 
-desktop computers and mobile platforms like tablets and smartphones.
-
+make_slack_desc << EOF
 EOF
 
 post_install

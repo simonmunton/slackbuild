@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=calligra
+TARNAME=node
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=2.9.4
+VERSION=v0.12.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://nodejs.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/calligra-2.8.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,27 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+    --shared-zlib \
+    --shared-openssl
+
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DIHAVEPATCHEDQT=1 \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,10 +93,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -108,12 +108,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE office suite"
-Calligra is an integrated suite of applications that cover office, 
-creative and management needs. Its the most comprehensive free suite 
-of applications anywhere and we expect the number of applications to 
-grow as the project matures. Calligra offers its applications on both 
-desktop computers and mobile platforms like tablets and smartphones.
+make_slack_desc << EOF "Node.js"
+Node.js is a platform built on Chrome's JavaScript runtime for easily 
+building fast, scalable network applications. Node.js uses an event-
+driven, non-blocking I/O model that makes it lightweight and 
+efficient, perfect for data-intensive real-time applications that run 
+across distributed devices.
 
 EOF
 
