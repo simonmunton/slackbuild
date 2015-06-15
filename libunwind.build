@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=rendercheck
+TARNAME=libunwind
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x/xorg/X11R7/app
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.5
+VERSION=1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.nongnu.org/libunwind/index.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,24 +59,26 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --disable-static
-
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -107,15 +109,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
-rendercheck is part of X11.
-
-For more information about the X.Org Foundation (the providers of the
-X.Org implementation of the X Window System), see their website:
-
-http://www.x.org
-
-
+make_slack_desc << EOF "call chain library"
+A portable and efficient C programming interface (API) to determine 
+the call-chain of a program. The API additionally provides the means 
+to manipulate the preserved (callee-saved) state of each call-frame 
+and to resume execution at any point in the call-chain (non-local 
+goto). The API supports both local (same-process) and remote 
+(across-process) operation. As such, the API is useful in a number of 
+applications.
 
 EOF
 
