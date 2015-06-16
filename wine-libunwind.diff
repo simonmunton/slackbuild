@@ -1,0 +1,136 @@
+From: Ken Thomases <ken@codeweavers.com>
+Subject: [PATCH 1/3] configure: Add ability to disable use of libunwind using --without-unwind.
+Message-Id: <2EB74FF4-A074-40C5-BC49-5F41572A207A@codeweavers.com>
+Date: Sun, 14 Jun 2015 21:22:24 -0500
+
+
+Suggested by Sebastian Lackner.
+---
+configure.ac | 2 ++
+1 file changed, 2 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index df28b27..ba52ade 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -74,6 +74,8 @@ AC_ARG_WITH(pthread,   AS_HELP_STRING([--without-pthread],[do not use the pthrea
+             [if test "x$withval" = "xno"; then ac_cv_header_pthread_h=no; fi])
+ AC_ARG_WITH(sane,      AS_HELP_STRING([--without-sane],[do not use SANE (scanner support)]))
+ AC_ARG_WITH(tiff,      AS_HELP_STRING([--without-tiff],[do not use TIFF]))
++AC_ARG_WITH(unwind,    AS_HELP_STRING([--without-unwind],[do not use libunwind]),
++            [if test "x$withval" = "xno"; then ac_cv_header_libunwind_h=no; fi])
+ AC_ARG_WITH(v4l,       AS_HELP_STRING([--without-v4l],[do not use v4l1 (v4l support)]))
+ AC_ARG_WITH(xcomposite,AS_HELP_STRING([--without-xcomposite],[do not use the Xcomposite extension]),
+             [if test "x$withval" = "xno"; then ac_cv_header_X11_extensions_Xcomposite_h=no; fi])
+
+From: Ken Thomases <ken@codeweavers.com>
+Subject: [PATCH 2/3] configure: Check if -lunwind is needed for libunwind.
+Message-Id: <096E1242-D3C7-4047-8B11-D841BC25F2C7@codeweavers.com>
+Date: Sun, 14 Jun 2015 21:22:59 -0500
+
+---
+configure.ac           | 26 ++++++++++++++++++++++++++
+dlls/ntdll/Makefile.in |  2 +-
+2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index ba52ade..025ff07 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1086,6 +1086,32 @@ WINE_ERROR_WITH(pthread,[test "x$ac_cv_func_pthread_create" != xyes -a "x$PTHREA
+ [pthread ${notice_platform}development files not found.
+ Wine cannot support threads without libpthread.])
+ 
++dnl **** Check for libunwind ****
++
++if test "$ac_cv_header_libunwind_h" = "yes"
++then
++    AC_CACHE_CHECK([for libunwind], ac_cv_have_libunwind,
++      [ac_save_LIBS="$LIBS"
++       for lib in '' -lunwind
++       do
++         LIBS="$lib $ac_save_LIBS"
++         AC_LINK_IFELSE([AC_LANG_PROGRAM([[#define UNW_LOCAL_ONLY
++#include <libunwind.h>]],[[unw_cursor_t cursor; unw_context_t context; unw_getcontext(&context); unw_init_local(&cursor, &context);]])],
++           [ac_cv_have_libunwind=${lib:-"none required"}],[ac_cv_have_libunwind="not found"])
++         test "x$ac_cv_have_libunwind" = "xnot found" || break
++       done
++       LIBS="$ac_save_LIBS"])
++
++    case "$ac_cv_have_libunwind" in
++      "not found") ;;
++      "none required")
++        AC_DEFINE(HAVE_LIBUNWIND, 1, [Define if you have libunwind]) ;;
++      *)
++        AC_DEFINE(HAVE_LIBUNWIND, 1)
++        AC_SUBST(UNWIND_LIBS,$ac_cv_have_libunwind) ;;
++    esac
++fi
++
+ dnl **** Check for X11 ****
+ 
+ AC_PATH_XTRA
+diff --git a/dlls/ntdll/Makefile.in b/dlls/ntdll/Makefile.in
+index ed4bb94..08f094a 100644
+--- a/dlls/ntdll/Makefile.in
++++ b/dlls/ntdll/Makefile.in
+@@ -2,7 +2,7 @@ EXTRADEFS = -D_NTSYSTEM_
+ MODULE    = ntdll.dll
+ IMPORTLIB = ntdll
+ IMPORTS   = winecrt0
+-EXTRALIBS = $(IOKIT_LIBS) $(RT_LIBS) $(PTHREAD_LIBS)
++EXTRALIBS = $(IOKIT_LIBS) $(RT_LIBS) $(PTHREAD_LIBS) $(UNWIND_LIBS)
+ EXTRADLLFLAGS = -nodefaultlibs -Wl,--image-base,0x7bc00000
+ 
+ C_SRCS = \
+
+From: Ken Thomases <ken@codeweavers.com>
+Subject: [PATCH 3/3] ntdll: Only use libunwind if configure found both the headers and how to link against it.
+Message-Id: <A62600C2-47E4-4E62-B6F6-45E25F219128@codeweavers.com>
+Date: Sun, 14 Jun 2015 21:23:09 -0500
+
+---
+dlls/ntdll/signal_x86_64.c | 8 ++++----
+1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/ntdll/signal_x86_64.c b/dlls/ntdll/signal_x86_64.c
+index 9b98894..a4aa269 100644
+--- a/dlls/ntdll/signal_x86_64.c
++++ b/dlls/ntdll/signal_x86_64.c
+@@ -51,7 +51,7 @@
+ #ifdef HAVE_SYS_UCONTEXT_H
+ # include <sys/ucontext.h>
+ #endif
+-#ifdef HAVE_LIBUNWIND_H
++#ifdef HAVE_LIBUNWIND
+ # define UNW_LOCAL_ONLY
+ # include <libunwind.h>
+ #endif
+@@ -1431,7 +1431,7 @@ static NTSTATUS dwarf_virtual_unwind( ULONG64 ip, ULONG64 *frame,CONTEXT *contex
+ }
+ 
+ 
+-#if HAVE_LIBUNWIND_H
++#if HAVE_LIBUNWIND
+ /***********************************************************************
+  *           libunwind_set_cursor_from_context
+  */
+@@ -2341,7 +2341,7 @@ static NTSTATUS call_stack_handlers( EXCEPTION_RECORD *rec, CONTEXT *orig_contex
+                 if (status != STATUS_SUCCESS) return status;
+                 got_info = TRUE;
+             }
+-#if HAVE_LIBUNWIND_H
++#if HAVE_LIBUNWIND
+             else
+             {
+                 status = libunwind_virtual_unwind( context.Rip, &got_info, &dispatch.EstablisherFrame, &new_context,
+@@ -3369,7 +3369,7 @@ void WINAPI RtlUnwindEx( PVOID end_frame, PVOID target_ip, EXCEPTION_RECORD *rec
+                 if (status != STATUS_SUCCESS) raise_status( status, rec );
+                 got_info = TRUE;
+             }
+-#if HAVE_LIBUNWIND_H
++#if HAVE_LIBUNWIND
+             else
+             {
+                 status = libunwind_virtual_unwind( context->Rip, &got_info, &dispatch.EstablisherFrame, &new_context,
+
