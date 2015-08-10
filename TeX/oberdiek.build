@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=fragments
+TARNAME=oberdiek
 TARNAMEEXTRA=
-TARSEP=""
+TARSEP="-"
 TARDIR=~/tmp/new/t/TeX
 #TAR_EXT=.tar.gz
-VERSION=
+VERSION=2012-04-26
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,8 +15,8 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=tex-fragments
-PKGVERSION=unknown
+PKGNAME=tex-${TARNAME}
+#PKGVERSION=
 #BUILD_SUFFIX=
 ARCH=noarch
 
@@ -33,25 +33,25 @@ then
   exit
 fi
 
-if [ ! -d ${TARNAME}${VERSION} ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
-if [ ! -d ${TARNAME}${VERSION} ]
+if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-  echo "${TARNAME}${VERSION} directory not found"
+  echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
-(cd ${TARNAME}${VERSION}
+(cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
 )
 fi
 
 pre_configure
 
-cd ${TARNAME}${VERSION}
+cd ${TARNAME}-${VERSION}
 
 fix_perms
 
@@ -59,23 +59,28 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+else
 :
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+fi
 
 fi
 
@@ -83,6 +88,8 @@ if [ ${DO_MAKE} == "yes" ]
 then
 :
 #make ${NUM_JOBS} || exit
+rm *.cls
+latex oberdiek.ins
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,8 +99,9 @@ fi
 
 #make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/share/texmf/tex/latex/fragments
-cp * ${PKG}/usr/share/texmf/tex/latex/fragments
+
+mkdir -p ${PKG}/usr/share/texmf/tex/latex/${TARNAME}
+cp *.sty *.cls *.def *.eps ${PKG}/usr/share/texmf/tex/latex/${TARNAME}
 
 cat >>  ${PKG}/install/doinst.sh << EOF
 usr/share/texmf/bin/mktexlsr usr/share/texmf
@@ -110,13 +118,14 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  *.pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "TeX fragments"
-TeX fragments
+make_slack_desc << EOF "Oberdiek - A bundle of packages submitted by Heiko Oberdiek"
+Oberdiek - A bundle of packages submitted by Heiko Oberdiek
 
 EOF
 
