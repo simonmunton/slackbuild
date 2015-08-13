@@ -2,27 +2,23 @@
 #
 . build_funcs
 
-TARNAME=install_flash_player
+TARNAME=xargs
 TARNAMEEXTRA=
-TARSEP="_"
-TARDIR=~/tmp/new/f/flash
+TARSEP="-"
+TARDIR=~/tmp/new/t/TeX
 #TAR_EXT=.tar.gz
-VERSION=11.2.202.508
-VERSIONEXTRA=_linux.i386
+VERSION=1.1
+VERSIONEXTRA=
 BUILD=1
 
 WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=flashplayer
+PKGNAME=tex-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
-
-case `uname -m` in
-    x86_64) VERSIONEXTRA=_linux.x86_64 ;;
-esac
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -38,12 +34,9 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
-mkdir ${TARNAME}-${VERSION}
-cd ${TARNAME}-${VERSION}
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-cd ..
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -66,23 +59,28 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+else
 :
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+fi
 
 fi
 
@@ -99,15 +97,14 @@ fi
 
 #make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
 
-cp -p libflashplayer.so ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
-cp -pr usr ${PKG}
-if [ -n "${LIBDIRSUFFIX}" ]
-then
-  mv ${PKG}/usr/lib/* ${PKG}/usr/lib${LIBDIRSUFFIX}
-  rm -rf ${PKG}/usr/lib
-fi
+mkdir -p ${PKG}/usr/share/texmf/tex/latex/${TARNAME}
+cp -a *.sty *.cls *.def data utils ${PKG}/usr/share/texmf/tex/latex/${TARNAME}
+
+cat >>  ${PKG}/install/doinst.sh << EOF
+usr/share/texmf/bin/mktexlsr usr/share/texmf
+
+EOF
 
 strip_binaries
 
@@ -119,12 +116,18 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  xargs.pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "Define commands with many optional arguments"
+The package provides extended versions of \newcommand and related 
+LaTeX commands, which allow easy and robust definition of macros with 
+many optional arguments, using a clear and simple xkeyval-style 
+syntax.
+
 EOF
 
 post_install
