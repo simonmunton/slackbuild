@@ -1,0 +1,32 @@
+--- cups-filters-1.0.71/filter/pdftoopvp/OPVPOutputDev.cxx.orig	2015-06-26 16:45:26.000000000 +0100
++++ cups-filters-1.0.71/filter/pdftoopvp/OPVPOutputDev.cxx	2015-08-16 08:34:54.000765560 +0100
+@@ -1811,10 +1811,14 @@
+ #if POPPLER_VERSION_MAJOR <= 0 && (POPPLER_VERSION_MINOR <= 20 || (POPPLER_VERSION_MINOR == 21 && POPPLER_VERSION_MICRO <= 2))
+   maskSplash->drawImage(&imageSrc, &imgMaskData,
+ 			splashModeMono8, gFalse, maskWidth, maskHeight, mat);
+-#else
++#elif POPPLER_VERSION_MAJOR <= 0 && POPPLER_VERSION_MINOR <= 20
+   maskSplash->drawImage(&imageSrc, &imgMaskData,
+ 			splashModeMono8, gFalse, maskWidth, maskHeight,
+                         mat,gFalse);
++#else
++  maskSplash->drawImage(&imageSrc, NULL, &imgMaskData,
++			splashModeMono8, gFalse, maskWidth, maskHeight,
++                        mat,gFalse);
+ #endif
+   delete imgMaskData.imgStr;
+   maskStr->close();
+--- cups-filters-1.0.71/filter/pdftoopvp/oprs/OPRS.cxx.orig	2015-06-26 16:45:26.000000000 +0100
++++ cups-filters-1.0.71/filter/pdftoopvp/oprs/OPRS.cxx	2015-08-16 08:35:01.640765588 +0100
+@@ -240,8 +240,10 @@
+     if (rasterMode) {
+ #if POPPLER_VERSION_MAJOR <= 0 && (POPPLER_VERSION_MINOR <= 20 || (POPPLER_VERSION_MINOR == 21 && POPPLER_VERSION_MICRO <= 2))
+ 	return splash->drawImage(src,srcData,srcMode,srcAlpha,w,h,mat);
+-#else
++#elif POPPLER_VERSION_MAJOR <= 0 && POPPLER_VERSION_MINOR <= 34
+ 	return splash->drawImage(src,srcData,srcMode,srcAlpha,w,h,mat,gFalse);
++#else
++	return splash->drawImage(src,NULL,srcData,srcMode,srcAlpha,w,h,mat,gFalse);
+ #endif
+     } else {
+ 	return opvpSplash->drawImage(src,srcData,srcMode,srcAlpha,w,h,mat);
