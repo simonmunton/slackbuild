@@ -2,19 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gnutls
+TARNAME=CMU-Cam_Toolkit
 TARNAMEEXTRA=
-TARSEP="-"
-#TARDIR=~/tmp/gnu/gnutls
-TARDIR=~/tmp/new/g
+TARSEP="_"
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=3.3.17.1
+VERSION=v2.05
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://svr-www.eng.cam.ac.uk/~prc14/toolkit.html"
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=gnutls2
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv CMU-Cam_Toolkit_v2 ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -54,24 +55,40 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-            --infodir=/usr/info \
-            --with-included-libtasn1 \
-            --mandir=/usr/man \
-            --enable-static=no \
-            --disable-rpath
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 fi
+
+fi
+
+MAKEFLGS="BYTESWAP_FLAG=-DSLM_SWAP_BYTES"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+pushd src
+make ${NUM_JOBS} ${MAKEFLGS} || exit
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,11 +96,15 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib
+mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include}
+pushd src
+make install DESTDIR=${PKG} ${MAKEFLGS} BINDIR=${PKG}/usr/bin LIBDIR=${PKG}/usr/lib${LIBDIRSUFFIX}
+popd
 
-#strip_binaries
+cp include/* ${PKG}/usr/include
+
+strip_binaries
 
 fix_links
 
@@ -92,20 +113,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* doc/TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU TLS library"
-This is a TLS (Transport Layer Security) 1.0 and SSL (Secure Sockets
-Layer) 3.0 implementation.  In brief, GnuTLS can be described as a
-library which offers an API to access secure communication protocols.
-These protocols provide privacy over insecure lines, and were designed
-to prevent eavesdropping, tampering, or message forgery.
-
-Homepage: http://www.gnu.org/software/gnutls/
+make_slack_desc << EOF " Statistical Language Modeling Toolkit"
+The CMU-Cambridge Statistical Language Modeling toolkit is a suite of 
+UNIX software tools to facilitate the construction and testing of 
+statistical language models. Version 1 was written by Roni Rosenfeld 
+at Carnegie Mellon University.
 
 EOF
 
