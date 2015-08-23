@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=akonadi
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/a
+#TAR_EXT=.tar.gz
+VERSION=1.13.0
+VERSIONEXTRA=
+BUILD=2
+
+WEBPAGE="http://pim.kde.org/akonadi/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=akonadi-qt5
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/akonadi-qt5-coinstallable-libs.patch
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+#PATH=/usr/lib${LIBDIRSUFFIX}/qt/bin:$PATH
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_INSTALL_PREFIX=/usr \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DINSTALL_QSQLITE_IN_QT_PREFIX=on \
+      -DQT_PLUGINS_DIR=lib$LIBDIRSUFFIX/qt5/plugins \
+      -DQT5_BUILD=ON \
+      .
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "PIM Storage Service"
+akonadi is an extensible cross-desktop storage service for PIM data
+and meta data providing concurrent read, write, and query access.
+It will provide a unique desktop wide object identification and
+retrieval.
+
+Homepage:  http://www.kdepim.org/akonadi/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

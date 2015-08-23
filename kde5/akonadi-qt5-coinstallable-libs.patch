@@ -1,0 +1,113 @@
+diff -uar akonadi-1.12.91.orig/AkonadiConfig.cmake.in akonadi-1.12.91/AkonadiConfig.cmake.in
+--- akonadi-1.12.91.orig/AkonadiConfig.cmake.in	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/AkonadiConfig.cmake.in	2014-07-29 09:18:23.555430363 +0200
+@@ -32,7 +32,7 @@
+ set(AKONADI_TARGET_PREFIX @AKONADI_TARGET_PREFIX@)
+ 
+ # Load the exported targets.
+-if(NOT TARGET Akonadi__akonadiprotocolinternals)
++if(NOT TARGET Akonadi__akonadiprotocolinternalsqt5)
+   get_filename_component(_currentDir "${CMAKE_CURRENT_LIST_FILE}" PATH)
+   include("${_currentDir}/AkonadiTargetsWithPrefix.cmake")
+ endif()
+@@ -41,4 +41,4 @@
+   set(AKONADI_${_prefix}_LIBRARIES    ${AKONADI_TARGET_PREFIX}${_lib})
+ endmacro()
+ 
+-_akonadi_set_lib_vars(COMMON akonadiprotocolinternals)
++_akonadi_set_lib_vars(COMMON akonadiprotocolinternalsqt5)
+diff -uar akonadi-1.12.91.orig/CMakeLists.txt akonadi-1.12.91/CMakeLists.txt
+--- akonadi-1.12.91.orig/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/CMakeLists.txt	2014-07-29 09:18:23.588430155 +0200
+@@ -332,7 +332,7 @@
+ 
+ add_subdirectory(interfaces)
+ add_subdirectory(libs)
+-set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternals)
++set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternalsqt5)
+ 
+ add_subdirectory(shared)
+ add_subdirectory(agentserver)
+Only in akonadi-1.12.91: CMakeLists.txt.orig
+diff -uar akonadi-1.12.91.orig/akonadi.pc.cmake akonadi-1.12.91/akonadi.pc.cmake
+--- akonadi-1.12.91.orig/akonadi.pc.cmake	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/akonadi.pc.cmake	2014-07-29 09:18:23.645430154 +0200
+@@ -7,5 +7,5 @@
+ Description: Akonadi server and infrastructure needed to build client libraries and applications
+ Version: @AKONADI_VERSION@
+ Requires: QtCore QtSql QtDBus
+-Libs: -L${libdir} -lakonadiprotocolinternals
++Libs: -L${libdir} -lakonadiprotocolinternalsqt5
+ Cflags: -I${includedir}
+diff -uar akonadi-1.12.91.orig/asapcat/CMakeLists.txt akonadi-1.12.91/asapcat/CMakeLists.txt
+--- akonadi-1.12.91.orig/asapcat/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/asapcat/CMakeLists.txt	2014-07-29 09:18:23.672430153 +0200
+@@ -1,7 +1,7 @@
+ project(asapcat)
+ 
+ #set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_ENABLE_EXCEPTIONS}" )
+-set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternals)
++set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternalsqt5)
+ 
+ set(asapcat_srcs
+   main.cpp
+diff -uar akonadi-1.12.91.orig/libs/CMakeLists.txt akonadi-1.12.91/libs/CMakeLists.txt
+--- akonadi-1.12.91.orig/libs/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/libs/CMakeLists.txt	2014-07-29 09:20:29.132426304 +0200
+@@ -12,16 +12,16 @@
+   xdgbasedirs.cpp
+ )
+ 
+-add_library(akonadiprotocolinternals ${LIBRARY_TYPE} ${akonadiprotocolinternals_srcs})
++add_library(akonadiprotocolinternalsqt5 ${LIBRARY_TYPE} ${akonadiprotocolinternals_srcs})
+ 
+-target_link_libraries(akonadiprotocolinternals ${QT_QTCORE_LIBRARY} ${QT_QTDBUS_LIBRARY})
+-set_target_properties(akonadiprotocolinternals PROPERTIES
++target_link_libraries(akonadiprotocolinternalsqt5 ${QT_QTCORE_LIBRARY} ${QT_QTDBUS_LIBRARY})
++set_target_properties(akonadiprotocolinternalsqt5 PROPERTIES
+                         VERSION ${AKONADI_VERSION}
+                         SOVERSION ${AKONADI_SOVERSION}
+                         DEFINE_SYMBOL MAKE_AKONADIPROTOCOLINTERNALS_LIB
+                       )
+ 
+-install(TARGETS akonadiprotocolinternals EXPORT akonadiLibraryTargets ${INSTALL_TARGETS_DEFAULT_ARGS})
++install(TARGETS akonadiprotocolinternalsqt5 EXPORT akonadiLibraryTargets ${INSTALL_TARGETS_DEFAULT_ARGS})
+ 
+ install(FILES
+   ${Akonadi_BINARY_DIR}/akonadiprotocolinternals_export.h
+diff -uar akonadi-1.12.91.orig/libs/tests/CMakeLists.txt akonadi-1.12.91/libs/tests/CMakeLists.txt
+--- akonadi-1.12.91.orig/libs/tests/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/libs/tests/CMakeLists.txt	2014-07-29 09:18:23.729430152 +0200
+@@ -6,7 +6,7 @@
+   get_filename_component(_name ${_source} NAME_WE)
+   add_executable(${_name} ${_source})
+   add_test(akonadi-${_name} ${_name})
+-  target_link_libraries(${_name} akonadiprotocolinternals ${QT_QTGUI_LIBRARY} ${QT_QTTEST_LIBRARIES})
++  target_link_libraries(${_name} akonadiprotocolinternalsqt5 ${QT_QTGUI_LIBRARY} ${QT_QTTEST_LIBRARIES})
+ endmacro()
+ 
+ add_unit_test(notificationmessagetest.cpp)
+diff -uar akonadi-1.12.91.orig/rds/CMakeLists.txt akonadi-1.12.91/rds/CMakeLists.txt
+--- akonadi-1.12.91.orig/rds/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/rds/CMakeLists.txt	2014-07-29 09:18:23.758430151 +0200
+@@ -1,7 +1,7 @@
+ project(akonadi_rds)
+ 
+ #set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_ENABLE_EXCEPTIONS}" )
+-set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternals)
++set(AKONADI_PROTOCOLINTERNALS_LIBS ${akonadiprotocolinternals_LIB_DEPENDS} akonadiprotocolinternalsqt5)
+ 
+ ########### next target ###############
+ 
+diff -uar akonadi-1.12.91.orig/server/akonadictl/CMakeLists.txt akonadi-1.12.91/server/akonadictl/CMakeLists.txt
+--- akonadi-1.12.91.orig/server/akonadictl/CMakeLists.txt	2014-07-09 22:14:29.000000000 +0200
++++ akonadi-1.12.91/server/akonadictl/CMakeLists.txt	2014-07-29 09:18:23.788430150 +0200
+@@ -16,7 +16,7 @@
+ set_target_properties(akonadictl PROPERTIES OUTPUT_NAME akonadictl)
+ target_link_libraries(akonadictl 
+   akonadi_shared
+-  akonadiprotocolinternals
++  akonadiprotocolinternalsqt5
+   ${QT_QTCORE_LIBRARY}
+   ${QT_QTDBUS_LIBRARY}
+   ${AKONADI_PROTOCOLINTERNALS_LIBS}
