@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=starleaf-breeze
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=1.6.2-49859
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+
+#1.6.2-49859.x86_64
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+case `uname -m` in
+    x86_64) VERSION=${VERSION}.x86_64 ;;
+esac
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}.rpm
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+( cd ${PKG}
+  rpm2cpio ${FULL_TARNAME} | cpio -imd -R 0:0 2> /dev/null
+)
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Starleaf Breeze"
+Starleaf Breeze
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
