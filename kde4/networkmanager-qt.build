@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=maxima
+TARNAME=networkmanager-qt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=5.37.1
+VERSION=0.9.8.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,15 +55,26 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,6 +89,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -93,17 +107,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Symbolic Computation Program"
-Maxima is a system for the manipulation of symbolic and numerical 
-expressions, including differentiation, integration, Taylor series, 
-Laplace transforms, ordinary differential equations, systems of linear 
-equations, polynomials, sets, lists, vectors, matrices and tensors.
-
-Maxima yields high precision numeric results by using exact fractions, 
-arbitrary-precision integers and arbitrary-precision floating point 
-numbers. Maxima can plot functions and data in two and three 
-dimensions, and it comes with hundreds of self tests. Maxima is 
-based on the original Macsyma developedat MIT in the 1970's.
+make_slack_desc << EOF "NetworkManager Qt bindings"
+This package contains Qt bindings for NetworkManager.
 
 EOF
 
