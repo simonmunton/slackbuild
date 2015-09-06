@@ -3,14 +3,15 @@
 . build_funcs
 
 TARNAME=fontforge
-TARNAMEEXTRA=_full
+TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=20090408
+VERSION=20150824
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://fontforge.sourceforge.net/"
+WEBPAGE="http://fontforge.github.io/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -19,10 +20,8 @@ WEBPAGE="http://fontforge.sourceforge.net/"
 #BUILD_SUFFIX=
 #ARCH=noarch
 
-FTTARDIR=~/tmp/new/f/freetype
-FTTARNAME=freetype-2.3.9
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -43,23 +42,10 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
   echo "${TARNAME}-${VERSION} directory not found"
   exit
-
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/fontforge-20080302.diff
-
- mkdir -p cidmap
- (cd cidmap
-  tar xvf ${TARDIR}/fontforge-cidmaps.tgz
- )
-
- mkdir htdocs
- (cd htdocs
-  tar xvf ${TARDIR}/${TARNAME}_htdocs-${VERSION}.*
- )
-
- tar xvf ${FTTARDIR}/${FTTARNAME}.*
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -69,23 +55,38 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS} -DDOCDIR=\\\"/usr/share/fontforge/htdocs\\\"" \
-CXXFLAGS="${SLKCFLAGS} -DDOCDIR=\\\"/usr/share/fontforge/htdocs\\\"" \
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --enable-type3 \
-	    --enable-devicetables \
-	    --with-freetype-src=./${FTTARNAME}
+	    --enable-tile-path
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} docdir=/usr/share/fontforge/htdocs || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,9 +94,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} docdir=/usr/share/fontforge/htdocs
+make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -110,11 +111,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "An outline font editor"
-FontForge -- An outline font editor that lets you create your own 
-postscript, truetype, opentype, cid-keyed, multi-master, cff, svg and 
-bitmap (bdf, FON, NFNT) fonts, or edit existing ones. Also lets you 
-convert one format to another. FontForge has support for many 
+make_slack_desc << EOF "An outline font editor"
+FontForge -- An outline font editor that lets you create your own
+postscript, truetype, opentype, cid-keyed, multi-master, cff, svg and
+bitmap (bdf, FON, NFNT) fonts, or edit existing ones. Also lets you
+convert one format to another. FontForge has support for many
 macintosh font formats.
 
 EOF
