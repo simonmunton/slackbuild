@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=polkit-qt-1
+TARNAME=qca-qt5
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.112.0
+VERSION=2.1.0.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="ftp://ftp.kde.org/pub/kde/stable/apps/KDE4.x/admin/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/qca-qt5-qiodevice.diff
 )
 fi
 
@@ -55,27 +55,34 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir build
-cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DUSE_QT4=ON \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      -DQCA_MAN_INSTALL_DIR=/usr/man \
+      -DQCA_INSTALL_IN_QT_PREFIX:BOOL=ON \
+      -DQCA_SUFFIX=qt5 \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,8 +96,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-cd ..
 
 strip_binaries
 
@@ -107,11 +112,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "qt wrapper for policy kit"
-Polkit-qt is a library that lets developers use the PolicyKit API 
-through a nice Qt-styled API. It is mainly a wrapper around QAction 
-and QAbstractButton that lets you integrate those two component easily 
-with PolicyKit
+make_slack_desc << EOF "QT crypto addon"
+QCA is a library that provides an easy API for a range of crypographic
+features, including SSL/TLS, X.509 certificates, SASL, OpenPGP,
+smartcards, and much more.
+
+Functionality is supplied via plugins.  This is useful for avoiding
+dependence on a particular crypto library and makes upgrading easier,
+as there is no need to recompile your application when adding or
+upgrading a crypto plugin.
 
 EOF
 
