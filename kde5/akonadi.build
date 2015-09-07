@@ -58,6 +58,9 @@ fix_perms
 export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
 #PATH=/usr/lib${LIBDIRSUFFIX}/qt/bin:$PATH
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_INSTALL_PREFIX=/usr \
@@ -65,7 +68,9 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr \
       -DINSTALL_QSQLITE_IN_QT_PREFIX=on \
       -DQT_PLUGINS_DIR=lib$LIBDIRSUFFIX/qt5/plugins \
       -DQT5_BUILD=ON \
-      .
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,6 +85,7 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
 #strip_binaries
 
 fix_links

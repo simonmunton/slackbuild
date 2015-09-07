@@ -1,19 +1,64 @@
 
+
 BACKUP="no"
+DIR="~/tmp/new/"
+VER=""
 
-if [ "x$1" == "x-b" ]
-then
-  BACKUP="yes"
-  shift  
-fi
+while getopts ":bd:v:" Option
+do
+  case $Option in
+    b     ) BACKUP="yes";;
+    d     ) DIR="$OPTARG";;
+    v     ) VER="$OPTARG";;
+    *     ) echo "Bad option"; exit 1;;
+  esac
+done
 
-if [ -z "$1" ]
+shift $(($OPTIND - 1))
+
+N=$1
+
+if [ -z "$N" ]
 then
   echo Please specify source package
-  exit
+  exit 1
 fi
 
-NAME=${1%.build}
+
+if [[ $N =~ / ]]
+then
+  if [ ! -f $N ]
+  then
+    echo "$N not found"
+    exit 1
+  fi
+
+  DIR=${N%/*}
+  DIR=${DIR/$HOME/\~}
+
+  N=${N##*/}
+
+  NAME=${N##*/}
+
+  VER=${NAME##*-}
+  VER=${VER%%.tar*}
+  VER=${VER%%.tgz*}
+  VER=${VER%%.tbz*}
+  VER=${VER%%.zip*}
+  VER=${VER%%.jar*}
+  VER=${VER%%.7z*}
+  VER=${VER%%.tgz*}
+  NAME=${NAME%-*}
+
+
+else
+  NAME=${1%.build}
+fi
+
+#echo "DIR=$DIR"
+#echo "NAME=$NAME"
+#echo "VER=$VER"
+#exit
 
 if [ "$BACKUP" == "yes" ]
 then
@@ -23,19 +68,6 @@ then
   fi
 fi
 
-if [ ! -z "$2" ]
-then
-  DIR=$2
-else
-  DIR='~/tmp/new/'
-fi
-
-if [ ! -z "$3" ]
-then
-  VER=$3
-else
-  VER=
-fi
 
 if [ -f $NAME.build ]
 then
