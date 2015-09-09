@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/t/telepathy
 #TAR_EXT=.tar.gz
-VERSION=0.9.4
+VERSION=0.9.6.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/telepathy-qt-use-telepathy-farstream-0.4
+# patch -p1 < ${CWD}/telepathy-qt-use-telepathy-farstream-0.4
 )
 fi
 
@@ -57,6 +57,9 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -66,7 +69,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
 
 fi
 
@@ -81,6 +84,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 #strip_binaries
 make_debug_files
@@ -99,7 +104,7 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "library for qt based telepathy"
-telepathy-qt is a Qt4 package containing base classes for use in 
+telepathy-qt is a Qt package containing base classes for use in 
 connection managers, and proxy classes for use in clients. It's used 
 in at least TapiocaQt. 
 
