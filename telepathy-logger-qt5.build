@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libotr
+TARNAME=telepathy-logger-qt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/k/ktelepathy
 #TAR_EXT=.tar.gz
-VERSION=4.1.0
+VERSION=20150910
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.cypherpunks.ca/otr"
+WEBPAGE="https://projects.kde.org/projects/extragear/network/telepathy/telepathy-logger-qt"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=telepathy-logger-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -59,21 +59,22 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 
 fi
 
@@ -89,7 +90,8 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+#strip_binaries
+make_debug_files
 
 fix_links
 
@@ -104,13 +106,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Off-the-Record (OTR) Messaging"
-Off-the-Record (OTR) Messaging allows you to have private 
-conversations over instant messaging by providing:
-    Encryption
-    Authentication
-    Deniability
-    Perfect forward secrecy
+make_slack_desc << EOF "Qt Wrapper around TpLogger client library."
+Qt Wrapper around TpLogger client library.
 
 EOF
 

@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libotr
+TARNAME=libaccounts-qt
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=4.1.0
+VERSION=20150910
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.cypherpunks.ca/otr"
+WEBPAGE="https://gitlab.com/groups/accounts-sso"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=libaccounts-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,14 +68,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+      /usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
 
 fi
 
@@ -87,7 +94,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install INSTALL_ROOT=${PKG}
 
 strip_binaries
 
@@ -104,14 +111,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Off-the-Record (OTR) Messaging"
-Off-the-Record (OTR) Messaging allows you to have private 
-conversations over instant messaging by providing:
-    Encryption
-    Authentication
-    Deniability
-    Perfect forward secrecy
-
+make_slack_desc << EOF ""
 EOF
 
 post_install
