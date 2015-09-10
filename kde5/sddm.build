@@ -1,0 +1,170 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=sddm
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=0.12.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/sddm_consolekit.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DUSE_QT4:BOOL=FALSE \
+      -DUSE_QT5:BOOL=TRUE \
+      -DENABLE_JOURNALD:BOOL=OFF \
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
+make_debug_files
+#strip_binaries
+
+mkdir -p ${PKG}/var/lib/sddm
+
+doinst_systemaddusergrp sddm sddm
+
+cat << EOF >> ${PKG}/install/doinst.sh
+
+sddmhome=/var/lib/sddm
+
+chown -R sddm:sddm \${sddmhome}
+
+usermod -d \${sddmhome} -c "SDDM Daemon Owner" sddm
+
+passwd -l sddm
+gpasswd -a sddm video
+
+# Generate a new configuration file if it does not exist:
+sddm --example-config > /etc/sddm.conf.new
+
+if ! grep -q "Current=breeze" etc/sddm.conf.new ; then
+  # Set the KDE5 theme 'breeze' as default, integrates better with Plasma 5:
+  sed -i -e "/\[Theme\]/,/^\[/s/^Current.*/Current=breeze/" etc/sddm.conf.new
+fi
+  
+if ! grep -q "MinimumVT=7" etc/sddm.conf.new ; then
+  # SDDM follows the systemd convention of starting the first graphical session
+  # on tty1.  We prefer the old convention where tty1 through tty6
+  # are reserved for text consoles:
+  cat <<EOT >> etc/sddm.conf.new
+
+[XDisplay]
+MinimumVT=7
+EOT
+fi
+
+EOF
+
+doinst_config etc/sddm.conf.new
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "QML based X11 display manager"
+SDDM is a modern display manager for X11 aiming to be fast, simple
+and beatiful. It uses modern technologies like QtQuick, which in turn
+gives the designer the ability to create smooth, animated user
+interfaces.  SDDM is extremely themeable.
+There are a few sample themes distributed with SDDM. They can be used
+as a starting point for new themes.
+
+See https://github.com/sddm/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
