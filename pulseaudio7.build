@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libcanberra
+TARNAME=pulseaudio
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p/pulseaudio
 #TAR_EXT=.tar.gz
-VERSION=0.30
+VERSION=7.0
 VERSIONEXTRA=
-BUILD=4
+BUILD=1
 
-WEBPAGE="http://0pointer.de/lennart/projects/libcanberra/"
+WEBPAGE="http://www.pulseaudio.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=pulseaudio7
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/pulseaudio-4.0.diff
+# ./bootstrap.sh
 )
 fi
 
@@ -62,9 +63,10 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man \
-	    --disable-oss
+	    --disable-hal \
+	    --with-bash-completion-dir=/etc/bash_completion.d
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,6 +80,27 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+(cd ${PKG}/etc/pulse
+ for f in client.conf  daemon.conf  default.pa system.pa
+ do
+  mv ${f} ${f}.new
+  doinst_config etc/pulse/${f}.new
+ done
+)
+
+mkdir -p ${PKG}/var/run/pulse
+
+doinst_addusergrp pulse pulse
+doinst_addgrp pulse-access
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/pulseaudio
+fi
+
+EOF
 
 #strip_binaries
 
@@ -94,11 +117,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "implementation of the XDG Sound Theme and Name Spec"
-libcanberra is an implementation of the XDG Sound Theme and Name
-Specifications, for generating event sounds on free desktops, such as
-GNOME. It comes with several backends (ALSA, PulseAudio, OSS, 
-GStreamer, null) and is designed to be portable.
+make_slack_desc << EOF "networked low-latency sound server"
+PulseAudio is a sound server for POSIX and Win32 systems. A sound 
+server is basically a proxy for your sound applications. It allows 
+you to do advanced operations on your sound data as it passes between 
+your application and your hardware. Things like transferring the audio 
+to a different machine, changing the sample format or channel count 
+and mixing several sounds into one are easily achieved using a sound 
+server.
 
 EOF
 
@@ -106,6 +132,8 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
+chown pulse.pulse ${PKG}/var/run/pulse; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/pulseaudio usr/libexec/pulse/bt-proximity-helper ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"

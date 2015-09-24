@@ -1,0 +1,26 @@
+--- linphone-3.8.5/mediastreamer2/src/videofilters/videoenc.c.orig	2015-05-13 15:53:49.000000000 +0100
++++ linphone-3.8.5/mediastreamer2/src/videofilters/videoenc.c	2015-09-24 21:46:22.800769975 +0100
+@@ -401,7 +401,10 @@
+ 	// assume video size is CIF or QCIF
+ 	if (context->width == 352 && context->height == 288) header->b_wptr[1] = 0x60;
+ 	else header->b_wptr[1] = 0x40;
++_Pragma("GCC diagnostic push")
++_Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+ 	if (context->coded_frame->pict_type != FF_I_TYPE) header->b_wptr[1] |= 0x10;
++_Pragma("GCC diagnostic pop")
+ 	header->b_wptr += 4;
+ 	header->b_cont = *packet;
+ 	*packet = header;
+@@ -837,9 +840,12 @@
+ 		if (s->framenum==1){
+ 			ms_video_starter_first_frame(&s->starter, f->ticker->time);
+ 		}
++_Pragma("GCC diagnostic push")
++_Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+ 		if (c->coded_frame->pict_type==FF_I_TYPE){
+ 			ms_message("Emitting I-frame");
+ 		}
++_Pragma("GCC diagnostic pop")
+ 		comp_buf->b_wptr+=packet.size;
+ 		split_and_send(f,s,comp_buf);
+ 	}
