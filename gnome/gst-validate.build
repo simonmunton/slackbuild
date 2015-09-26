@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gst-python
+TARNAME=gst-validate
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/gnome/
 #TAR_EXT=.tar.gz
 VERSION=1.6.0
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gst-python-1
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/gst-validate-1.6.0.diff
 )
 fi
 
@@ -52,6 +54,8 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -62,6 +66,16 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -76,7 +90,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -91,9 +105,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GStreamer Python wrapper"
-This module contains a wrapper that allows GStreamer applications
-to be written in Python.
+make_slack_desc << EOF "GStreamer validation tool"
+The goal of GstValidate is to be able to detect when elements are not
+behaving as expected and report it to the user so he knows how things
+are supposed to work inside a GstPipeline. In the end, fixing issues
+found by the tool will ensure that all elements behave all together in
+the expected way.
 
 EOF
 
