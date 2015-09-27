@@ -1,0 +1,217 @@
+--- laidout-0.095/src/laidoutprefs.cc.orig	2015-04-22 03:55:32.000000000 +0100
++++ laidout-0.095/src/laidoutprefs.cc	2015-09-27 09:08:09.527949042 +0100
+@@ -171,7 +171,7 @@
+ 	def->push("defaultpaper",
+ 			_("Default paper"),
+ 			_("Default paper"),
+-			"string", "letter",NULL,
++			"string", "a4",NULL,
+ 			0,
+ 			NULL);
+ 
+--- laidout-0.095/src/polyptych/src/hedronwindow.cc.orig	2014-11-04 05:24:41.000000000 +0000
++++ laidout-0.095/src/polyptych/src/hedronwindow.cc	2015-09-27 09:10:37.461959552 +0100
+@@ -239,7 +239,7 @@
+ 		int xx,int yy,int ww,int hh,int brder,
+ 		Polyhedron *newpoly)
+  	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,NULL,0,0), rendermode(0),
+-	  default_paper("Letter",8.5,11,"in")
++	  default_paper("A4",210.0,297.0,"mm")
+ {
+ 	poly=newpoly;
+ 	if (poly) {
+--- laidout-0.095/src/laidout.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/laidout.cc	2015-09-27 09:11:07.627961695 +0100
+@@ -663,7 +663,7 @@
+ 					  "\n"
+ 
+ 					   //default paper
+-					  "#defaultpapersize letter #Name of default paper to use\n"
++					  "#defaultpapersize a4 #Name of default paper to use\n"
+ 
+ 					   //default template
+ 					  " #if the following is commented out, then running \"laidout\" will\n"
+--- laidout-0.095/src/filetypes/ppt.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/filetypes/ppt.cc	2015-09-27 09:12:25.708967242 +0100
+@@ -312,7 +312,7 @@
+ 		if (landscape[0]=='t') landscape="false"; else landscape="true";
+ 	} else if (!strcmp(papergroup->papers.e[0]->box->paperstyle->name,"Ledger")) {
+ 		papersize="Tabloid/Ledger";
+-	} else papersize="Letter";
++	} else papersize="A4";
+ 	
+ 	 // write out header
+ 	fprintf(f,"<?xml version=\"1.0\"?>\n");
+--- laidout-0.095/src/utils.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/utils.cc	2015-09-27 09:13:17.813970944 +0100
+@@ -469,7 +469,7 @@
+ 
+ 	char *name=read_in_whole_file(file, NULL, 100);
+ 	if (name) stripws(name,3);
+-	else name=newstr("letter");
++	else name=newstr("a4");
+ 
+ 	return name;
+ }
+--- laidout-0.095/src/papersizes.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/papersizes.cc	2015-09-27 09:16:31.009984669 +0100
+@@ -197,7 +197,7 @@
+ 	//DBG cerr <<"blank PaperStyle created, obj "<<object_id<<endl;
+ 
+ 	if (!name) name=newstr(laidout->prefs.defaultpaper);
+-	if (!name) name=newstr("letter");
++	if (!name) name=newstr("a4");
+ 	//if (!name) name=get_system_default_paper(NULL);
+ 
+ 	for (int c=0; c<laidout->papersizes.n; c++) {
+@@ -342,12 +342,12 @@
+ {
+ 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
+ 	if (what==-1) {
+-		fprintf(f,"%sname Letter     #the name of the paper\n",spc);
+-		fprintf(f,"%swidth 8.5       #in the default units\n",spc); 
+-		fprintf(f,"%sheight 11       #in the default units\n",spc);
++		fprintf(f,"%sname A4         #the name of the paper\n",spc);
++		fprintf(f,"%swidth 210       #in the default units\n",spc); 
++		fprintf(f,"%sheight 297      #in the default units\n",spc);
+ 		fprintf(f,"%sdpi 360         #default dpi for the paper\n",spc);
+ 		fprintf(f,"%slandscape       #could be portrait (the default) instead\n",spc);
+-		fprintf(f,"%sunits in        #(optional) When reading in, width and height are converted from this\n",spc);
++		fprintf(f,"%sunits mm        #(optional) When reading in, width and height are converted from this\n",spc);
+ 		return;
+ 	}
+ 	if (name) fprintf(f,"%sname %s\n",spc,name);
+@@ -536,14 +536,14 @@
+ 			} else throw  _("Invalid object for paper!");
+ 		}
+ 		if (!str) str=laidout->prefs.defaultpaper;
+-		if (!str) str="letter";
++		if (!str) str="a4";
+ 		for (int c=0; c<laidout->papersizes.n; c++) {
+ 			if (strcasecmp(str,laidout->papersizes.e[c]->name)==0) {
+ 				paper=(PaperStyle*)laidout->papersizes.e[c]->duplicate();
+ 				break;
+ 			}
+ 		}
+-		if (!paper) paper=new PaperStyle("Letter",8.5,11,0,360,"in");
++		if (!paper) paper=new PaperStyle("A4",210.0,297,0,360,"mm");
+ 
+ 
+ 		 //----orientation
+--- laidout-0.095/src/impositions/singles.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/impositions/singles.cc	2015-09-27 09:17:26.990988646 +0100
+@@ -59,7 +59,7 @@
+ 
+ 	PaperStyle *paperstyle=laidout->GetDefaultPaper();
+ 	if (paperstyle) paperstyle=static_cast<PaperStyle *>(paperstyle->duplicate());
+-	else paperstyle=new PaperStyle("letter",8.5,11.0,0,300,"in");
++	else paperstyle=new PaperStyle("a4",210.0,297.0,0,300,"mm");
+ 	SetPaperSize(paperstyle);
+ 	paperstyle->dec_count();
+ 			
+@@ -255,7 +255,7 @@
+ 			pagestyle->dump_in_atts(att->attributes.e[c],flag,context);
+ 		} else if (!strcmp(name,"defaultpaperstyle")) {
+ 			PaperStyle *paperstyle;
+-			paperstyle=new PaperStyle("Letter",8.5,11,0,300,"in");//***should be global def
++			paperstyle=new PaperStyle("A4",210.0,297,0,300,"mm");//***should be global def
+ 			paperstyle->dump_in_atts(att->attributes.e[c],flag,context);
+ 			SetPaperSize(paperstyle);
+ 			paperstyle->dec_count();
+--- laidout-0.095/src/impositions/netimposition.cc.orig	2015-04-22 04:19:13.000000000 +0100
++++ laidout-0.095/src/impositions/netimposition.cc	2015-09-27 09:18:14.490992021 +0100
+@@ -130,7 +130,7 @@
+ 	 // setup default paperstyle
+ 	PaperStyle *paperstyle=dynamic_cast<PaperStyle *>(stylemanager.FindDef("defaultpapersize"));
+ 	if (paperstyle) paperstyle=static_cast<PaperStyle *>(paperstyle->duplicate());
+-	else paperstyle=new PaperStyle("letter",8.5,11.0,0,300,"in");
++	else paperstyle=new PaperStyle("a4",210.0,297.0,0,300,"mm");
+ 	Imposition::SetPaperSize(paperstyle);
+ 	paperstyle->dec_count();
+ 
+@@ -968,7 +968,7 @@
+ 	if (what==-1) {
+ 		fprintf(f,"%snumpages 3      #number of pages in the document. This is ignored on readin\n",spc);
+ 		fprintf(f,"%sprintnet yes     #whether the net lines get printed out with the page data\n",spc);
+-		fprintf(f,"%spaper letter      #Paper size to print on.\n",spc);
++		fprintf(f,"%spaper a4         #Paper size to print on.\n",spc);
+ 		fprintf(f,"%spapers           #Alternately, define a particular PaperGroup to use.\n",spc);
+ 		fprintf(f,"%s  ...\n",spc);
+ 		fprintf(f,"%sscalingfromnet 1  #any final scaling to apply to a net before mapping\n",spc);
+--- laidout-0.095/src/po/Makefile.orig	2007-09-15 20:57:32.000000000 +0100
++++ laidout-0.095/src/po/Makefile	2015-09-27 09:19:06.909995745 +0100
+@@ -11,7 +11,7 @@
+ install:
+ 	@echo Installing language files: $(wildcard *.mo)...
+ 	$(foreach NAME, $(basename $(wildcard *.mo)), \
+-		$(shell	install -D -m644 $(NAME).mo $(PO) $(LANGUAGE_PATH)/$(NAME)/LC_MESSAGES/laidout-$(LAIDOUTVERSION).mo))
++		$(shell	install -D -m644 $(NAME).mo $(PO) $(DESTDIR)$(LANGUAGE_PATH)/$(NAME)/LC_MESSAGES/laidout-$(LAIDOUTVERSION).mo))
+ 	@echo Done installing language files.
+ 
+ #PO=$(foreach NAME, $(basename $(wildcard *.mo)), $(shell echo temp-install/locale/$(NAME)/LC_MESSAGES/laidout.mo >> temp))
+--- laidout-0.095/coop/processing/signatureinterface.pde.orig	2013-11-22 05:34:12.000000000 +0000
++++ laidout-0.095/coop/processing/signatureinterface.pde	2015-09-27 09:20:16.298000674 +0100
+@@ -226,12 +226,12 @@
+ 
+ 
+ //----------------------------------------- papersizes ------------------------------
+-String currentPaper="Letter";
++String currentPaper="A4";
+ int currentOrientation=0; //1 is landscape.. w and h are swapped when switched
+-float currentPaperWidth=8.5;
+-float currentPaperHeight=11;
+-String currentPaperUnits="in";
+-int    currentPaperIndex=0;
++float currentPaperWidth=210;
++float currentPaperHeight=297;
++String currentPaperUnits="mm";
++int    currentPaperIndex=3;
+ 
+ //      PAPERSIZE   Width  Height  Units
+ //      ----------------------------------------
+--- laidout-0.095/Makefile.orig	2014-04-11 15:04:24.000000000 +0100
++++ laidout-0.095/Makefile	2015-09-27 09:06:38.088942546 +0100
+@@ -41,25 +41,25 @@
+ 	src/laidout -H > QUICKREF.html
+ 
+ install: 
+-	echo 'Installing to $(BINDIR)/laidout which points to $(BINDIR)/$(LAIDOUTNAME)'
+-	$(INSTALL) -m755 src/laidout $(BINDIR)/$(LAIDOUTNAME)
+-	$(INSTALLDIR) $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/examples
+-	$(INSTALL) -m644 -t $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/examples examples/*
+-	$(INSTALLDIR) $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/icons
+-	$(INSTALL) -m644 -t $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/icons src/icons/*.png
+-	$(INSTALLDIR) $(SHAREDIR)/applications
+-	$(INSTALL) -m644 debian/laidout.desktop $(SHAREDIR)/applications
+-	$(INSTALLDIR) $(SHAREDIR)/icons/hicolor/48x48/apps
+-	$(INSTALL) -m644 src/icons/laidout-48x48.png $(SHAREDIR)/icons/hicolor/48x48/apps/laidout.png
+-	$(INSTALLDIR) $(SHAREDIR)/icons/hicolor/scalable/apps
+-	$(INSTALL) -m644 src/icons/laidout.svg $(SHAREDIR)/icons/hicolor/scalable/apps/laidout.svg
+-	$(INSTALLDIR)       $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/processing
+-	$(INSTALL) -m644 -t $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/processing coop/processing/*
+-	$(INSTALLDIR)       $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/scribus
+-	$(INSTALL) -m644 -t $(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/scribus coop/scribus/*
++	echo 'Installing to $(DESTDIR)$(BINDIR)/laidout which points to $(DESTDIR)$(BINDIR)/$(LAIDOUTNAME)'
++	$(INSTALL) -m755 src/laidout $(DESTDIR)$(BINDIR)/$(LAIDOUTNAME)
++	$(INSTALLDIR) $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/examples
++	$(INSTALL) -m644 -t $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/examples examples/*
++	$(INSTALLDIR) $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/icons
++	$(INSTALL) -m644 -t $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/icons src/icons/*.png
++	$(INSTALLDIR) $(DESTDIR)$(SHAREDIR)/applications
++	$(INSTALL) -m644 debian/laidout.desktop $(DESTDIR)$(SHAREDIR)/applications
++	$(INSTALLDIR) $(DESTDIR)$(SHAREDIR)/icons/hicolor/48x48/apps
++	$(INSTALL) -m644 src/icons/laidout-48x48.png $(DESTDIR)$(SHAREDIR)/icons/hicolor/48x48/apps/laidout.png
++	$(INSTALLDIR) $(DESTDIR)$(SHAREDIR)/icons/hicolor/scalable/apps
++	$(INSTALL) -m644 src/icons/laidout.svg $(DESTDIR)$(SHAREDIR)/icons/hicolor/scalable/apps/laidout.svg
++	$(INSTALLDIR)       $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/processing
++	$(INSTALL) -m644 -t $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/processing coop/processing/*
++	$(INSTALLDIR)       $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/scribus
++	$(INSTALL) -m644 -t $(DESTDIR)$(SHAREDIR)/laidout/$(LAIDOUTVERSION)/coop/scribus coop/scribus/*
+ 
+-	rm -f $(BINDIR)/laidout
+-	ln -s $(LAIDOUTNAME) $(BINDIR)/laidout
++	rm -f $(DESTDIR)$(BINDIR)/laidout
++	ln -s $(LAIDOUTNAME) $(DESTDIR)$(BINDIR)/laidout
+ 	cd src/po && $(MAKE) install
+ 
+ # ****** TODO!!! this is very primitive make uninstall!!
