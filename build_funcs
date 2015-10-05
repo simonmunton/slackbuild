@@ -14,7 +14,7 @@ FORCE_32=no
 # separate word. The quotes around `$@' are essential!
 # We need OPTS as the `eval set --' would nuke the return value of getopt.
 
-OPTS=`getopt -o cmij:v3 --long disable-configure,disable-make,disable-install,num-jobs,check-version,32: \
+OPTS=`getopt -o cmij:v3 --long disable-configure,disable-make,disable-install,num-jobs:,check-version,32 \
      -n "$0" -- "$@"`
 
 # Note the quotes around `$OPTS': they are essential!
@@ -100,11 +100,13 @@ case `uname -m` in
     : ${ARCH:=x86_64}
     LIBDIRSUFFIX="64"
     SLKCFLAGS="-O2 -fPIC"
+    BUILDDIR=_BuilD_64_
     ;;
   *)
     : ${ARCH:=i486}
     LIBDIRSUFFIX=""
     SLKCFLAGS="-m32 -O2 -march=i486 -mtune=i686"
+    BUILDDIR=_BuilD_32_
     ;;
 esac
 
@@ -117,6 +119,10 @@ then
     LIBDIRSUFFIX=""
     SLKCFLAGS="-m32 -O2 -march=i486 -mtune=i686"
     EXTRA_CONFIGURE_FLAGS="--host=i486"
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+    PATH=`echo ${PATH} | sed -e 's@:/usr/bin:@:/usr/bin/32:/usr/bin:@'`
+    export PKG_CONFIG_PATH
+    BUILDDIR=_BuilD_32_
 fi
 
 # MINICPAN
