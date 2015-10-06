@@ -1,0 +1,25 @@
+--- libindicator-12.10.1/libindicator/indicator-image-helper.c.orig	2012-09-19 16:38:05.000000000 +0100
++++ libindicator-12.10.1/libindicator/indicator-image-helper.c	2015-10-06 19:53:24.377109845 +0100
+@@ -69,7 +69,11 @@
+ 	GdkPixbuf * pixbuf = gdk_pixbuf_new_from_file(icon_filename, &error);
+ 
+ 	if (icon_info != NULL) {
++#if GTK_CHECK_VERSION(3, 8, 0)
++		g_object_unref(icon_info);
++#else
+ 		gtk_icon_info_free(icon_info);
++#endif
+ 	}
+ 
+ 	if (pixbuf == NULL) {
+--- libindicator-12.10.1/configure.orig	2012-09-19 16:40:08.000000000 +0100
++++ libindicator-12.10.1/configure	2015-10-06 19:59:38.231111223 +0100
+@@ -12141,7 +12141,7 @@
+ esac
+ 
+ 
+-LIBINDICATOR_LIBS+="$LIBM"
++LIBINDICATOR_LIBS+=" $LIBM"
+ 
+ ##############################
+ # Custom Junk

@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/libindicator-12.10.1.diff
 )
 fi
 
@@ -57,11 +57,14 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_GTK2_
+cd _BuilD_GTK2_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -90,6 +93,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
