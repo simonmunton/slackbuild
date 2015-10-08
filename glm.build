@@ -2,21 +2,20 @@
 #
 . build_funcs
 
-TARNAME=xfce4-systemload-plugin
+TARNAME=glm
 TARNAMEEXTRA=
 TARSEP="-"
-XFCE_VER=4.12
-TARDIR=~/tmp/new/x/xfce
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.1.2
+VERSION=0.9.7.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.xfce.org"
+WEBPAGE="http://glm.g-truc.net/0.9.7/index.html"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=${TARNAME}
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -60,27 +59,26 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc/xfce \
+            --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
-	    --infodir=/usr/info \
-	    --docdir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
-	    --htmldir=/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION} \
-	    --disable-static
-
-
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -104,25 +102,21 @@ compress_manpages
 
 compress_info
 
-mkdir -p ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
-
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  BUGS COMPOSITOR FAQ HACKING NOTES THANKS example.gtkrc-2.0 \
-  ${PKG}/usr/doc/xfce-${XFCE_VER}/${TARNAME}-${VERSION}
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-rmdir ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a fast and lightweight desktop environment for X"
-Xfce is a fast and lightweight desktop environment that is both
-visually appealing and easy to use.
+make_slack_desc << EOF "OpenGL Mathematics"
+OpenGL Mathematics (GLM) is a header only C++ mathematics library for 
+graphics software based on the OpenGL Shading Language (GLSL) 
+specifications.
 
-For more information, see:  http://www.xfce.org
-
-Xfce was developed by Olivier Fourdan.
+GLM provides classes and functions designed and implemented with the 
+same naming conventions and functionalities than GLSL so that anyone 
+who knows GLSL, can use GLM as well in C++. 
 
 EOF
 
