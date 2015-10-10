@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=5.28
+VERSION=5.35
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,18 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/bluez.enable.audio.socket.diff
-
-# Fixup the dbus config file for our usage:
-# patch -p1 < ${CWD}/bluez-dbus-config.patch
-
-# Use a wrapper to check rc.bluetooth mode before starting bluetoothd
-# patch -p1 < ${CWD}/bluez-run_udev_helper.patch
-
-# Unbreak a Dell USB mouse
-# https://bugzilla.novell.com/show_bug.cgi?id=522287
-# https://bugzilla.redhat.com/show_bug.cgi?id=517088
-# patch -p1 < ${CWD}/bluez-unbreak_dell_mouse.patch
+ patch -p1 < ${CWD}/bluez5-0001-Allow-using-obexd-without-systemd-in-the-user-session.diff
 )
 fi
 
@@ -79,11 +68,15 @@ LDFLAGS="-lncurses" \
             --mandir=/usr/man \
             --localstatedir=/var \
             --enable-datafiles \
-            --enable-tools\
+            --enable-tools \
             --enable-cups \
             --enable-test \
             --disable-silent-rules \
             --enable-library \
+            --enable-threads \
+            --enable-experimental \
+            --enable-manpages \
+            --enable-sixaxis \
             --disable-systemd
 
 
@@ -124,7 +117,10 @@ make install DESTDIR=${PKG}
 
 # Add an init script
 mkdir -p ${PKG}/etc/rc.d
-cat ${CWD}/bluez-utils-rc.bluetooth > ${PKG}/etc/rc.d/rc.bluetooth.new
+cat ${CWD}/bluez5-rc.bluetooth > ${PKG}/etc/rc.d/rc.bluetooth.new
+
+mkdir -p ${PKG}/etc/bluetooth
+cp src/main.conf ${PKG}/etc/bluetooth/main.conf
 
 doinst_same_perm etc/rc.d/rc.bluetooth
 doinst_config etc/rc.d/rc.bluetooth.new
@@ -142,7 +138,7 @@ cp -a \
  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-cp ${CWD}/bluez-utils-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
+#cp ${CWD}/bluez-utils-README.SLACKWARE ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.SLACKWARE
 
 fix_docs
 
