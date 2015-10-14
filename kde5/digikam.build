@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=digikam
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/d
+#TAR_EXT=.tar.gz
+VERSION=4.13.0
+VERSIONEXTRA=
+BUILD=2
+
+WEBPAGE="http://www.digikam.org"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/digikam-2.0.0.diff
+# patch -p1 -b -z .orig < ${CWD}/digikam-3.1.0.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+SLKCFLAGS="${SLKCFLAGS} -I/usr/include/libpgf"
+
+mkdir _BuilD_
+cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DDIGIKAMSC_USE_PRIVATE_KDEGRAPHICS=OFF \
+      -DDIGIKAMSC_USE_PRIVATE_SHAREDLIBS=ON \
+      -DDIGIKAMSC_COMPILE_LIBKFACE=ON \
+      -DDIGIKAMSC_COMPILE_LIBKGEOMAP=ON \
+      -DDIGIKAMSC_COMPILE_LIBMEDIAWIKI=ON \
+      -DDIGIKAMSC_COMPILE_LIBKVKONTAKTE=ON \
+      -Wno-dev \
+      .. \
+      2>&1 | tee ${TARNAME}.config
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
+sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
+
+make_debug_files
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "digital photo management"
+digiKam is an easy to use and powerful digital photo management
+application, which makes importing, organizing and manipulating
+digital photos a "snap".  An easy to use interface is provided
+to connect to your digital camera, preview the images and download
+and/or delete them.
+
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
