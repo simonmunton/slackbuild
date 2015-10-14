@@ -56,13 +56,13 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 # This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
 export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir _BuilD_
-cd _BuilD_
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -73,12 +73,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
-      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
-      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
-      -Wno-dev \
       .. \
-      2>&1 | tee _Build_config.log
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -111,7 +107,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "KDE PIN libraries"
+This module includes libraries that are central to the development and
+execution of a KDE-PIM application.
+
 EOF
 
 post_install
