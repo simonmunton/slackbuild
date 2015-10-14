@@ -1,0 +1,47 @@
+--- marble-15.08.0.orig/CMakeLists.txt	2015-08-12 13:14:02.000000000 +0200
++++ marble-15.08.0/CMakeLists.txt	2015-08-29 00:24:00.767298683 +0200
+@@ -45,6 +45,8 @@
+ ####################################################
+ # Specific options for building with Qt 4 vs 5
+ 
++option(QT5BUILD "Build for Qt5" ON)
++
+ if(ANDROID)
+    if (NOT DEFINED ENV{Qt5_host})
+       message(FATAL_ERROR "Configure the env variable Qt5_host to point to your host Qt5 installation.")
+@@ -79,6 +81,7 @@
+    include_directories(SYSTEM "$ENV{ANDROID_NDK}/platforms/$ENV{ANDROID_PLATFORM}/arch-arm/usr/include")
+    message(STATUS "Include directories: " "$ENV{ANDROID_NDK}/platforms/$ENV{ANDROID_PLATFORM}/arch-arm/usr/include")
+ else()
++  if(QT5BUILD)
+    find_package(Qt5WebKit)
+    find_package(Qt5WebKitWidgets)
+    find_package(Qt5DBus)
+@@ -86,8 +89,10 @@
+    if ( NOT Qt5WebKit_FOUND )
+      set ( MARBLE_NO_WEBKIT TRUE )
+    endif()
++  endif()
+ endif()
+ 
++if(QT5BUILD)
+ find_package(Qt5Core)
+ find_package(Qt5Xml)
+ find_package(Qt5Network)
+@@ -100,6 +105,7 @@
+ find_package(Qt5Quick)
+ find_package(Qt5OpenGL)
+ find_package(Qt5PrintSupport)
++endif()
+ 
+ if(QTONLY)
+   # Forward the old QTONLY=TRUE option to the new WITH_KDE=FALSE
+@@ -111,8 +117,6 @@
+   unset(QTONLY)
+ endif()
+ 
+-option(QT5BUILD "Build for Qt5" ON)
+-
+ if(QT5BUILD AND Qt5Core_FOUND)
+   cmake_minimum_required(VERSION 2.8.12)
+   set(QT4BUILD FALSE)

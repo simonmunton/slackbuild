@@ -5,11 +5,11 @@
 TARNAME=marble
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-4.14.3
+TARDIR=~/tmp/new/k/kde-applications-15.08.2
 #TAR_EXT=.tar.gz
-VERSION=4.14.3
+VERSION=15.08.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/marble_qt4.patch
 )
 fi
 
@@ -61,8 +61,8 @@ export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir build
-cd build
+mkdir _BuilD_QT4_
+cd _BuilD_QT4_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -73,8 +73,17 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DQT_MOC_EXECUTABLE=/usr/lib${LIBDIRSUFFIX}/qt/bin/moc \
+      -DQT_QMAKE_EXECUTABLE=/usr/lib${LIBDIRSUFFIX}/qt/bin/qmake \
+      -DMARBLE_PLUGIN_PATH=/usr/lib${LIBDIRSUFFIX}/marble4/plugins \
+      -DQT5BUILD=OFF \
+      -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=ON \
+      -DCMAKE_DISABLE_FIND_PACKAGE_KF5=ON \
+      -DBUILD_MARBLE_TESTS=OFF \
+      -DBUILD_MARBLE_APPS=OFF \
+      -Wno-dev \
       .. \
-      2>&1 | tee ${TARNAME}.config
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -89,9 +98,15 @@ fi
 
 make install DESTDIR=${PKG}
 
-rm -rf ${PKG}/usr/bin
-rm -rf ${PKG}/usr/include
-rm -rf ${PKG}/usr/share/applications
+# Move the marble4 cmake file so that it will be found:
+mkdir -p ${PKG}/usr/share/apps/cmake/modules
+mv ${PKG}/usr/share/marble/cmake/FindMarble.cmake \
+  ${PKG}/usr/share/apps/cmake/modules/FindMarble.cmake
+# Rename the marble4 include dir to avoid a conflict with marble:
+mv ${PKG}/usr/include/marble{,4}
+# And fix that include path in the cmake file too:
+sed -i ${PKG}/usr/share/apps/cmake/modules/FindMarble.cmake \
+    -e 's,marble/MarbleModel.h,marble4/MarbleModel.h,'
 
 cd ..
 
@@ -111,14 +126,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "geographical atlas and a virtual globe"
-marble is a geographical atlas and a virtual globe which lets you 
-quickly explore other places on our home planet. You can use marble to 
-look up places, to easily create maps, measure distances and to 
-retrieve detail information about locations that you have just heard 
-about in the news or on the Internet. The user interface is clean, 
-simple and easy to use.
-
+make_slack_desc << EOF
 EOF
 
 post_install
