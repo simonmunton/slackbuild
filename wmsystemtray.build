@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=wireshark
+TARNAME=wmsystemtray
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=1.12.8
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://sourceforge.net/projects/wmsystemtray/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -43,7 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- sed -i "s@\(-L/usr/local/lib\)@\1${LIBDIRSUFFIX}@; s@\(-L\\\$prefix/lib\)@\1${LIBDIRSUFFIX}@" configure
 )
 fi
 
@@ -53,9 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export CPLUS_INCLUDE_PATH=
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -63,14 +67,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-ssl \
-            --with-lua \
-	    --enable-warnings-as-errors=no \
-	    --with-qt=no \
-	    --with-gtk2=yes
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
-#	    --with-libnl=1
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -85,7 +94,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -100,10 +109,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "network traffic analyzer"
-Wireshark is a network traffic analyzer, or "sniffer", for Unix and
-Unix-like operating systems.  It uses GTK+, a graphical user interface
-library, and libpcap, a packet capture and filtering library.
+make_slack_desc << EOF "wmsystemtray - A freedesktop.org system tray as a Window Maker dock app"
+wmsystemtray is a system tray using the freedesktop.org system tray
+protocol designed as a Window Maker dock app. It has the ability to
+display more than one dock window to make room for more tray icons, 
+and the ability to scroll through the icons if more are present than 
+will fit.
 
 EOF
 
