@@ -57,6 +57,12 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+./waf configure --prefix=/usr \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --mandir=/usr/man \
+            --configdir=/etc \
+            --freedesktop \
+            --ptformat
 true
 fi
 
@@ -64,7 +70,10 @@ if [ ${DO_MAKE} == "yes" ]
 then
 #CPPFLAGS="``" \
 
-scons PREFIX=/usr FFT_ANALYSIS=1 LV2=1 FREESOUND=1 FREEDESKTOP=1 WIIMOTE=1 || exit
+#scons PREFIX=/usr FFT_ANALYSIS=1 LV2=1 FREESOUND=1 FREEDESKTOP=1 WIIMOTE=1 || exit
+
+./waf ${NUM_JOBS} || exit
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,20 +81,22 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/share/icons/hicolor ${PKG}/usr/share/mime/packages ${PKG}/usr/share/applications
-touch ${PKG}/usr/share/icons/hicolor/index.theme
+#mkdir -p ${PKG}/usr/share/icons/hicolor ${PKG}/usr/share/mime/packages ${PKG}/usr/share/applications
+#touch ${PKG}/usr/share/icons/hicolor/index.theme
 
-scons install DESTDIR=${PKG}
+./waf install --destdir=${PKG}
 
-rm ${PKG}/usr/share/icons/hicolor/{index.theme,icon-theme.cache}
-rm ${PKG}/usr/share/mime/*
-rm ${PKG}/usr/share/applications/mimeinfo.cache
+#rm ${PKG}/usr/share/icons/hicolor/{index.theme,icon-theme.cache}
+#rm ${PKG}/usr/share/mime/*
+#rm ${PKG}/usr/share/applications/mimeinfo.cache
 
-cat > ${PKG}/install/doinst.sh << EOF
-if which setcap >& /dev/null
-then
-  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/ardour2
-fi
+rm ${PKG}/usr/bin/gcc-glibmm-abi-check
+
+#cat > ${PKG}/install/doinst.sh << EOF
+#if which setcap >& /dev/null
+#then
+#  setcap cap_sys_nice,cap_ipc_lock+pe usr/lib${LIBDIRSUFFIX}/ardour4/ardour-${VERSION}.*
+#fi
 
 EOF
 

@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=0.3.2
+VERSION=0.4.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://aubio.org/"
 
@@ -59,7 +59,9 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+
+
+./waf configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -68,7 +70,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+./waf build ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -76,7 +78,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/{include,lib64}
+
+#make install DESTDIR=${PKG}
+./waf --destdir=${PKG} install
+
+mv ${PKG}/usr/share/doc/libaubio-doc/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir -p ${PKG}/usr/share/doc/libaubio-doc
 
 #strip_binaries
 
