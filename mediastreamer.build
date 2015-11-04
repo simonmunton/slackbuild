@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=linphone
+TARNAME=mediastreamer
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=3.9.0
+VERSION=2.12.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.linphone.org"
+WEBPAGE="http://www.linphone.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/linphone-3.8.5.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -64,10 +68,24 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --enable-external-ortp \
-	    --enable-external-mediastreamer \
-	    --enable-ldap \
-	    --enable-lime
+	    --disable-strict \
+	    --with-srtp=/usr \
+	    --with-polarssl=/usr \
+
+#	    --enable-dtls
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -82,11 +100,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/doc/ortp/ortp* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-mv ${PKG}/usr/share/doc/mediastreamer/media* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir -p ${PKG}/usr/share/doc/{ortp,mediastreamer}
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -101,17 +115,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Phone anywhere in the whole world by using the Internet"
-Linphone is mostly sip compliant. It works successfully with these
-implementations:
-    * eStara softphone (commercial software for windows)
-    * Pingtel phones (with DNS enabled and VLAN QOS support disabled).
-    * Hotsip, a free of charge phone for Windows.
-    * Vocal, an open source SIP stack from Vovida that includes a SIP 
-	proxy that works with linphone since version 0.7.1.
-    * Siproxd is a free sip proxy being developped by Thomas Ries.
-	Siproxd is simple to setup and works perfectly with linphone.
-    * Partysip aims to be a generic and fully functionnal SIP proxy.
+make_slack_desc << EOF "lightweight streaming engine for voice/video telephony applications"
+Mediastreamer2 is a powerful and lightweight streaming engine 
+specialized for voice/video telephony applications.
+
+This open source library is responsible for all the receiving and 
+sending of multimedia streams in Linphone, including voice/video 
+capture, encoding and decoding, and rendering.
 
 EOF
 
