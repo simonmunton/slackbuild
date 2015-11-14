@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l/llvm
 #TAR_EXT=.tar.gz
-VERSION=3.6.2
+VERSION=3.7.0
 VERSIONEXTRA=.src
 BUILD=1
 
@@ -54,13 +54,13 @@ fi
  then
 #   patch -p1 -b -z .orig < ${CWD}/llvm-3.2-x86_64.diff
 
-   sed -i "/^PROJ_libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.config.in
-   sed -i "s@\$(PROJ_prefix)/lib@\$(PROJ_prefix)/lib$LIBDIRSUFFIX@" tools/clang/lib/Headers/Makefile
-   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Frontend/CompilerInvocation.cpp
-   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Driver/Tools.cpp
-   sed -i "/ActiveLibDir =/ s@/lib@/lib${LIBDIRSUFFIX}@g" tools/llvm-config/llvm-config.cpp
-   sed -i "/LibDir / s@/lib@/lib${LIBDIRSUFFIX}@; s@/lib/@/lib${LIBDIRSUFFIX}/@; /RPATH/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.rules
-
+#   sed -i "/^PROJ_libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.config.in
+#   sed -i "s@\$(PROJ_prefix)/lib@\$(PROJ_prefix)/lib$LIBDIRSUFFIX@" tools/clang/lib/Headers/Makefile
+#   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Frontend/CompilerInvocation.cpp
+#   sed -i "s@\"lib\"@\"lib${LIBDIRSUFFIX}\"@" tools/clang/lib/Driver/Tools.cpp
+##   sed -i "/ActiveLibDir =/ s@/lib@/lib${LIBDIRSUFFIX}@g" tools/llvm-config/llvm-config.cpp
+#   sed -i "/LibDir / s@/lib@/lib${LIBDIRSUFFIX}@; s@/lib/@/lib${LIBDIRSUFFIX}/@; /RPATH/ s@/lib@/lib${LIBDIRSUFFIX}@" Makefile.rules
+ :
  fi
 )
 fi
@@ -73,11 +73,16 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd  _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -86,23 +91,35 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --enable-optimized \
 	    --enable-shared \
 	    --disable-assertions \
-	    --enable-experimental-targets=R600 \
+	    --with-python \
 	    --with-clang-resource-dir="../lib${LIBDIRSUFFIX}/clang/${VERSION}"
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+#	    --enable-experimental-targets=R600 \
+
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DCLANG_RESOURCE_DIR="../lib${LIBDIRSUFFIX}/clang/${VERSION}" \
+      -DLLVM_BUILD_LLVM_DYLIB=on \
+      -DLLVM_DYLIB_EXPORT_ALL=on \
+      -DLLVM_LIBDIR_SUFFIX=${LIBDIRSUFFIX} \
+      ..
+
+#      -DBUILD_SHARED_LIBS=on \
+
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-fi                       
+fi
 
 if [ ${DO_INSTALL} != "yes" ]
 then
@@ -110,6 +127,32 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+ln -s /usr/share/clang/clang-format-diff.py ${PKG}/usr/bin/clang-format-diff
+
+if [ ! -d ${PKG}/usr/share/clang ]
+then
+  mkdir -p ${PKG}/usr/share/clang
+  for f in clang-format-bbedit.applescript clang-format-diff.py clang-format-sublime.py clang-format.el clang-format.py
+  do
+    cp tools/clang/tools/clang-format/$f ${PKG}/usr/share/clang
+  done
+  cp tools/clang/tools/clang-format/git-clang-format ${PKG}/usr/bin
+fi
+
+if [ -f ${PKG}/usr/lib${LIBDIRSUFFIX}/libLLVM.so.${VERSION} ]
+then
+  ln -s libLLVM.so.${VERSION} ${PKG}/usr/lib${LIBDIRSUFFIX}/libLLVM-${VERSION}.so
+fi
+
+for f in FileCheck not c-index-test count lli-child-target
+do  
+  rm ${PKG}/usr/bin/$f
+done
+
+
 
 sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
