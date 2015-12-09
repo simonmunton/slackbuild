@@ -1,0 +1,133 @@
+--- nethack-3.6.0.x/sys/unix/Makefile.utl.orig	2015-12-07 08:26:01.000000000 +0000
++++ nethack-3.6.0.x/sys/unix/Makefile.utl	2015-12-09 13:15:50.000000000 +0000
+@@ -18,7 +18,7 @@
+ 
+ # if you are using gcc as your compiler,
+ #	uncomment the CC definition below if it's not in your environment
+-# CC = gcc
++CC = gcc
+ #
+ #	For Bull DPX/2 systems at B.O.S. 2.0 or higher use the following:
+ #
+@@ -104,11 +104,11 @@
+ 
+ # yacc/lex programs to use to generate *_comp.h, *_lex.c, and *_yacc.c.
+ # if, instead of yacc/lex you have bison/flex, comment/uncomment the following.
+-YACC     = yacc
+-LEX      = lex
+-# YACC     = bison -y
++#YACC     = yacc
++#LEX      = lex
++YACC     = bison -y
+ # YACC     = byacc
+-# LEX      = flex
++LEX      = flex
+ 
+ # these are the names of the output files from YACC/LEX. Under MS-DOS
+ # and similar systems, they may differ
+--- nethack-3.6.0.x/sys/unix/Makefile.src.orig	2015-11-12 07:51:56.000000000 +0000
++++ nethack-3.6.0.x/sys/unix/Makefile.src	2015-12-09 13:44:28.163428551 +0000
+@@ -64,7 +64,7 @@
+ #	if you get setcgtty() warnings during execution, you are feeding gcc
+ #		a non-ANSI <sys/ioctl.h> -- either run fixincludes on it or use
+ #		-traditional in CFLAGS
+-# CC = gcc
++CC = gcc
+ #
+ #	For Bull DPX/2 systems at B.O.S. 2.0 or higher use the following:
+ #
+@@ -222,8 +222,8 @@
+ 
+ #
+ #
+-#WINSRC = $(WINTTYSRC)
+-#WINOBJ = $(WINTTYOBJ)
++WINSRC = $(WINTTYSRC) $(WINX11SRC)
++WINOBJ = $(WINTTYOBJ) $(WINX11OBJ)
+ 
+ # on some systems the termcap library is in -ltermcap or -lcurses
+ # on 386 Xenix, the -ltermlib tputs() seems not to work; use -lcurses instead
+@@ -238,12 +238,12 @@
+ # WINTTYLIB = -ltermcap
+ # WINTTYLIB = -lcurses
+ # WINTTYLIB = -lcurses16
+-# WINTTYLIB = -lncurses
++WINTTYLIB = -lncurses
+ #WINTTYLIB = -ltermlib
+ #
+ # libraries for X11
+ # If USE_XPM is defined in config.h, you will also need -lXpm here.
+-WINX11LIB = -lXaw -lXmu -lXext -lXt -lX11
++WINX11LIB = -lXaw -lXmu -lXext -lXt -lX11 -lXpm
+ # WINX11LIB = -lXaw -lXmu -lXt -lX11
+ # WINX11LIB = -lXaw -lXmu -lXext -lXt -lXpm -lX11 -lm
+ # WINX11LIB = -lXaw -lXmu -lXpm -lXext -lXt -lX11 -lSM -lICE -lm # BSD/OS 2.0
+@@ -263,7 +263,7 @@
+ # libraries for BeOS 
+ WINBELIB = -lbe
+ 
+-#WINLIB = $(WINTTYLIB)
++WINLIB = $(WINTTYLIB) $(WINX11LIB)
+ 
+ # any other strange libraries your system needs (for Sysunix only -- the more
+ # specialized targets should already be right)
+--- nethack-3.6.0.x/include/config.h.orig	2015-11-17 05:58:34.000000000 +0000
++++ nethack-3.6.0.x/include/config.h	2015-12-09 13:48:46.831693338 +0000
+@@ -43,7 +43,7 @@
+ #if !defined(NOTTYGRAPHICS)
+ #define TTY_GRAPHICS /* good old tty based graphics */
+ #endif
+-/* #define X11_GRAPHICS */   /* X11 interface */
++#define X11_GRAPHICS    /* X11 interface */
+ /* #define QT_GRAPHICS */    /* Qt interface */
+ /* #define GNOME_GRAPHICS */ /* Gnome interface */
+ /* #define MSWIN_GRAPHICS */ /* Windows NT, CE, Graphics */
+@@ -189,7 +189,7 @@
+ 
+ #ifndef SYSCF
+ #define SYSCF                /* use a global configuration */
+-#define SYSCF_FILE "sysconf" /* global configuration is in a file */
++#define SYSCF_FILE "/usr/games/lib/nethackdir/sysconf" /* global configuration is in a file */
+ #endif
+ 
+ #ifndef GDBPATH
+@@ -250,8 +250,8 @@
+ 
+ #if defined(UNIX) && !defined(ZLIB_COMP) && !defined(COMPRESS)
+ /* path and file name extension for compression program */
+-#define COMPRESS "/usr/bin/compress" /* Lempel-Ziv compression */
+-#define COMPRESS_EXTENSION ".Z"      /* compress's extension */
++#define COMPRESS "/usr/bin/gzip" /* Lempel-Ziv compression */
++#define COMPRESS_EXTENSION ".gz"      /* compress's extension */
+ /* An example of one alternative you might want to use: */
+ /* #define COMPRESS "/usr/local/bin/gzip" */ /* FSF gzip compression */
+ /* #define COMPRESS_EXTENSION ".gz" */       /* normal gzip extension */
+@@ -298,7 +298,7 @@
+  *      a tar-like file, thus making a neater installation.  See *conf.h
+  *      for detailed configuration.
+  */
+-/* #define DLB */ /* not supported on all platforms */
++#define DLB  /* not supported on all platforms */
+ 
+ /*
+  *      Defining INSURANCE slows down level changes, but allows games that
+--- nethack-3.6.0.x/include/unixconf.h.orig	2015-11-17 10:54:25.000000000 +0000
++++ nethack-3.6.0.x/include/unixconf.h	2015-12-09 13:08:38.939275863 +0000
+@@ -36,7 +36,7 @@
+ #define NETWORK        /* if running on a networked system */
+                        /* e.g. Suns sharing a playground through NFS */
+ /* #define SUNOS4 */   /* SunOS 4.x */
+-/* #define LINUX */    /* Another Unix clone */
++#define LINUX     /* Another Unix clone */
+ /* #define CYGWIN32 */ /* Unix on Win32 -- use with case sensitive defines */
+ /* #define GENIX */    /* Yet Another Unix Clone */
+ /* #define HISX */     /* Bull Unix for XPS Machines */
+@@ -128,7 +128,7 @@
+  * "extra output" method is used, but not all systems provide access to
+  * a fine-grained timer.
+  */
+-/* #define TIMED_DELAY */ /* usleep() */
++#define TIMED_DELAY  /* usleep() */
+ #endif
+ 
+ /*
