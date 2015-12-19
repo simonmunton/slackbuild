@@ -1,11 +1,59 @@
+--- plasma-nm-5.5.0/vpn/openconnect/openconnectauth.h.orig	2015-12-03 12:30:03.000000000 +0000
++++ plasma-nm-5.5.0/vpn/openconnect/openconnectauth.h	2015-12-13 07:27:30.966660764 +0000
+@@ -61,7 +61,6 @@
+     void formGroupChanged();
+     void workerFinished(const int&);
+     void viewServerLogToggled(bool);
+-    void passwordModeToggled(bool);
+     void connectHost();
+ };
+ 
 --- plasma-nm-5.5.0/vpn/openconnect/openconnectauth.cpp.orig	2015-12-03 12:30:03.000000000 +0000
-+++ plasma-nm-5.5.0/vpn/openconnect/openconnectauth.cpp	2015-12-13 07:13:20.736657631 +0000
-@@ -585,7 +585,7 @@
++++ plasma-nm-5.5.0/vpn/openconnect/openconnectauth.cpp	2015-12-13 07:33:37.434662114 +0000
+@@ -82,6 +82,7 @@
+     bool formGroupChanged;
+     int cancelPipes[2];
+     QList<QPair<QString, int> > serverLog;
++    int passwordFormIndex;
+ 
+     enum LogLevels {Error = 0, Info, Debug, Trace};
+ };
+@@ -476,6 +477,7 @@
+         }
+     }
+     d->ui.loginBoxLayout->addLayout(layout);
++    d->passwordFormIndex = d->ui.loginBoxLayout->count() - 1;
+ 
+     QDialogButtonBox *box = new QDialogButtonBox(this);
+     QPushButton *btn = box->addButton(QDialogButtonBox::Ok);
+@@ -585,7 +587,7 @@
      Q_D(OpenconnectAuthWidget);
  
      const int lastIndex = d->ui.loginBoxLayout->count() - 1;
 -    QLayout *layout = d->ui.loginBoxLayout->itemAt(lastIndex - 2)->layout();
-+    QLayout *layout = d->ui.loginBoxLayout->itemAt(lastIndex - 1)->layout();
++    QLayout *layout = d->ui.loginBoxLayout->itemAt(d->passwordFormIndex)->layout();
      struct oc_auth_form *form = (struct oc_auth_form *) d->ui.loginBoxLayout->itemAt(lastIndex)->widget()->property("openconnect_form").value<quintptr>();
  
      for (int i = 0; i < layout->count(); i++) {
+@@ -674,21 +676,3 @@
+         d->ui.serverLogBox->setSizePolicy(policy);
+     }
+ }
+-
+-void OpenconnectAuthWidget::passwordModeToggled(bool toggled)
+-{
+-    Q_D(OpenconnectAuthWidget);
+-    const int lastIndex = d->ui.loginBoxLayout->count() - 1;
+-    QLayout *layout = d->ui.loginBoxLayout->itemAt(lastIndex - 2)->layout();
+-    for (int i = 0; i < layout->count(); i++) {
+-        QLayoutItem *item = layout->itemAt(i);
+-        QWidget *widget = item->widget();
+-        if (widget && widget->property("openconnect_opt").isValid()) {
+-            struct oc_form_opt *opt = (struct oc_form_opt *) widget->property("openconnect_opt").value<quintptr>();
+-            if (opt->type == OC_FORM_OPT_PASSWORD) {
+-                PasswordField *le = qobject_cast<PasswordField*>(widget);
+-                le->setPasswordMode(!toggled);
+-            }
+-        }
+-    }
+-}
