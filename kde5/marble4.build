@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/k/kde-applications-15.08.3
 #TAR_EXT=.tar.gz
 VERSION=15.08.3
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -103,10 +103,11 @@ mkdir -p ${PKG}/usr/share/apps/cmake/modules
 mv ${PKG}/usr/share/marble/cmake/FindMarble.cmake \
   ${PKG}/usr/share/apps/cmake/modules/FindMarble.cmake
 # Rename the marble4 include dir to avoid a conflict with marble:
-mv ${PKG}/usr/include/marble{,4}
+mkdir ${PKG}/usr/include/marble4
+mv ${PKG}/usr/include/marble ${PKG}/usr/include/marble4
 # And fix that include path in the cmake file too:
 sed -i ${PKG}/usr/share/apps/cmake/modules/FindMarble.cmake \
-    -e 's,marble/MarbleModel.h,marble4/MarbleModel.h,'
+    -e 's,marble/MarbleModel.h,marble/MarbleModel.h,; s,MARBLE_INCLUDE_DIR NAMES,MARBLE_INCLUDE_DIR PATH_SUFFIXES marble4 NAMES,'
 
 cd ..
 
