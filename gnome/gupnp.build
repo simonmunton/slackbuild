@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=libgee
+TARNAME=gupnp
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.18.0
+VERSION=0.20.14
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,15 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -105,9 +109,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a collection library providing GObject-based interfaces and classes"
-Libgee is a collection library providing GObject-based interfaces and 
-classes for commonly used data structures. 
+make_slack_desc << EOF "UPnP"
+GUPnP is an object-oriented open source framework for creating UPnP 
+devices and control points, written in C using GObject and libsoup. 
+The GUPnP API is intended to be easy to use, efficient and flexible.
 
 EOF
 
