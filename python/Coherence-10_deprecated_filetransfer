@@ -1,0 +1,34 @@
+Description: replace deprecated static.FileTransfer with static.File
+Author: exarkun
+Bug-Debian: http://bugs.debian.org/572796
+Origin: upstream, http://coherence.beebits.net/attachment/ticket/298/deprecated-filetransfer.patch
+Bug: http://coherence.beebits.net/ticket/298
+Forwarded: http://coherence.beebits.net/ticket/298
+Reviewed-By: Eric Evans <eevans@debian.org>
+Last-Update: 2013-08-12
+
+Index: coherence/coherence/upnp/core/utils.py
+===================================================================
+--- coherence.orig/coherence/upnp/core/utils.py	2013-08-12 14:32:12.000000000 +0200
++++ coherence/coherence/upnp/core/utils.py	2013-08-12 14:32:58.643890078 +0200
+@@ -11,7 +11,7 @@
+ 
+ from coherence import SERVER_ID
+ 
+-
++import twisted
+ from twisted.web import server, http, static
+ from twisted.web import client, error
+ from twisted.web import proxy, resource, server
+@@ -686,6 +686,11 @@
+         # and make sure the connection doesn't get closed
+         return server.NOT_DONE_YET
+ 
++if twisted.version.major >= 9:
++    # Since 9.0, twisted.web.static.File has supported byte range requests.
++    # Prefer that, if it is available.
++    StaticFile = static.File
++
+ class BufferFile(static.File):
+     """ taken from twisted.web.static and modified
+         accordingly to the patch by John-Mark Gurney
