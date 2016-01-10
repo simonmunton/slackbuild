@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=lapack
+TARNAME=pcl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=3.6.0
+VERSION=1.7.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.netlib.org/lapack/"
+WEBPAGE="http://www.pointclouds.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/lapack-3.6.0.diff
+ patch -p1 < ${CWD}/pcl-0004-Correct-PCL_ROOT-in-PCLConfig.cmake.patch
+ patch -p1 < ${CWD}/pcl-0005-tools-depends-on-visualization.patch
+ patch -p1 < ${CWD}/pcl-0006-fixes-for-boost-1.56-and-Qt4.patch
+ patch -p1 < ${CWD}/pcl-0007-Fix-for-boost-1.57.patch
+ patch -p1 < ${CWD}/pcl-0008-Fixes-manual_registration-and-segmentation-demo-for-.patch
+ patch -p1 < ${CWD}/pcl-0009-Fix-THIS_METHOD_IS_ONLY_FOR_1x1_EXPRESSIONS.patch
 )
 fi
 
@@ -62,7 +67,7 @@ cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -79,11 +84,16 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DLIB_INSTALL_DIR=lib${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DBUILD_SHARED_LIBS=on \
-      -DCBLAS=on \
-      -DLAPACKE=on \
-      -DBUILD_DEPRECATED=on \
+      -DBUILD_apps=on \
+      -DBUILD_apps_point_cloud_editor=on \
+      -DBUILD_apps_cloud_composer=on \
+      -DBUILD_apps_modeler=on \
+      -DBUILD_examples=on \
+      -DBUILD_surface_on_nurbs=on \
+      -DWITH_DOCS=on \
+      -Wno-dev \
       ..
 fi
 
@@ -111,6 +121,16 @@ compress_manpages
 
 compress_info
 
+mkdir -p ${PKG}/usr/man/man1
+tar xf ${CWD}/pcl-manpages.tar.gz -C ${PKG}/usr/man/man1
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl
+mv ${PKG}/usr/share/pcl-*/*.cmake ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl
+rmdir -p ${PKG}/usr/share/pcl-*
+
+mv ${PKG}/usr/share/doc/pcl-*/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir -p ${PKG}/usr/share/doc/pcl-*
+
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
@@ -118,15 +138,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Linear Algebra PACKage"
-LAPACK is a library of Fortran 77 subroutines for solving the most
-commonly occurring problems in numerical linear algebra. It is
-freely-available software, and is copyrighted.
-
-LAPACK is available on netlib and can be obtained via the World Wide
-Web and anonymous ftp.
-  
-  http://www.netlib.org/lapack/
+make_slack_desc << EOF  "Point Cloud Library"
+The Point Cloud Library (or PCL) is a large scale, open project for 
+2D/3D image and point cloud processing. The PCL framework contains 
+numerous state-of-the art algorithms including filtering, feature 
+estimation, surface reconstruction, registration, model fitting and 
+segmentation. These algorithms can be used, for example, to filter 
+outliers from noisy data, stitch 3D point clouds together, segment 
+relevant parts of a scene, extract keypoints and compute descriptors 
+to recognize objects in the world based on their geometric appearance, 
+and create surfaces from point clouds and visualize them.
 
 EOF
 

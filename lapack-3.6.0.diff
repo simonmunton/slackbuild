@@ -1,0 +1,75 @@
+--- lapack-3.6.0/CMakeLists.txt.orig	2015-11-15 20:33:40.000000000 +0000
++++ lapack-3.6.0/CMakeLists.txt	2016-01-09 22:19:04.063197404 +0000
+@@ -17,11 +17,11 @@
+     set(CMAKE_MACOSX_RPATH ON)
+     set(CMAKE_SKIP_BUILD_RPATH FALSE)
+     set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
++    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+     if("${isSystemDir}" STREQUAL "-1")
+-        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
++        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+     endif()
+ 
+ 
+--- lapack-3.6.0/CBLAS/testing/CMakeLists.txt.orig	2014-08-23 02:21:57.000000000 +0100
++++ lapack-3.6.0/CBLAS/testing/CMakeLists.txt	2016-01-09 21:44:10.255559674 +0000
+@@ -16,7 +16,7 @@
+       -DINTDIR=${CMAKE_CFG_INTDIR}
+       -P "${LAPACK_SOURCE_DIR}/TESTING/runtest.cmake")
+     else()
+-      string(REPLACE "." "_" input_name ${input})
++      string(REPLACE "." "_" input_name "${input}")
+       add_test(NAME CBLAS-${testName} COMMAND "${CMAKE_COMMAND}" 
+         -DTEST=$<TARGET_FILE:${target}>
+         -DOUTPUT=${TEST_OUTPUT} 
+--- lapack-3.6.0/CBLAS/CMakeLists.txt.orig	2014-08-23 02:53:37.000000000 +0100
++++ lapack-3.6.0/CBLAS/CMakeLists.txt	2016-01-09 22:09:44.646195343 +0000
+@@ -49,7 +49,7 @@
+ set(_cblas_config_install_guard_target "")
+ if(ALL_TARGETS)
+   install(EXPORT cblas-targets
+-    DESTINATION lib/cmake/cblas-${LAPACK_VERSION})
++    DESTINATION ${LIBRARY_DIR}/cmake/cblas-${LAPACK_VERSION})
+   # Choose one of the cblas targets to use as a guard for
+   # cblas-config.cmake to load targets from the install tree.
+   list(GET ALL_TARGETS 0 _cblas_config_install_guard_target)
+@@ -65,9 +65,9 @@
+   list(GET ALL_TARGETS 0 _cblas_config_build_guard_target)
+ endif()
+ 
+-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMAKE/cblas-config-version.cmake.in
++configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cblas-config-version.cmake.in
+   ${LAPACK_BINARY_DIR}/cblas-config-version.cmake @ONLY)
+-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMAKE/cblas-config-build.cmake.in
++configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cblas-config-build.cmake.in
+   ${LAPACK_BINARY_DIR}/cblas-config.cmake @ONLY)
+ 
+ 
+@@ -82,9 +82,9 @@
+ install(FILES
+   ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cblas-config.cmake
+   ${LAPACK_BINARY_DIR}/cblas-config-version.cmake
+-  DESTINATION lib/cmake/cblas-${LAPACK_VERSION}
++  DESTINATION ${LIBRARY_DIR}/cmake/cblas-${LAPACK_VERSION}
+   )
+ 
+ #install(EXPORT cblas-targets
+-#  DESTINATION lib/cmake/cblas-${LAPACK_VERSION})
++#  DESTINATION ${LIBRARY_DIR}/cmake/cblas-${LAPACK_VERSION})
+ 
+--- lapack-3.6.0/LAPACKE/CMakeLists.txt.orig	2014-08-23 02:53:37.000000000 +0100
++++ lapack-3.6.0/LAPACKE/CMakeLists.txt	2016-01-09 22:08:05.200194976 +0000
+@@ -81,8 +81,8 @@
+ install(FILES
+   ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/lapacke-config.cmake
+   ${LAPACK_BINARY_DIR}/lapacke-config-version.cmake
+-  DESTINATION lib/cmake/lapacke-${LAPACK_VERSION}
++  DESTINATION ${LIBRARY_DIR}/cmake/lapacke-${LAPACK_VERSION}
+   )
+ 
+ install(EXPORT lapacke-targets
+-  DESTINATION lib/cmake/lapacke-${LAPACK_VERSION})
++  DESTINATION ${LIBRARY_DIR}/cmake/lapacke-${LAPACK_VERSION})
