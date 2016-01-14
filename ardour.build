@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=4.4
+VERSION=4.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,6 +46,14 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/ardour-2.8.14.diff
+ if [ ! -e libs/ardour/revision.cc ]
+ then
+    cat << EOF > libs/ardour/revision.cc
+#include "ardour/revision.h"
+namespace ARDOUR { const char* revision = "${VERSION}"; }
+EOF
+
+ fi
 )
 fi
 
@@ -63,7 +71,7 @@ then
             --configdir=/etc \
             --freedesktop \
             --ptformat
-true
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
