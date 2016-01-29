@@ -177,9 +177,9 @@ rm -rf $PKG/opt/kde3
 #)
 
 
-(cd $PKG/usr/bin
- ln -s libreoffice${S_VERSION}-printeradmin libreoffice-printeradmin
-)
+#(cd $PKG/usr/bin
+# ln -s libreoffice${S_VERSION}-printeradmin libreoffice-printeradmin
+#)
 
 
 # GNOME concession - if I'm missing anything else here, please let me know
@@ -283,6 +283,11 @@ EOF
 
 USERNAME=`id -un`
 GROUP=`id -gn`
+
+
+# workaround for new harfbuzz breakage due to included version of harfbuzz
+sed -i -e '/# oosplash/ i export LD_PRELOAD=/usr/lib64/libharfbuzz.so' $PKG/opt/libreoffice*/program/soffice
+
 
 cd $PKG
 su -c "chown -R root.root ${PKG}; \
