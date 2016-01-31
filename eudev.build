@@ -1,0 +1,213 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=eudev
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/e
+#TAR_EXT=.tar.gz
+VERSION=3.1.5
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://github.com/gentoo/eudev"
+# http://dev.gentoo.org/~blueness/eudev/
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/eudev-60-cdrom_id.rules.diff
+ patch -p1 < ${CWD}/eudev-0001-Remove-obsolete-udev_root-references.patch
+ patch -p1 < ${CWD}/eudev-0002-src-udev-udevd.c-add-eudev-startup-message-for-kmsg.patch
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+	    --with-rootprefix=/ \
+	    --with-rootlibdir=/lib${LIBDIRSUFFIX} \
+	    --with-rootrundir=/run \
+	    --with-rootlibexecdir=/lib/udev \
+	    --bindir=/sbin \
+	    --sbindir=/sbin \
+	    --libexecdir=/lib \
+	    --enable-introspection \
+	    --enable-hwdb \
+	    --enable-manpages \
+	    --mandir=/usr/man \
+	    --docdir=/usr/doc/eudev-$VERSION \
+	    --disable-static \
+	    --enable-rule_generator \
+	    --enable-split-usr
+
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+mv $PKG/usr/share/pkgconfig/* $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig
+rmdir $PKG/usr/share/pkgconfig
+
+
+# scsi_id is needed by multipath
+( cd $PKG/sbin ; ln -s ../lib/udev/scsi_id scsi_id )
+
+# Move system installed hwdb files under /lib:
+mkdir -p $PKG/lib/udev/hwdb.d
+mv $PKG/etc/udev/hwdb.d/* $PKG/lib/udev/hwdb.d
+
+mkdir -p \
+  $PKG/run \
+  $PKG/{etc,lib}/modprobe.d \
+  $PKG/etc/rc.d \
+  $PKG/etc/udev/rules.d \
+  $PKG/lib/firmware
+
+# Yes, this will clobber existing config files.
+cp -a $CWD/eudev/config/udev.conf $PKG/etc/udev/udev.conf
+
+# Copy Slackware custom rules:
+cp -a $CWD/eudev/config/rules.d/* $PKG/lib/udev/rules.d/
+
+# Now the init script and kmod stuff:
+cp -a $CWD/eudev/config/rc.d/rc.udev.new $PKG/etc/rc.d/rc.udev.new
+cp -a $CWD/eudev/config/modprobe.d/*.conf $PKG/lib/modprobe.d/
+cp -a $CWD/eudev/config/modprobe.d/README $PKG/etc/modprobe.d/
+
+# Add extra device nodes to the package that udev doesn't make:
+mkdir -p $PKG/lib/udev/devices
+if [ -r $CWD/eudev/udev-fixed-devices.tar.gz ]; then
+  tar xvf $CWD/eudev/udev-fixed-devices.tar.gz -C $PKG
+fi
+
+# Support locally added additional devices found in this directory:
+mkdir -p $PKG/etc/udev/devices
+
+
+doinst_same_perm etc/rc.d/rc.udev
+
+cat << EOF >> ${PKG}/install/doinst.sh
+
+# There's no reason for a user to edit rc.udev, so overwrite it:
+if [ -r etc/rc.d/rc.udev.new ]; then
+  mv etc/rc.d/rc.udev.new etc/rc.d/rc.udev
+fi
+
+# This should catch *all* files in /etc/modprobe.d/ and move them over to
+# have .conf extensions
+for modfile in \$(ls etc/modprobe.d/ | grep -v "\.\(conf\|bak\|orig\|new\)"); do
+  if [ "\$modfile" = README ]; then
+    true # do nothing
+  elif [ -e etc/modprobe.d/\$modfile -a ! -e etc/modprobe.d/\$modfile.conf ]; then
+    mv etc/modprobe.d/\$modfile etc/modprobe.d/\$modfile.conf
+  elif [ -e etc/modprobe.d/\$modfile -a -e etc/modprobe.d/\$modfile.conf ]; then
+    mv etc/modprobe.d/\$modfile etc/modprobe.d/\$modfile.bak
+  fi
+done
+
+EOF
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "dynamic device directory system"
+eudev provides a dynamic device directory containing only the files
+for the devices which are actually present.  It creates or removes
+device node files usually located in the /dev directory.  eudev is a
+fork of git://anongit.freedesktop.org/systemd/systemd with the aim of
+isolating udev from any particular flavor of system initialization.
+
+Homepage:  https://wiki.gentoo.org/wiki/Project:Eudev
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+find etc lib/modprobe.d -type f -exec chmod 644 {} \; ; \
+find etc -type d -exec chmod 755 {} \; ; \
+chmod 0755 etc/rc.d/rc.udev.new ; \
+chmod 0755 lib/udev/* ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
