@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=YafaRay
+TARNAME=yafaray
 TARNAMEEXTRA=
-TARSEP=.
+TARSEP="-"
 TARDIR=~/tmp/new/y
 #TAR_EXT=.tar.gz
-VERSION=0.1.1
+VERSION=0.1.5
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://www.yafaray.org/"
+
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=yafaray
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv yafaray ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -43,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/YafaRay-0.1.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -53,14 +55,37 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DYAF_LIB_DIR=lib${LIBDIRSUFFIX} \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} PREFIX=/usr LIBDIRSUFFIX=${LIBDIRSUFFIX} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,9 +93,9 @@ then
   exit
 fi
 
-scons install PREFIX=/usr DESTDIR=${PKG} LIBDIRSUFFIX=${LIBDIRSUFFIX}
+make install DESTDIR=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -79,16 +104,21 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
-YafRay is a powerful raytracer, under the LGPL license. It enables 
-you to create fantastic images and animations of a photorealistic 
-quality.
+make_slack_desc << EOF "raytracing engine"
+YafaRay is a free open-source montecarlo raytracing engine released 
+under the LGPL 2.1 license. Raytracing is a rendering technique for 
+generating realistic images by tracing the path of light through a 3D 
+scene. A render engine consists of a specialised computer program that 
+interacts with a host 3D application to provide specific raytracing 
+capabilities "on demand". The YafaRay engine can be used in the 
+following 3D applications: Blender, Edificius, pCon-planner and Wings 
+3D.
 
 EOF
 
