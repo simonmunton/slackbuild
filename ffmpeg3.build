@@ -1,0 +1,184 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=ffmpeg
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/f
+#TAR_EXT=.tar.gz
+VERSION=3.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=ffmpeg3
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/ffmpeg-2.8.2.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${ARCH} == x86_64 ]
+then
+  SLKCFLAGS="-O4"
+else
+  SLKCFLAGS="-O4 -march=pentium4 -mtune=pentium4"
+fi
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS} -I/usr/include/gsm" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --shlibdir=/usr/lib${LIBDIRSUFFIX} \
+            --enable-libmp3lame \
+            --enable-libvorbis \
+            --enable-libtheora \
+	    --enable-libspeex \
+            --enable-libxvid \
+	    --enable-libfaac \
+	    --enable-libnut \
+	    --enable-libschroedinger \
+            --enable-gpl \
+            --enable-libfaac \
+            --enable-libopencore-amrnb \
+            --enable-libopencore-amrwb \
+	    --enable-version3 \
+            --enable-libgsm \
+            --enable-libx264  \
+            --enable-libx265  \
+	    --enable-libvpx \
+	    --enable-libwebp \
+            --enable-libdc1394 \
+            --enable-shared \
+            --enable-postproc \
+	    --enable-avfilter \
+	    --enable-libopenjpeg \
+	    --enable-librtmp \
+	    --enable-libvpx \
+	    --enable-frei0r \
+	    --enable-nonfree \
+	    --extra-ldflags="-lssl -lcrypto -lz"
+
+
+#	    --enable-libdirac \
+#	    --enable-avfilter-lavf \
+#            --enable-libfaad \
+#	    --enable-swscale \
+#            --enable-liba52 \
+#            --enable-pp \
+#            --enable-libogg \
+#            --enable-dc1394 \
+#           --enable-swscaler \
+#           --enable-libdts \
+#           --enable-pthreads \
+#           --enable-amr_nb-fixed \
+#
+#
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+pushd doc
+# make || exit
+popd
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
+
+make install DESTDIR=${PKG}
+# prefix=${PKG}/usr bindir=${PKG}/usr/bin mandir=${PKG}/usr/man
+
+#cp version.h ${PKG}/usr/include/ffmpeg
+
+# links for compatability
+#mkdir -p ${PKG}/usr/include/ffmpeg ${PKG}/usr/include/postproc
+#(cd ${PKG}/usr/include/ffmpeg
+# ln -sf ../libavcodec/* .
+# ln -sf ../libavdevice/* .
+# ln -sf ../libavfilter/* .
+# ln -sf ../libavformat/* .
+# ln -sf ../libavutil/* .
+# ln -sf ../libswscale/* .
+# cd ../postproc
+# ln -sf ../libpostproc/* .
+#)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  COPYING CREDITS INSTALL README* doc/TODO doc/*html doc/*conf \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "fast video and audio converter"
+FFmpeg is a very fast video and audio converter. It can also grab
+from a live audio/video source.
+
+The command line interface is designed to be intuitive, in the sense
+that FFmpeg tries to figure out all parameters that can possibly be
+derived automatically. You usually only have to specify the target
+bitrate you want.
+
+FFmpeg can also convert from any sample rate to any other, and resize
+video on the fly with a high quality polyphase filter.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
