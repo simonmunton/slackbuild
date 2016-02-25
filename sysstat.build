@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libinput
+TARNAME=sysstat
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=11.3.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://freedesktop.org/wiki/Software/libinput/"
+WEBPAGE="http://sebastien.godard.pagesperso-orange.fr/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -67,7 +67,13 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-copy-only \
+	    --disable-file-attr \
+	    sa_dir=/var/log/sysstat \
+	    sa_lib_dir=/usr/lib${LIBDIRSUFFIX}/sysstat \
+	    conf_dir=/etc/sysstat
+
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -93,6 +99,7 @@ then
 fi
 
 make install DESTDIR=${PKG}
+ #IGNORE_FILE_ATTRIBUTES=y
 
 strip_binaries
 
@@ -109,12 +116,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library to handle input devices in Wayland compositors"
-libinput is a library to handle input devices in Wayland compositors 
-and to provide a generic X.Org input driver. It provides device 
-detection, device handling, input device event processing and 
-abstraction so minimize the amount of custom input code compositors 
-need to provide the common set of functionality that users expect.
+make_slack_desc << EOF "The sysstat utilities are a collection of performance monitoring tools"
+The sysstat package contains utilities to monitor system performance 
+and usage activity. Sysstat contains various utilities, common to many 
+commercial Unixes, and tools you can schedule via cron to collect and 
+historize performance and activity data. 
 
 EOF
 

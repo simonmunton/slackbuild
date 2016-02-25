@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libinput
+TARNAME=crossguid
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=20160224
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://freedesktop.org/wiki/Software/libinput/"
+WEBPAGE="https://github.com/graeme-hill/crossguid"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -84,7 +84,9 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+g++ -std=c++11 -DGUID_LIBUUID -Wall -c guid.cpp -o guid.o
+ar rvs libcrossguid.a guid.o
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +94,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX} ${PKG}/usr/include
+
+cp libcrossguid.a ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp guid.h ${PKG}/usr/include
 
 strip_binaries
 
@@ -109,12 +115,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library to handle input devices in Wayland compositors"
-libinput is a library to handle input devices in Wayland compositors 
-and to provide a generic X.Org input driver. It provides device 
-detection, device handling, input device event processing and 
-abstraction so minimize the amount of custom input code compositors 
-need to provide the common set of functionality that users expect.
+make_slack_desc << EOF "Lightweight cross platform C++ GUID/UUID library"
+Lightweight cross platform C++ GUID/UUID library
 
 EOF
 
