@@ -70,8 +70,8 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --mandir=/usr/man \
 	    --enable-copy-only \
 	    --disable-file-attr \
-	    sa_dir=/var/log/sysstat \
-	    sa_lib_dir=/usr/lib${LIBDIRSUFFIX}/sysstat \
+	    sa_dir=/var/log/sa \
+	    sa_lib_dir=/usr/lib${LIBDIRSUFFIX}/sa \
 	    conf_dir=/etc/sysstat
 
 elif [ -f ./CMakeLists.txt ]
@@ -99,7 +99,25 @@ then
 fi
 
 make install DESTDIR=${PKG}
- #IGNORE_FILE_ATTRIBUTES=y
+
+mv ${PKG}/etc/sysstat/sysstat ${PKG}/etc/sysstat/sysstat.new
+doinst_config etc/sysstat/sysstat.new
+
+mkdir -p $PKG/etc/rc.d
+# Cosmetic touches:
+sed -i 's?/etc/rc.d/init.d/sysstat?/etc/rc.d/rc.sysstat?g' sysstat
+install -o0 -g0 -vpm644 sysstat $PKG/etc/rc.d/rc.sysstat.new
+doinst_same_perm etc/rc.d/rc.sysstat
+doinst_config etc/rc.d/rc.sysstat.new
+
+
+
+
+# Add crontab example scripts:
+mkdir -p $PKG/usr/doc/${TARNAME}-${VERSION}/cron-examples
+cp -a \
+  cron/{crontab,sysstat.cron.daily,sysstat.cron.hourly,sysstat.crond,sysstat.crond.sample} \
+  $PKG/usr/doc/${TARNAME}-${VERSION}/cron-examples
 
 strip_binaries
 
