@@ -1,0 +1,35 @@
+Desription: docbook2x-man does not create output that lintian is delighted by
+Author: Thorsten Alteholz <debian@alteholz.de>
+
+Index: ent/Makefile
+===================================================================
+--- ent.orig/Makefile	2015-06-13 17:31:27.342059056 +0200
++++ ent/Makefile	2015-06-13 17:31:42.282022110 +0200
+@@ -5,8 +5,8 @@
+ CFLAGS = -g -Wall
+ #CFLAGS = -O
+ 
+-ent:	ent.o iso8859.o randtest.o chisq.o
+-	$(CC) $(CFLAGS) ent.o iso8859.o randtest.o chisq.o -o ent -lm
++ent:	ent.o iso8859.o randtest.o chisq.o ent.1
++	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) ent.o iso8859.o randtest.o chisq.o -o ent -lm
+ 
+ ent.c:	iso8859.h randtest.h
+ 
+@@ -31,3 +31,16 @@
+ 
+ clean:
+ 	rm -f *.o *.bak ent ent.zip
++
++%.1: %.1.txt
++	asciidoc -b docbook -d manpage $<
++	docbook2x-man $*.1.xml
++	mv $*.1 $*.1.pre
++	cat $*.1.pre | sed "s/-b /\\\\-b/" | \
++		sed "s/-c /\\\\-c/" | \
++		sed "s/-f /\\\\-f/" | \
++		sed "s/-t /\\\\-t/" | \
++		sed "s/-u /\\\\-u/" | \
++		sed "s/ -b/ \\\\-b/" > $*.1
++	rm -f $*.1.xml $*.1.pre
++
