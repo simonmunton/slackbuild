@@ -1,0 +1,151 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=qtwebkit-opensource-src
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/q
+#TAR_EXT=.tar.gz
+VERSION=5.6.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://download.qt.io/community_releases/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=qt5-webkit
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/qt5-webkit-pthread.patch
+
+ syncqt.pl -version 5.6.0 Source/sync.profile
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+PATH=/usr/lib64/qt5/bin:$PATH
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+qmake
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install INSTALL_ROOT=${PKG}
+
+# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+find "${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib" -type f -name '*.prl' \
+    -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
+
+for LIBS in ${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib/*so*; do
+  TMP_FILE=$(echo ${LIBS} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/$(basename ${LIBS})
+done
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+for PKGCONFIG in ${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib/pkgconfig/*.pc; do
+echo  sed -i -e "s@-L${CWD}[^ ]* *@@g; s@${CWD}[^ ]*[.]a *@@g" ${PKGCONFIG}
+  sed -i -e "s@-L${CWD}[^ ]* *@@g; s@${CWD}[^ ]*[.]a *@@g" ${PKGCONFIG}
+
+  TMP_FILE=$(echo ${PKGCONFIG} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/$(basename ${PKGCONFIG})
+done
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+for CMAKE in $(find ${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib/cmake -maxdepth 1); do
+  TMP_FILE=$(echo ${CMAKE} | sed -e "s|${PKG}||")
+  ln -s ${TMP_FILE} ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/$(basename ${CMAKE})
+done
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

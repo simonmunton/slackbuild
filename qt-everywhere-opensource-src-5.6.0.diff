@@ -1,0 +1,111 @@
+--- qt-everywhere-opensource-src-5.6.0/gnuwin32/lib/libiconv.la.orig	2016-03-09 09:10:45.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/gnuwin32/lib/libiconv.la	2016-03-09 09:10:45.000000000 +0000
+@@ -32,4 +32,4 @@
+ dlpreopen=''
+ 
+ # Directory that this library needs to be installed in:
+-libdir='c:/progra~1/LibIconv/lib'
++libdir='C:/Users/marius/DOWNLO~1/WEBKIT~1/install/lib'
+--- qt-everywhere-opensource-src-5.6.0/gnuwin32/lib/libcharset.la.orig	2016-03-09 09:10:45.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/gnuwin32/lib/libcharset.la	2016-03-09 09:10:45.000000000 +0000
+@@ -32,4 +32,4 @@
+ dlpreopen=''
+ 
+ # Directory that this library needs to be installed in:
+-libdir='c:/progra~1/LibIconv/lib'
++libdir='C:/Users/marius/DOWNLO~1/WEBKIT~1/install/lib'
+--- qt-everywhere-opensource-src-5.6.0/qtbase/src/gui/image/qppmhandler.cpp.orig	2016-03-03 11:35:22.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/qtbase/src/gui/image/qppmhandler.cpp	2016-03-16 19:55:31.819900246 +0000
+@@ -172,19 +172,39 @@
+                         *p++ = qRgb(b[0],b[1],b[2]);
+                         b += 3;
+                     } else {
+-                        *p++ = qRgb(((int(b[0]) * 256 + int(b[1]) + 1) * 256) / (mcc + 1) - 1,
+-                                    ((int(b[2]) * 256 + int(b[3]) + 1) * 256) / (mcc + 1) - 1,
+-                                    ((int(b[4]) * 256 + int(b[5]) + 1) * 256) / (mcc + 1) - 1);
++                        *p++ = qRgb(((int(b[0]) * 256 + int(b[1])) * 256) / (mcc + 1),
++                                    ((int(b[2]) * 256 + int(b[3])) * 256) / (mcc + 1),
++                                    ((int(b[4]) * 256 + int(b[5])) * 256) / (mcc + 1));
+                         b += 6;
+                     }
+                 }
+             }
+             delete[] buf24;
+         } else {                                // type 4,5
+-            for (y=0; y<h; y++) {
+-                if (device->read((char *)outImage->scanLine(y), pbm_bpl)
+-                        != pbm_bpl)
+-                    return false;
++            if (mcc < 256) {
++                for (y=0; y<h; y++) {
++                    if (device->read((char *)outImage->scanLine(y), pbm_bpl)
++                            != pbm_bpl)
++                        return false;
++                }
++            } else {
++                pbm_bpl *= 2;
++                uchar *buf16 = new uchar[pbm_bpl], *b;
++                char *p, *end;
++                for (y=0; y<h; y++) {
++                    if (device->read((char *)buf16, pbm_bpl) != pbm_bpl) {
++                        delete[] buf16;
++                        return false;
++                    }
++                    p = (char *)outImage->scanLine(y);
++                    end = p + w;
++                    b = buf16;
++                    while (p < end) {
++                        *p++ = ((int(b[0]) * 256 + int(b[1])) * 256) / (mcc + 1);
++                        b += 2;
++                    }
++                }
++                delete[] buf16;
+             }
+         }
+     } else {                                        // read ascii data
+--- qt-everywhere-opensource-src-5.6.0/qtbase/src/sql/drivers/mysql/qsql_mysql_p.h.orig	2016-03-03 11:35:22.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/qtbase/src/sql/drivers/mysql/qsql_mysql_p.h	2016-03-16 19:55:09.754900165 +0000
+@@ -52,7 +52,7 @@
+ #include <QtCore/qt_windows.h>
+ #endif
+ 
+-#include <mysql.h>
++#include <mysql/mysql.h>
+ 
+ #ifdef QT_PLUGIN
+ #define Q_EXPORT_SQLDRIVER_MYSQL
+--- qt-everywhere-opensource-src-5.6.0/qtwebengine/src/3rdparty/chromium/build/common.gypi.orig	2016-03-03 14:48:36.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/qtwebengine/src/3rdparty/chromium/build/common.gypi	2016-03-16 19:55:31.816900246 +0000
+@@ -3652,7 +3652,7 @@
+     ['os_posix==1 and disable_fatal_linker_warnings==0 and use_evdev_gestures==0 and (chromeos==0 or target_arch!="arm")', {
+       'target_defaults': {
+         'ldflags': [
+-          '-Wl,--fatal-warnings',
++          '-Wl,--no-fatal-warnings',
+         ],
+       },
+     }],
+--- qt-everywhere-opensource-src-5.6.0/qtwebengine/src/3rdparty/chromium/net/third_party/nss/ssl/ssl3con.c.orig	2016-03-03 14:48:36.000000000 +0000
++++ qt-everywhere-opensource-src-5.6.0/qtwebengine/src/3rdparty/chromium/net/third_party/nss/ssl/ssl3con.c	2016-03-16 22:05:38.533448276 +0000
+@@ -2067,8 +2067,8 @@
+ 	*outlen = explicitNonceLen;
+     }
+ 
+-    gcmParams.pIv = nonce;
+-    gcmParams.ulIvLen = sizeof(nonce);
++    gcmParams.pNonce = nonce;
++    gcmParams.ulNonceLen = sizeof(nonce);
+     gcmParams.pAAD = (unsigned char *)additionalData;  /* const cast */
+     gcmParams.ulAADLen = additionalDataLen;
+     gcmParams.ulTagBits = tagSize * 8;
+@@ -2115,8 +2115,8 @@
+     param.len = sizeof(aeadParams);
+     param.data = (unsigned char *) &aeadParams;
+     memset(&aeadParams, 0, sizeof(aeadParams));
+-    aeadParams.pIv = (unsigned char *) additionalData;
+-    aeadParams.ulIvLen = 8;
++    aeadParams.pNonce = (unsigned char *) additionalData;
++    aeadParams.ulNonceLen = 8;
+     aeadParams.pAAD = (unsigned char *) additionalData;
+     aeadParams.ulAADLen = additionalDataLen;
+     aeadParams.ulTagLen = tagSize;
