@@ -2,20 +2,20 @@
 #
 . ../build_funcs
 
-TARNAME=phonon
+TARNAME=phonon-backend-vlc
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.8.3
+VERSION=0.8.2
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=phonon-qt5
+PKGNAME=phonon-backend-vlc-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/phonon-4.8.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +55,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -75,7 +77,6 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
       -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
       -DPHONON_BUILD_PHONON4QT5=ON \
-      -DPHONON_INSTALL_QT_EXTENSIONS_INTO_SYSTEM_QT=ON \
       -Wno-dev \
       .. \
       2>&1 | tee _Build_config.log
@@ -92,8 +93,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-mkdir ${PKG}/usr/lib64/qt5/plugins/phonon4qt5_backend
 
 cd ..
 
