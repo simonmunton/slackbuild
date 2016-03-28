@@ -1,0 +1,65 @@
+--- oiio-Release-1.5.24/src/ffmpeg.imageio/ffmpeginput.cpp.orig	2016-02-29 18:14:49.000000000 +0000
++++ oiio-Release-1.5.24/src/ffmpeg.imageio/ffmpeginput.cpp	2016-03-27 15:11:11.265655290 +0100
+@@ -33,6 +33,7 @@
+ #include <libavformat/avformat.h>
+ #include <libavcodec/avcodec.h>
+ #include <libswscale/swscale.h>
++#include <libavutil/imgutils.h>
+ }
+ 
+ 
+@@ -237,9 +238,9 @@
+     m_frame = av_frame_alloc();
+     m_rgb_frame = av_frame_alloc();
+     m_rgb_buffer.resize(
+-        avpicture_get_size (PIX_FMT_RGB24,
++        av_image_get_buffer_size (AV_PIX_FMT_RGB24,
+         m_codec_context->width,
+-        m_codec_context->height),
++        m_codec_context->height, 0),
+         0
+     );
+     AVPixelFormat pixFormat;
+@@ -265,7 +266,7 @@
+         pixFormat,
+         m_codec_context->width,
+         m_codec_context->height,
+-        PIX_FMT_RGB24,
++        AV_PIX_FMT_RGB24,
+         SWS_AREA,
+         NULL,
+         NULL,
+@@ -358,13 +359,15 @@
+             }
+             if(finished)
+             {
+-                avpicture_fill
++                av_image_fill_arrays
+                 (
+-                    reinterpret_cast<AVPicture*>(m_rgb_frame),
++                    m_rgb_frame->data,
++                    m_rgb_frame->linesize,
+                     &m_rgb_buffer[0],
+-                    PIX_FMT_RGB24,
++                    AV_PIX_FMT_RGB24,
+                     m_codec_context->width,
+-                    m_codec_context->height
++                    m_codec_context->height,
++                    0
+                 );
+                 sws_scale
+                 (
+@@ -377,11 +380,11 @@
+                     m_rgb_frame->linesize
+                 );
+                 m_last_decoded_pos = m_last_search_pos; 
+-                av_free_packet (&pkt);
++                av_packet_unref (&pkt);
+                 break;
+             }
+         }
+-        av_free_packet (&pkt);
++        av_packet_unref (&pkt);
+     }
+     m_read_frame = true;
+ }

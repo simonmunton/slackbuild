@@ -1,0 +1,56 @@
+Description: Fixed a FTBFS from a new version of SIP
+Author: makc@freebsd.org
+Bug-Debian: bugs.debian.org/cgi-bin/bugreport.cgi?bug=728642
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/qtiplot/+bug/1243269
+Bug-Upstream: http://developer.berlios.de/bugs/?func=detailbug&bug_id=19204&group_id=6626
+Index: qtiplot/qtiplot/src/plot2D/ImageWidget.h
+===================================================================
+--- qtiplot.orig/qtiplot/src/plot2D/ImageWidget.h	2013-11-17 11:02:11.642725892 -0500
++++ qtiplot/qtiplot/src/plot2D/ImageWidget.h	2013-11-17 11:02:11.598725891 -0500
+@@ -67,10 +67,10 @@
+ 	void setWindowName(const QString& name){d_window_name = name;};
+ 
+ 	static QPixmap windowPixmap(ApplicationWindow *mw, const QString& name, const QSize& size);
++	void paintEvent(QPaintEvent *e);
+ 
+ private:
+ 	void draw(QPainter *painter, const QRect& r);
+-	void paintEvent(QPaintEvent *e);
+ 	QPixmap d_pix;
+ 	//! The file from which the image was loaded.
+ 	QString d_file_name;
+Index: qtiplot/qtiplot/src/analysis/FFT.cpp
+===================================================================
+--- qtiplot.orig/qtiplot/src/analysis/FFT.cpp	2013-11-17 11:02:11.642725892 -0500
++++ qtiplot/qtiplot/src/analysis/FFT.cpp	2013-11-17 11:02:11.622725891 -0500
+@@ -353,7 +353,7 @@
+ 	ml->arrangeLayers(false, false);
+ }
+ 
+-bool FFT::setDataFromTable(Table *t, const QString& realColName, const QString& imagColName, int from, int to)
++bool FFT::setDataFromTable(Table *t, const QString& realColName, const QString& imagColName, int from, int to, bool unused)
+ {
+ 	d_init_err = true;
+ 
+Index: qtiplot/qtiplot/src/analysis/FFT.h
+===================================================================
+--- qtiplot.orig/qtiplot/src/analysis/FFT.h	2013-11-17 11:02:11.642725892 -0500
++++ qtiplot/qtiplot/src/analysis/FFT.h	2013-11-17 11:02:11.634725892 -0500
+@@ -52,6 +52,8 @@
+ 	Matrix *realOutputMatrix(){return d_re_out_matrix;}
+ 	Matrix *imaginaryOutputMatrix(){return d_im_out_matrix;}
+ 
++    bool setDataFromTable(Table *t, const QString& realColName, const QString& imagColName = QString(), int from = 0, int to = -1, bool unused = false);
++
+ private:
+     void init();
+     void output();
+@@ -60,8 +62,6 @@
+ 	void fftTable();
+ 	void fftMatrix();
+ 
+-    bool setDataFromTable(Table *t, const QString& realColName, const QString& imagColName = QString(), int from = 0, int to = -1);
+-
+     double d_sampling;
+     //! Flag telling if an inverse FFT must be performed.
+     bool d_inverse;

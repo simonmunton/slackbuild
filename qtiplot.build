@@ -45,7 +45,46 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/qtiplot-0.9.8.8.diff
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-0.9.8.9.diff
+
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-crasher_without_internet.patch
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-glu_include.patch
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-adopt_to_alglib3.patch
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-set_col_values.patch
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-sipFTBFS.patch
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-10_adopt_to_gsl2.diff
+ patch -p1 -b -z .orig < ${CWD}/qtiplot-fix_stack_overflow.patch
+
+ cp build.conf.example build.conf
+
+ if [ "$ARCH" = "x86_64" ]
+ then
+  sed -i -e "/^SYS_LIBS/ a libsuff=64" build.conf
+  sed -i -e "s@/usr/lib/qtiplot@/usr/lib64/qtiplot@" qtiplot/src/core/ApplicationWindow.cpp
+ fi
+
+ # Make a few path fixes to qtiplot.pro
+ sed -i "s:/usr/local:/usr/share:" qtiplot/qtiplot.pro
+ sed -i "s:/share/man:/man:" qtiplot/qtiplot.pro
+ sed -i "s:/share/doc/qtiplot:/doc/${TARNAME}-${VERSION}:" qtiplot/qtiplot.pro
+
+ # Point to the right places of qt-assistant-compat, libreoffice (when
+ # installed), latex, java, the QtiPlot html manual and fitPlugins
+ sed -i "s:/usr/bin/soffice:/usr/bin/libreoffice:" qtiplot/src/core/ApplicationWindow.cpp
+ sed -i "s:/usr/bin/latex:/usr/share/texmf/bin/latex:" qtiplot/src/core/ApplicationWindow.cpp
+ sed -i "s:/usr/bin/java:/usr/lib${LIBDIRSUFFIX}/java/bin/java:" qtiplot/src/core/ApplicationWindow.cpp
+ sed -i "s:/index.html:/html/index.html:" qtiplot/src/core/ApplicationWindow.cpp
+ sed -i "s:/local/qtiplot/fitPlugins:/lib${LIBDIRSUFFIX}/qtiplot/plugins:" qtiplot/src/core/ApplicationWindow.cpp
+
+ DOCBOOK=dsssl-stylesheets-1.79
+ CHUNK=xsl-stylesheets-1.76.1
+ DOCBOOKX=xml-dtd-4.5
+
+ # Path fixes, needed to generate the html manual
+ sed -i "s:stylesheet/dsssl/modular:${DOCBOOK}:" manual/qtiplot.dsl
+ sed -i "s:stylesheet/nwalsh:${CHUNK}:" manual/qtiplot_html.xsl
+ sed -i "s:schema/dtd/4.4:${DOCBOOKX}:" manual/docbook-en/index.docbook
+
  chmod +x qtiplot/python-*
 )
 fi

@@ -1,0 +1,166 @@
+diff -ur qtiplot-0.9.8.9.orig/3rdparty/qwtplot3d/qwtplot3d.pro qtiplot-0.9.8.9/3rdparty/qwtplot3d/qwtplot3d.pro
+--- qtiplot-0.9.8.9.orig/3rdparty/qwtplot3d/qwtplot3d.pro	2011-08-24 15:54:38.000000000 +0100
++++ qtiplot-0.9.8.9/3rdparty/qwtplot3d/qwtplot3d.pro	2016-03-27 20:27:57.459463342 +0100
+@@ -30,7 +30,7 @@
+ RCC_DIR      = $$DESTDIR/tmp
+ MOC_DIR      = $$DESTDIR/tmp
+ 
+-DEFINES     += GL2PS_HAVE_LIBPNG
++DEFINES     += GL2PS_HAVE_LIBPNG GL2PS_HAVE_ZLIB
+ INCLUDEPATH += ../zlib/
+ INCLUDEPATH += ../libpng/
+ LIBS        += ../libpng/libpng.a
+diff -ur qtiplot-0.9.8.9.orig/build.conf.example qtiplot-0.9.8.9/build.conf.example
+--- qtiplot-0.9.8.9.orig/build.conf.example	2011-02-18 07:16:46.000000000 +0000
++++ qtiplot-0.9.8.9/build.conf.example	2016-03-27 22:10:16.730221097 +0100
+@@ -7,39 +7,39 @@
+ ##########################################################
+ 
+ # Global include path which is always added at the end of the INCLUDEPATH
+-SYS_INCLUDEPATH = /opt/local/include
++SYS_INCLUDEPATH = /usr/lib64/qt/include/QtAssistant
+ # Global lib path and libs which is ls always added at the end of LIBS
+-SYS_LIBS = -L/opt/local/lib
++SYS_LIBS = -lGLU -lQtAssistantClient
+ 
+ ##########################################################
+ ## zlib (http://www.zlib.net/)
+ ##########################################################
+ 
+ # include path. leave it blank to use SYS_INCLUDE
+-ZLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/zlib/
++#ZLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/zlib/
+ 
+ ##########################################################
+ ## muParser (http://muparser.sourceforge.net/)
+ ##########################################################
+ 
+ # include path. leave it blank to use SYS_INCLUDE
+-MUPARSER_INCLUDEPATH = $$QTI_ROOT/3rdparty/muparser/include
++#MUPARSER_INCLUDEPATH = $$QTI_ROOT/3rdparty/muparser/include
+ # link statically against a copy in 3rdparty/
+ MUPARSER_LIBS = $$QTI_ROOT/3rdparty/muparser/lib/libmuparser.a
+ # or dynamically against a system-wide installation
+-#MUPARSER_LIBS = -lmuparser
++MUPARSER_LIBS = -lmuparser
+ 
+ ##########################################################
+ ## GNU Sientific Library (http://www.gnu.org/software/gsl/)
+ ##########################################################
+ 
+ # include path. leave it blank to use SYS_INCLUDE
+-GSL_INCLUDEPATH = $$QTI_ROOT/3rdparty/gsl/include
++#GSL_INCLUDEPATH = $$QTI_ROOT/3rdparty/gsl/include
+ # link statically against a copy in 3rdparty/
+-GSL_LIBS = $$QTI_ROOT/3rdparty/gsl/lib/libgsl.a \
+-           $$QTI_ROOT/3rdparty/gsl/lib/libgslcblas.a
++#GSL_LIBS = $$QTI_ROOT/3rdparty/gsl/lib/libgsl.a \
++#           $$QTI_ROOT/3rdparty/gsl/lib/libgslcblas.a
+ # or dynamically against a system-wide installation
+-#GSL_LIBS = -lgsl -lgslcblas
++GSL_LIBS = -lgsl -lgslcblas
+ 
+ ##########################################################
+ ## QWT - use local copy till upstream catches up
+@@ -67,11 +67,11 @@
+ ##########################################################
+ 
+ # include path. leave it blank to use SYS_INCLUDE
+-LIBPNG_INCLUDEPATH = $$QTI_ROOT/3rdparty/libpng/
++#LIBPNG_INCLUDEPATH = $$QTI_ROOT/3rdparty/libpng/
+ # link statically against a copy in 3rdparty/
+-LIBPNG_LIBS = $$QTI_ROOT/3rdparty/libpng/libpng.a
++#LIBPNG_LIBS = $$QTI_ROOT/3rdparty/libpng/libpng.a
+ # or dynamically against a system-wide installation
+-#LIBPNG_LIBS = -lpng
++LIBPNG_LIBS = -lpng -lz
+ 
+ ##########################################################
+ ## QTeXEngine - optional. you don't have to set these variables
+@@ -79,9 +79,9 @@
+ ##########################################################
+ 
+ # include path.
+-TEX_ENGINE_INCLUDEPATH = $$QTI_ROOT/3rdparty/QTeXEngine/src
++#TEX_ENGINE_INCLUDEPATH = $$QTI_ROOT/3rdparty/QTeXEngine/src
+ # link locally against a copy in 3rdparty/
+-TEX_ENGINE_LIBS = $$QTI_ROOT/3rdparty/QTeXEngine/libQTeXEngine.a
++#TEX_ENGINE_LIBS = $$QTI_ROOT/3rdparty/QTeXEngine/libQTeXEngine.a
+ 
+ ##########################################################
+ ## ALGLIB (2.6) - optional. you don't have to set these variables
+@@ -89,9 +89,11 @@
+ ##########################################################
+ 
+ # include path.
+-ALGLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/alglib/
++#ALGLIB_INCLUDEPATH = $$QTI_ROOT/3rdparty/alglib/
+ # link locally against a copy in 3rdparty/
+-ALGLIB_LIBS = $$QTI_ROOT/3rdparty/alglib/libalglib.a
++#ALGLIB_LIBS = $$QTI_ROOT/3rdparty/alglib/libalglib.a
++ALGLIB_INCLUDEPATH = /usr/include/alglib
++ALGLIB_LIBS = -lalglib
+ 
+ ##########################################################
+ ## TAMUANOVA - optional. you don't have to set these variables
+@@ -99,9 +101,11 @@
+ ##########################################################
+ 
+ # include path.
+-TAMUANOVA_INCLUDEPATH = $$QTI_ROOT/3rdparty/tamu_anova/
++#TAMUANOVA_INCLUDEPATH = $$QTI_ROOT/3rdparty/tamu_anova/
+ # link locally against a copy in 3rdparty/
+-TAMUANOVA_LIBS = $$QTI_ROOT/3rdparty/tamu_anova/libtamuanova.a
++#TAMUANOVA_LIBS = $$QTI_ROOT/3rdparty/tamu_anova/libtamuanova.a
++TAMUANOVA_INCLUDEPATH = /usr/include/tamu_anova/
++TAMUANOVA_LIBS = -ltamuanova
+ 
+ ##########################################################
+ ## python - only used if python is needed
+@@ -134,7 +138,7 @@
+   #DEFINES         += QTIPLOT_DEMO
+ 
+   # Uncomment the following line if you want to perform a custom installation using the *.path variables defined in ./qtiplot.pro.
+-  #CONFIG          += CustomInstall
++  CONFIG          += CustomInstall
+ 
+   # Uncomment the following line if you want to build QtiPlot as a browser plugin (not working on Internet Explorer).
+   #CONFIG          += BrowserPlugin
+diff -ur qtiplot-0.9.8.9.orig/manual/Makefile qtiplot-0.9.8.9/manual/Makefile
+--- qtiplot-0.9.8.9.orig/manual/Makefile	2011-11-01 12:28:58.000000000 +0000
++++ qtiplot-0.9.8.9/manual/Makefile	2016-03-27 20:20:38.366432147 +0100
+@@ -1,6 +1,6 @@
+-all: en pdf-it
+-en: web pdf
+-it: web-it pdf-it
++all: en it
++en: web
++it:
+ 
+ # we can't name the target "html", since there is already a folder with that name
+ # and so make thinks this target is already up to date
+diff -ur qtiplot-0.9.8.9.orig/qtiplot/qtiplot.pro qtiplot-0.9.8.9/qtiplot/qtiplot.pro
+--- qtiplot-0.9.8.9.orig/qtiplot/qtiplot.pro	2011-11-02 16:55:25.000000000 +0000
++++ qtiplot-0.9.8.9/qtiplot/qtiplot.pro	2016-03-27 20:39:05.014510767 +0100
+@@ -159,7 +159,7 @@
+   				    qtiUtil.py \
+   				    qti_wordlist.txt \
+ 
+-  	unix: pythonconfig.path = /usr/local/qtiplot
++  	unix: pythonconfig.path = /usr/share/qtiplot
+   	win32: pythonconfig.path = $$INSTALLBASE
+   	DEFINES += PYTHON_CONFIG_PATH="\\\"$$replace(pythonconfig.path," ","\ ")\\\"
+   }
+diff -ur qtiplot-0.9.8.9.orig/qtiplot/src/core/ApplicationWindow.cpp qtiplot-0.9.8.9/qtiplot/src/core/ApplicationWindow.cpp
+--- qtiplot-0.9.8.9/qtiplot/src/core/ApplicationWindow.cpp.orig 2011-11-01 12:21:13.000000000 +0000
++++ qtiplot-0.9.8.9/qtiplot/src/core/ApplicationWindow.cpp      2016-03-28 14:22:14.832276500 +0100
+ void ApplicationWindow::parseCommandLineArguments(const QStringList& args)
+@@ -19474,7 +19475,7 @@
+ 		}
+ 	}
+ 
+-	QDir pluginsDir = QDir(qApp->applicationDirPath());
++	QDir pluginsDir = QDir("/usr/lib/qtiplot");
+ 	pluginsDir.cd("plugins");
+ 
+ 	 foreach (QString fileName, pluginsDir.entryList(QDir::Files)){
