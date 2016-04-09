@@ -13,7 +13,7 @@ BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=qwt5
+PKGNAME=qwt5-qt4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/qwt5-makefiles.diff
  cp qwtconfig.pri qwtconfig.pri.in
 
 # sed -i -e '/CONFIG.*QwtSVGItem/ s/#//' qwtconfig.pri.in
@@ -70,7 +70,18 @@ touch qt4build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-sed -e "s@/usr/local/qwt-\$\$VERSION@/usr/lib${LIBDIRSUFFIX}/qt@ ; s@\$\$INSTALLBASE/doc@/usr/doc@ ; /QwtSVGItem/ s@#CONFIG@CONFIG@; s@INSTALLBASE/include@INSTALLBASE/include/qwt5@" qwtconfig.pri.in > qwtconfig.pri
+sed -e "s@/usr/local/qwt-\$\$VERSION@/usr/lib${LIBDIRSUFFIX}/qt@" \
+    -e "s@\$\$INSTALLBASE/share/doc/libqwt5-doc@/usr/doc/${TARNAME}-${VERSION}@" \
+    -e "/QwtSVGItem/ s@#CONFIG@CONFIG@" \
+    -e "s@INSTALLBASE/include@INSTALLBASE/include@" \
+    qwtconfig.pri.in > qwtconfig.pri
+
+sed -i -e "/target.path/ s@/lib/@/lib${LIBDIRSUFFIX}/@" \
+    designer/designer.pro
+
+sed -i -e "/target.path/ s@/lib@/lib${LIBDIRSUFFIX}/qt4/lib@" \
+    qwtconfig.pri
+
 #sed -e "s@/usr/local/qwt-\$\$QWT_VERSION@/usr/lib${LIBDIRSUFFIX}/qt@" qwtconfig.pri.in > qwtconfig.pri
 
 qmake
@@ -94,7 +105,9 @@ make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 mv ${PKG}/usr/doc/man ${PKG}/usr
 mv ${PKG}/usr/doc/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-ln -s qt/lib/libqwt.so ${PKG}/usr/lib${LIBDIRSUFFIX}
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ ln -s qt4/lib/libqwt-qt4.* .
+)
 
 #strip_binaries
 

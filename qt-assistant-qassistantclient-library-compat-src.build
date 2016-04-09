@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=4.6.3
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -48,9 +48,9 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-qmake
+qmake CONFIG+=create_prl
 (cd lib
- qmake
+ qmake CONFIG+=create_prl
 )
 fi
 
@@ -91,7 +91,8 @@ mkdir -p $PKG/usr/bin
   done
 )
 
-( cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/include
+# Install missing headers
+( cd $PKG/usr/lib${LIBDIRSUFFIX}/qt/include/QtAssistant
   cat > QtAssistant << EOF
 #ifndef QT_QTASSISTANT_MODULE_H
 #define QT_QTASSISTANT_MODULE_H
@@ -126,6 +127,23 @@ EOF
  cd $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig
  ln -s /usr/lib${LIBDIRSUFFIX}/qt/lib/pkgconfig/QtAssistantClient.pc .
 )
+
+# Fix wrong path in prl file
+sed -i -e "/^QMAKE_PRL_BUILD_DIR/d" \
+    ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/lib/libQtAssistantClient.prl
+
+# Install translations
+(cd translations
+ lrelease assistant_adp_*ts
+)
+mkdir -p ${PKG}/usr/share/qt4/translations/
+install -p -m0644 translations/assistant_adp_*.qm \
+    ${PKG}/usr/share/qt4/translations/
+
+# Install prf file
+install -D -p -m0644 features/assistant.prf \
+    ${PKG}/usr/share/qt4/mkspecs/features/assistant.prf
+
 
 #strip_binaries
 

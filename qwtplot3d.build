@@ -5,9 +5,9 @@
 TARNAME=qwtplot3d
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/new/q/qwtplot3d
 #TAR_EXT=.tar.gz
-VERSION=20100422
+VERSION=0.2.7+svn191
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=qwtplot3d-qt4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 -b -z .orig < ${CWD}/qwtplot3d-0.2.7+svn191.diff
 )
 fi
 
@@ -60,6 +60,9 @@ PATH=/usr/lib/qt4/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+
+sed -i -e "s@INSTALLBASE/lib[0-9]*/@INSTALLBASE/lib${LIBDIRSUFFIX}/@" qwtplot3d.pro
+
 qmake
 fi
 
@@ -73,13 +76,17 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 
-mkdir -p ${PKG}/usr/lib
-mkdir -p ${PKG}/usr/include
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ ln -s qt4/lib/libqwt* .
+)
 
-cp -P lib/* ${PKG}/usr/lib
-cp -P include/* ${PKG}/usr/include
+#mkdir -p ${PKG}/usr/lib
+#mkdir -p ${PKG}/usr/include/qwtplot3d-qt4
+
+#cp -P lib/* ${PKG}/usr/lib
+#cp -P include/* ${PKG}/usr/include
 
 #strip_binaries
 
@@ -90,7 +97,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
