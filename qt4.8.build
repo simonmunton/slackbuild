@@ -216,6 +216,12 @@ mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig
 # done
 )
 
+# Fix wrong path in prl file
+sed -i -e "/^QMAKE_PRL_BUILD_DIR/d" \
+    ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/lib/*.prl
+
+sed -i -e "s@-L${CWD}[^ ]*@@g" ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/lib/*.prl
+
 # make a debug package for webkit if not there
 LQTWK=`readlink ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/libQtWebKit.so`
 if [ ! -e ${PKG}/usr/lib${LIBDIRSUFFIX}/qt-${VERSION}/lib/${LQTWK}.debug ]
