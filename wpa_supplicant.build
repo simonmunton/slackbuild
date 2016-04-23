@@ -177,8 +177,16 @@ cp -a ${CWD}/wpa_gui.png ${PKG}/usr/share/pixmaps/
 fi
 
 # Install a logrotate config
-mkdir -p $PKG/etc/logrotate.d
-cat $CWD/config/wpa_supplicant.logrotate > $PKG/etc/logrotate.d/wpa_supplicant.new
+mkdir -p ${PKG}/etc/logrotate.d
+cat > ${PKG}/etc/logrotate.d/wpa_supplicant.new << EOF
+/var/log/wpa_supplicant.log {
+    missingok
+    notifempty
+    size 30k
+    create 0600 root root
+}
+EOF
+doinst_config etc/logrotate.d/wpa_supplicant.new
 
 # Install man pages
 for m in 5 8; do
