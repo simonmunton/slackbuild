@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=2.0
+VERSION=2.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,7 +55,10 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/wpa_supplicant-1.0.diff
+ patch -p1 < ${CWD}/wpa_supplicant-dbus-service-file-args.diff
+ patch -p1 < ${CWD}/wpa_supplicant-quiet-scan-results-message.diff
+ patch -p1 < ${CWD}/wpa_supplicant-assoc-timeout.diff
+ patch -p1 < ${CWD}/wpa_supplicant-flush-debug-output.diff
 )
 fi
 
@@ -69,61 +72,56 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 
 cat > .config << EOF
-CONFIG_DRIVER_HOSTAP=y
-CONFIG_DRIVER_ATMEL=y
-CONFIG_DRIVER_RALINK=y
-CONFIG_DRIVER_WEXT=y
+CONFIG_AP=y
+CONFIG_BACKEND=file
+CONFIG_BGSCAN_SIMPLE=y
+CONFIG_CTRL_IFACE=y
+CONFIG_CTRL_IFACE_DBUS=y
+CONFIG_CTRL_IFACE_DBUS_INTRO=y
+CONFIG_CTRL_IFACE_DBUS_NEW=y
+CONFIG_DEBUG_FILE=y
 CONFIG_DRIVER_NL80211=y
+CONFIG_DRIVER_WEXT=y
 CONFIG_DRIVER_WIRED=y
-CONFIG_IEEE8021X_EAPOL=y
+CONFIG_EAP_AKA=y
+CONFIG_EAP_FAST=y
+CONFIG_EAP_GPSK=y
+CONFIG_EAP_GPSK_SHA256=y
+CONFIG_EAP_GTC=y
+CONFIG_EAP_IKEV2=y
+CONFIG_EAP_LEAP=y
 CONFIG_EAP_MD5=y
 CONFIG_EAP_MSCHAPV2=y
-CONFIG_EAP_TLS=y
-CONFIG_EAP_PEAP=y
-CONFIG_EAP_TTLS=y
-CONFIG_EAP_GTC=y
 CONFIG_EAP_OTP=y
-CONFIG_EAP_LEAP=y
-CONFIG_PKCS12=y
-CONFIG_SMARTCARD=y
-CONFIG_CTRL_IFACE=y
-CONFIG_READLINE=y
-CONFIG_BACKEND=file
+CONFIG_EAP_PAX=y
+CONFIG_EAP_PEAP=y
+CONFIG_EAP_SAKE=y
+CONFIG_EAP_TLS=y
+CONFIG_EAP_TNC=y
+CONFIG_EAP_TTLS=y
+CONFIG_IBSS_RSN=y
+CONFIG_IEEE8021X_EAPOL=y
+CONFIG_LIBNL32=y
+CONFIG_P2P=y
 CONFIG_PEERKEY=y
-CONFIG_CTRL_IFACE_DBUS=y
-CONFIG_CTRL_IFACE_DBUS_NEW=y
-CONFIG_CTRL_IFACE_DBUS_INTRO=y
+CONFIG_PKCS12=y
+CONFIG_READLINE=y
+CONFIG_SMARTCARD=y
+CONFIG_WPS=y
 EOF
-
-if [ ! -z ${MADWIFI_INCLUDES} -a -d ${MADWIFI_INCLUDES} ]; then
-  echo "Adding madwifi driver (Atheros) support"
-  cat << EOF >> .config
-CONFIG_DRIVER_MADWIFI=y
-CFLAGS += -I${MADWIFI_INCLUDES}
-EOF
-fi
-if [ ! -z ${HERMES_INCLUDES} -a -d ${HERMES_INCLUDES} ]; then
-  echo "Adding hermes driver (Agere) support"
-  cat << EOF >> .config
-CONFIG_DRIVER_HERMES=y
- CFLAGS += -I${HERMES_INCLUDES}
-EOF
-fi
-if [ ! -z ${BROADCOM_INCLUDES} -a -d ${BROADCOM_INCLUDES} ]; then
-  echo "Adding broadcom driver support"
-  cat << EOF >> .config
-CONFIG_DRIVER_BROADCOM=y
-CFLAGS += -I${BROADCOM_INCLUDES}
-EOF
-fi
 
 fi
 
-export CFLAGS="${SLKCFLAGS}"
+
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all wpa_gui-qt4 BINDIR=/usr/sbin LIBDIR=/usr/lib${LIBDIRSUFFIX} || exit
+CFLAGS="${SLKCFLAGS}" make ${NUM_JOBS} BINDIR=/usr/sbin LIBDIR=/usr/lib${LIBDIRSUFFIX} || exit
+
+cd wpa_gui-qt4
+qmake-qt5
+make ${NUM_JOBS}  BINDIR=/usr/sbin LIBDIR=/usr/lib${LIBDIRSUFFIX} || exit
+cd ..
 
 # Make man pages if needed
 (cd doc/docbook
@@ -153,12 +151,9 @@ cp wpa_gui-qt4/wpa_gui ${PKG}/usr/bin/
 mkdir -p ${PKG}/etc/dbus-1/system.d/
 cp dbus/dbus-wpa_supplicant.conf ${PKG}/etc/dbus-1/system.d/dbus-wpa_supplicant.conf.new
 
-#
-mkdir -p ${PKG}/usr/share/dbus-1/system-services
-install -m644 dbus/{fi.epitest.hostap.WPASupplicant.service,fi.w1.wpa_supplicant1.service} \
-  ${PKG}/usr/share/dbus-1/system-services/
-sed -e 's#Exec=/sbin/wpa_supplicant#Exec=/usr/sbin/wpa_supplicant#g' \
-  -i ${PKG}/usr/share/dbus-1/system-services/*.service
+
+mkdir -p $PKG/usr/share/dbus-1/system-services
+install -m644 dbus/*.service $PKG/usr/share/dbus-1/system-services/
 
 # Install a .desktop file for wpa_gui:
 mkdir -p ${PKG}/usr/share/applications
@@ -181,6 +176,10 @@ else
 cp -a ${CWD}/wpa_gui.png ${PKG}/usr/share/pixmaps/
 fi
 
+# Install a logrotate config
+mkdir -p $PKG/etc/logrotate.d
+cat $CWD/config/wpa_supplicant.logrotate > $PKG/etc/logrotate.d/wpa_supplicant.new
+
 # Install man pages
 for m in 5 8; do
   mkdir -p $PKG/usr/man/man${m}
@@ -197,29 +196,7 @@ cat > ${PKG}/etc/wpa_supplicant.conf.new << EOF
 # if possible (to check for successful association)
 ctrl_interface=/var/run/wpa_supplicant
 # By default, only root (group 0) may use wpa_cli
-ctrl_interface_group=0
-eapol_version=1
-ap_scan=1
-fast_reauth=1
-
-# WPA protected network, supply your own ESSID and WPAPSK here:
-network={
-  scan_ssid=0
-  ssid="your_essid_here"
-  proto=WPA RSN
-  key_mgmt=WPA-PSK
-  pairwise=CCMP TKIP
-  group=CCMP TKIP WEP104 WEP40
-  psk=your_64_char_psk_here
-  priority=10
-}
-
-# Plaintext connection (no WPA, no IEEE 802.1X),
-# nice for hotel/airport types of WiFi network.
-network={
-  key_mgmt=NONE
-  priority=0
-}
+ctrl_interface_group=rppt
 EOF
 
 # This should only be read/write by root:
