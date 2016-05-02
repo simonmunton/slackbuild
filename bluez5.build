@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=5.37
+VERSION=5.39
 VERSIONEXTRA=
 BUILD=1
 
@@ -116,12 +116,32 @@ make install DESTDIR=${PKG}
 
 rm -r ${PKG}//usr/lib${LIBDIRSUFFIX}/bluez/test
 
+
+# Use reset=1 for the btusb module, which supposedly fixes reconnect problems:
+mkdir -p ${PKG}/lib/modprobe.d
+cp -a ${CWD}/bluez5-btusb.conf ${PKG}/lib/modprobe.d/btusb.conf
+
+# Add bluetoothd to /usr/sbin
+mkdir -p $PKG/usr/sbin
+ln -s ../libexec/bluetooth/bluetoothd $PKG/usr/sbin
+
+# Install the configuration files
+mkdir -p ${PKG}/etc/bluetooth ${PKG}/etc/default
+cat src/main.conf > ${PKG}/etc/bluetooth/main.conf.new
+cat profiles/input/input.conf > ${PKG}/etc/bluetooth/input.conf.new
+cat profiles/network/network.conf > ${PKG}/etc/bluetooth/network.conf.new
+cat profiles/proximity/proximity.conf > ${PKG}/etc/bluetooth/proximity.conf.new
+cat ${CWD}/bluez5-uart.conf > ${PKG}/etc/bluetooth/uart.conf.new
+cat ${CWD}/bluez5-defaultconfig > ${PKG}/etc/default/bluetooth.new
+
 # Add an init script
 mkdir -p ${PKG}/etc/rc.d
 cat ${CWD}/bluez5-rc.bluetooth > ${PKG}/etc/rc.d/rc.bluetooth.new
 
-mkdir -p ${PKG}/etc/bluetooth
-cp src/main.conf ${PKG}/etc/bluetooth/main.conf
+# Let's go ahead and let that start by default, unless an existing init
+# script is not executable:
+chmod 755 ${PKG}/etc/rc.d/rc.bluetooth.new
+
 
 doinst_same_perm etc/rc.d/rc.bluetooth
 doinst_config etc/rc.d/rc.bluetooth.new
@@ -155,5 +175,7 @@ cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
 chmod 700 etc/bluetooth/passkeys; \
+chown root:root lib/modprobe.d/btusb.conf; \
+chmod 644 lib/modprobe.d/btusb.conf; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
