@@ -1,0 +1,150 @@
+--- vlc-2.2.3/modules/codec/avcodec/encoder.c.orig	2015-10-21 17:36:45.000000000 +0100
++++ vlc-2.2.3/modules/codec/avcodec/encoder.c	2016-05-03 19:52:09.177972718 +0100
+@@ -311,7 +311,7 @@
+     else if( !GetFfmpegCodec( p_enc->fmt_out.i_codec, &i_cat, &i_codec_id,
+                              &psz_namecodec ) )
+     {
+-        if( FindFfmpegChroma( p_enc->fmt_out.i_codec ) == PIX_FMT_NONE )
++        if( FindFfmpegChroma( p_enc->fmt_out.i_codec ) == AV_PIX_FMT_NONE )
+             return VLC_EGENERIC; /* handed chroma output */
+ 
+         i_cat      = VIDEO_ES;
+@@ -555,7 +555,7 @@
+ 
+         if( p_codec->pix_fmts )
+         {
+-            const enum PixelFormat *p = p_codec->pix_fmts;
++            const enum AVPixelFormat *p = p_codec->pix_fmts;
+             for( ; *p != -1; p++ )
+             {
+                 if( *p == p_context->pix_fmt ) break;
+@@ -1017,7 +1017,7 @@
+         }
+     }
+ 
+-    p_sys->frame = avcodec_alloc_frame();
++    p_sys->frame = av_frame_alloc();
+     if( !p_sys->frame )
+     {
+         goto error;
+@@ -1088,7 +1088,7 @@
+     AVFrame *frame = NULL;
+     if( likely(p_pict) ) {
+         frame = p_sys->frame;
+-        avcodec_get_frame_defaults( frame );
++        av_frame_unref( frame );
+         for( i_plane = 0; i_plane < p_pict->i_planes; i_plane++ )
+         {
+             p_sys->frame->data[i_plane] = p_pict->p[i_plane].p_pixels;
+@@ -1329,7 +1329,7 @@
+     //How much we need to copy from new packet
+     const int leftover = leftover_samples * p_sys->p_context->channels * p_sys->i_sample_bytes;
+ 
+-    avcodec_get_frame_defaults( p_sys->frame );
++    av_frame_unref( p_sys->frame );
+     p_sys->frame->format     = p_sys->p_context->sample_fmt;
+     p_sys->frame->nb_samples = leftover_samples + p_sys->i_samples_delay;
+ 
+@@ -1451,7 +1451,7 @@
+     while( ( p_aout_buf->i_nb_samples >= p_sys->i_frame_size ) ||
+            ( p_sys->b_variable && p_aout_buf->i_nb_samples ) )
+     {
+-        avcodec_get_frame_defaults( p_sys->frame );
++        av_frame_unref( p_sys->frame );
+         if( p_sys->b_variable )
+             p_sys->frame->nb_samples = p_aout_buf->i_nb_samples;
+         else
+--- vlc-2.2.3/modules/codec/avcodec/video.c.orig	2016-04-05 01:45:24.000000000 +0100
++++ vlc-2.2.3/modules/codec/avcodec/video.c	2016-05-03 19:56:50.988992738 +0100
+@@ -108,8 +108,8 @@
+ static int  ffmpeg_GetFrameBuf    ( struct AVCodecContext *, AVFrame * );
+ static void ffmpeg_ReleaseFrameBuf( struct AVCodecContext *, AVFrame * );
+ #endif
+-static enum PixelFormat ffmpeg_GetFormat( AVCodecContext *,
+-                                          const enum PixelFormat * );
++static enum AVPixelFormat ffmpeg_GetFormat( AVCodecContext *,
++                                          const enum AVPixelFormat * );
+ 
+ static uint32_t ffmpeg_CodecTag( vlc_fourcc_t fcc )
+ {
+@@ -234,7 +234,7 @@
+     p_sys->p_codec = p_codec;
+     p_sys->i_codec_id = i_codec_id;
+     p_sys->psz_namecodec = psz_namecodec;
+-    p_sys->p_ff_pic = avcodec_alloc_frame();
++    p_sys->p_ff_pic = av_frame_alloc();
+     p_sys->b_delayed_open = true;
+     p_sys->p_va = NULL;
+     vlc_sem_init( &p_sys->sem_mt, 0 );
+@@ -446,7 +446,7 @@
+     if( ffmpeg_OpenCodec( p_dec ) < 0 )
+     {
+         msg_Err( p_dec, "cannot open codec (%s)", p_sys->psz_namecodec );
+-        avcodec_free_frame( &p_sys->p_ff_pic );
++        av_frame_free( &p_sys->p_ff_pic );
+         vlc_sem_destroy( &p_sys->sem_mt );
+         free( p_sys );
+         return VLC_EGENERIC;
+@@ -826,7 +826,7 @@
+     wait_mt( p_sys );
+ 
+     if( p_sys->p_ff_pic )
+-        avcodec_free_frame( &p_sys->p_ff_pic );
++        av_frame_free( &p_sys->p_ff_pic );
+ 
+     if( p_sys->p_va )
+         vlc_va_Delete( p_sys->p_va );
+@@ -1313,8 +1313,8 @@
+ }
+ #endif
+ 
+-static enum PixelFormat ffmpeg_GetFormat( AVCodecContext *p_context,
+-                                          const enum PixelFormat *pi_fmt )
++static enum AVPixelFormat ffmpeg_GetFormat( AVCodecContext *p_context,
++                                          const enum AVPixelFormat *pi_fmt )
+ {
+     decoder_t *p_dec = p_context->opaque;
+     decoder_sys_t *p_sys = p_dec->p_sys;
+--- vlc-2.2.3/modules/codec/avcodec/vaapi.c.orig	2014-11-16 18:57:58.000000000 +0000
++++ vlc-2.2.3/modules/codec/avcodec/vaapi.c	2016-05-03 19:52:31.784974324 +0100
+@@ -595,7 +595,7 @@
+         return err;
+ 
+     /* Only VLD supported */
+-    p_va->pix_fmt = PIX_FMT_VAAPI_VLD;
++    p_va->pix_fmt = AV_PIX_FMT_VAAPI_VLD;
+     p_va->setup = Setup;
+     p_va->get = Get;
+     p_va->release = Release;
+--- vlc-2.2.3/configure.orig	2016-05-03 19:51:00.647967849 +0100
++++ vlc-2.2.3/configure	2016-05-03 19:51:15.245968886 +0100
+@@ -36548,15 +36548,15 @@
+ $as_echo "yes" >&6; }
+ 
+     if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavutil < 55\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavutil < 55") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavutil < 56\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libavutil < 56") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+   :
+ else
+ 
+-      as_fn_error $? "libavutil versions 55 and later are not supported." "$LINENO" 5
++      as_fn_error $? "libavutil versions 56 and later are not supported." "$LINENO" 5
+ 
+ fi
+ 
+@@ -36842,8 +36842,8 @@
+   case "${avfork}" in
+     ffmpeg)
+       if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.10.100\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.10.100") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.24.105\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.24.105") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
