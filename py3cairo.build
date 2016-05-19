@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gobject-introspection
+TARNAME=pycairo
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/c/cairo
 #TAR_EXT=.tar.gz
-VERSION=1.48.0
+VERSION=1.10.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.cairographics.org/pycairo/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=py3cairo
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+#mv pycairo-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,6 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
+ python3 ./waf >& /dev/null
+ cd .waf*
+ patch -p1 < ${CWD}/pycairo-waf-1.10.0.diff
  #patch -p1 < ${CWD}/
 )
 fi
@@ -55,31 +58,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+PYTHON="/usr/bin/python3" \
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+python3 ./waf configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+PYTHON="/usr/bin/python3" \
+python3 ./waf build ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,9 +82,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+PYTHON="/usr/bin/python3" \
+python3 ./waf install --destdir=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -104,8 +100,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GObject Introspection"
-GObject Introspection
+make_slack_desc << EOF "Python bindings for cairo"
+Python bindings for cairo
 
 EOF
 
