@@ -1,0 +1,38 @@
+--- graphviz-2.38.0/plugin/gs/gvloadimage_gs.c.orig	2014-04-13 21:40:25.000000000 +0100
++++ graphviz-2.38.0/plugin/gs/gvloadimage_gs.c	2016-05-22 12:28:52.095869580 +0100
+@@ -72,11 +72,11 @@
+ 
+     assert (err < 0);
+ 
+-    if (err >= e_VMerror) 
++    if (err >= gs_error_VMerror) 
+ 	errsrc = "PostScript Level 1"; 
+-    else if (err >= e_unregistered)
++    else if (err >= gs_error_unregistered)
+ 	errsrc = "PostScript Level 2";
+-    else if (err >= e_invalidid)
++    else if (err >= gs_error_invalidid)
+ 	errsrc = "DPS error";
+     else
+ 	errsrc = "Ghostscript internal error";
+--- graphviz-2.28.0/tclpkg/gv/gv_php_init.c.orig	2011-01-25 16:30:51.000000000 +0000
++++ graphviz-2.28.0/tclpkg/gv/gv_php_init.c	2013-02-02 21:52:16.266036437 +0000
+@@ -17,14 +17,14 @@
+ #include "gvcjob.h"
+ #include "gvcint.h"
+ 
+-static size_t gv_string_writer (GVJ_t *job, const char *s, size_t len)
++static size_t gv_string_writer (GVJ_t *job, const char *s, size_t len TSRMLS_DC)
+ {
+-    return PHPWRITE(s, len);
++    return PHPWRITE(s, len TSRMLS_CC);
+ }
+ 
+-static size_t gv_channel_writer (GVJ_t *job, const char *s, size_t len)
++static size_t gv_channel_writer (GVJ_t *job, const char *s, size_t len TSRMLS_DC)
+ {
+-    return PHPWRITE(s, len);
++    return PHPWRITE(s, len TSRMLS_CC);
+ }
+ 
+ void gv_string_writer_init(GVC_t *gvc)

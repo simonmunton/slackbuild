@@ -2,24 +2,23 @@
 #
 . build_funcs
 
-TARNAME=git
+TARNAME=pygobject
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.8.3
+VERSION=3.20.1
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=pygobject-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -53,24 +52,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-make configure
-
+PYTHON=python${PYTHON_VERSION} \
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --with-python=python3
 fi
-
-MAKEFLAGS="ASCIIDOC=asciidoc --unsafe"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} all doc "${MAKEFLAGS}" || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,20 +76,7 @@ then
   exit
 fi
 
-make install install-doc install-html "${MAKEFLAGS}" DESTDIR=${PKG} INSTALLDIRS=vendor htmldir=/usr/doc/git-doc
-
-# Switch a hard link with a soft link:
-( cd ${PKG}/usr/bin
-  find . -links +1 -not -name git | while read gitfile ; do
-    if [ git -ef ${gitfile} ]; then
-      rm -vf ${gitfile}
-      ln -vfs git ${gitfile}
-    fi
-  done
-)
-
-mkdir -p ${PKG}/etc/bash_completion.d
-cp contrib/completion/git-completion.bash ${PKG}/etc/bash_completion.d/
+make install DESTDIR=${PKG}
 
 #strip_binaries
 
@@ -103,19 +88,17 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  Documentation \
-  contrib \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/Documentation/*.[1357]
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "distributed revision control system"
-Git is a fast, scalable, distributed revision control system with an
-unusually rich command set that provides both high-level operations
-and full access to internals.
+make_slack_desc << EOF "python bindings for GObject"
+This package contains bindings for the GObject, to be used in Python
+It is a fairly complete set of bindings, it's already rather useful,
+and is usable to write moderately complex programs.  (see the
+examples directory for some examples of the simpler programs you
+could write).
 
 EOF
 

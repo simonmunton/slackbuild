@@ -2,21 +2,20 @@
 #
 . build_funcs
 
-TARNAME=calibre
+TARNAME=bsddb3
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.57.1
+VERSION=6.1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://calibre-ebook.com/"
-#http://sourceforge.net/projects/calibre/
+WEBPAGE="https://www.jcea.es/programacion/pybsddb.htm"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=bsddb3-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -47,11 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- if [ $ARCH = "x86_64" ]
- then
-   patch -p1 < ${CWD}/calibre-2.0.0-x86_64.diff
- fi
 )
 fi
 
@@ -84,12 +78,10 @@ then
 
 fi
 
-export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python setup.py build || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -98,10 +90,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-mkdir -p ${PKG}`python -c "import distutils.sysconfig as s; print s.get_python_lib()"`
-python setup.py install --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --root=${PKG}/usr --staging-libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
-
-rm ${PKG}/usr/bin/calibre-uninstall
+python3 setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -118,18 +107,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "calibre - Ebook management"
-calibre is a free and open source e-book library management 
-application developed by users of e-books for users of e-books. It has 
-a cornucopia of features divided into the following main categories:
-
-    Library Management
-    E-book conversion
-    Syncing to e-book reader devices
-    Downloading news from the web and converting it into e-book form
-    Comprehensive e-book viewer
-    Content server for online access to your book collection
-    E-book editor for the major e-book formats
+make_slack_desc << EOF "Python bindings for Oracle Berkeley DB"
+This module provides a nearly complete wrapping of the Oracle/
+Sleepycat C API for the Database Environment, Database, Cursor, Log 
+Cursor, Sequence and Transaction objects, and each of these is exposed 
+as a Python type in the bsddb3.db module. The database objects can use 
+various access methods: btree, hash, recno, and queue. Complete 
+support of Berkeley DB distributed transactions. Complete support for 
+Berkeley DB Replication Manager. Complete support for Berkeley DB Base 
+Replication. Support for RPC.
 
 EOF
 

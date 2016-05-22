@@ -1,0 +1,182 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=noip
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/n
+#TAR_EXT=.tar.gz
+VERSION=2.1.9
+VERSIONEXTRA=-1
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} PREFIX=/usr CONFDIR=/etc || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install PREFIX=${PKG}/usr CONFDIR=${PKG}/etc
+mkdir -p ${PKG}/usr/bin ${PKG}/etc/rc.d
+cp noip2 ${PKG}/usr/bin
+
+cat << EOF >> ${PKG}/etc/rc.d/rc.noip2
+#! /bin/sh
+
+case "\$1" in
+    start)
+    echo -n "Starting dynamic address update: "
+    /usr/bin/noip2
+    echo "noip2."
+    ;;
+    stop)
+    echo -n "Shutting down dynamic address update:"
+    killall noip2
+    echo "noip2."
+    ;;
+
+    restart)
+    echo -n "Restarting dynamic address update: "
+    killall noip2
+    /usr/bin/noip2
+    echo "noip2."
+    ;;
+
+    *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+exit 0
+EOF
+
+chmod +x ${PKG}/etc/rc.d/rc.noip2
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if [ ! -e etc/rc.d/rc.local ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local
+        chmod 755 etc/rc.d/rc.local
+fi
+if [ ! -e etc/rc.d/rc.local_shutdown ]; then
+        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
+        chmod 755 etc/rc.d/rc.local_shutdown
+fi
+run=\`grep "/etc/rc.d/rc.noip2" etc/rc.d/rc.local\`
+if [[ "\${run}" == "" ]]; then
+        echo "" >> etc/rc.d/rc.local
+        echo "# start noip2" >> etc/rc.d/rc.local
+        echo "if [ -x /etc/rc.d/rc.noip2 ]; then" >> etc/rc.d/rc.local
+        echo "  /etc/rc.d/rc.noip2 start" >> etc/rc.d/rc.local
+        echo "fi" >> etc/rc.d/rc.local
+
+        echo "" >> etc/rc.d/rc.local_shutdown
+        echo "# stop noip2" >> etc/rc.d/rc.local_shutdown
+        echo "if [ -x /etc/rc.d/rc.noip2 ]; then" >> etc/rc.d/rc.local_shutdown
+        echo "  /etc/rc.d/rc.noip2 stop" >> etc/rc.d/rc.local_shutdown
+        echo "fi" >> etc/rc.d/rc.local_shutdown
+fi
+EOF
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README.FIRST TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "noip2, client for the no-ip.com dynamic DNS service"
+noip2, a second-generation Linux client for the no-ip.com dynamic 
+DNS service.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
