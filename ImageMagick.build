@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
 VERSION=6.8.9-10
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://www.imagemagick.org/"
 
@@ -46,6 +46,11 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/ImageMagick-freetype.diff
+ # Harden the default settings in policy.xml to prevent security issues:
+ patch -p1 <  ${CWD}/ImageMagick-policy.xml.diff
+
+ # undef HAVE_POPEN as additional hardening against shell injection:
+ patch -p1 < ${CWD}/ImageMagick-blob.c.undef.have_popen.diff
 )
 fi
 
