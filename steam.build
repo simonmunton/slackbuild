@@ -1,0 +1,185 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=steam
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/s
+#TAR_EXT=.tar.gz
+VERSION=1.0.0.52
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+: # make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+
+# Move the binaries into place:
+install -d -m 755 ${PKG}/usr/bin/
+install -p -m 755 steam ${PKG}/usr/bin/
+install -p -m 755 steamdeps ${PKG}/usr/bin/
+# We don't use apt or dpkg or whatever:
+cat << EOT > ${PKG}/usr/bin/steamdeps
+#!/bin/sh
+echo "Slackware 32-bit: Check the 'deps/<slackwareversion>' directory where you downloaded this package and install/upgrade the packages you find there."
+echo "Slackware 64-bit multilib: Install/upgrade the packages in the 'deps/<slackwareversion>/multilib' subdirectory instead."
+echo ""
+exit 0
+EOT
+
+# Install the desktop file plus icons:
+install -d -m 755 ${PKG}/usr/share/applications
+install -p -m 644 steam.desktop ${PKG}/usr/share/applications/
+for size in 16 24 32 48 256 ; do
+  install -d -m 755 ${PKG}/usr/share/icons/hicolor/${size}x${size}/apps/
+  install -p -m 644 icons/${size}/steam.png \
+    ${PKG}/usr/share/icons/hicolor/${size}x${size}/apps/
+done
+install -d -m 755 ${PKG}/usr/share/pixmaps/
+install -p -m 644 icons/48/steam.png ${PKG}/usr/share/pixmaps/
+install -p -m 644 icons/48/steam.png ${PKG}/usr/share/pixmaps/steam_tray.png
+install -p -m 644 icons/48/steam_tray_mono.png ${PKG}/usr/share/pixmaps/steam_tray_mono.png
+
+# Install the steam bootstrap:
+install -d -m 755 ${PKG}/usr/lib/steam/
+install -p -m 644 bootstraplinux_*_32.tar.xz ${PKG}/usr/lib/steam/
+
+# Install udev rule for the Steam Controller:
+install -d -m 755 ${PKG}/lib/udev/rules.d
+install -p -m 644 lib/udev/rules.d/99-steam-controller-perms.rules \
+  ${PKG}/lib/udev/rules.d/
+
+# Take care of the man page:
+install -d -m 755 ${PKG}/usr/man/man6/
+install -p -m 644 steam.6 ${PKG}/usr/man/man6/
+
+cd ${PKG}
+# Apply changes to the steam script which we need on Slackware:
+sed -i -e '/env bash/ a\
+# --- Start Slackware mod ---\
+export LD_LIBRARY_PATH=/usr/lib/seamonkey\
+# Audio output goes to first "hw" device of ALSA\
+export SDL_AUDIODRIVER=alsa\
+#export AUDIODEV=hw\
+# On window close, minimize to the system tray area:\
+export STEAM_FRAME_FORCE_CLOSE=1\
+# Add any custom variable exports here\
+[ -f ${HOME}/.steam4slackware ] \&\& . ${HOME}/.steam4slackware\
+# --- End Slackware mod ---' ${PKG}/usr/bin/steam
+# We need to add a symlink to /sbin/pidof in order to make it be found:
+sed -i -e '/bin\/bash/{N;s#$#\nexport PATH="/usr/lib/steam/local:$PATH"#}' ${PKG}/usr/bin/steam
+sed -i -e 's/xterm/${TERM}/' ${PKG}/usr/bin/steam
+
+# Our 'pidof' workaround:
+mkdir ${PKG}/usr/lib/steam/local
+ln -sf /sbin/pidof ${PKG}/usr/lib/steam/local/pidof
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  steam_install_agreement.txt \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Steam client"
+Steam client
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
