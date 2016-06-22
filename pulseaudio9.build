@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=pocketsphinx
+TARNAME=pulseaudio
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s/sphinx
+TARDIR=~/tmp/new/p/pulseaudio
 #TAR_EXT=.tar.gz
-VERSION=0.8
+VERSION=9.0
 VERSIONEXTRA=
-BUILD=6
+BUILD=1
 
-WEBPAGE="http://cmusphinx.sourceforge.net"
+WEBPAGE="http://www.pulseaudio.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=pulseaudio9
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/pulseaudio-4.0.diff
+# ./bootstrap.sh
 )
 fi
 
@@ -55,8 +56,6 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -64,18 +63,10 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --disable-hal \
+	    --with-bash-completion-dir=/etc/bash_completion.d
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,9 +81,28 @@ fi
 
 make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
+(cd ${PKG}/etc/pulse
+ for f in client.conf  daemon.conf  default.pa system.pa
+ do
+  mv ${f} ${f}.new
+  doinst_config etc/pulse/${f}.new
+ done
+)
 
-strip_binaries
+mkdir -p ${PKG}/var/run/pulse
+
+doinst_systemaddusergrp pulse pulse
+doinst_addgrp pulse-access
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/pulseaudio
+fi
+
+EOF
+
+#strip_binaries
 
 fix_links
 
@@ -107,10 +117,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "pocketsphinx"
-This is PocketSphinx, one of Carnegie Mellon University's open source
-large vocabulary, speaker-independent continuous speech recognition
-engine. Please see the LICENSE file for terms of use.
+make_slack_desc << EOF "networked low-latency sound server"
+PulseAudio is a sound server for POSIX and Win32 systems. A sound 
+server is basically a proxy for your sound applications. It allows 
+you to do advanced operations on your sound data as it passes between 
+your application and your hardware. Things like transferring the audio 
+to a different machine, changing the sample format or channel count 
+and mixing several sounds into one are easily achieved using a sound 
+server.
 
 EOF
 
@@ -118,6 +132,8 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
+chown pulse.pulse ${PKG}/var/run/pulse; \
 find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/pulseaudio usr/libexec/pulse/bt-proximity-helper ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
