@@ -1,0 +1,115 @@
+--- vlc-2.2.4/modules/gui/qt4/qt4.hpp.orig	2015-02-02 19:42:29.000000000 +0000
++++ vlc-2.2.4/modules/gui/qt4/qt4.hpp	2016-07-07 21:54:36.457934200 +0100
+@@ -25,6 +25,8 @@
+ #ifndef QVLC_H_
+ #define QVLC_H_
+ 
++#include <atomic>
++
+ #ifdef HAVE_CONFIG_H
+ # include "config.h"
+ #endif
+--- vlc-2.2.4/modules/gui/qt4/dialogs/messages.cpp.orig	2015-02-02 19:42:29.000000000 +0000
++++ vlc-2.2.4/modules/gui/qt4/dialogs/messages.cpp	2016-07-07 21:58:33.560935074 +0100
+@@ -143,7 +143,7 @@
+ 
+ void MessagesDialog::changeVerbosity( int i_verbosity )
+ {
+-    atomic_store( &this->verbosity, i_verbosity );
++    atomic_store( &this->verbosity, (unsigned int) i_verbosity );
+ }
+ 
+ void MessagesDialog::updateConfig()
+--- vlc-2.2.4/include/vlc_playlist.h.orig	2015-02-02 19:42:28.000000000 +0000
++++ vlc-2.2.4/include/vlc_playlist.h	2016-07-07 22:24:27.716940801 +0100
+@@ -24,13 +24,13 @@
+ #ifndef VLC_PLAYLIST_H_
+ #define VLC_PLAYLIST_H_
+ 
++#include <vlc_input.h>
++#include <vlc_events.h>
++
+ # ifdef __cplusplus
+ extern "C" {
+ # endif
+ 
+-#include <vlc_input.h>
+-#include <vlc_events.h>
+-
+ TYPEDEF_ARRAY(playlist_item_t*, playlist_item_array_t)
+ 
+ struct intf_thread_t;
+--- vlc-2.2.4/include/vlc_atomic.h.orig	2015-02-02 19:42:28.000000000 +0000
++++ vlc-2.2.4/include/vlc_atomic.h	2016-07-07 20:00:39.371170058 +0100
+@@ -32,6 +32,12 @@
+ /*** Native C11 atomics ***/
+ #  include <stdatomic.h>
+ 
++#elif  defined (__cplusplus)
++
++#include <atomic>
++
++using namespace std;
++
+ # else
+ 
+ #  define ATOMIC_FLAG_INIT false
+--- vlc-2.2.4/configure.orig	2016-05-31 17:56:33.000000000 +0100
++++ vlc-2.2.4/configure	2016-07-06 22:38:53.515679410 +0100
+@@ -36536,15 +36536,15 @@
+ $as_echo "yes" >&6; }
+ 
+     if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavutil < 55\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavutil < 55") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavutil < 56\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libavutil < 56") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+   :
+ else
+ 
+-      as_fn_error $? "libavutil versions 55 and later are not supported." "$LINENO" 5
++      as_fn_error $? "libavutil versions 56 and later are not supported." "$LINENO" 5
+ 
+ fi
+ 
+@@ -36830,8 +36830,8 @@
+   case "${avfork}" in
+     ffmpeg)
+       if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.10.100\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.10.100") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.24.105\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.240.105") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+@@ -36915,7 +36915,7 @@
+       ffmpeg)
+         if test -n "$PKG_CONFIG" && \
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.10.100\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.10.100") 2>&5
++  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.190.100") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+@@ -45107,7 +45107,7 @@
+     ffmpeg) av_vdpau_ver="55.42.100"
+       if test -n "$PKG_CONFIG" && \
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libavcodec >= 57.10.100\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.10.100") 2>&5
++  ($PKG_CONFIG --exists --print-errors "libavcodec >= 57.240.100") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+@@ -49187,7 +49187,7 @@
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+ 
+-        as_fn_error $? "\"You cannot build VLC with Qt-5.5.0. You need to backport I78ef29975181ee22429c9bd4b11d96d9e68b7a9c\"" "$LINENO" 5
++true
+ 
+ fi
+ 

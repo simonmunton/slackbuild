@@ -1,0 +1,74 @@
+--- oiio-Release-1.6.15/src/ffmpeg.imageio/ffmpeginput.cpp.orig	2016-06-30 17:41:54.000000000 +0100
++++ oiio-Release-1.6.15/src/ffmpeg.imageio/ffmpeginput.cpp	2016-07-10 14:10:16.986153576 +0100
+@@ -28,6 +28,8 @@
+   (This is the Modified BSD License)
+ */
+ 
++#pragma GCC diagnostic warning "-Wdeprecated-declarations"
++
+ extern "C" { // ffmpeg is a C api
+ #include <errno.h>
+ #include <libavformat/avformat.h>
+@@ -272,7 +274,7 @@
+         av_read_frame (m_format_context, &pkt);
+         int64_t first_pts = pkt.pts;
+         int64_t max_pts = 0 ;
+-        av_free_packet (&pkt); //because seek(int) uses m_format_context
++        av_packet_unref (&pkt); //because seek(int) uses m_format_context
+         seek (1 << 29);
+         av_init_packet (&pkt); //Is this needed?
+         while (stream && av_read_frame (m_format_context, &pkt) >= 0) {
+@@ -280,16 +282,17 @@
+             if (current_pts > max_pts) {
+                 max_pts = current_pts +1;
+             }
+-            av_free_packet (&pkt); //Always free before format_context usage
++            av_packet_unref (&pkt); //Always free before format_context usage
+         }
+         m_frames = max_pts;
+     }
+     m_frame = av_frame_alloc();
+     m_rgb_frame = av_frame_alloc();
+     m_rgb_buffer.resize(
+-        avpicture_get_size (AV_PIX_FMT_RGB24,
++        av_image_get_buffer_size (AV_PIX_FMT_RGB24,
+         m_codec_context->width,
+-        m_codec_context->height),
++        m_codec_context->height,
++        0),
+         0
+     );
+     AVPixelFormat pixFormat;
+@@ -411,13 +414,15 @@
+ 
+             if( current_frame == frame && finished)
+             {
+-                avpicture_fill
++                av_image_fill_arrays
+                 (
+-                    reinterpret_cast<AVPicture*>(m_rgb_frame),
++                    m_rgb_frame->data,
++                    m_rgb_frame->linesize,
+                     &m_rgb_buffer[0],
+                     AV_PIX_FMT_RGB24,
+                     m_codec_context->width,
+-                    m_codec_context->height
++                    m_codec_context->height,
++                    0
+                 );
+                 sws_scale
+                 (
+@@ -430,11 +435,11 @@
+                     m_rgb_frame->linesize
+                 );
+                 m_last_decoded_pos = current_frame; 
+-                av_free_packet (&pkt);
++                av_packet_unref (&pkt);
+                 break;
+             }
+         }
+-        av_free_packet (&pkt);
++        av_packet_unref (&pkt);
+     }
+     m_read_frame = true;
+ }
