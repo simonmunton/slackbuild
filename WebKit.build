@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=WebKit
+TARNAME=webkitgtk
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=r119340
+VERSION=2.4.11
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://webkit.org/"
+WEBPAGE="http://webkitgtk.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=WebKit1
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -46,7 +46,14 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/WebKit-r37126.diff
- ./autogen.sh
+# ./autogen.sh
+
+ patch -p1 < ${CWD}/WebKit-install-minibrowser.patch
+ patch -p1 < ${CWD}/WebKit-restore_sparc_code.patch
+ patch -p1 < ${CWD}/WebKit-02_notebook_scroll.patch
+ patch -p1 < ${CWD}/WebKit-ftbfs-armhf.patch
+ patch -p1 < ${CWD}/WebKit-x32_support.patch
+ patch -p1 < ${CWD}/WebKit-bugzilla_clear_surface.patch
 )
 fi
 
@@ -69,6 +76,8 @@ CXXFLAGS="${SLKCFLAGS}" \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
 	    --with-gtk=2.0 \
+	    --enable-gtk-doc \
+	    --enable-introspection \
 	    --disable-webkit2
 
 #	    --enable-introspection
@@ -91,7 +100,7 @@ then
 fi
 
 #make -C WebKitBuild/Release install DESTDIR=${PKG}
-make install DESTDIR=${PKG}
+make ${NUM_JOBS} install DESTDIR=${PKG}
 
 #strip_binaries
 

@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=20150824
+VERSION=20160404
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,6 +46,10 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ if [ ! -f ./configure ]
+ then
+   ./bootstrap
+ fi
 )
 fi
 
@@ -105,8 +109,10 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+cp -L INSTALL ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 

@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=0.82
+VERSION=0.83.2.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/marc-lorber/oregano"
+WEBPAGE="https://github.com/drahnr/oregano"
+#"https://github.com/marc-lorber/oregano"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,9 +46,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/oregano-0.82.diff
- mkdir m4
- autogen.sh
+# patch -p1 -b -z .orig < ${CWD}/oregano-0.82.diff
+# mkdir m4
+# autogen.sh
 )
 fi
 
@@ -61,13 +62,14 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -82,7 +84,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+# make ${NUM_JOBS} || exit
+./waf configure --prefix="/usr" ${NUM_JOBS}
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +93,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+./waf install --destdir=${PKG}
 
 strip_binaries
 
