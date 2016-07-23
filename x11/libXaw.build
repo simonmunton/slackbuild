@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/x/xorg/X11R7/lib
 #TAR_EXT=.tar.gz
 VERSION=1.0.13
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -91,6 +91,21 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+# Older versions of libXaw shipped a libXaw8.so.8 aka libXaw.so.8.
+# This has since been removed (thanks), so we will, at least for now,
+# make libXaw.so.8 a symlink to libXaw.so.7 so that programs that used
+# that version of libXaw will still function if they didn't actually
+# use any of the Xprint functions that were in .8 but not .7.  We are
+# not aware of anything that used them, which is probably why the whole
+# library ended up considered dead weight.  Next time we hope that
+# upstream will consider using a different library name instead of
+# floating a higher major library version and then pulling it.
+
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  ln -sf libXaw.so.7 libXaw.so.8
+)
+
 
 strip_binaries
 
