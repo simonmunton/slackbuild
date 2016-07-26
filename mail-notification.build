@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=5.4
 VERSIONEXTRA=
-BUILD=8
+BUILD=9
 
 WEBPAGE="http://www.nongnu.org/mailnotify/"
 
@@ -58,6 +58,7 @@ fi
 # patch -p0 < ${CWD}/mail-notification-5.4-gtk3-support.patch
  patch -p0 < ${CWD}/mail-notification-5.4-build-without-optimalisations.patch
  patch -p0 < ${CWD}/mail-notification-5.4-add-fallback-icon.patch
+ patch -p1 < ${CWD}/mail-notification-5.4.diff
 )
 fi
 
@@ -66,6 +67,9 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+export jb_cflags=" -DGLIB_DISABLE_DEPRECATION_WARNINGS -Wno-error=suggest-attribute=format"
+
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
