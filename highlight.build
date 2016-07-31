@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
 VERSION=3.30
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://www.andre-simon.de/doku/highlight/en/highlight.html"
 
@@ -53,12 +53,18 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
+LUA_CFLAGS=`pkg-config --cflags lua5.2`
+LUA_LIBS=`pkg-config --libs lua5.2`
+
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+
+sed -i -e "s/-llua[0-9.]*/-llua5.2/; /PKGCONFIG .* lua/ s/lua[0-9.]*/lua5.2/" src/gui-qt/highlight.pro
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -82,7 +88,7 @@ if [ ${DO_MAKE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS} -std=c++11" \
 CXXFLAGS="${SLKCFLAGS} -std=c++11" \
-make all gui ${NUM_JOBS} QMAKE=qmake || exit
+make all gui ${NUM_JOBS} QMAKE=qmake LUA_CFLAGS=$LUA_CFLAGS LUA_LIBS=$LUA_LIBS || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +96,7 @@ then
   exit
 fi
 
-make QMAKE=qmake install install-gui DESTDIR=${PKG}
+make QMAKE=qmake LUA_CFLAGS=$LUA_CFLAGS LUA_LIBS=$LUA_LIBS install install-gui DESTDIR=${PKG}
 
 strip_binaries
 
