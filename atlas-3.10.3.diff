@@ -1,0 +1,55 @@
+--- atlas-3.10.3/CONFIG/src/probe_comp.c.orig	2016-07-28 20:43:01.000000000 +0100
++++ atlas-3.10.3/CONFIG/src/probe_comp.c	2016-07-31 10:07:22.600109161 +0100
+@@ -1291,7 +1291,7 @@
+    {
+       i = 64 + strlen(OSpaths);
+       ln = CheckStrLen(ln, &lnlen, i);
+-      sprintf(ln, "find %s -maxdepth 1 -name '*gcc*' -exec ./xisgcc '{}' \\;",
++      sprintf(ln, "find %s -maxdepth 1 -name 'gcc*' -exec ./xisgcc '{}' \\;",
+               OSpaths);
+       gccs = GetLinesFromFile(atlsys(NULL, ln, verb, 1), gccs);
+       i = SelectBestGcc(verb, targ, GMAJOR, GMINOR, gccs, USEMINGW);
+@@ -1317,7 +1317,7 @@
+    {
+       i = 64 + strlen(sp);
+       ln = CheckStrLen(ln, &lnlen, i);
+-      sprintf(ln, "find %s -maxdepth 1 -name '*gcc*' -exec ./xisgcc '{}' \\;",
++      sprintf(ln, "find %s -maxdepth 1 -name 'gcc*' -exec ./xisgcc '{}' \\;",
+               sp);
+       free(sp);
+       fp = atlsys(NULL, ln, verb, 1);
+@@ -1343,7 +1343,7 @@
+  * Try searching in $HOME/local, including all subdirs
+  */
+    ln = CheckStrLen(ln, &lnlen, 64);
+-   sprintf(ln, "find $HOME/local -name '*gcc*' -exec ./xisgcc '{}' \\;");
++   sprintf(ln, "find $HOME/local -name 'gcc*' -exec ./xisgcc '{}' \\;");
+    fp = atlsys(NULL, ln, verb, 1);
+    if (fp)
+    {
+@@ -1371,7 +1371,7 @@
+ 
+       i = 64 + strlen(stdpaths);
+       ln = CheckStrLen(ln, &lnlen, i);
+-      i = sprintf(ln, "find %s -name '*gcc*' -exec ./xisgcc '{}' \\;",
++      i = sprintf(ln, "find %s -name 'gcc*' -exec ./xisgcc '{}' \\;",
+                   stdpaths);
+       gccs = GetLinesFromFile(atlsys(NULL, ln, verb, 1), gccs);
+       i = SelectBestGcc(verb, targ, GMAJOR, GMINOR, gccs, USEMINGW);
+--- atlas-3.10.3/makes/Make.lib.orig	2016-07-28 20:43:00.000000000 +0100
++++ atlas-3.10.3/makes/Make.lib	2016-07-31 06:29:20.465141211 +0100
+@@ -112,12 +112,12 @@
+ # These are a bunch of different ways to attempt to build a .so, try them all
+ #
+ LDTRY:
+-	$(LD) $(LDFLAGS) -shared -soname $(LIBINSTdir)/$(outso) -o $(outso) \
++	$(LD) $(LDFLAGS) -shared -soname $(outso) -o $(outso) \
+            -rpath-link $(LIBINSTdir)  \
+            --whole-archive $(libas) --no-whole-archive $(LIBS)
+ GCCTRY:
+ 	$(GOODGCC) -shared -o $(outso)  \
+-           -Wl,"-rpath-link $(LIBINSTdir)" \
++           -Wl,"-rpath-link,$(LIBINSTdir)" \
+            -Wl,--whole-archive $(libas) -Wl,--no-whole-archive $(LIBS)
+ GCCTRY_norp:
+ 	$(GOODGCC) -shared -o $(outso)  \

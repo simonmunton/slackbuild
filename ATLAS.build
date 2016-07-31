@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP=""
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.10.2
+VERSION=3.10.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -23,7 +23,7 @@ PKGVERSION=${VERSION}_sse2
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
-LAPACK_TAR=~/tmp/new/l/lapack-3.6.0.tgz
+LAPACK_TAR=~/tmp/new/l/lapack-3.6.1.tgz
 
 pre_unpack
 
@@ -47,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/atlas-3.10.0.diff
+ patch -p1 -b -z .orig < ${CWD}/atlas-3.10.3.diff
 )
 fi
 
@@ -70,7 +70,9 @@ mkdir build
 	     --libdir=/usr/lib${LIBDIRSUFFIX} \
 	     --shared \
 	     --with-netlib-lapack-tarfile=${LAPACK_TAR} \
-	     -C acg gcc
+	     -v 10
+
+#	     -C acg gcc -F acg '-fomit-frame-pointer -mfpmath=sse -O2 -fschedule-insns'
 )
 fi
 
