@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=fityk
+TARNAME=darktable
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=1.2.9
+VERSION=2.0.5
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://fityk.nieto.pl/"
+WEBPAGE="http://www.darktable.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -46,8 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- ./autogen.sh
 )
 fi
 
@@ -57,9 +55,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -67,18 +70,18 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-
-
-#	    --with-wx-config=/usr/bin/wx-config-3.0
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
 
 fi
 
@@ -93,6 +96,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 
@@ -109,8 +114,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "program for data processing and nonlinear curve fitting."
-Fityk is a program for data processing and nonlinear curve fitting.
+make_slack_desc << EOF "open source photography workflow application and RAW developer"
+darktable is an open source photography workflow application and RAW 
+developer. A virtual lighttable and darkroom for photographers. It 
+manages your digital negatives in a database, lets you view them 
+through a zoomable lighttable and enables you to develop raw images 
+and enhance them.
 
 EOF
 
