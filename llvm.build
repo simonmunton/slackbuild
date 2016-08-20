@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/l/llvm
 #TAR_EXT=.tar.gz
 VERSION=3.8.1
 VERSIONEXTRA=.src
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://llvm.org/"
 
@@ -48,6 +48,16 @@ fi
  (cd tools
   tar xf ${TARDIR}/cfe-${VERSION}.src.tar.xz
   mv cfe* clang
+ )
+
+ (cd tools/clang/tools
+  tar xvf ${TARDIR}/clang-tools-extra-${VERSION}.src.tar.xz
+  mv clang-tools-extra-${VERSION}* extra
+ )
+
+ (cd projects
+  tar xvf ${TARDIR}/compiler-rt-$VERSION.src.tar.xz
+  mv compiler-rt-${VERSION}* compiler-rt
  )
 
  if [ -n "${LIBDIRSUFFIX}" ]
@@ -100,14 +110,19 @@ elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
+      -DLLVM_LIBDIR_SUFFIX=${LIBDIRSUFFIX} \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DLLVM_BUILD_LLVM_DYLIB=ON \
+      -DLLVM_DYLIB_EXPORT_ALL=ON \
+      -DLLVM_LINK_LLVM_DYLIB=ON \
+      -DLLVM_ENABLE_RTTI=ON \
+      -DLLVM_ENABLE_FFI=ON \
+      -DLLVM_ENABLE_ASSERTIONS=OFF \
+      -DLLVM_BINUTILS_INCDIR=/usr/include \
       -DCLANG_RESOURCE_DIR="../lib${LIBDIRSUFFIX}/clang/${VERSION}" \
-      -DLLVM_BUILD_LLVM_DYLIB=on \
-      -DLLVM_DYLIB_EXPORT_ALL=on \
-      -DLLVM_LIBDIR_SUFFIX=${LIBDIRSUFFIX} \
       ..
 
 #      -DBUILD_SHARED_LIBS=on \
@@ -130,6 +145,21 @@ make install DESTDIR=${PKG}
 
 cd ..
 
+# install clang-static-analyzer
+for i in ccc c++; do
+  ln -s /usr/libexec/$i-analyzer \
+    ${PKG}/usr/bin/$i-analyzer || exit 1
+done
+
+# Install Python bindings
+mkdir -p "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages"
+cp -a tools/clang/bindings/python/clang "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/"
+
+# Compile Python scripts
+python -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
+python -O -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
+
+
 ln -s /usr/share/clang/clang-format-diff.py ${PKG}/usr/bin/clang-format-diff
 
 if [ ! -d ${PKG}/usr/share/clang ]
@@ -147,10 +177,10 @@ then
   ln -s libLLVM.so.${VERSION} ${PKG}/usr/lib${LIBDIRSUFFIX}/libLLVM-${VERSION}.so
 fi
 
-for f in FileCheck not c-index-test count lli-child-target
-do  
-  rm ${PKG}/usr/bin/$f
-done
+#for f in FileCheck not c-index-test count lli-child-target
+#do
+#  rm ${PKG}/usr/bin/$f
+#done
 
 
 
@@ -160,7 +190,7 @@ mv ${PKG}/usr/docs/llvm/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 rmdir -p ${PKG}/usr/docs/llvm
 
-rm ${PKG}/usr/lib${LIBDIRSUFFIX}/LLVMHello*
+#rm ${PKG}/usr/lib${LIBDIRSUFFIX}/LLVMHello*
 
 strip_binaries
 
