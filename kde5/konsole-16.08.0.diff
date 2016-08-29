@@ -1,0 +1,21 @@
+--- konsole-16.08.0/src/main.cpp.orig	2016-08-10 00:01:34.000000000 +0100
++++ konsole-16.08.0/src/main.cpp	2016-08-29 14:23:39.084095276 +0100
+@@ -158,15 +158,14 @@
+     // of Konsole is started.
+     QObject::connect(&dbusService, &KDBusService::activateRequested, &konsoleApp, &Application::slotActivateRequested);
+ 
+-    if (!konsoleApp.newInstance()) {
++    if (app->isSessionRestored()) {
++        restoreSession(konsoleApp);
++    } else if (!konsoleApp.newInstance()) {
+         // An argument that printed something and mean we should just quit was passed.
+         delete app;
+         return 0;
+     }
+ 
+-    if (app->isSessionRestored())
+-        restoreSession(konsoleApp);
+-
+     // Since we've allocated the QApplication on the heap for the KDBusService workaround,
+     // we need to delete it manually before returning from main().
+     int ret = app->exec();
