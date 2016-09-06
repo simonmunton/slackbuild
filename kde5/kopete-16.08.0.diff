@@ -1,0 +1,77 @@
+--- kopete-16.08.0/protocols/jabber/libjingle/talk/session/phone/linphonemediaengine.h.orig	2016-08-12 16:55:32.000000000 +0100
++++ kopete-16.08.0/protocols/jabber/libjingle/talk/session/phone/linphonemediaengine.h	2016-09-06 19:32:58.431842524 +0100
+@@ -53,7 +53,7 @@
+ class LinphoneMediaEngine : public MediaEngineInterface {
+  public:
+   LinphoneMediaEngine(const std::string& ringWav,  const std::string& callWav);
+-  virtual ~LinphoneMediaEngine() {}
++  virtual ~LinphoneMediaEngine();
+ 
+   // Implement pure virtual methods of MediaEngine.
+   virtual bool Init() { return true; }
+@@ -97,6 +97,8 @@
+   bool have_speex;
+   bool have_gsm;
+ 
++  MSFactory *factory_;
++
+  private:
+   std::vector<AudioCodec> voice_codecs_;
+   std::vector<VideoCodec> video_codecs_;
+--- kopete-16.08.0/protocols/jabber/libjingle/talk/session/phone/linphonemediaengine.cc.orig	2016-08-12 16:55:32.000000000 +0100
++++ kopete-16.08.0/protocols/jabber/libjingle/talk/session/phone/linphonemediaengine.cc	2016-09-06 19:36:44.457858582 +0100
+@@ -60,7 +60,8 @@
+ ///////////////////////////////////////////////////////////////////////////
+ LinphoneMediaEngine::LinphoneMediaEngine(const std::string& ringWav,  const std::string& callWav) : ring_wav_(ringWav), call_wav_(callWav) {
+   ortp_init();
+-  ms_init();
++//  ms_init();
++  factory_ = ms_factory_new_with_voip();
+ 
+ #ifndef WIN32
+   char * path = strdup(MSILBC_LIBRARY);
+@@ -88,6 +89,10 @@
+   voice_codecs_.push_back(AudioCodec(101, payload_type_telephone_event.mime_type, payload_type_telephone_event.clock_rate, 0, 1, 1));
+ }
+ 
++LinphoneMediaEngine::~LinphoneMediaEngine() {
++  ms_factory_destroy(factory_);
++}
++
+ void LinphoneMediaEngine::Terminate() {
+   fflush(stdout);
+ }
+@@ -153,13 +158,13 @@
+ #ifdef _DEBUG
+   ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+ #else
+-  ortp_set_log_level_mask(ORTP_FATAL);
++  ortp_set_log_level_mask("LinphoneVoiceChannel", ORTP_FATAL);
+ #endif
+ 
+ #ifdef MEDIASTREAMER_LESS_2_9
+   audio_stream_ = audio_stream_new(-1, 0); /* -1 means that function will choose some free port */
+ #else
+-  audio_stream_ = audio_stream_new(-1, -1, 0); /* -1 means that function will choose some free port */
++  audio_stream_ = audio_stream_new(engine_->factory_, -1, -1, 0); /* -1 means that function will choose some free port */
+ #endif
+ 
+ }
+@@ -344,7 +349,7 @@
+       if (engine_->GetRingWav().size() > 0)
+       {
+         LOG(LS_VERBOSE) << "incoming ring. sound file: " << engine_->GetRingWav().c_str() << "\n";
+-        ring_stream_ = ring_start (engine_->GetRingWav().c_str(), 1, sndcard);
++        ring_stream_ = ring_start (engine_->factory_, engine_->GetRingWav().c_str(), 1, sndcard);
+       }
+     }
+     else
+@@ -352,7 +357,7 @@
+       if (engine_->GetCallWav().size() > 0)
+       {
+         LOG(LS_VERBOSE) << "outgoing ring. sound file: " << engine_->GetCallWav().c_str() << "\n";
+-        ring_stream_ = ring_start (engine_->GetCallWav().c_str(), 1, sndcard);
++        ring_stream_ = ring_start (engine_->factory_, engine_->GetCallWav().c_str(), 1, sndcard);
+       }
+     }
+   }
