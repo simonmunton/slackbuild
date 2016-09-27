@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=supertux
+TARNAME=SuperTux
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.4.0
-VERSIONEXTRA=
-BUILD=3
+VERSION=v0.5.0
+VERSIONEXTRA=-Source
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -33,7 +33,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-0.3.1 ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -52,6 +52,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #CFLAGS="${SLKCFLAGS}" \
@@ -69,7 +72,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      -DENABLE_BOOST_STATIC_LIBS=off \
+      ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -83,6 +87,8 @@ then
 fi
 
 make DESTDIR=${PKG} install
+
+cd ..
 
 mv ${PKG}/usr/share/doc/supertux*/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
 rmdir -p ${PKG}/usr/share/doc/supertux*
