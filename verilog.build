@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=get_iplayer
+TARNAME=verilog
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=2.97
+VERSION=10.1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://linuxcentre.net/iplayer"
+WEBPAGE="http://iverilog.icarus.com/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/get_iplayer-20100703.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,29 +59,32 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,15 +92,7 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/{bin,man/man1} ${PKG}/usr/share/get_iplayer/plugins
-
-./get_iplayer --manpage get_iplayer.1
-
-cp get_iplayer ${PKG}/usr/bin
-cp get_iplayer.1 ${PKG}/usr/man/man1
-cp plugins/* ${PKG}/usr/share/get_iplayer/plugins
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -108,15 +103,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO LICENSE.txt CHANGELOG* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PVR for BBC's iPlayer"
-get_iplayer lists, searches and downloads BBC iPlayer TV/Radio, BBC
-Podcast and ITVplayer TV programmes.
+make_slack_desc << EOF "Icarus Verilog"
+Icarus Verilog is a Verilog simulation and synthesis tool. It operates 
+as a compiler, compiling source code written in Verilog (IEEE-1364) 
+into some target format. For batch simulation, the compiler can 
+generate an intermediate form called vvp assembly. This intermediate 
+form is executed by the ``vvp'' command. For synthesis, the compiler 
+generates netlists in the desired format.
 
 EOF
 
