@@ -1,0 +1,143 @@
+From 41a1c19ec88a59eb46fdea5e14e9edf4cb181dcb Mon Sep 17 00:00:00 2001
+From: Jo Shields <jo.shields@xamarin.com>
+Date: Tue, 20 Sep 2016 16:08:23 +0100
+Subject: [PATCH] Handle relocatable libMonoPosixHelper.so when --libdir= isn't
+ lib/
+
+Right now, we use a special token in mono/config which replaces $mono_libdir with the runtime-detected assemblies lib dir - e.g. /usr/lib
+
+Unfortunately, this does not handle cases where a --libdir= value is passed to configure, such as on Red Hat where they use --libdir=/usr/lib64 on AMD64
+
+We already have a variable from configure - reloc_libdir - so introduce some helpers to use it in the $mono_libdir replacement.
+
+This assumes the value of --libdir is a subdirectory of --prefix, but I doubt we have ever worked at all when that is not the case.
+
+Fixes: #41953
+---
+ configure.ac                     |  6 +++++-
+ mono/metadata/Makefile.am        |  2 +-
+ mono/metadata/assembly.c         | 15 +++++++++++++++
+ mono/metadata/assembly.h         |  1 +
+ mono/metadata/mono-config-dirs.c | 10 ++++++++++
+ mono/metadata/mono-config-dirs.h |  3 +++
+ mono/metadata/mono-config.c      |  3 ++-
+ 7 files changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 9a10f6d..ca29144 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -66,7 +66,11 @@ AC_SUBST(libmono_cflags)
+ AC_SUBST(libmono_ldflags)
+ 
+ # Variable to have relocatable .pc files (lib, or lib64)
+-reloc_libdir=`basename ${libdir}`
++# realpath isn't always available, and requires that all but the tip of the provided
++# path exists. Fall back to the old behaviour, but realpath allows depth >1
++# e.g. Debian puts Mono in /usr/bin and libs in /usr/lib/x86_64-linux-gnu/ which is
++# too deep for the old method to work
++reloc_libdir=`realpath --relative-to=${prefix} ${libdir} 2> /dev/null || basename ${libdir}`
+ AC_SUBST(reloc_libdir)
+ 
+ # Set to yes if Unix sockets cannot be created in an anonymous namespace
+diff --git a/mono/metadata/Makefile.am b/mono/metadata/Makefile.am
+index 3b8d92b..0c0c4c2 100644
+--- a/mono/metadata/Makefile.am
++++ b/mono/metadata/Makefile.am
+@@ -88,7 +88,7 @@ mono-config-dirs.lo: Makefile
+ libmonoruntime_config_la_SOURCES = \
+ 	mono-config-dirs.h		\
+ 	mono-config-dirs.c
+-libmonoruntime_config_la_CPPFLAGS = $(AM_CPPFLAGS) -DMONO_BINDIR=\"$(bindir)/\" -DMONO_ASSEMBLIES=\"$(assembliesdir)\" -DMONO_CFG_DIR=\"$(confdir)\"
++libmonoruntime_config_la_CPPFLAGS = $(AM_CPPFLAGS) -DMONO_BINDIR=\"$(bindir)/\" -DMONO_ASSEMBLIES=\"$(assembliesdir)\" -DMONO_CFG_DIR=\"$(confdir)\" -DMONO_RELOC_LIBDIR=\"../$(reloc_libdir)\"
+ 
+ CLEANFILES = mono-bundle.stamp
+ 
+diff --git a/mono/metadata/assembly.c b/mono/metadata/assembly.c
+index af7cd6d..06fe1da 100644
+--- a/mono/metadata/assembly.c
++++ b/mono/metadata/assembly.c
+@@ -558,6 +558,21 @@ mono_assembly_getrootdir (void)
+ }
+ 
+ /**
++ * mono_native_getrootdir:
++ * 
++ * Obtains the root directory used for looking up native libs (.so, .dylib).
++ *
++ * Returns: a string with the directory, this string should be freed by
++ * the caller.
++ */
++G_CONST_RETURN gchar *
++mono_native_getrootdir (void)
++{
++	gchar* fullpath = g_build_path (G_DIR_SEPARATOR_S, mono_assembly_getrootdir (), mono_config_get_reloc_lib_dir(), NULL);
++	return fullpath;
++}
++
++/**
+  * mono_set_dirs:
+  * @assembly_dir: the base directory for assemblies
+  * @config_dir: the base directory for configuration files
+diff --git a/mono/metadata/assembly.h b/mono/metadata/assembly.h
+index bdf3d75..2a3857c 100644
+--- a/mono/metadata/assembly.h
++++ b/mono/metadata/assembly.h
+@@ -36,6 +36,7 @@ MONO_API MonoImage*    mono_assembly_load_module (MonoAssembly *assembly, uint32
+ MONO_API void          mono_assembly_close      (MonoAssembly *assembly);
+ MONO_API void          mono_assembly_setrootdir (const char *root_dir);
+ MONO_API MONO_CONST_RETURN char *mono_assembly_getrootdir (void);
++MONO_API MONO_CONST_RETURN char *mono_native_getrootdir (void);
+ MONO_API void	      mono_assembly_foreach    (MonoFunc func, void* user_data);
+ MONO_API void          mono_assembly_set_main   (MonoAssembly *assembly);
+ MONO_API MonoAssembly *mono_assembly_get_main   (void);
+diff --git a/mono/metadata/mono-config-dirs.c b/mono/metadata/mono-config-dirs.c
+index ece67d1..2e61a1b 100644
+--- a/mono/metadata/mono-config-dirs.c
++++ b/mono/metadata/mono-config-dirs.c
+@@ -41,3 +41,13 @@ mono_config_get_bin_dir (void)
+ #endif
+ }
+ 
++const char*
++mono_config_get_reloc_lib_dir (void)
++{
++#ifdef MONO_RELOC_LIBDIR
++	return MONO_RELOC_LIBDIR;
++#else
++	return NULL;
++#endif
++}
++
+diff --git a/mono/metadata/mono-config-dirs.h b/mono/metadata/mono-config-dirs.h
+index 9488511..25e7651 100644
+--- a/mono/metadata/mono-config-dirs.h
++++ b/mono/metadata/mono-config-dirs.h
+@@ -13,4 +13,7 @@ mono_config_get_cfg_dir (void);
+ const char*
+ mono_config_get_bin_dir (void);
+ 
++const char*
++mono_config_get_reloc_lib_dir (void);
++
+ #endif
+diff --git a/mono/metadata/mono-config.c b/mono/metadata/mono-config.c
+index 2bedf12..cfe1539 100644
+--- a/mono/metadata/mono-config.c
++++ b/mono/metadata/mono-config.c
+@@ -314,13 +314,14 @@ dllmap_start (gpointer user_data,
+ 			else if (strcmp (attribute_names [i], "target") == 0){
+ 				char *p = strstr (attribute_values [i], "$mono_libdir");
+ 				if (p != NULL){
+-					const char *libdir = mono_assembly_getrootdir ();
++					const char *libdir = mono_native_getrootdir ();
+ 					size_t libdir_len = strlen (libdir);
+ 					char *result;
+ 					
+ 					result = (char *)g_malloc (libdir_len-strlen("$mono_libdir")+strlen(attribute_values[i])+1);
+ 					strncpy (result, attribute_values[i], p-attribute_values[i]);
+ 					strcpy (result+(p-attribute_values[i]), libdir);
++					g_free (libdir);
+ 					strcat (result, p+strlen("$mono_libdir"));
+ 					info->target = result;
+ 				} else 
