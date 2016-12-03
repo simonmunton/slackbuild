@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdevelop
+TARNAME=kicad
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kdevelop
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=5.0.3
+VERSION=4.0.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://kicad-pcb.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/kicad-boost161.patch
 )
 fi
 
@@ -55,26 +55,44 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-#QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-#export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir build
-cd build
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake \
+      -DCMAKE_CXX_FLAGS:STRING="-std=c++11" \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      -DKICAD_REPO_NAME=stable \
+      -DKICAD_BUILD_VERSION=${VERSION} \
+      -DKICAD_SCRIPTING=ON \
+      -DKICAD_SCRIPTING_MODULES=ON \
+      -DKICAD_SCRIPTING_WXPYTHON=ON \
+      -DKICAD_SKIP_BOOST=ON \
+      ..
+
+
+#      -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -106,8 +124,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE development environment"
-The KDevelop integrated C/C++ application development environment.
+make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
+A Cross Platform and Open Source Electronics Design Automation Suite
 
 EOF
 

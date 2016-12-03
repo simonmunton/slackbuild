@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=kdevelop
+TARNAME=kicad-footprints
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kdevelop
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=5.0.3
+VERSION=4.0.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://kicad-pcb.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,31 +55,40 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-#QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-#export QTDIR
+mkdir _BuilD_
+cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir build
-cd build
-
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+# make ${NUM_JOBS} || exit
+:
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,9 +96,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
 
 cd ..
+
+mkdir -p ${PKG}/usr/share/kicad/modules/
+cp -pr *.pretty ${PKG}/usr/share/kicad/modules/
 
 strip_binaries
 
@@ -106,8 +118,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE development environment"
-The KDevelop integrated C/C++ application development environment.
+make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
+A Cross Platform and Open Source Electronics Design Automation Suite
 
 EOF
 
