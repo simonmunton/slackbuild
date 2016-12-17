@@ -7,9 +7,9 @@ TARNAME=qt-everywhere-opensource-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=5.7.0
+VERSION=5.7.1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -273,14 +273,17 @@ find ${PKG} \( -name "*.qml" -o -name "*.app" \) -perm 755 -exec chmod 644 '{}' 
 
 
 # make a debug package for webkit if not there
-LQTWK=`readlink ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/libQtWebKit.so`
-if [ ! -e ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug ]
+if [ -e ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/libQtWebKit.so ]
 then
-  objcopy --only-keep-debug lib/${LQTWK} ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
-  (cd ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib
-    objcopy --add-gnu-debuglink=${LQTWK}.debug ${LQTWK}
-  )
-  chmod -x ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
+  LQTWK=`readlink ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/libQtWebKit.so`
+  if [ ! -e ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug ]
+  then
+    objcopy --only-keep-debug lib/${LQTWK} ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
+    (cd ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib
+      objcopy --add-gnu-debuglink=${LQTWK}.debug ${LQTWK}
+    )
+    chmod -x ${PKG}/usr/lib${LIBDIRSUFFIX}/${PRGNAM}/lib/${LQTWK}.debug
+  fi
 fi
 
 # split out the debug stuff
