@@ -1,0 +1,26 @@
+--- kget-16.12.0/CMakeLists.txt.orig	2016-11-20 03:10:01.000000000 +0000
++++ kget-16.12.0/CMakeLists.txt	2016-12-18 14:47:25.814770708 +0000
+@@ -90,8 +90,12 @@
+ if(QGPGME_FOUND)
+     find_package(Boost REQUIRED)
+     add_definitions(-DHAVE_QGPGME)
++    find_package(Gpgmepp REQUIRED)
++    get_target_property(Gpgmepp_INTERFACE_INCLUDE_DIRECTORIES Gpgmepp INTERFACE_INCLUDE_DIRECTORIES)
+     include_directories(
+         ${Boost_INCLUDE_DIRS}
++        ${Gpgmepp_INCLUDE_DIRS}
++        ${Gpgmepp_INTERFACE_INCLUDE_DIRECTORIES}
+         ${QGPGME_INCLUDE_DIR}
+     )
+ endif(QGPGME_FOUND)
+--- kget-16.12.0/core/signature.cpp.orig	2016-11-20 03:10:01.000000000 +0000
++++ kget-16.12.0/core/signature.cpp	2016-12-18 14:29:24.392177015 +0000
+@@ -82,7 +82,7 @@
+         return result;
+     }
+ 
+-    boost::shared_ptr<QFile> qFile(new QFile(dest.pathOrUrl()));
++    std::shared_ptr<QFile> qFile(new QFile(dest.pathOrUrl()));
+     qFile->open(QIODevice::ReadOnly);
+     QGpgME::QIODeviceDataProvider *file = new QGpgME::QIODeviceDataProvider(qFile);
+     GpgME::Data dFile(file);
