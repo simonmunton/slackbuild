@@ -63,7 +63,10 @@ cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-cmake -DCMAKE_INSTALL_PREFIX=/usr \
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DINSTALL_QSQLITE_IN_QT_PREFIX=on \
       -DQT_PLUGINS_DIR=lib$LIBDIRSUFFIX/qt5/plugins \
@@ -86,6 +89,8 @@ fi
 make install DESTDIR=${PKG}
 
 cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
