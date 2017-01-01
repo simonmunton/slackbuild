@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=parallel
+TARNAME=inkscape-open-symbols
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnu/parallel
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=20161222
+VERSION=20170101
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://github.com/Xaviju/inkscape-open-symbols"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,21 +68,24 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +93,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}/usr/share/inkscape/symbols
+
+for d in dashicons emoji-one font-awesome genericons gnome-icon-theme humble-ui iconic interneticons material-design octicons stateFace suru-icons taiga weathericons
+do
+  cp -pr $d ${PKG}/usr/share/inkscape/symbols
+done
 
 strip_binaries
 
@@ -105,14 +117,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU Parallel"
-GNU Parallel is a shell tool for executing jobs in parallel using one
-or more computers. A job is can be a single command or a small script
-that has to be run for each of the lines in the input. The typical
-input is a list of files, a list of hosts, a list of users, a list of
-URLs, or a list of tables. A job can also be a command that reads from
-a pipe. GNU Parallel can then split the input and pipe it into
-commands in parallel.
+make_slack_desc << EOF "Open source SVG symbol sets that can be used as Inkscape symbols"
+Open source SVG symbol sets that can be used as Inkscape symbols
 
 EOF
 

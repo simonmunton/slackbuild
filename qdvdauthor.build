@@ -4,11 +4,14 @@
 
 TARNAME=qdvdauthor
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=2.1.0
+VERSION=2.3.1
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
+
+WEBPAGE="https://sourceforge.net/projects/qdvd/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=3
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/qdvdauthor-2.1.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -52,26 +55,39 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/opt/kde3/lib/qt3/
-PATH=/opt/kde3/lib/qt3/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure -n --omit-local-ffmpeg --build-qslideshow --wget-buttons-library
-# --build-qslideshow --build-qplayer --with-xine-support --with-mplayer-support
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-true
-# No call to make is necessary because it is done by the configure script
-#make ${NUM_JOBS} || exit
-pushd qdvdauthor/plugins
- ./make.sh || exit
-popd
-
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,31 +95,9 @@ then
   exit
 fi
 
-make install INSTALL_ROOT=${PKG}
-make -C qrender install INSTALL_ROOT=${PKG}
+make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/share/qdvdauthor/plugins/menuslide/backround ${PKG}/usr/share/qdvdauthor/plugins/menuslide/background
-
-#mkdir -p ${PKG}/usr/bin
-#cp bin/qslideshow bin/qdvdauthor bin/qplayer bin/qrender ${PKG}/usr/bin/
-
-mkdir -p ${PKG}/usr/share/qdvdauthor/{animated,static,transition,buttons}
-
-mkdir -p ${PKG}/usr/share/pixmaps
-cp qdvdauthor.png ${PKG}/usr/share/pixmaps
-
-mkdir -p ${PKG}/usr/share/applications
-cp qdvdauthor.desktop ${PKG}/usr/share/applications
-
-mkdir -p ${PKG}/usr/share/qdvdauthor/plugins/complexdvd
-cp -a qdvdauthor/plugins/plugins/libcomplexdvd.so* ${PKG}/usr/share/qdvdauthor/plugins
-cp qdvdauthor/plugins/complexdvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugins/complexdvd
-
-mkdir -p ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
-cp -a qdvdauthor/plugins/plugins/libsimpledvd.so* ${PKG}/usr/share/qdvdauthor/plugins
-cp qdvdauthor/plugins/simpledvd/{*.jpg,*.png} ${PKG}/usr/share/qdvdauthor/plugins/simpledvd
-
-cp -r buttons ${PKG}/usr/share/qdvdauthor
+cd ..
 
 strip_binaries
 
@@ -114,23 +108,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc/* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-chmod -R -x,+X ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
-
-#find ${PKG}/usr/doc/${TARNAME}-${VERSION} -name CVS -exec rm -rf {} \;
-rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/CVS
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "gui frontend for using dvdauthor"
 QDVDAuthor is a gui frontend for using dvdauthor and dvd-slideshow
-scripts to easily build DVD menus and assemble the DVD VOB files. This 
-package includes a patched copy of dvd_slideshow in the installation 
+scripts to easily build DVD menus and assemble the DVD VOB files. This
+package includes a patched copy of dvd_slideshow in the installation
 and requires xine or mplayer.
 
 EOF
