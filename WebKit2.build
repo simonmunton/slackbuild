@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=WebKit
+TARNAME=webkitgtk
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=r119340
+VERSION=2.14.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://webkit.org/"
+WEBPAGE="http://webkitgtk.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -33,10 +33,8 @@ then
   exit
 fi
 
-if [ ! -d WebKit2/${TARNAME}-${VERSION} ]
-then
-mkdir WebKit2
-cd WebKit2
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
@@ -48,32 +46,57 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/WebKit-r37126.diff
- ./autogen.sh
+# ./autogen.sh
+
+# patch -p1 < ${CWD}/WebKit-install-minibrowser.patch
+# patch -p1 < ${CWD}/WebKit-restore_sparc_code.patch
+# patch -p1 < ${CWD}/WebKit-02_notebook_scroll.patch
+# patch -p1 < ${CWD}/WebKit-ftbfs-armhf.patch
+# patch -p1 < ${CWD}/WebKit-x32_support.patch
+# patch -p1 < ${CWD}/WebKit-bugzilla_clear_surface.patch
 )
-cd ..
 fi
 
 pre_configure
 
-cd WebKit2/${TARNAME}-${VERSION}
+cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 
 :
 
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-introspection
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man \
+#	    --with-gtk=2.0 \
+#	    --enable-gtk-doc \
+#	    --enable-introspection \
+#	    --disable-webkit2
+
+#	    --enable-introspection
 
 #	    --enable-mathml \
+
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DPORT=GTK \
+      ..
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -91,7 +114,9 @@ then
 fi
 
 #make -C WebKitBuild/Release install DESTDIR=${PKG}
-make install DESTDIR=${PKG}
+make ${NUM_JOBS} install DESTDIR=${PKG}
+
+cd ..
 
 #strip_binaries
 
