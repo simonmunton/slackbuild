@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=cppcheck
+TARNAME=qpxtool
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=1.77
+VERSION=0.7.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://cppcheck.sourceforge.net/"
+WEBPAGE="http://qpxtool.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/qpxtool-04-fix-build-with-libpng15.patch
 )
 fi
 
@@ -56,21 +56,17 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-mkdir _BuilD_
-cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
-            --sysconfdir=/etc \
+./configure --prefix=/usr \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -79,7 +75,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
 fi
 
 fi
@@ -96,8 +92,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
 strip_binaries
 
 fix_links
@@ -113,12 +107,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A tool for static C/C++ code analysis"
-Cppcheck is a static analysis tool for C/C++ code. Unlike C/C++ 
-compilers and many other analysis tools it does not detect syntax 
-errors in the code. Cppcheck primarily detects the types of bugs that 
-the compilers normally do not detect. The goal is to detect only real 
-errors in the code (i.e. have zero false positives). 
+make_slack_desc << EOF "CD quality checks"
+QPxTool is the linux way to get full control over your CD/DVD drives. 
+It is the Open Source Solution which intends to give you access to all 
+available Quality Checks (Q-Checks) on written and blank media, that 
+are available for your drive. This will help you to find the right 
+media and the optimized writing speed for your hardware, which will 
+increase the chance for a long data lifetime.
 
 EOF
 
