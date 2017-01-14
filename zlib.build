@@ -87,6 +87,17 @@ fi
 
 make install DESTDIR=${PKG}
 
+# Now that libkmod requires libz, we had better move the shared library
+# up a level:
+mkdir ${PKG}/lib${LIBDIRSUFFIX}
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  for file in lib*.so.?.* ; do
+    mv ${file} ../../lib${LIBDIRSUFFIX}
+    ln -sf ../../lib${LIBDIRSUFFIX}/${file} .
+  done
+  cp -a lib*.so.? ../../lib${LIBDIRSUFFIX}
+)
+
 strip_binaries
 
 fix_links
