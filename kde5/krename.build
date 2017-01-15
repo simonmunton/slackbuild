@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=exiv2
+TARNAME=krename
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/e
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=r4697
+VERSION=20170115
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.exiv2.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,6 +55,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 mkdir _BuilD_
@@ -62,31 +66,19 @@ cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
-then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DEXIV2_ENABLE_BUILD_PO=ON \
-      -DEXIV2_ENABLE_VIDEO=ON \
-      -DEXIV2_ENABLE_WEBREADY=ON \
+      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
+      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
+      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
       -Wno-dev \
-      ..
-fi
-
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -103,7 +95,8 @@ make install DESTDIR=${PKG}
 
 cd ..
 
-strip_binaries
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -118,12 +111,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Exif and IPTC image metadata library"
-Exiv2, a C++ library and a command line utility to read and
-write Exif and IPTC image metadata. The homepage of Exiv2 is:
-
-   http://www.exiv2.org/
-
+make_slack_desc << EOF
 EOF
 
 post_install

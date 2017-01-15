@@ -79,7 +79,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
 fi
-qmake
+qmake-qt5
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -94,14 +94,21 @@ fi
 
 make install INSTALL_ROOT=${PKG}
 
-rm -rf ${PKG}/usr/lib64/qt/bin
-mv ${PKG}/usr/lib64/qt/include/QtAV/4.*/QtAV/private ${PKG}/usr/lib64/qt/include/QtAV
-rm -rf ${PKG}/usr/share/{applications,icons}
-rmdir ${PKG}/usr/share
+#rm -rf ${PKG}/usr/lib64/qt/bin
+#mv ${PKG}/usr/lib64/qt/include/QtAV/4.*/QtAV/private ${PKG}/usr/lib64/qt/include/QtAV
+#rm -rf ${PKG}/usr/share/{applications,icons}
+#rmdir ${PKG}/usr/share
 
 # Fix wrong path in prl file
 sed -i -e "/^QMAKE_PRL_BUILD_DIR/d" \
-    ${PKG}/usr/lib${LIBDIRSUFFIX}/qt/lib/*.prl
+    ${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib/*.prl
+
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ for f in qt5/lib/*.so*
+ do
+   ln -s $f .
+ done
+)
 
 strip_binaries
 
