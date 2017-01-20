@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libgcrypt
+TARNAME=virtualenv
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=1.7.6
+VERSION=15.1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.gnupg.org/"
+WEBPAGE="https://pypi.python.org/pypi/virtualenv"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,21 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --infodir=/usr/info \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,9 +89,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -88,15 +101,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS BUGS COPYING* INSTALL NEWS README* THANKS TODO VERSION \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "General purpose crypto library"
-Libgcrypt is a general purpose crypto library based on the code
-used in GnuPG.
+make_slack_desc << EOF "Virtual Python Environment builder"
+virtualenv is a tool to create isolated Python environments.
 
 EOF
 
