@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=AtomicParsley
-TARNAMEEXTRA=-source
+TARNAME=atomicparsley
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=0.9.0
+VERSION=0.9.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://atomicparsley.sourceforge.net/"
+WEBPAGE="https://bitbucket.org/wez/atomicparsley"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/AtomicParsley-0.9.0.diff
+# patch -p1 < ${CWD}/AtomicParsley-0.9.0.diff
+
+ if [ ! -e ./configure ]
+ then
+   ./autogen.sh
+ fi
 )
 fi
 
@@ -59,14 +64,13 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -81,8 +85,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-./build
-#make ${NUM_JOBS} || exit
+#./build
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,9 +94,9 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-mkdir ${PKG}/usr/bin
-cp AtomicParsley ${PKG}/usr/bin
+make install DESTDIR=${PKG}
+#mkdir ${PKG}/usr/bin
+#cp AtomicParsley ${PKG}/usr/bin
 
 strip_binaries
 
