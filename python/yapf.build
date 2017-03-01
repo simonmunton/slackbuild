@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=node
+TARNAME=yapf
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/n
+TARDIR=~/tmp/new/y
 #TAR_EXT=.tar.gz
-VERSION=v7.7.0
+VERSION=0.14.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://nodejs.org"
+WEBPAGE="https://github.com/google/yapf"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,31 +59,29 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-    --shared-zlib \
-    --shared-openssl
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-elif [ -f ./CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-fi
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,7 +89,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -108,12 +107,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Node.js"
-Node.js is a platform built on Chrome's JavaScript runtime for easily 
-building fast, scalable network applications. Node.js uses an event-
-driven, non-blocking I/O model that makes it lightweight and 
-efficient, perfect for data-intensive real-time applications that run 
-across distributed devices.
+make_slack_desc << EOF "yapf - yet another python formatter"
 
 EOF
 
