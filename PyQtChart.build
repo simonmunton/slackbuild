@@ -2,11 +2,11 @@
 #
 . build_funcs
 
-TARNAME=PyQt4_gpl_x11
+TARNAME=PyQtChart_gpl
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.12
+VERSION=5.8
 VERSIONEXTRA=
 BUILD=1
 
@@ -14,7 +14,7 @@ WEBPAGE="http://www.riverbankcomputing.co.uk/software/pyqt/download"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=PyQt
+PKGNAME=PyQtChart
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -44,7 +44,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/PyQt-x11-gpl-4.11-add_pro_files.diff
+# patch -p1 < ${CWD}/
 )
 fi
 
@@ -54,12 +54,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-#PATH=/usr/lib/qt/bin:$PATH
+export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-echo yes | python configure.py CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}"
+echo yes | python configure.py --verbose
+# CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}"
+# --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -90,9 +92,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python bindings for Q"
-These are the Python bindings for Qt. You must also have the SIP
-Python bindings generator installed.
+make_slack_desc << EOF "Python bindings for Qt charts"
+These are the Python bindings for Qt charts. You must also have the 
+SIP Python bindings generator installed.
 
 EOF
 
