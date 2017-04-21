@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=zope.interface
+TARNAME=incremental
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/z
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=4.3.3
+VERSION=16.10.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.zope.org/Products/ZopeInterface"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -60,10 +60,27 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+#make ${NUM_JOBS} || exit
 python setup.py build || exit
 fi
 
@@ -72,6 +89,7 @@ then
   exit
 fi
 
+#make install DESTDIR=${PKG}
 python setup.py install --root=${PKG}
 
 strip_binaries
@@ -89,10 +107,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Zope Interfaces"
-Zope interfaces are a mechanism for labeling objects as conforming to 
-a given API or contract.
-
+make_slack_desc << EOF
 EOF
 
 post_install
