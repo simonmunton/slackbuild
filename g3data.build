@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.5.3
+VERSION=1.5.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/g3data-1.5.3.diff
+# patch -p1 < ${CWD}/g3data-1.5.3.diff
+
+if [ ! -f ./configure ]
+then
+  autogen.sh
+fi
 )
 fi
 
@@ -57,13 +62,30 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
 make ${NUM_JOBS} || exit
 fi
 
@@ -72,8 +94,8 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/bin ${PKG}/usr/man/man1
-make install DESTDIR=${PKG} bindir=${PKG}/usr/bin mandir=${PKG}/usr/man
+#mkdir -p ${PKG}/usr/bin ${PKG}/usr/man/man1
+make install DESTDIR=${PKG} #bindir=${PKG}/usr/bin mandir=${PKG}/usr/man
 
 chmod -x ${PKG}/usr/man/man1/*
 

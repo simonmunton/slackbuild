@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=fping
+TARNAME=log4cpp
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=4.0
+VERSION=1.1.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://log4cpp.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,9 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/fping-2.4b2.diff
-
-# autoreconf -i
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,7 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -66,6 +68,18 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,9 +92,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} mandir=${PKG}/usr/man docdir=${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -95,17 +109,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "ping N number of hosts"
-fping is a ping(1) like program which uses the Internet Control
-Message Protocol (ICMP) echo request to determine if a host is up. 
-fping is different from ping in that you can specify any number of 
-hosts on the command line, or specify a file containing the lists of 
-hosts to ping. Instead of trying one host until it timeouts or 
-replies, fping will send out a ping packet and move on to the next 
-host in a round-robin fashion. If a host replies, it is noted and 
-removed from the list of hosts to check. If a host does not respond 
-within a certain time limit and/or retry limit it will be considered 
-unreachable.
+make_slack_desc << EOF "Logging for C++"
+Log4cpp is library of C++ classes for flexible logging to files, 
+syslog, IDSA and other destinations. It is modeled after the Log4j 
+Java library, staying as close to their API as is reasonable.
 
 EOF
 

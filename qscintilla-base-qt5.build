@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=fping
+TARNAME=QScintilla_gpl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=4.0
+VERSION=2.10
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=QScintilla-base-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +34,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,9 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/fping-2.4b2.diff
-
-# autoreconf -i
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,20 +53,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PATH=/usr/lib64/qt5/bin:$PATH
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+(cd Qt4Qt5
+  qmake -o Makefile qscintilla.pro
+)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+(cd Qt4Qt5
+  make ${NUM_JOBS} || exit
+)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,9 +74,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+(cd Qt4Qt5
+  make install INSTALL_ROOT=${PKG}
+  # Yes, we'll spam the dev environment so we can build the other parts.
+#  make install
+)
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -90,22 +90,21 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  *GPL* OPENSOURCE-NOTICE.TXT doc/html-Qt4 doc/Scintilla \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "ping N number of hosts"
-fping is a ping(1) like program which uses the Internet Control
-Message Protocol (ICMP) echo request to determine if a host is up. 
-fping is different from ping in that you can specify any number of 
-hosts on the command line, or specify a file containing the lists of 
-hosts to ping. Instead of trying one host until it timeouts or 
-replies, fping will send out a ping packet and move on to the next 
-host in a round-robin fashion. If a host replies, it is noted and 
-removed from the list of hosts to check. If a host does not respond 
-within a certain time limit and/or retry limit it will be considered 
-unreachable.
+make_slack_desc <<EOF "Qt port of the Scintilla C++ editor control"
+QScintilla includes features especially useful when editing and
+debugging source code.  These include support for syntax styling,
+error indicators, code completion, and call tips.  The selection
+margin can contain markers like those used in debuggers to
+indicate breakpoints and the current line.  Styling choices are
+more open than with many editors, allowing the use of
+proportional fonts, bold and italics, multiple foreground and
+background colours, and multiple fonts.
 
 EOF
 

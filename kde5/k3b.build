@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=fping
+TARNAME=k3b
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/f
+TARDIR=~/tmp/new/k/kde-applications-17.04.0
 #TAR_EXT=.tar.gz
-VERSION=4.0
+VERSION=17.04.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,9 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/fping-2.4b2.diff
-
-# autoreconf -i
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,15 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
+      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
+      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,6 +93,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -95,18 +111,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "ping N number of hosts"
-fping is a ping(1) like program which uses the Internet Control
-Message Protocol (ICMP) echo request to determine if a host is up. 
-fping is different from ping in that you can specify any number of 
-hosts on the command line, or specify a file containing the lists of 
-hosts to ping. Instead of trying one host until it timeouts or 
-replies, fping will send out a ping packet and move on to the next 
-host in a round-robin fashion. If a host replies, it is noted and 
-removed from the list of hosts to check. If a host does not respond 
-within a certain time limit and/or retry limit it will be considered 
-unreachable.
-
+make_slack_desc << EOF
 EOF
 
 post_install

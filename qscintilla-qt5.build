@@ -2,20 +2,18 @@
 #
 . build_funcs
 
-TARNAME=mpv
+TARNAME=QScintilla_gpl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=0.25.0
+VERSION=2.10
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://mpv.io/"
-
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=QScintilla-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -46,7 +44,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- ./bootstrap.py
 )
 fi
 
@@ -56,46 +53,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+PATH=/usr/lib64/qt5/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-else
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./waf configure \
-    --prefix=/usr \
-    --confdir=/etc/mpv \
-    --libdir=/usr/lib${LIBDIRSUFFIX} \
-    --mandir=/usr/man \
-    --docdir=/usr/doc/${TARNAME}-${VERSION} \
-    --enable-libmpv-shared
-fi
-
+(cd Qt4Qt5
+  qmake -o Makefile qscintilla.pro
+)
+(cd designer-Qt4Qt5
+  qmake -o Makefile designer.pro
+)
+(cd Python
+  python configure.py --pyqt=PyQt5
+)
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-./waf build ${NUM_JOBS} || exit
+cd Qt4Qt5
+  make ${NUM_JOBS} || exit
+cd ..
+cd designer-Qt4Qt5
+  make ${NUM_JOBS} || exit
+cd ..
+cd Python
+  make ${NUM_JOBS} #|| exit
+cd ..
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -103,10 +86,25 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-./waf install --destdir=${PKG}
+(cd Qt4Qt5
+  make install INSTALL_ROOT=${PKG}
+  # Yes, we'll spam the dev environment so we can build the other parts.
+#  make install
+)
+
+(cd designer-Qt4Qt5
+  make install INSTALL_ROOT=${PKG}
+)
+
+(cd Python
+  make install INSTALL_ROOT=${PKG}
+)
 
 strip_binaries
+
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+ ln -s qt*/lib/* .
+)
 
 fix_links
 
@@ -116,14 +114,21 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  *GPL* OPENSOURCE-NOTICE.TXT doc/html-Qt4Qt5 doc/Scintilla \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "free, open source, and cross-platform media player"
-mpv is a fork of mplayer2 and MPlayer. It shares some features with 
-the former projects while introducing many more.
+make_slack_desc <<EOF "Qt port of the Scintilla C++ editor control"
+QScintilla includes features especially useful when editing and
+debugging source code.  These include support for syntax styling,
+error indicators, code completion, and call tips.  The selection
+margin can contain markers like those used in debuggers to
+indicate breakpoints and the current line.  Styling choices are
+more open than with many editors, allowing the use of
+proportional fonts, bold and italics, multiple foreground and
+background colours, and multiple fonts.
 
 EOF
 
