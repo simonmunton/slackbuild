@@ -6,7 +6,7 @@ TARNAME=Boodler
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/b/boodler
 #TAR_EXT=.tar.gz
-VERSION=2.0.2
+VERSION=2.0.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -76,19 +76,16 @@ mkdir -p ${PKG}/usr/share/boodler/Collection
 (cd ${PKG}/usr/share/boodler/Collection
  for f in ${TARDIR}/boodler.org/lib/*.boop
  do
-    d=${f##*/}
-    d=${d%.boop}
-    vmin=${d##*.}
-    d=${d%.*}
-    vmaj=${d##*.}
-    d=${d%.*}
-    mkdir -p $d/$vmaj.$vmin
-    (cd $d/$vmaj.$vmin
+    r=`unzip -p $f Resources | head -n 1`
+    n=`echo "$r" | cut -d\  -f2`
+    v=`echo "$r" | cut -d\  -f3`
+    mkdir -p $n/$v
+    (cd $n/$v
      unzip $f
      cd ..
      cat > Versions << EOF
-# Package: $d
-$vmaj.$vmin
+# Package: $n
+$v
 EOF
     )
  done
