@@ -2,17 +2,16 @@
 #
 . build_funcs
 
-TARNAME=calibre
+TARNAME=sympy
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.84.0
+VERSION=1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://calibre-ebook.com/"
-#http://sourceforge.net/projects/calibre/
+WEBPAGE="http://www.sympy.org/en/index.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -47,11 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- if [ $ARCH = "x86_64" ]
- then
-   patch -p1 < ${CWD}/calibre-2.0.0-x86_64.diff
- fi
 )
 fi
 
@@ -84,8 +78,6 @@ then
 
 fi
 
-export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
@@ -98,10 +90,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-mkdir -p ${PKG}`python -c "import distutils.sysconfig as s; print s.get_python_lib()"`
-python setup.py install --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --root=${PKG}/usr --staging-libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
-
-rm ${PKG}/usr/bin/calibre-uninstall
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -118,18 +107,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "calibre - Ebook management"
-calibre is a free and open source e-book library management 
-application developed by users of e-books for users of e-books. It has 
-a cornucopia of features divided into the following main categories:
-
-    Library Management
-    E-book conversion
-    Syncing to e-book reader devices
-    Downloading news from the web and converting it into e-book form
-    Comprehensive e-book viewer
-    Content server for online access to your book collection
-    E-book editor for the major e-book formats
+make_slack_desc << EOF "Python library for symbolic mathematics"
+SymPy is a Python library for symbolic mathematics. It aims to become 
+a full-featured computer algebra system (CAS) while keeping the code 
+as simple as possible in order to be comprehensible and easily 
+extensible. SymPy is written entirely in Python. 
 
 EOF
 
