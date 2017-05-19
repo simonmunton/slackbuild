@@ -1,20 +1,20 @@
 --- akonadi-17.04.1/src/shared/akdebug.cpp.orig	2017-04-28 20:28:35.000000000 +0100
-+++ akonadi-17.04.1/src/shared/akdebug.cpp	2017-05-12 20:10:32.810454065 +0100
-@@ -191,7 +191,7 @@
-     if (infoOld.exists()) {
++++ akonadi-17.04.1/src/shared/akdebug.cpp	2017-05-17 19:19:43.306098261 +0100
+@@ -192,7 +192,7 @@
          QFile fileOld(infoOld.absoluteFilePath());
          const bool success = fileOld.remove();
--        if (!success) {
-+        if (!success && infoOld.exists()) {
-             qFatal("Cannot remove old log file - running on a readonly filesystem maybe?");
+         if (!success) {
+-            qFatal("Cannot remove old log file - running on a readonly filesystem maybe?");
++            qWarning("Cannot remove old log file - running on a readonly filesystem maybe?");
          }
      }
-@@ -199,7 +199,7 @@
-     if (info.exists()) {
+     QFileInfo info(sInstance()->errorLogFileName());
+@@ -200,7 +200,7 @@
          QFile file(info.absoluteFilePath());
          const bool success = file.rename(sInstance()->errorLogFileName() + QLatin1String(".old"));
--        if (!success) {
-+        if (!success && info.exists()) {
-             qFatal("Cannot rename log file - running on a readonly filesystem maybe?");
+         if (!success) {
+-            qFatal("Cannot rename log file - running on a readonly filesystem maybe?");
++            qWarning("Cannot rename log file - running on a readonly filesystem maybe?");
          }
      }
+ 
