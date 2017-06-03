@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libseccomp
+TARNAME=strace
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=2.3.2
+VERSION=4.17
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/libseccomp/"
+WEBPAGE="https://strace.io/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,15 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -105,13 +109,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "High level interface to the Linux Kernel's seccomp filter"
-The libseccomp library provides and easy to use, platform independent, 
-interface to the Linux Kernel's syscall filtering mechanism: seccomp. 
-The libseccomp API is designed to abstract away the underlying BPF 
-based syscall filter language and present a more conventional 
-function-call based filtering interface that should be familiar to, 
-and easily adopted by application developers.
+make_slack_desc << EOF "strace (trace system calls and signals)"
+Strace allows you to trace the execution of a command.  It runs the
+specified command until it exits, intercepting signals and system
+calls and dumping the information to the standard error.  System
+administrators, diagnosticians and trouble-shooters will find it
+invaluable for solving problems with programs for which the source
+is not readily available since they do not need to be recompiled in
+order to trace them.
 
 EOF
 
