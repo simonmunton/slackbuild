@@ -1,0 +1,28 @@
+--- plasma-nm-5.10.0/vpn/openconnect/plasmanetworkmanagement_openconnect_juniperui.desktop.orig	2017-05-26 10:07:07.000000000 +0100
++++ plasma-nm-5.10.0/vpn/openconnect/plasmanetworkmanagement_openconnect_juniperui.desktop	2017-06-03 21:38:13.447671111 +0100
+@@ -4,7 +4,7 @@
+ ServiceTypes=PlasmaNetworkManagement/VpnUiPlugin
+ X-KDE-Library=plasmanetworkmanagement_openconnectui
+ X-NetworkManager-Services=org.freedesktop.NetworkManager.openconnect
+-X-NetworkManager-Services-Subtype=juniper
++X-NetworkManager-Services-Subtype=nc
+ X-KDE-PluginInfo-Author=Jan Grulich
+ X-KDE-PluginInfo-Email=jgrulich@redhat.com
+ X-KDE-PluginInfo-Name=plasmanetworkmanagement_openconnectui
+--- a/vpn/openconnect/openconnectauth.cpp
++++ b/vpn/openconnect/openconnectauth.cpp
+@@ -253,7 +253,13 @@ void OpenconnectAuthWidget::readSecrets()
+ 
+ void OpenconnectAuthWidget::acceptDialog()
+ {
+-    QDialog *dialog = qobject_cast<QDialog*>(parentWidget());
++    // Find top-level widget as this should be the QDialog itself
++    QWidget *widget = parentWidget();
++    while (widget->parentWidget() != nullptr) {
++        widget = widget->parentWidget();
++    }
++
++    QDialog *dialog = qobject_cast<QDialog*>(widget);
+     if (dialog) {
+         dialog->accept();
+     }
