@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gdb
+TARNAME=augeas
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnu/gdb
+TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=8.0
+VERSION=1.8.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://augeas.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p0 < ${CWD}/gdb-backtrace-6.8.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -63,8 +67,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-system-zlib
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,16 +94,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-# None of this stuff has ever been included in this package:
-rm -f $PKG/usr/lib/{libbfd*,libiberty*,libopcodes*}
-rmdir $PKG/usr/lib
-rm -f $PKG/usr/info/{annotate*,bfd*,configure*,standards*}
-rm -rf $PKG/usr/include
-
-# Use the -tui option if you want this.
-# Including a whole extra copy of the gdb binary is obnoxious:
-rm -f $PKG/usr/bin/gdbtui $PKG/usr/man/man1/gdbtui.1*
-
 strip_binaries
 
 fix_links
@@ -101,28 +106,14 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/gdb
-(cd gdb
- cp -a NEWS README TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}/gdb
- cp -a gdbserver/README \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.gdbserver
-)
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "the GNU symbolic debugger"
-GDB, the GNU Project debugger, allows you to see what is going on 
-inside another program while it executes -- or what another program
-was doing at the moment it crashed.  GDB can do four main kinds of
-things to help you catch bugs in the act:   1) Start your program,
-specifying anything that might affect its behavior.  2) Make your
-program stop on specified conditions.  3) Examine what has happened,
-when your program has stopped.  4) Change things in your program, so
-you can experiment with correcting the effects of one bug and go on
-to learn about another.  The program being debugged can be written in
-Ada, C, C++, Objective-C, Pascal and many other languages.
+make_slack_desc << EOF "Augeas - a configuration API"
+Augeas is a configuration editing tool. It parses configuration files 
+in their native formats and transforms them into a tree. Configuration 
+changes are made by manipulating this tree and saving it back into 
+native config files.
 
 EOF
 
