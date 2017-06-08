@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=mercurial
-TARNAMEEXTRA=
+TARNAME=skypeforlinux
+TARNAMEEXTRA=-64
 TARSEP="-"
-TARDIR=~/tmp/new/m
-#TAR_EXT=.tar.gz
-VERSION=4.2.1
+TARDIR=~/tmp/new/s
+TAR_EXT=.rpm
+VERSION=5.3.0.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://selenic.com/mercurial"
+WEBPAGE="http://www.skype.com"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+#PKGNAME=skype
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -33,44 +33,22 @@ then
   exit
 fi
 
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-  echo "${TARNAME}-${VERSION} directory not found"
-  exit
-fi
-
-(cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
-)
-fi
-
 pre_configure
-
-cd ${TARNAME}-${VERSION}
-
-fix_perms
-
-if [ ${DO_CONFIGURE} == "yes" ]
-then
-:
-fi
-
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} all || exit
-fi
 
 if [ ${DO_INSTALL} != "yes" ]
 then
   exit
 fi
 
-make install PREFIX=${PKG}/usr
+#make install DESTDIR=${PKG}
+
+mkdir -p ${PKG}
+(cd ${PKG}
+
+ rpm2cpio ${FULL_TARNAME} | cpio -imd -R 0:0 2> /dev/null
+ find . -type d -perm 700 -exec chmod 755 {} \;
+
+)
 
 #strip_binaries
 
@@ -80,15 +58,11 @@ compress_manpages
 
 compress_info
 
-cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Scalable distributed SCM"
-Mercurial source code management system
+make_slack_desc << EOF "Skype VOIP package"
+Skype VOIP package
 
 EOF
 
