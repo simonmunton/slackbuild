@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l/llvm
 #TAR_EXT=.tar.gz
-VERSION=3.9.1
+VERSION=4.0.0
 VERSIONEXTRA=.src
 BUILD=1
 
@@ -48,6 +48,9 @@ fi
  (cd tools
   tar xf ${TARDIR}/cfe-${VERSION}.src.tar.xz
   mv cfe* clang
+
+  tar xvf ${TARDIR}/lldb-$VERSION.src.tar.xz
+  mv lldb-${VERSION}* lldb
  )
 
  (cd tools/clang/tools
@@ -58,6 +61,9 @@ fi
  (cd projects
   tar xvf ${TARDIR}/compiler-rt-$VERSION.src.tar.xz
   mv compiler-rt-${VERSION}* compiler-rt
+
+#  tar xvf ${TARDIR}/openmp-$VERSION.src.tar.xz
+#  mv openmp-${VERSION}* openmp
  )
 
  if [ -n "${LIBDIRSUFFIX}" ]
@@ -158,6 +164,9 @@ cp -a tools/clang/bindings/python/clang "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7
 # Compile Python scripts
 python -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
 python -O -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
+
+
+rm ${PKG}/usr/lib64/python2.7/site-packages/six.py
 
 
 ln -s /usr/share/clang/clang-format-diff.py ${PKG}/usr/bin/clang-format-diff
