@@ -61,6 +61,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #CFLAGS="${SLKCFLAGS}" \
@@ -86,7 +89,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DHDF5_BUILD_CPP_LIB=y \
       -DHDF5_BUILD_HL_LIB=y \
       -DHDF5_BUILD_TOOLS=y \
-      .
+      ..
 
 #      -DHDF5_ENABLE_SZIP_ENCODING=y \
 #      .
@@ -104,12 +107,14 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
 mv ${PKG}/usr/share/{ACKNOWLEDGMENTS,COPYING,README.txt,release_docs} ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 #rm ${PKG}/usr/lib/*.settings
 #rm ${PKG}/usr/bin/h5perf
 
-sanitise_la_files ${PKG}/usr/lib
+sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 #strip_binaries
 
