@@ -6,7 +6,7 @@ TARNAME=hdf5
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/h
 #TAR_EXT=.tar.gz
-VERSION=1.8.14
+VERSION=1.8.19
 VERSIONEXTRA=
 BUILD=1
 
@@ -109,7 +109,15 @@ make install DESTDIR=${PKG}
 
 cd ..
 
-mv ${PKG}/usr/share/{ACKNOWLEDGMENTS,COPYING,README.txt,release_docs} ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rm ${PKG}/usr/lib${LIBDIRSUFFIX}/{*.a,*.settings}
+(cd ${PKG}/usr/bin
+ for f in *-shared
+ do
+  mv ${f} ${f%-shared}
+ done
+)
+
+mv ${PKG}/usr/share/{ACKNOWLEDGMENTS,COPYING,README.txt,release_docs,RELEASE.txt,USING_HDF5_CMake.txt} ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 #rm ${PKG}/usr/lib/*.settings
 #rm ${PKG}/usr/bin/h5perf
