@@ -67,6 +67,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 #QMAKE=/opt/kde3/lib/qt3/bin/qmake
 #export QMAKE
 
+export INSTALLDIRS=vendor
+
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -74,6 +76,7 @@ then
 #CXXFLAGS="${SLKCFLAGS}" \
 
 ./configure --prefix=/usr \
+	    --libdir-name=lib${LIBDIRSUFFIX} \
 	    --mandir=/usr/man \
 	    --disable-distcc \
 	    --enable-proc-opt \
@@ -83,6 +86,8 @@ then
 	    --enable-libx264 \
 	    --enable-libvpx \
 	    --enable-libxvid
+
+
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -104,7 +109,7 @@ then
   exit
 fi
 
-make install INSTALL_ROOT=${PKG}
+make install INSTALL_ROOT=${PKG} INSTALLDIRS=vendor
 
 strip_binaries
 
