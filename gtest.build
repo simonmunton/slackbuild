@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=gtest
-TARNAMEEXTRA=
+TARNAME=googletest
+TARNAMEEXTRA=-release
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.7.0
+VERSION=1.8.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -15,7 +15,7 @@ WEBPAGE="https://code.google.com/p/googletest/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gtest
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -78,6 +78,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       -Dgtest_build_tests=ON \
+      -Dgmock_build_tests=ON \
+      -DBUILD_SHARED_LIBS=ON \
       .
 fi
 
@@ -93,14 +95,14 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/src/gtest ${PKG}/usr/include ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
+make install DESTDIR=${PKG}
+#mkdir -p ${PKG}/usr/src/gtest ${PKG}/usr/include ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
 
-cp -pr make samples ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
-cp -pr include/gtest ${PKG}/usr/include
-cp -pr src ${PKG}/usr/src/gtest
-cp -pr CMakeLists.txt ${PKG}/usr/src/gtest
-cp -pr cmake ${PKG}/usr/src/gtest
+#cp -pr make samples ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
+#cp -pr include/gtest ${PKG}/usr/include
+#cp -pr src ${PKG}/usr/src/gtest
+#cp -pr CMakeLists.txt ${PKG}/usr/src/gtest
+#cp -pr cmake ${PKG}/usr/src/gtest
 
 strip_binaries
 
