@@ -2,22 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libsrtp
+TARNAME=libsmi
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.1.0
+VERSION=0.5.0
 VERSIONEXTRA=
 BUILD=1
 
-#WEBPAGE="http://srtp.sourceforge.net/srtp.html"
-WEBPAGE=https://github.com/cisco/libsrtp
-# git://git.linphone.org/srtp.git
+WEBPAGE="https://www.ibr.cs.tu-bs.de/projects/libsmi/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=srtp
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -38,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -47,13 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/srtp-1.4.5-1001_fix_support_forced_64bit_align.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1002_fix_stat_driver_test.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1003_fix_mips_namespace_collision.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1004_make_runtest_more_verbose.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1005_fix_data_alignment.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1007_update_Doxyfile.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1008_shared-lib.patch
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -67,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -74,15 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -113,10 +109,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF " Secure Real-time Transport Protocol library"
-The libSRTP library is an open-source implementation of the Secure 
-Real-time Transport Protocol (SRTP) originally authored by Cisco 
-Systems, Inc. It is available under a BSD-style license. 
+make_slack_desc << EOF "libsmi - A Library to Access SMI MIB Information"
+The core of the libsmi distribution is a library that allows 
+management applications to access SMI MIB module definitions. On top 
+of this library, there are tools to check, analyze dump, convert, and 
+compare MIB definitions. Finally, the distribution contains a 
+steadily maintained and revised archive of all IETF and IANA 
+maintained standard MIB and PIB modules. 
 
 EOF
 

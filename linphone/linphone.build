@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=scidavis
+TARNAME=linphone
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.19
+VERSION=3.12.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://scidavis.sourceforge.net/"
+WEBPAGE="http://www.linphone.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}.${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/scidavis-qwtplot3d-headers.patch
+ patch -p1 < ${CWD}/linphone-3.12.0.diff
 )
 fi
 
@@ -55,19 +55,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS} -std=c++11" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-external-ortp \
+	    --enable-external-mediastreamer \
+	    --enable-ldap \
+	    --enable-lime
+
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,17 +80,17 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DENABLE_LDAP=on \
+      -DENABLE_VCARD=on \
+      -DENABLE_GTK_UI=on \
+      -DENABLE_DATE=on \
       .
 fi
-
-
-qmake CONFIG+=python CONFIG+=liborigin libsuff=${LIBDIRSUFFIX}
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make qmake ${NUM_JOBS} || exit
 make ${NUM_JOBS} || exit
 fi
 
@@ -96,9 +99,15 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+make install DESTDIR=${PKG}
 
-strip_binaries
+mv ${PKG}/usr/share/doc/ortp/ortp* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+mv ${PKG}/usr/share/doc/mediastreamer/media* ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rmdir -p ${PKG}/usr/share/doc/{ortp,mediastreamer}
+
+mv ${PKG}/usr/bin/linphone ${PKG}/usr/bin/linphone-gtk
+
+#strip_binaries
 
 fix_links
 
@@ -113,13 +122,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SciDAVis - Scientific Data Analysis and Visualization. "
-SciDAVis is a free interactive application aimed at data analysis and 
-publication-quality plotting. It combines a shallow learning curve 
-and an intuitive, easy-to-use graphical user interface with powerful 
-features such as scriptability and extensibility. SciDAVis runs on 
-GNU/Linux, Windows and MacOS X; possibly also on other platforms like 
-*BSD, although this is untested. 
+make_slack_desc << EOF "Phone anywhere in the whole world by using the Internet"
+Linphone is mostly sip compliant. It works successfully with these
+implementations:
+    * eStara softphone (commercial software for windows)
+    * Pingtel phones (with DNS enabled and VLAN QOS support disabled).
+    * Hotsip, a free of charge phone for Windows.
+    * Vocal, an open source SIP stack from Vovida that includes a SIP 
+	proxy that works with linphone since version 0.7.1.
+    * Siproxd is a free sip proxy being developped by Thomas Ries.
+	Siproxd is simple to setup and works perfectly with linphone.
+    * Partysip aims to be a generic and fully functionnal SIP proxy.
 
 EOF
 

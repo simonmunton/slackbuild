@@ -2,22 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libsrtp
+TARNAME=mediastreamer
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/l/linphone
 #TAR_EXT=.tar.gz
-VERSION=2.1.0
+VERSION=2.16.1
 VERSIONEXTRA=
 BUILD=1
 
-#WEBPAGE="http://srtp.sourceforge.net/srtp.html"
-WEBPAGE=https://github.com/cisco/libsrtp
-# git://git.linphone.org/srtp.git
+WEBPAGE="http://www.linphone.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=srtp
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -38,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -47,13 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/srtp-1.4.5-1001_fix_support_forced_64bit_align.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1002_fix_stat_driver_test.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1003_fix_mips_namespace_collision.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1004_make_runtest_more_verbose.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1005_fix_data_alignment.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1007_update_Doxyfile.patch
-# patch -p1 < ${CWD}/srtp-1.4.5-1008_shared-lib.patch
+ patch -p1 < ${CWD}/mediastreamer-2.16.1.diff
+ #sed -i -e "s@/lib/libsrtp@/lib${LIBDIRSUFFIX}/libsrtp@g" configure
 )
 fi
 
@@ -67,22 +60,32 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-strict \
+	    --with-srtp=/usr \
+	    --with-polarssl=/usr \
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+#	    --enable-dtls
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -113,10 +116,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF " Secure Real-time Transport Protocol library"
-The libSRTP library is an open-source implementation of the Secure 
-Real-time Transport Protocol (SRTP) originally authored by Cisco 
-Systems, Inc. It is available under a BSD-style license. 
+make_slack_desc << EOF "lightweight streaming engine for voice/video telephony applications"
+Mediastreamer2 is a powerful and lightweight streaming engine 
+specialized for voice/video telephony applications.
+
+This open source library is responsible for all the receiving and 
+sending of multimedia streams in Linphone, including voice/video 
+capture, encoding and decoding, and rendering.
 
 EOF
 

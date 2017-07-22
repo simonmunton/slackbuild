@@ -2,17 +2,16 @@
 #
 . build_funcs
 
-TARNAME=belle-sip
+TARNAME=bcmatroska2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/b
+TARDIR=~/tmp/new/l/linphone
 #TAR_EXT=.tar.gz
-VERSION=1.5.0
+VERSION=0.23
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://download-mirror.savannah.gnu.org/releases/linphone/belle-sip/"
-#"git://git.linphone.org/belle-sip"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -56,9 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-SLKCFLAGS="${SLKCFLAGS} -D_empty=NULL"
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -67,15 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -106,10 +109,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SIP (RFC3261) implementation written in C"
-Belle-sip is a SIP (RFC3261) implementation written in C, with an 
-object oriented API.
-
+make_slack_desc << EOF
 EOF
 
 post_install

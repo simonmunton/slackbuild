@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=bctoolbox
+TARNAME=linphoneqt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/b
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.2.0
+VERSION=4.1.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="www.linphone.org"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/linphoneqt-4.1.1.diff
 )
 fi
 
@@ -67,8 +67,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --without-cunit
+	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -85,6 +84,11 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+
+(cd assets/languages
+ make update_translations
+)
+
 make ${NUM_JOBS} || exit
 fi
 
@@ -110,10 +114,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Utilities library used by Belledonne Communications"
-Utilities library used by Belledonne Communications softwares like 
-belle-sip, mediastreamer2 and linphone.
-
+make_slack_desc << EOF
 EOF
 
 post_install
