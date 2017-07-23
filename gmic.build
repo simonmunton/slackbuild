@@ -4,10 +4,10 @@
 
 TARNAME=gmic
 TARNAMEEXTRA=
-TARSEP="_"
+TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.0.0
+VERSION=2.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/gmic-1.6.0.4.diff
+ patch -p1 < ${CWD}/gmic-2.0.2.diff
 )
 fi
 
@@ -56,6 +56,8 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin:${PATH}
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -85,7 +87,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 (cd src
-make ${NUM_JOBS} LIB=lib${LIBDIRSUFFIX} || exit
+make ${NUM_JOBS} LIB=lib${LIBDIRSUFFIX} all gmic_qt zart || exit
 )
 fi
 
