@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=sympy
+TARNAME=kdevelop-pg-qt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/k/kdevelop
 #TAR_EXT=.tar.gz
-VERSION=1.1.1
+VERSION=2.1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.sympy.org/en/index.html"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,33 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
+      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
+      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
-python setup.py build || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,10 +91,12 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-python setup.py install --root=${PKG}
+make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -107,11 +111,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python library for symbolic mathematics"
-SymPy is a Python library for symbolic mathematics. It aims to become 
-a full-featured computer algebra system (CAS) while keeping the code 
-as simple as possible in order to be comprehensible and easily 
-extensible. SymPy is written entirely in Python. 
+make_slack_desc << EOF "KDevelop parser generator"
+KDevelop-PG-Qt is a parser generator written in readable source-code 
+and generating readable source-code. Its syntax was inspirated by 
+AntLR. It implements the visitor-pattern and uses the Qt library. That 
+is why it is ideal to be used in Qt-/KDE-based applications like 
+KDevelop.
 
 EOF
 
