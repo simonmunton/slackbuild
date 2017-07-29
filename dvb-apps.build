@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=20090902
+VERSION=20140321
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/dvb-apps-20090902.diff
+# patch -p1 < ${CWD}/dvb-apps-20090902.diff
 )
 fi
 
@@ -80,7 +80,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} V=1 || exit
+make ${NUM_JOBS} V=1 libdir=/usr/lib${LIBDIRSUFFIX} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +88,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} libdir=/usr/lib${LIBDIRSUFFIX}
+
+rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
 
 strip_binaries
 
