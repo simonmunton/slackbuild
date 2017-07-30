@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=tigervnc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/t
+#TAR_EXT=.tar.gz
+VERSION=1.8.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://tigervnc.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+# Do we build the java applet (needs jdk)?
+DO_APPLET=${DO_APPLET:-"YES"}
+
+# Check for the availability of a Java compiler:
+if [ "$DO_APPLET" = "YES" ]; then
+  if ! javac -version 1>/dev/null 2>&1 ; then
+    echo "**"
+    echo "** DO_APPLET="YES" means to compile the Java viewer,"
+    echo "** However you do not have a Java JDK installed."
+    echo "** Press Ctrl-C to abort this script,"
+    echo "** or wait 10 seconds to continue without building the Java viewer."
+    echo "**"
+    sleep 10
+    DO_APPLET="NO"
+  fi
+fi
+
+[ "$DO_APPLET" = "YES" ] && CMAKE_JAVA="ON" || CMAKE_JAVA="OFF"
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+ # Explicitly put the java applet into a directory named 'tigervnc':
+ sed -i -e 's#/vnc/class#/tigervnc/class#'g $(grep -rl vnc/class .)
+ sed -i -e 's#DESTINATION vnc/class#DESTINATION share/tigervnc/class#'g $(grep -rl vnc/class .)
+ 
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_JAVA:BOOL=${CMAKE_JAVA} \
+      -Wno-dev \
+      ..
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "VNC server and client"
+Virtual Network Computing (VNC) is a remote display system which
+allows you to view a desktop environment from anywhere on the Internet
+and from a wide variety of machine architectures.
+TigerVNC is a suite of VNC servers and clients that have a focus on
+performance and remote display functionality. 
+
+tigervnc home: http://tigervnc.org/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
