@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.4.13
+VERSION=2.4.13.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/OpenCV-2.1.0.diff
+patch -p1 < ${CWD}/opencv-2.4.13.3.diff
 # patch -p1 < ${CWD}/OpenCV-2.3.1.diff
 # autoreconf
 # patch -p1 < ${CWD}/opencv-pkg-config.diff
@@ -61,6 +61,9 @@ fix_perms
 #-D__STDC_CONSTANT_MACROS
 PKGCFLAGS="${SLKCFLAGS}"
 PKGCPPFLAGS="-I/usr/include/OpenEXR"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -89,7 +92,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DUSE_IPP=ON \
       -DWITH_XINE:BOOL=On \
       -DBUILD_EXAMPLES=on \
-      .
+      ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -103,6 +106,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
