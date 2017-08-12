@@ -6,7 +6,7 @@ TARNAME=libcap
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.22
+VERSION=2.25
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,6 +45,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ sed -i.orig "s/^\(DEBUG =\).*/\1${SLKCFLAGS}/" Make.Rules
 )
 fi
 
@@ -57,13 +58,13 @@ fix_perms
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 :
+ sed -i.orig "s/^\(DEBUG =\).*/\1${SLKCFLAGS}/" Make.Rules
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
 make ${NUM_JOBS} || exit
+#make -C libcap libcap.pc
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -73,11 +74,8 @@ fi
 
 make install FAKEROOT=${PKG} RAISE_SETFCAP=no man_prefix=/usr
 
-# Static libs are better placed under /usr:
-if [ -r ${PKG}/lib${LIBDIRSUFFIX}/libcap.a ]; then
-  mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
-  mv ${PKG}/lib${LIBDIRSUFFIX}/libcap.a $PKG/usr/lib${LIBDIRSUFFIX}
-fi
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cp libcap/libcap.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
 
 # Add included scripts
 ( cd contrib || exit 1
