@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=get_iplayer
+TARNAME=jsbeautifier
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=3.02
+VERSION=1.6.14
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://linuxcentre.net/iplayer"
+WEBPAGE="https://pypi.python.org/pypi/jsbeautifier"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/get_iplayer-20100703.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -80,8 +80,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
 #make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,14 +90,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/{bin,man/man1} ${PKG}/usr/share/get_iplayer/plugins
-
-./get_iplayer --manpage get_iplayer.1
-
-cp get_iplayer ${PKG}/usr/bin
-cp get_iplayer.1 ${PKG}/usr/man/man1
-cp plugins/* ${PKG}/usr/share/get_iplayer/plugins
+python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -108,15 +101,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO LICENSE.txt CHANGELOG* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "PVR for BBC's iPlayer"
-get_iplayer lists, searches and downloads BBC iPlayer TV/Radio, BBC
-Podcast and ITVplayer TV programmes.
+make_slack_desc << EOF "JavaScript unobfuscator and beautifier"
+Beautify, unpack or deobfuscate JavaScript. Handles popular online 
+obfuscators.
 
 EOF
 
