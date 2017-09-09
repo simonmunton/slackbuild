@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=cmake
+TARNAME=wayland-protocols
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=3.9.2
+VERSION=1.10
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.cmake.org"
+WEBPAGE="http://wayland.freedesktop.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/cmake.findpkgconfig.3ea850.patch
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,17 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-	    --mandir=/man \
-	    --qt-gui \
-            --system-libs
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
-#            --localstatedir=/var/lib \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,16 +94,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-mv ${PKG}/usr/doc/${TARNAME}-${VERSION%.*}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION%.*}
-
-(cd ${PKG}/usr/share
- C=`echo cmake-*`
- mv $C cmake
- ln -s cmake $C
-)
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -104,16 +109,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "CMake, a cross-platform, open-source make system"
-CMake is a family of tools designed to build, test and package 
-software. CMake is used to control the software compilation process 
-using simple platform and compiler independent configuration files. 
-CMake generates native makefiles and workspaces that can be used in 
-the compiler environment of your choice. CMake is quite sophisticated: 
-it is possible to support complex environments requiring system 
-introspection, pre-processor generation, code generation and template 
-instantiation. In addition to controling the build process, CMake 
-includes CTest for testing and CPack for packaging. 
+make_slack_desc << EOF "Wayland protocols"
+wayland-protocols contains Wayland protocols that add functionality not
+available in the Wayland core protocol. Such protocols either add
+completely new functionality, or extend the functionality of some other
+protocol either in Wayland core, or some other protocol in
+wayland-protocols.
+
+A protocol in wayland-protocols consists of a directory containing a set
+of XML files containing the protocol specification, and a README file
+containing detailed state and a list of maintainers.
 
 EOF
 

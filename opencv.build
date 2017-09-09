@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2.4.13.3
+VERSION=3.3.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -38,6 +38,8 @@ then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
+tar xf opencv_contrib-${VERSION}.tar.gz
+
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
   echo "${TARNAME}-${VERSION} directory not found"
@@ -45,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-patch -p1 < ${CWD}/opencv-2.4.13.3.diff
+#patch -p1 < ${CWD}/opencv-2.4.13.3.diff
 # patch -p1 < ${CWD}/OpenCV-2.3.1.diff
 # autoreconf
 # patch -p1 < ${CWD}/opencv-pkg-config.diff
@@ -92,6 +94,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DUSE_IPP=ON \
       -DWITH_XINE:BOOL=On \
       -DBUILD_EXAMPLES=on \
+      -DOPENCV_EXTRA_MODULES_PATH=${CWD}/opencv_contrib-${VERSION}/modules \
       ..
 fi
 
