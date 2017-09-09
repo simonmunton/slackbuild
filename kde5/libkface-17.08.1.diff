@@ -1,0 +1,131 @@
+--- libkface-17.08.1/CMakeLists.txt.orig	2017-04-12 19:51:21.000000000 +0100
++++ libkface-17.08.1/CMakeLists.txt	2017-09-09 17:23:48.433370942 +0100
+@@ -82,7 +82,7 @@
+ if(ENABLE_OPENCV3)
+ 
+     set(OPENCV_MIN_VERSION "3.0.0")
+-    DETECT_OPENCV(${OPENCV_MIN_VERSION} core face highgui objdetect imgproc)
++    DETECT_OPENCV(${OPENCV_MIN_VERSION} core face highgui objdetect imgproc imgcodecs)
+ 
+     if(${OpenCV_FOUND})
+         if(${OpenCV_VERSION} VERSION_LESS 3.0.0)
+--- libkface-17.08.1/src/recognition-opencv-lbph/facerec_borrowed.cpp.orig	2017-04-12 19:51:21.000000000 +0100
++++ libkface-17.08.1/src/recognition-opencv-lbph/facerec_borrowed.cpp	2017-09-09 16:55:08.753364605 +0100
+@@ -379,8 +379,10 @@
+ 
+ #if OPENCV_TEST_VERSION(3,1,0)
+ void LBPHFaceRecognizer::predict(InputArray _src, int &minClass, double &minDist) const
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+ void LBPHFaceRecognizer::predict(cv::InputArray _src, cv::Ptr<cv::face::PredictCollector> collector, const int state) const
++#else
++void LBPHFaceRecognizer::predict(cv::InputArray _src, cv::Ptr<cv::face::PredictCollector> collector) const
+ #endif
+ {
+     if(m_histograms.empty())
+@@ -403,8 +405,10 @@
+ #if OPENCV_TEST_VERSION(3,1,0)
+     minDist      = DBL_MAX;
+     minClass     = -1;
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+     collector->init((int)m_histograms.size(), state);
++#else
++    collector->init((int)m_histograms.size());
+ #endif
+ 
+     // This is the standard method
+@@ -422,12 +426,18 @@
+                 minDist  = dist;
+                 minClass = m_labels.at<int>((int) sampleIdx);
+             }
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+             int label = m_labels.at<int>((int) sampleIdx);
+             if (!collector->emit(label, dist, state))
+             {
+                 return;
+             }
++#else
++            int label = m_labels.at<int>((int) sampleIdx);
++            if (!collector->collect(label, dist))
++            {
++                return;
++            }
+ #endif
+         }
+     }
+@@ -469,11 +479,16 @@
+                 minDist = mean;
+                 minClass = it->first;
+             }
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+             if (!collector->emit(it->first, mean, state))
+             {
+                 return;
+             }
++#else
++            if (!collector->collect(it->first, mean))
++            {
++                return;
++            }
+ #endif
+         }
+ 
+@@ -521,12 +536,18 @@
+                 minDist  = score;
+                 minClass = it->first;
+             }
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+             // large is better thus it is -score.
+             if (!collector->emit(it->first, -score, state))
+             {
+                 return;
+             }
++#else
++            // large is better thus it is -score.
++            if (!collector->collect(it->first, -score))
++            {
++                return;
++            }
+ #endif
+         }
+ 
+--- libkface-17.08.1/src/recognition-opencv-lbph/facerec_borrowed.h.orig	2017-04-12 19:51:21.000000000 +0100
++++ libkface-17.08.1/src/recognition-opencv-lbph/facerec_borrowed.h	2017-09-09 17:25:16.677371267 +0100
+@@ -136,12 +136,18 @@
+      * Predicts the label and confidence for a given sample.
+      */
+     void predict(cv::InputArray _src, int &label, double &dist) const;
+-#else
++#elif OPENCV_TEST_VERSION(3,2,0)
+     using cv::face::FaceRecognizer::predict;
+     /*
+      * Predict
+      */
+     void predict(cv::InputArray src, cv::Ptr<cv::face::PredictCollector> collector, const int state = 0) const override;
++#else
++    using cv::face::FaceRecognizer::predict;
++    /*
++     * Predict
++     */
++    void predict(cv::InputArray src, cv::Ptr<cv::face::PredictCollector> collector) const override;
+ #endif
+ 
+     /**
+@@ -154,6 +160,13 @@
+      */
+     void save(cv::FileStorage&) const {}
+ 
++#if OPENCV_TEST_VERSION(3,2,0)
++#else
++    void write(cv::FileStorage& fs) const {}
++    void read(const cv::FileNode& fn) {}
++    bool empty() const { return true; }
++#endif
++
+     /**
+      * Getter functions.
+      */
