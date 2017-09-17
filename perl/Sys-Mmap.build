@@ -1,18 +1,20 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=freetype
+TARNAME=Sys-Mmap
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/f/freetype
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/S/SW/SWALTERS
 #TAR_EXT=.tar.gz
-VERSION=2.8.1
+VERSION=0.19
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE=""
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=perl_${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,15 +36,8 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
-
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-  echo "${TARNAME}-${VERSION} directory not found"
-  exit
-fi
-
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/freetype-2.6.1.diff
+ #patch -p1 < $CWD/
 )
 fi
 
@@ -52,31 +47,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-if [ ${DO_CONFIGURE} == "yes" ]
+if [ -f Build.PL ]
 then
-CFLAGS="${SLKCFLAGS} -ggdb" \
-CXXFLAGS="${SLKCFLAGS} -ggdb" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG} --installdirs=vendor
+else
+  perl Makefile.PL
+  make
+  make test
+  make install DESTDIR=${PKG} INSTALLDIRS=vendor
 fi
 
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} || exit
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-make install DESTDIR=${PKG}
-
-(cd ${PKG}/usr/include
- ln -sf freetype2 freetype
-)
+perllocalpod
 
 #strip_binaries
 
@@ -87,17 +71,13 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "(A Free, High-Quality, and Portable Font Engine"
-The FreeType engine is a free and portable TrueType font rendering
-engine. It has been developed to provide TrueType support to a
-great variety of platforms and environments.
-
+make_slack_desc << EOF
 EOF
 
 post_install
