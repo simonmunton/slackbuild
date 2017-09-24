@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=pulseaudio
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p/pulseaudio
+#TAR_EXT=.tar.gz
+VERSION=11.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.pulseaudio.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=pulseaudio11
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/pulseaudio-4.0.diff
+# ./bootstrap.sh
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var \
+	    --mandir=/usr/man \
+	    --disable-hal \
+	    --with-bash-completion-dir=/etc/bash_completion.d
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+(cd ${PKG}/etc/pulse
+ for f in client.conf  daemon.conf  default.pa system.pa
+ do
+  mv ${f} ${f}.new
+  doinst_config etc/pulse/${f}.new
+ done
+)
+
+mkdir -p ${PKG}/var/run/pulse
+
+doinst_systemaddusergrp pulse pulse
+doinst_addgrp pulse-access
+
+cat >> ${PKG}/install/doinst.sh << EOF
+if which setcap >& /dev/null
+then
+  setcap cap_sys_nice,cap_ipc_lock+pe usr/bin/pulseaudio
+fi
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "networked low-latency sound server"
+PulseAudio is a sound server for POSIX and Win32 systems. A sound 
+server is basically a proxy for your sound applications. It allows 
+you to do advanced operations on your sound data as it passes between 
+your application and your hardware. Things like transferring the audio 
+to a different machine, changing the sample format or channel count 
+and mixing several sounds into one are easily achieved using a sound 
+server.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+chown pulse.pulse ${PKG}/var/run/pulse; \
+find . -type d -exec chmod 755 {} \; ; \
+chmod u+s usr/bin/pulseaudio usr/libexec/pulse/bt-proximity-helper ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
