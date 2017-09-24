@@ -1,0 +1,48 @@
+--- inkscape-0.92.2/CMakeLists.txt.orig	2017-08-06 21:44:00.000000000 +0100
++++ inkscape-0.92.2/CMakeLists.txt	2017-09-24 10:26:20.528991011 +0100
+@@ -40,7 +40,7 @@
+     SET(CMAKE_MACOSX_RPATH TRUE)
+     SET(CMAKE_INSTALL_RPATH "@loader_path/../lib/inkscape")
+ else()
+-    SET(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/inkscape")
++    SET(CMAKE_INSTALL_RPATH "$ORIGIN/../lib${LIB_SUFFIX}/inkscape")
+ endif()
+ 
+ cmake_policy(SET CMP0003 NEW) # don't be prolific with library paths
+--- inkscape-0.92.2/src/CMakeLists.txt.orig	2017-08-06 21:44:00.000000000 +0100
++++ inkscape-0.92.2/src/CMakeLists.txt	2017-09-24 09:42:30.842126647 +0100
+@@ -576,8 +576,8 @@
+     inkscape
+     inkview 
+     RUNTIME DESTINATION bin
+-    LIBRARY DESTINATION lib/inkscape
+-    ARCHIVE DESTINATION lib/inkscape)
++    LIBRARY DESTINATION lib${LIB_SUFFIX}/inkscape
++    ARCHIVE DESTINATION lib${LIB_SUFFIX}/inkscape)
+ else()
+   install(TARGETS
+     inkscape_base
+--- inkscape-0.92.2/CMakeScripts/HelperMacros.cmake.orig	2017-08-06 21:44:00.000000000 +0100
++++ inkscape-0.92.2/CMakeScripts/HelperMacros.cmake	2017-09-24 10:30:20.168991894 +0100
+@@ -39,8 +39,8 @@
+     # (if we ever build shared libraries those would use the RUNTIME target and we might have to revisit this)
+     if(NOT WIN32)
+         install(TARGETS ${name} 
+-            LIBRARY DESTINATION lib/inkscape
+-            ARCHIVE DESTINATION lib/inkscape
++            LIBRARY DESTINATION lib${LIB_SUFFIX}/inkscape
++            ARCHIVE DESTINATION lib${LIB_SUFFIX}/inkscape
+             )
+     endif()
+ 
+--- inkscape-0.92.2/CMakeScripts/ConfigPaths.cmake.orig	2017-08-06 21:44:00.000000000 +0100
++++ inkscape-0.92.2/CMakeScripts/ConfigPaths.cmake	2017-09-24 09:33:08.687124575 +0100
+@@ -16,7 +16,7 @@
+   
+   mark_as_advanced(SHARE_INSTALL)
+ else()
+-  set(INKSCAPE_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
++  set(INKSCAPE_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+   set(INKSCAPE_DATADIR "${CMAKE_INSTALL_PREFIX}/share")
+ 
+   # TODO: check and change this to correct value:
