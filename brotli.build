@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.3.0
+VERSION=1.0.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,17 +59,17 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
+#if [ -f ./configure ]
+#then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+#elif [ -f ./CMakeLists.txt ]
+#then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -78,21 +78,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
-else
-
-true
-
-fi
+#else
+#
+#true
+#
+#fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-python ./setup.py build || exit
-#make ${NUM_JOBS} || exit
-pushd tools
+#python ./setup.py build || exit
 make ${NUM_JOBS} || exit
-popd
+#pushd tools
+#make ${NUM_JOBS} || exit
+#popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -101,10 +101,10 @@ then
 fi
 
 #python ./setup.py install
-#make install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/bin
-cp tools/bro ${PKG}/usr/bin
+#mkdir -p ${PKG}/usr/bin
+#cp tools/bro ${PKG}/usr/bin
 
 
 strip_binaries
