@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=0.5.7
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://lcdproc.omnipotent.net/download.php3"
 #http://sourceforge.net/projects/lcdproc/files/
@@ -47,7 +47,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/lcdproc-0.5.2-imonlcd-0.3-v2.patch
- patch -p1 < ${CWD}/LCDd.conf.patch
+# patch -p1 < ${CWD}/LCDd.conf.patch
 # aclocal
 # automake
 )
@@ -91,6 +91,9 @@ if [ ${DO_INSTALL} != "yes" ]
 then
   exit
 fi
+
+# patch the config file
+sed -i -e "s@^DriverPath=.*@DriverPath=/usr/lib${LIBDIRSUFFIX}/lcdproc/@" LCDd.conf
 
 make install DESTDIR=${PKG}
 
