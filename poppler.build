@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.59.0
+VERSION=0.60.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -63,26 +63,34 @@ then
   DISABLE_INTROSPECTION="--disable-introspection"
 fi
 
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS} -std=c++11" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
+            --mandir=/usr/man \
 	    --disable-static \
             --enable-gtk-doc \
 	    --enable-xpdf-headers \
 	    --enable-libcurl \
 	    ${DISABLE_INTROSPECTION}
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -std=c++11" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
 
+#      -DENABLE_XPDF_HEADERS=on \
+fi
 
-#	    --disable-gtk-test \
-
-#	    --disable-poppler-qt
-
-#            --enable-opi \
-#            --enable-zlib \
 fi
 
 if [ ${DO_MAKE} == "yes" ]

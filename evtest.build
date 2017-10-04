@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libva
+TARNAME=evtest
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=1.8.3
+VERSION=1.33
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.freedesktop.org/wiki/Software/vaapi"
+WEBPAGE="https://cgit.freedesktop.org/evtest/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -46,7 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- ./autogen.sh
 )
 fi
 
@@ -60,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -67,14 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -105,15 +109,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Video Acceleration API"
-The main motivation for VAAPI (Video Acceleration API) is to enable 
-hardware accelerated video decode/encode at various entry-points (VLD, 
-IDCT, Motion Compensation etc.) for the prevailing coding standards 
-today (MPEG-2, MPEG-4 ASP/H.263, MPEG-4 AVC/H.264, and VC-1/VMW3). 
-Extending XvMC was considered, but due to its original design for 
-MPEG-2 MotionComp only, it made more sense to design an interface 
-from scratch that can fully expose the video decode capabilities in 
-today's GPUs. 
+make_slack_desc << EOF "utility to monitor Linux input device events"
+evtest monitors a Linux input device, displaying all the events it 
+generates.
+
+It can be used to determine mice button bindings, keymaps for exotic 
+keyboards... It is commonly used to debug issues with input devices 
+in X.Org.
+
+evtest is now in maintenance mode and doesn't support all the 
+features of the latest kernels; evemu-record from the evemu-tools 
+package should be used instead. 
 
 EOF
 
