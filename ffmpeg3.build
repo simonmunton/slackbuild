@@ -62,6 +62,87 @@ fi
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+
+OPTIONAL_ENABLES=""
+
+if pkg_exist "frei0r-plugins"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-frei0r"
+else
+  echo "frei0r-plugins not found"
+fi
+
+if pkg_exist "gsm"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libgsm"
+else
+  echo "gsm not found"
+fi
+
+if pkg_exist "libnut"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libnut"
+else
+  echo "libnut not found"
+fi
+
+if pkg_exist "schroedinger"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libschroedinger"
+else
+  echo "schroedinger not found"
+fi
+
+if pkg_exist "x265-build" "-+([0-9])"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libx265"
+else
+  echo "x265 not found"
+fi
+
+if pkg_exist "libwebp"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libwebp"
+else
+  echo "libwebp not found"
+fi
+
+if pkg_exist "libdc1394"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libdc1394"
+else
+  echo "libdc1394 not found"
+fi
+
+if pkg_exist "amrnb"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libopencore-amrnb"
+else
+  echo "amrnb not found"
+fi
+
+if pkg_exist "amrwb"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libopencore-amrwb"
+else
+  echo "amrwb not found"
+fi
+
+if pkg_exist "rtmpdump"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-librtmp"
+else
+  echo "rtmpdump not found"
+fi
+
+if pkg_exist "speex"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLE --enable-libspeex"
+else
+  echo "speex not found"
+fi
+
+
 CFLAGS="${SLKCFLAGS} -I/usr/include/gsm" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -70,29 +151,19 @@ CXXFLAGS="${SLKCFLAGS}" \
             --enable-libmp3lame \
             --enable-libvorbis \
             --enable-libtheora \
-	    --enable-libspeex \
             --enable-libxvid \
-	    --enable-libnut \
-	    --enable-libschroedinger \
             --enable-gpl \
-            --enable-libopencore-amrnb \
-            --enable-libopencore-amrwb \
-	    --enable-version3 \
-            --enable-libgsm \
+            --enable-version3 \
             --enable-libx264  \
-            --enable-libx265  \
-	    --enable-libvpx \
-	    --enable-libwebp \
-            --enable-libdc1394 \
+            --enable-libvpx \
             --enable-shared \
             --enable-postproc \
-	    --enable-avfilter \
-	    --enable-libopenjpeg \
-	    --enable-librtmp \
-	    --enable-libvpx \
-	    --enable-frei0r \
-	    --enable-nonfree \
-	    --extra-ldflags="-lssl -lcrypto -lz"
+            --enable-avfilter \
+            --enable-libopenjpeg \
+            --enable-libvpx \
+            --enable-nonfree \
+            $OPTIONAL_ENABLE \
+            --extra-ldflags="-lssl -lcrypto -lz"
 
 
 #            --enable-libfaac \
