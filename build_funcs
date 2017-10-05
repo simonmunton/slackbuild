@@ -990,3 +990,30 @@ Type=Application
 Categories=$7
 EOF
 }
+
+pkg_exist()
+{
+RV=1
+
+for f in `find /var/adm/packages -name "${1}*"`
+do
+  pkg=${f#/var/adm/packages/}
+
+  build=${pkg##*-}
+  name=${pkg%-*}
+
+  arch=${name##*-}
+  name=${name%-*}
+
+  ver=${name##*-}
+  name=${name%-*}
+
+#  echo "$pkg --> $name $ver $arch $build"
+  if [ "$1" = "$name" ]
+  then
+    RV=0
+  fi
+done
+
+return $RV
+}
