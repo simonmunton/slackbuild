@@ -1,0 +1,23 @@
+--- kscreenlocker-5.11.0/greeter/seccomp_filter.cpp.orig	2017-10-05 13:40:14.000000000 +0100
++++ kscreenlocker-5.11.0/greeter/seccomp_filter.cpp	2017-10-14 10:34:56.239310293 +0100
+@@ -50,7 +50,7 @@
+             auto gl = KWin::GLPlatform::instance();
+             gl->detect();
+             gl->printResults();
+-            if (gl->driver() == KWin::Driver_NVidia) {
++            if (gl->driver() == KWin::Driver_NVidia || gl->driver() == KWin::Driver_Intel) {
+                 // BUG: 384005
+                 writeSupported = false;
+             }
+@@ -79,9 +79,9 @@
+         seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(openat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, O_WRONLY, O_WRONLY));
+         seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, O_RDWR, O_RDWR));
+         seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(openat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, O_RDWR, O_RDWR));
++        seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(openat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, O_CREAT, O_CREAT));
++        seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, O_CREAT, O_CREAT));
+     }
+-    seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(openat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, O_CREAT, O_CREAT));
+-    seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, O_CREAT, O_CREAT));
+ 
+     // disallow going to a socket
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 0);
