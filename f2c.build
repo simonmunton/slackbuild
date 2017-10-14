@@ -1,0 +1,183 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=f2c
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/f
+#TAR_EXT=.tar.gz
+VERSION=20160114
+VERSIONEXTRA=
+BUILD=1
+
+flibmajorver=2
+flibver=2.1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+ mkdir libf2c
+ cd libf2c
+ unzip ../libf2c.zip
+ patch -p1 < ${CWD}/f2clib-0001-upstream-changelog.patch
+ patch -p1 < ${CWD}/f2clib-0002-makefile-simplify-two-libs.patch
+ patch -p1 < ${CWD}/f2clib-0003-C-tweaks.patch
+ patch -p1 < ${CWD}/f2clib-0004-add-clapack-files.patch
+ patch -p1 < ${CWD}/f2clib-0005-format-security.patch
+ patch -p1 < ${CWD}/f2clib-0006-weak-MAIN__.patch
+ cd ..
+
+ patch -p1 < ${CWD}/f2c-0001-make-tweaks.patch
+ patch -p1 < ${CWD}/f2c-0002-prototype-rmdir.patch
+ patch -p1 < ${CWD}/f2c-0003-struct-init-braces.patch
+ patch -p1 < ${CWD}/f2c-0004-fc-script-path-and-tmpfile.patch
+ patch -p1 < ${CWD}/f2c-0005-sysdep-tmpfiles.patch
+ patch -p1 < ${CWD}/f2c-0006-man-dash-hyphen-slash.patch
+ patch -p1 < ${CWD}/f2c-0007-fc-man-page.patch
+ patch -p1 < ${CWD}/f2c-0008-typos.patch
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+
+cd libf2c
+
+# Optimization options.
+GCCOP2=-ansi ${CDEBUGFLAGS} -fomit-frame-pointer -mieee-fp -D_GNU_SOURCE
+GCCOP1=-ansi ${CDEBUGFLAGS} -fomit-frame-pointer -D_GNU_SOURCE
+
+## Avoid using -mieee-fp on anything other than the i386 platform
+## as it is a gcc i386 specific option
+if [ ${ARCH} = i386 ]
+then
+   GCCOPT=${GCCOP2}
+else
+   GCCOPT=${GCCOP1}
+fi
+
+for INTSIZE in f2c f2c_i2
+do
+  make -f makefile.u clean
+  make -f makefile.u ${NUM_JOBS} CFLAGS="${CFLAGS} ${GCCOPT} -fPIC -I ../ -DNON_UNIX_STDIO -D${INTSIZE}"
+  gcc -shared -Wl,-soname,lib${INTSIZE}.so.${flibmajorver} ${LDFLAGS} -o lib${INTSIZE}.so.${flibver} *.o -lc -lm
+done
+
+ln -s libf2c.so.${flibver} libf2c.so.${flibmajorver}
+ln -s libf2c_i2.so.${flibver} libf2c_i2.so.${flibmajorver}
+
+ln -sf libf2c.so.${flibver} libf2c.so
+ln -s libf2c_i2.so.${flibver} libf2c_i2.so
+
+cd ..
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},man/man1,include}
+
+chmod +x fc
+cp fc src/f2c ${PKG}/usr/bin
+cp fc.1 f2c.1t ${PKG}/usr/man/man1
+cp f2c.h ${PKG}/usr/include
+cp -d libf2c/libf2c*so* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp libf2c/README ${PKG}/usr/doc/${TARNAME}-${VERSION}/README.libf2c
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO f2c.pdf \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
