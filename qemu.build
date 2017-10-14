@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=nasm
+TARNAME=qemu
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/n
+TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=2.13.01
+VERSION=2.10.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://www.qemu.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/nasm-2.13.01.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,23 +55,39 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
+            --localstatedir=/var \
 	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-(cd doc
- make ${NUM_JOBS} || exit
-)
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,13 +95,11 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} INSTALLROOT=${PKG}
-(cd doc
- mkdir -p ${PKG}/usr/info
- make install DESTDIR=${PKG} INSTALLROOT=${PKG} infodir=/usr/info
-)
+make install DESTDIR=${PKG}
 
-#strip_binaries
+cd ..
+
+strip_binaries
 
 fix_links
 
@@ -100,10 +114,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "The Netwide Assembler, a portable x86 assembler with Intel-like syntax"
-NASM is the Netwide Assembler, a free portable assembler for the Intel
-80x86 microprocessor series, using primarily the traditional Intel
-instruction mnemonics and syntax.
+make_slack_desc << EOF "QEMU the FAST! processor emulator"
+QEMU is a generic and open source machine emulator and virtualizer.
 
 EOF
 
