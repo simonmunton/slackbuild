@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.8.3
+VERSION=1.9.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -80,11 +80,14 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       .
 fi
 
+meson --prefix=/usr builddir/
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+ninja -C builddir/ || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +95,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+DESTDIR=${PKG} ninja -C builddir/ install
 
 strip_binaries
 
