@@ -95,6 +95,15 @@ fi
 
 make install DESTDIR=${PKG}
 
+cat >> ${PKG}/install/doinst.sh << EOF
+
+if ! grep -q mdns etc/nsswitch.conf
+then
+  echo "Updating etc/nsswitch.conf"
+  sed -i -e '/^hosts:/ s/ dns/ mdns4_minimal [NOTFOUND=return] dns mdns4/' etc/nsswitch.conf
+fi
+EOF
+
 strip_binaries
 
 fix_links
