@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=py2cairo
+TARNAME=pycairo
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c/cairo
 #TAR_EXT=.tar.gz
-VERSION=1.10.0
+VERSION=1.14.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,19 +57,21 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./waf configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./waf configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-./waf build ${NUM_JOBS} || exit
+#./waf build ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +79,11 @@ then
   exit
 fi
 
-./waf install --destdir=${PKG}
+#./waf install --destdir=${PKG}
+python setup.py install --root=${PKG}
+
+mv ${PKG}/usr/lib/pkgconfig ${PKG}/usr/lib${LIBDIRSUFFIX}
+rmdir -p ${PKG}/usr/lib
 
 #strip_binaries
 

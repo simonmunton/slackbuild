@@ -1,0 +1,38 @@
+--- mpv-0.27.0/video/vaapi.c.orig	2017-09-13 02:40:14.000000000 +0100
++++ mpv-0.27.0/video/vaapi.c	2017-11-26 14:41:38.430979321 +0000
+@@ -140,12 +140,20 @@
+     pthread_mutex_unlock(&va_log_mutex);
+ }
+ 
++#if VA_CHECK_VERSION (1,0,0)
++static void va_error_callback(void *context, const char *msg)
++#else
+ static void va_error_callback(const char *msg)
++#endif
+ {
+     va_message_callback(msg, MSGL_ERR);
+ }
+ 
++#if VA_CHECK_VERSION (1,0,0)
++static void va_info_callback(void *context, const char *msg)
++#else
+ static void va_info_callback(const char *msg)
++#endif
+ {
+     va_message_callback(msg, MSGL_V);
+ }
+@@ -188,9 +196,14 @@
+     // Check some random symbol added after message callbacks.
+     // VA_MICRO_VERSION wasn't bumped at the time.
+ #ifdef VA_FOURCC_I010
++#if VA_CHECK_VERSION (1,0,0)
++    vaSetErrorCallback(display, va_error_callback, NULL);
++    vaSetInfoCallback(display, va_info_callback, NULL);
++#else
+     vaSetErrorCallback(va_error_callback);
+     vaSetInfoCallback(va_info_callback);
+ #endif
++#endif
+ 
+     int major_version, minor_version;
+     int status = vaInitialize(display, &major_version, &minor_version);
