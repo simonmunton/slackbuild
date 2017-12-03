@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=1.1.1
+VERSION=1.2.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="Free exFAT file system implementation"
+WEBPAGE="https://github.com/relan/exfat"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -67,6 +67,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
+            --sbindir=/sbin \
 	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
@@ -84,8 +85,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} PREFIX=/usr || exit
-#make ${NUM_JOBS} || exit
+#scons ${NUM_JOBS} PREFIX=/usr || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,19 +94,19 @@ then
   exit
 fi
 
-scons install DESTDIR=${PKG}/sbin
-#make install DESTDIR=${PKG}
+#scons install DESTDIR=${PKG}/sbin
+make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/man/man8
-cp dump/dumpexfat.8 ${PKG}/usr/man/man8
+#mkdir -p ${PKG}/usr/man/man8
+#cp dump/dumpexfat.8 ${PKG}/usr/man/man8
 
-cp fsck/exfatfsck.8 ${PKG}/usr/man/man8
-ln -s exfatfsck.8 ${PKG}/usr/man/man8/fsck.exfat.8
+#cp fsck/exfatfsck.8 ${PKG}/usr/man/man8
+#ln -s exfatfsck.8 ${PKG}/usr/man/man8/fsck.exfat.8
 
-cp label/exfatlabel.8 ${PKG}/usr/man/man8
+#cp label/exfatlabel.8 ${PKG}/usr/man/man8
 
-cp mkfs/mkexfatfs.8 ${PKG}/usr/man/man8
-ln -s mkexfatfs.8 ${PKG}/usr/man/man8/mkfs.exfat.8
+#cp mkfs/mkexfatfs.8 ${PKG}/usr/man/man8
+#ln -s mkexfatfs.8 ${PKG}/usr/man/man8/mkfs.exfat.8
 
 strip_binaries
 

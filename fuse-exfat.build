@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=1.1.0
+VERSION=1.2.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://code.google.com/p/exfat/"
+WEBPAGE="https://github.com/relan/exfat"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -67,6 +67,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
+            --sbindir=/sbin \
 	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
@@ -84,8 +85,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} PREFIX=/usr || exit
-#make ${NUM_JOBS} || exit
+#scons ${NUM_JOBS} PREFIX=/usr || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,12 +94,12 @@ then
   exit
 fi
 
-scons install DESTDIR=${PKG}/sbin
-#make install DESTDIR=${PKG}
+#scons install DESTDIR=${PKG}/sbin
+make install DESTDIR=${PKG}
 
-mkdir -p ${PKG}/usr/man/man8
-cp fuse/mount.exfat-fuse.8 ${PKG}/usr/man/man8
-ln -s mount.exfat-fuse.8 ${PKG}/usr/man/man8/mount.exfat.8
+#mkdir -p ${PKG}/usr/man/man8
+#cp fuse/mount.exfat-fuse.8 ${PKG}/usr/man/man8
+#ln -s mount.exfat-fuse.8 ${PKG}/usr/man/man8/mount.exfat.8
 
 strip_binaries
 
