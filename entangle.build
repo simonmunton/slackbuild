@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=0.7.1
+VERSION=1.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="https://entangle-photo.org/"
 
@@ -84,7 +84,9 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+meson build-dir --prefix=/usr
+ninja -C build-dir all
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +94,8 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+DESTDIR=${PKG} ninja -C build-dir install
+#make install DESTDIR=${PKG}
 
 strip_binaries
 
