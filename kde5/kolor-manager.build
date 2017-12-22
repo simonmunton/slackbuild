@@ -1,15 +1,19 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=strigi
+TARNAME=kolor-manager
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=0.7.8
+VERSION=1.1.0
 VERSIONEXTRA=
-BUILD=4
+BUILD=1
+
+#WEBPAGE="http://www.oyranos.org/kolormanager/"
+#WEBPAGE="https://projects.kde.org/projects/extragear/graphics/kolor-manager"
+WEBPAGE="https://github.com/KDE/kolor-manager"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +47,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/strigi-0.7.8.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -53,8 +57,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib/qt4
-PATH=/usr/lib/qt4/bin:$PATH
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir build
+cd build
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -62,10 +68,11 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DENABLE_INOTIFY:BOOL=ON \
-      -DENABLE_DBUS:BOOL=ON \
-      .
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .. \
+      2>&1 | tee ${TARNAME}.config
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -79,6 +86,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 make_debug_files
 #strip_binaries
@@ -96,12 +105,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "fast and light desktop search engine"
-Strigi is a fast and light desktop search engine. It can handle a 
-large range of file formats such as emails, office documents, media 
-files, and file archives. It can index files that are embedded in 
-other files. This means email attachments and files in zip files are 
-searchable as if they were normal files on your harddisk.
+make_slack_desc << EOF "KDE colour manager"
+Oyranos CMS cross desktop settings for the KDE system settings panel. 
+KolorServer supports the X Color Management spec as a kded module. 
 
 EOF
 
