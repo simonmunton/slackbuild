@@ -1,0 +1,79 @@
+--- digikam-5.7.0/core/CMakeLists.txt.orig	2017-09-05 09:51:18.000000000 +0100
++++ digikam-5.7.0/core/CMakeLists.txt	2018-01-01 17:33:18.515410708 +0000
+@@ -174,6 +174,9 @@
+              OPTIONAL_COMPONENTS
+              CalendarCore           # For Calendar tool.
+ )
++if ("${KF5CalendarCore_VERSION}" VERSION_GREATER 5.6.40)
++    set(HAVE_KCALENDAR_QDATETIME TRUE)
++endif()
+ 
+ if(ENABLE_AKONADICONTACTSUPPORT AND NOT KF5AkonadiContact_FOUND)
+     set(ENABLE_KFILEMETADATASUPPORT OFF)
+--- digikam-5.7.0/core/utilities/assistants/calendar/print/calsettings.cpp.orig	2017-09-05 09:51:22.000000000 +0100
++++ digikam-5.7.0/core/utilities/assistants/calendar/print/calsettings.cpp	2018-01-01 17:29:46.076409925 +0000
+@@ -37,6 +37,8 @@
+ #   include <kcalcore/icalformat.h>
+ #   include <kcalcore/filestorage.h>
+ #   include <kcalcore/memorycalendar.h>
++
++#   include <QTimeZone>
+ #endif // HAVE_KCALENDAR
+ 
+ namespace Digikam
+@@ -290,7 +292,13 @@
+         return;
+     }
+ 
++#ifdef HAVE_KCALENDAR_QDATETIME
++    KCalCore::MemoryCalendar::Ptr memCal(new KCalCore::MemoryCalendar(QTimeZone::utc()));
++    using DateTime = QDateTime;
++#else
+     KCalCore::MemoryCalendar::Ptr memCal(new KCalCore::MemoryCalendar(QString::fromLatin1("UTC")));
++    using DateTime = KDateTime;
++#endif
+     KCalCore::FileStorage::Ptr fileStorage(new KCalCore::FileStorage(memCal, url.toLocalFile(), new KCalCore::ICalFormat));
+ 
+     qCDebug(DIGIKAM_GENERAL_LOG) << "Loading calendar from file " << url.toLocalFile();
+@@ -308,9 +316,9 @@
+         qLast  = calSys.date(params.year + 1, 1, 1);
+         qLast  = qLast.addDays(-1);
+ 
+-        KDateTime dtFirst(qFirst);
+-        KDateTime dtLast(qLast);
+-        KDateTime dtCurrent;
++        DateTime dtFirst(qFirst, QTime(0, 0));
++        DateTime dtLast(qLast, QTime(0, 0));
++        DateTime dtCurrent;
+ 
+         int counter                = 0;
+         KCalCore::Event::List list = memCal->rawEvents(qFirst, qLast);
+--- digikam-5.7.0/core/libs/database/coredb/coredburl.cpp.orig	2017-09-05 09:51:22.000000000 +0100
++++ digikam-5.7.0/core/libs/database/coredb/coredburl.cpp	2018-01-01 18:07:17.637157475 +0000
+@@ -88,8 +88,13 @@
+                                       const DbEngineParameters& parameters)
+ {
+     CoreDbUrl url;
++    QString path(album);
+     url.setScheme(QLatin1String("digikamalbums"));
+-    url.setPath(QLatin1Char('/') + album + QLatin1Char('/') + name);
++
++    if (path != QLatin1Char('/'))
++        path += QLatin1Char('/');
++
++    url.setPath(path + name);
+ 
+     QUrlQuery q(url);
+     q.addQueryItem(QLatin1String("albumRoot"),   albumRoot.adjusted(QUrl::StripTrailingSlash).toLocalFile());
+--- digikam-5.7.0/core/app/utils/digikam_config.h.cmake.in.orig	2017-09-05 09:51:21.000000000 +0100
++++ digikam-5.7.0/core/app/utils/digikam_config.h.cmake.in	2018-01-01 17:41:27.353412509 +0000
+@@ -75,6 +75,9 @@
+ /* Define to 1 if you have KCalendar core shared libraries installed */
+ #cmakedefine HAVE_KCALENDAR 1
+ 
++/* Define to 1 if you have KCalendar core shared libraries with QDateTime support installed */
++#cmakedefine HAVE_KCALENDAR_QDATETIME 1
++
+ /* Define to 1 if Panorama tool is supported */
+ #cmakedefine HAVE_PANORAMA 1
+ 
