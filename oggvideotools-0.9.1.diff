@@ -1,0 +1,30 @@
+--- oggvideotools-0.9.1/src/base/test/decoderTest.cpp.orig	2016-09-05 09:35:14.000000000 +0100
++++ oggvideotools-0.9.1/src/base/test/decoderTest.cpp	2018-01-04 19:03:02.026469880 +0000
+@@ -3,6 +3,7 @@
+ //
+ 
+ #include "oggDecoder.h"
++#include <string.h>
+ #include <vector>
+ #include <iostream>
+ 
+--- oggvideotools-0.9.1/src/binaries/oggCut.cpp.orig	2016-09-05 09:35:14.000000000 +0100
++++ oggvideotools-0.9.1/src/binaries/oggCut.cpp	2018-01-04 19:20:58.669473847 +0000
+@@ -259,7 +259,7 @@
+ 
+     /* look deeper into the packets, if the belong into the cutting
+      * area */
+-    if ((time >= startTimeSec) && (time < endTimeSec)) {
++    if ((time >= startTimeSec) && (endTimeSec < 0 || time < endTimeSec)) {
+ 
+       /* are we within our cut interval and found the first keyframe? */
+       if (!startMarker) {
+@@ -292,7 +292,7 @@
+     }
+ 
+     /* the end of the cut area has reached */
+-    if (time >= endTimeSec) {
++    if (endTimeSec > 0 && time >= endTimeSec) {
+       break;
+     }
+   }
