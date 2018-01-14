@@ -1,0 +1,31 @@
+--- libzip-1.4.0/CMakeLists.txt.orig	2017-12-29 12:37:22.000000000 +0000
++++ libzip-1.4.0/CMakeLists.txt	2018-01-14 15:39:11.565679058 +0000
+@@ -157,7 +157,7 @@
+ # pkgconfig file
+ SET(prefix ${CMAKE_INSTALL_PREFIX})
+ SET(exec_prefix \${prefix})
+-SET(libdir \${exec_prefix}/lib)
++SET(libdir \${exec_prefix}/lib${LIB_SUFFIX})
+ SET(includedir \${prefix}/include)
+ IF(BZIP2_FOUND)
+   SET(LIBS "${LIBS} -lbz2")
+@@ -167,7 +167,7 @@
+   SET(PKG_CONFIG_RPATH "-Wl,-R\${libdir}")
+ ENDIF(CMAKE_SYSTEM_NAME MATCHES BSD)
+ CONFIGURE_FILE(libzip.pc.in libzip.pc @ONLY)
+-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/libzip.pc DESTINATION lib/pkgconfig)
++INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/libzip.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+ 
+ # write out config file
+ CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/cmake-config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+--- libzip-1.4.0/lib/CMakeLists.txt.orig	2017-12-29 12:37:22.000000000 +0000
++++ libzip-1.4.0/lib/CMakeLists.txt	2018-01-14 15:37:00.235678574 +0000
+@@ -204,6 +204,6 @@
+ TARGET_LINK_LIBRARIES(zip ${ZLIB_LIBRARY} ${OPTIONAL_LIBRARY})
+ INSTALL(TARGETS zip
+   RUNTIME DESTINATION bin
+-  ARCHIVE DESTINATION lib
+-  LIBRARY DESTINATION lib)
++  ARCHIVE DESTINATION lib${LIB_SUFFIX}
++  LIBRARY DESTINATION lib${LIB_SUFFIX})
+ #CREATE_LIBTOOL_FILE(zip lib)
