@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mkvtoolnix
+TARNAME=cmark
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=20.0.0
+VERSION=0.28.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="https://github.com/commonmark/cmark"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -53,29 +55,39 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#export WX_CONFIG="/usr/bin/wx-config --version=2.8"
-export WX_CONFIG=/usr/lib/wx/config/gtk2-unicode-release-2.8
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-qt \
-            --with-boost-system=boost_system-mt \
-            --with-boost-filesystem=boost_filesystem-mt \
-            --with-boost-regex=boost_regex-mt
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
-rake || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -83,9 +95,11 @@ then
   exit
 fi
 
-rake install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-#strip_binaries
+cd ..
+
+strip_binaries
 
 fix_links
 
@@ -100,10 +114,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "tools for Matroska files"
-MKVToolnix is a set of tools to create, alter and inspect Matroska 
-files under Linux, other Unices and Windows. They do for Matroska 
-what the OGMtools do for the OGM format and then some.
+make_slack_desc << EOF "C reference implementation of CommonMark"
+cmark is the C reference implementation of CommonMark, a rationalized 
+version of Markdown syntax with a spec. (For the JavaScript reference 
+implementation, see commonmark.js.)
+
+It provides a shared library (libcmark) with functions for parsing 
+CommonMark documents to an abstract syntax tree (AST), manipulating 
+the AST, and rendering the document to HTML, groff man, LaTeX, 
+CommonMark, or an XML representation of the AST. It also provides a 
+command-line program (cmark) for parsing and rendering CommonMark 
+documents.
 
 EOF
 
