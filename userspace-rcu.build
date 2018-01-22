@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=darktable
+TARNAME=userspace-rcu
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=2.4.1
+VERSION=0.10.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.darktable.org/"
+WEBPAGE="http://liburcu.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -71,7 +68,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,7 +77,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
 fi
 
 fi
@@ -97,8 +94,6 @@ fi
 
 make install DESTDIR=${PKG}
 
-cd ..
-
 strip_binaries
 
 fix_links
@@ -114,12 +109,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source photography workflow application and RAW developer"
-darktable is an open source photography workflow application and RAW 
-developer. A virtual lighttable and darkroom for photographers. It 
-manages your digital negatives in a database, lets you view them 
-through a zoomable lighttable and enables you to develop raw images 
-and enhance them.
+make_slack_desc << EOF "Userspace RCU"
+liburcu is a LGPLv2.1 userspace RCU (read-copy-update) library. This 
+data synchronization library provides read-side access which scales 
+linearly with the number of cores.
+
+liburcu-cds provides efficient data structures based on RCU and lock-
+free algorithms. Those structures include hash tables, queues, stacks, 
+and doubly-linked lists. 
 
 EOF
 

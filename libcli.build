@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=darktable
+TARNAME=libcli
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.4.1
+VERSION=1.9.7
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.darktable.org/"
+WEBPAGE="https://github.com/dparrish/libcli"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,14 +55,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -71,7 +68,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,14 +77,14 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} PREFIX=/usr libcli.so || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,9 +92,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install PREFIX=/usr DESTDIR=${PKG}
 
-cd ..
+mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 strip_binaries
 
@@ -114,12 +111,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source photography workflow application and RAW developer"
-darktable is an open source photography workflow application and RAW 
-developer. A virtual lighttable and darkroom for photographers. It 
-manages your digital negatives in a database, lets you view them 
-through a zoomable lighttable and enables you to develop raw images 
-and enhance them.
+make_slack_desc << EOF "Cisco-like command-line interface"
+Libcli provides a shared library for including a Cisco-like command-
+line interface into other software. It's a telnet interface which 
+supports command-line editing, history, authentication and callbacks 
+for a user-definable function tree.
 
 EOF
 

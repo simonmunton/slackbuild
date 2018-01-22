@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=darktable
+TARNAME=netsniff-ng
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=2.4.1
+VERSION=0.6.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.darktable.org/"
+WEBPAGE="http://netsniff-ng.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,23 +55,22 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+export NACL_INC_DIR=/usr/include/sodium
+export NACL_LIB_DIR=/usr/lib${LIBDIRSUFFIX}
+export NACL_LIB=sodium
+
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+            --sysconfdir=/etc
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,7 +79,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
 fi
 
 fi
@@ -95,9 +94,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/sbin
 
-cd ..
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -114,12 +113,16 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source photography workflow application and RAW developer"
-darktable is an open source photography workflow application and RAW 
-developer. A virtual lighttable and darkroom for photographers. It 
-manages your digital negatives in a database, lets you view them 
-through a zoomable lighttable and enables you to develop raw images 
-and enhance them.
+make_slack_desc << EOF "netsniff-ng toolkit"
+netsniff-ng is a free Linux networking toolkit, a Swiss army knife 
+for your daily Linux network plumbing if you will.
+
+Its gain of performance is reached by zero-copy mechanisms, so that 
+on packet reception and transmission the kernel does not need to copy 
+packets from kernel space to user space and vice versa.
+
+Our toolkit can be used for network development and analysis, 
+debugging, auditing or network reconnaissance. 
 
 EOF
 
