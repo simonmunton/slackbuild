@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libwebp
+TARNAME=liblangtag
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.6.1
+VERSION=0.6.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://developers.google.com/speed/webp/"
+WEBPAGE="https://bitbucket.org/tagoh/liblangtag"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,23 +59,26 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-everything
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -106,16 +109,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF " A new image format for the Web"
-WebP is a new image format that provides lossless and lossy 
-compression for images on the web. WebP lossless images are 26% 
-smaller in size compared to PNGs. WebP lossy images are 25-34% smaller 
-in size compared to JPEG images at equivalent SSIM index. WebP supports 
-lossless transparency (also known as alpha channel) with just 22% 
-additional bytes. Transparency is also supported with lossy 
-compression and typically provides 3x smaller file sizes compared to 
-PNG when lossy compression is acceptable for the red/green/blue color 
-channels.
+make_slack_desc << EOF
+An interface library to access tags for identifying languages
 
 EOF
 
