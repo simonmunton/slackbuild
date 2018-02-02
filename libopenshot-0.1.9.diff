@@ -1,0 +1,338 @@
+--- libopenshot-0.1.9/src/FrameMapper.cpp.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/src/FrameMapper.cpp	2018-02-02 22:03:28.854552724 +0000
+@@ -650,8 +650,8 @@
+ 
+ 		// Deallocate resample buffer
+ 		if (avr) {
+-			avresample_close(avr);
+-			avresample_free(&avr);
++			swr_close(avr);
++			swr_free(&avr);
+ 			avr = NULL;
+ 		}
+ 	}
+@@ -741,8 +741,8 @@
+ 
+ 	// Deallocate resample buffer
+ 	if (avr) {
+-		avresample_close(avr);
+-		avresample_free(&avr);
++		swr_close(avr);
++		swr_free(&avr);
+ 		avr = NULL;
+ 	}
+ 
+@@ -829,7 +829,7 @@
+ 
+     // setup resample context
+     if (!avr) {
+-        avr = avresample_alloc_context();
++        avr = swr_alloc();
+         av_opt_set_int(avr,  "in_channel_layout", channel_layout_in_frame, 0);
+         av_opt_set_int(avr, "out_channel_layout", info.channel_layout, 0);
+         av_opt_set_int(avr,  "in_sample_fmt",     AV_SAMPLE_FMT_S16,     0);
+@@ -838,16 +838,16 @@
+         av_opt_set_int(avr, "out_sample_rate",    info.sample_rate,    0);
+         av_opt_set_int(avr,  "in_channels",       channels_in_frame,    0);
+         av_opt_set_int(avr, "out_channels",       info.channels,    0);
+-        avresample_open(avr);
++        swr_init(avr);
+     }
+ 
+     // Convert audio samples
+-    nb_samples = avresample_convert(avr, 	// audio resample context
++    nb_samples = swr_convert(avr, 	// audio resample context
+             audio_converted->data, 			// output data pointers
+-            audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
++//            audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
+             audio_converted->nb_samples,	// maximum number of samples that the output buffer can hold
+-            audio_frame->data,				// input data pointers
+-            audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
++            (const uint8_t**)audio_frame->data,				// input data pointers
++//            audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
+             audio_frame->nb_samples);		// number of input samples to convert
+ 
+ 	// Create a new array (to hold all resampled S16 audio samples)
+--- libopenshot-0.1.9/src/FFmpegWriter.cpp.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/src/FFmpegWriter.cpp	2018-02-02 22:01:25.975552271 +0000
+@@ -705,14 +705,14 @@
+ 
+ 	// Deallocate resample buffer
+ 	if (avr) {
+-		avresample_close(avr);
+-		avresample_free(&avr);
++		swr_close(avr);
++		swr_free(&avr);
+ 		avr = NULL;
+ 	}
+ 
+ 	if (avr_planar) {
+-		avresample_close(avr_planar);
+-		avresample_free(&avr_planar);
++		swr_close(avr_planar);
++		swr_free(&avr_planar);
+ 		avr_planar = NULL;
+ 	}
+ }
+@@ -1170,7 +1170,7 @@
+ 
+ 			// setup resample context
+ 			if (!avr) {
+-				avr = avresample_alloc_context();
++				avr = swr_alloc();
+ 				av_opt_set_int(avr,  "in_channel_layout", channel_layout_in_frame, 0);
+ 				av_opt_set_int(avr, "out_channel_layout", info.channel_layout, 0);
+ 				av_opt_set_int(avr,  "in_sample_fmt",     AV_SAMPLE_FMT_S16,     0);
+@@ -1179,17 +1179,17 @@
+ 				av_opt_set_int(avr, "out_sample_rate",    info.sample_rate,    0);
+ 				av_opt_set_int(avr,  "in_channels",       channels_in_frame,    0);
+ 				av_opt_set_int(avr, "out_channels",       info.channels,    0);
+-				avresample_open(avr);
++				swr_init(avr);
+ 			}
+ 			int nb_samples = 0;
+ 
+ 			// Convert audio samples
+-			nb_samples = avresample_convert(avr, 	// audio resample context
++			nb_samples = swr_convert(avr, 	// audio resample context
+ 					audio_converted->data, 			// output data pointers
+-					audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
++					//audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
+ 					audio_converted->nb_samples,	// maximum number of samples that the output buffer can hold
+-					audio_frame->data,				// input data pointers
+-					audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
++					(const uint8_t**)audio_frame->data,				// input data pointers
++					//audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
+ 					audio_frame->nb_samples);		// number of input samples to convert
+ 
+ 			// Create a new array (to hold all resampled S16 audio samples)
+@@ -1245,7 +1245,7 @@
+ 
+ 				// setup resample context
+ 				if (!avr_planar) {
+-					avr_planar = avresample_alloc_context();
++					avr_planar = swr_alloc();
+ 					av_opt_set_int(avr_planar,  "in_channel_layout", info.channel_layout, 0);
+ 					av_opt_set_int(avr_planar, "out_channel_layout", info.channel_layout, 0);
+ 					av_opt_set_int(avr_planar,  "in_sample_fmt",     output_sample_fmt,     0);
+@@ -1254,7 +1254,7 @@
+ 					av_opt_set_int(avr_planar, "out_sample_rate",    info.sample_rate,    0);
+ 					av_opt_set_int(avr_planar,  "in_channels",       info.channels,    0);
+ 					av_opt_set_int(avr_planar, "out_channels",       info.channels,    0);
+-					avresample_open(avr_planar);
++					swr_init(avr_planar);
+ 				}
+ 
+ 				// Create input frame (and allocate arrays)
+@@ -1277,12 +1277,12 @@
+ 				av_samples_alloc(frame_final->data, frame_final->linesize, info.channels, frame_final->nb_samples, audio_codec->sample_fmt, 0);
+ 
+ 				// Convert audio samples
+-				int nb_samples = avresample_convert(avr_planar, 	// audio resample context
++				int nb_samples = swr_convert(avr_planar, 	// audio resample context
+ 						frame_final->data, 			// output data pointers
+-						frame_final->linesize[0], 	// output plane size, in bytes. (0 if unknown)
++						//frame_final->linesize[0], 	// output plane size, in bytes. (0 if unknown)
+ 						frame_final->nb_samples,	// maximum number of samples that the output buffer can hold
+-						audio_frame->data,				// input data pointers
+-						audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
++						(const uint8_t**)audio_frame->data,				// input data pointers
++						//audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
+ 						audio_frame->nb_samples);		// number of input samples to convert
+ 
+ 				// Copy audio samples over original samples
+--- libopenshot-0.1.9/src/FFmpegReader.cpp.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/src/FFmpegReader.cpp	2018-02-02 21:55:33.581550973 +0000
+@@ -986,11 +986,11 @@
+ 	audio_converted->nb_samples = audio_frame->nb_samples;
+ 	av_samples_alloc(audio_converted->data, audio_converted->linesize, info.channels, audio_frame->nb_samples, AV_SAMPLE_FMT_S16, 0);
+ 
+-	AVAudioResampleContext *avr = NULL;
++	SwrContext *avr = NULL;
+ 	int nb_samples = 0;
+ 
+ 	// setup resample context
+-	avr = avresample_alloc_context();
++	avr = swr_alloc();
+ 	av_opt_set_int(avr,  "in_channel_layout", aCodecCtx->channel_layout, 0);
+ 	av_opt_set_int(avr, "out_channel_layout", aCodecCtx->channel_layout, 0);
+ 	av_opt_set_int(avr,  "in_sample_fmt",     aCodecCtx->sample_fmt,     0);
+@@ -999,23 +999,23 @@
+ 	av_opt_set_int(avr, "out_sample_rate",    info.sample_rate,    0);
+ 	av_opt_set_int(avr,  "in_channels",       info.channels,    0);
+ 	av_opt_set_int(avr, "out_channels",       info.channels,    0);
+-	int r = avresample_open(avr);
++	int r = swr_init(avr);
+ 
+ 	// Convert audio samples
+-	nb_samples = avresample_convert(avr, 	// audio resample context
++	nb_samples = swr_convert(avr, 	// audio resample context
+ 			audio_converted->data, 			// output data pointers
+-			audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
++//			audio_converted->linesize[0], 	// output plane size, in bytes. (0 if unknown)
+ 			audio_converted->nb_samples,	// maximum number of samples that the output buffer can hold
+-			audio_frame->data,				// input data pointers
+-			audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
++			(const uint8_t**)audio_frame->data,				// input data pointers
++//			audio_frame->linesize[0],		// input plane size, in bytes (0 if unknown)
+ 			audio_frame->nb_samples);		// number of input samples to convert
+ 
+ 	// Copy audio samples over original samples
+ 	memcpy(audio_buf, audio_converted->data[0], audio_converted->nb_samples * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16) * info.channels);
+ 
+ 	// Deallocate resample buffer
+-	avresample_close(avr);
+-	avresample_free(&avr);
++	swr_close(avr);
++	swr_free(&avr);
+ 	avr = NULL;
+ 
+ 	// Free AVFrames
+--- libopenshot-0.1.9/src/bindings/ruby/openshot.i.orig	2018-02-02 22:21:52.887556792 +0000
++++ libopenshot-0.1.9/src/bindings/ruby/openshot.i	2018-02-02 22:26:22.283557785 +0000
+@@ -40,12 +40,11 @@
+ %include <std_except.i>
+ 
+ namespace std {
+-{
+   template < class T > class shared_ptr {
+   public:
+     T *operator->();
+   };
+-}}
++}
+ 
+ /* Mark these classes as shared_ptr classes */
+ #ifdef USE_IMAGEMAGICK
+--- libopenshot-0.1.9/include/FFmpegUtilities.h.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/include/FFmpegUtilities.h	2018-02-02 20:20:54.980593437 +0000
+@@ -39,7 +39,7 @@
+ 		#include <libavcodec/avcodec.h>
+ 		#include <libavformat/avformat.h>
+ 		#include <libswscale/swscale.h>
+-		#include <libavresample/avresample.h>
++		#include <libswresample/swresample.h>
+ 		#include <libavutil/mathematics.h>
+ 		#include <libavutil/pixfmt.h>
+ 		#include <libavutil/pixdesc.h>
+--- libopenshot-0.1.9/include/FrameMapper.h.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/include/FrameMapper.h	2018-02-02 20:43:33.725598443 +0000
+@@ -146,7 +146,7 @@
+ 		ReaderBase *reader;		// The source video reader
+ 		CacheMemory final_cache; 		// Cache of actual Frame objects
+ 		bool is_dirty; 			// When this is true, the next call to GetFrame will re-init the mapping
+-		AVAudioResampleContext *avr;	// Audio resampling context object
++		SwrContext *avr;	// Audio resampling context object
+ 		int64_t timeline_frame_offset;	// Timeline frame offset
+ 
+ 		// Internal methods used by init
+--- libopenshot-0.1.9/include/FFmpegWriter.h.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/include/FFmpegWriter.h	2018-02-02 20:44:01.650598546 +0000
+@@ -174,8 +174,8 @@
+ 	    int initial_audio_input_frame_size;
+ 	    int audio_input_position;
+ 	    int audio_encoder_buffer_size;
+-	    AVAudioResampleContext *avr;
+-	    AVAudioResampleContext *avr_planar;
++	    SwrContext *avr;
++	    SwrContext *avr_planar;
+ 
+ 	    /* Resample options */
+ 	    int original_sample_rate;
+--- libopenshot-0.1.9/cmake/Modules/FindFFmpeg.cmake.orig	2017-11-12 09:47:32.000000000 +0000
++++ libopenshot-0.1.9/cmake/Modules/FindFFmpeg.cmake	2018-02-02 20:21:23.662593542 +0000
+@@ -15,10 +15,10 @@
+ 		   	$ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+ FIND_LIBRARY( AVFORMAT_LIBRARY avformat avformat-55 avformat-57
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 			 
+ #FindAvcodec
+@@ -29,10 +29,10 @@
+ 		   	 $ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+ FIND_LIBRARY( AVCODEC_LIBRARY avcodec avcodec-55 avcodec-57
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 
+ #FindAvutil
+@@ -43,10 +43,10 @@
+ 		   	 $ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+ FIND_LIBRARY( AVUTIL_LIBRARY avutil avutil-52 avutil-55
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 
+ #FindAvdevice
+@@ -57,10 +57,10 @@
+ 		   	 $ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+ FIND_LIBRARY( AVDEVICE_LIBRARY avdevice avdevice-55 avdevice-56
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 
+ #FindSwscale
+@@ -71,24 +71,24 @@
+ 		   	 $ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+ FIND_LIBRARY( SWSCALE_LIBRARY swscale swscale-2 swscale-4
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 
+ #FindAvresample
+-FIND_PATH( AVRESAMPLE_INCLUDE_DIR libavresample/avresample.h
++FIND_PATH( AVRESAMPLE_INCLUDE_DIR libswresample/swresample.h
+ 		   PATHS /usr/include/
+ 		   	 /usr/include/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/include/
+ 		   	 $ENV{FFMPEGDIR}/include/ffmpeg/ )
+ 
+-FIND_LIBRARY( AVRESAMPLE_LIBRARY avresample avresample-2 avresample-3
+-		   PATHS /usr/lib/
+-		   	 /usr/lib/ffmpeg/
+-		   	 $ENV{FFMPEGDIR}/lib/
+-		   	 $ENV{FFMPEGDIR}/lib/ffmpeg/
++FIND_LIBRARY( AVRESAMPLE_LIBRARY swresample swresample-2 swresample-3
++		   PATHS /usr/lib${LIB_SUFFIX}/
++		   	 /usr/lib${LIB_SUFFIX}/ffmpeg/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/
++		   	 $ENV{FFMPEGDIR}/lib${LIB_SUFFIX}/ffmpeg/
+ 		   	 $ENV{FFMPEGDIR}/bin/ )
+ 
+ SET( FFMPEG_FOUND FALSE )

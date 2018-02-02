@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=ntrack
+TARNAME=cppzmq
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/n
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=017
+VERSION=4.2.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://launchpad.net/ntrack"
+WEBPAGE="https://github.com/zeromq/cppzmq"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,14 +68,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -104,10 +109,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Network Connectivity Tracking library for Desktop Applications"
-ntrack aims to be a lightweight and easy to use library for 
-application developers that want to get events on network online 
-status changes such as online, offline or route changes.
+make_slack_desc << EOF "C++ binding for 0MQ"
+C++ binding for 0MQ
 
 EOF
 
