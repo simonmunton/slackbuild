@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=sip
+TARNAME=TEMPLATE
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/new/
 #TAR_EXT=.tar.gz
-VERSION=4.19.7
+VERSION=
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.riverbankcomputing.com/software/sip/intro"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=TEMPLATE-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -55,14 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-python configure.py CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}"
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -70,27 +89,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python3 setup.py install --root=${PKG}
 
-if [ ${DO_CONFIGURE} == "yes" ]
-then
-make clean
-python3 configure.py CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}"
-fi
-
-if [ ${DO_MAKE} == "yes" ]
-then
-make ${NUM_JOBS} || exit
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-make install DESTDIR=${PKG}
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -105,12 +107,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "tool to autogenerate Python bindings for C and C++ libraries"
-SIP is a tool for automatically generating Python bindings for C and
-C++ libraries.  SIP was originally developed in 1998 for PyQt - the
-Python bindings for the Qt GUI toolkit - but is suitable for
-generating bindings for any C or C++ library.
-
+make_slack_desc << EOF
 EOF
 
 post_install
