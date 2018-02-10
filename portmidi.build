@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=217
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://portmedia.sourceforge.net/"
 
@@ -34,7 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
+if [ "${TAR_EXT}" = ".zip" ]
+then
+  TAR_OPTS="${TAR_OPTS} -a"
+fi
+
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME} ${TARNAME}-${VERSION}
 
@@ -46,15 +51,27 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/portmidi-00_cmake.diff
+ patch -p1 < ${CWD}/portmidi-02_pmlinuxalsa.diff
+ patch -p1 < ${CWD}/portmidi-03_pm_test_Makefile.diff
+ patch -p1 < ${CWD}/portmidi-11-pmlinuxalsa.patch
+ patch -p1 < ${CWD}/portmidi-13-disablejni.patch
+ patch -p1 < ${CWD}/portmidi-20-movetest.diff
+ patch -p1 < ${CWD}/portmidi-21-hardentests.diff
+ patch -p1 < ${CWD}/portmidi-30-porttime_cmake.diff
+ patch -p1 < ${CWD}/portmidi-40-test_sysex.diff
+ patch -p1 < ${CWD}/portmidi-41-pm_linux.diff
+ patch -p1 < ${CWD}/portmidi-50-change_assert.diff
+ patch -p1 < ${CWD}/portmidi-51-remove_assert.diff
 
- for f in `grep usr/local * -r -l`
- do
-   if [ "${f##*/}" = "CMakeLists.txt" ]
-   then
-     sed -i -e "s@usr/local/lib@usr/lib\${LIB_SUFFIX}@; s@usr/local/@usr/@" $f
-   fi
- done
- sed -i -e "s@WORKING_DIRECTORY pm_java@WORKING_DIRECTORY .@" pm_java/CMakeLists.txt
+# for f in `grep usr/local * -r -l`
+# do
+#   if [ "${f##*/}" = "CMakeLists.txt" ]
+#   then
+#     sed -i -e "s@usr/local/lib@usr/lib\${LIB_SUFFIX}@; s@usr/local/@usr/@" $f
+#   fi
+# done
+# sed -i -e "s@WORKING_DIRECTORY pm_java@WORKING_DIRECTORY .@" pm_java/CMakeLists.txt
 )
 fi
 
@@ -84,6 +101,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DCMAKE_CACHEFILE_DIR=`pwd` \
+      -DCMAKE_INSTALL_LIBDIR:PATH=lib${LIBDIRSUFFIX} \
       .
 
 fi
