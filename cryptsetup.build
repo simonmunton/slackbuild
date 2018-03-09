@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.7.5
+VERSION=2.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -129,13 +129,25 @@ strip_binaries
 
 
 # Move the shared library to ${PKG}/lib${LIBDIRSUFFIX}:
+VI=`grep LIBCRYPTSETUP_VERSION_INFO Makefile`
+VI=${VI#* = }
+CUR=${VI%%:*}
+VI=${VI#*:}
+REV=${VI%%:*}
+AGE=${VI##*:}
+
+MAJ=$(( ${CUR} - ${AGE} ))
+MIN=${AGE}
+
+#echo $CUR $REV $AGE $MAJ $MIN
+
 mkdir -p ${PKG}/lib${LIBDIRSUFFIX}
 ( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
-  for file in lib*.so.?.* ; do
+  for file in lib*.so.${MAJ}.${MIN}.${REV} ; do
     mv ${file} ../../lib${LIBDIRSUFFIX}
     ln -sf ../../lib${LIBDIRSUFFIX}/${file} .
   done
-  cp -a lib*.so.? ../../lib${LIBDIRSUFFIX}
+  cp -a lib*.so.${MAJ} ../../lib${LIBDIRSUFFIX}
 )
 
 # Move the cryptsetup binary to ${PKG}/sbin:
@@ -145,6 +157,10 @@ mkdir -p ${PKG}/sbin
   ln -sf ../../sbin/cryptsetup .
   mv veritysetup ../../sbin
   ln -sf ../../sbin/veritysetup .
+  mv integritysetup ../../sbin
+  ln -sf ../../sbin/integritysetup .
+  mv cryptsetup-reencrypt ../../sbin
+  ln -sf ../../sbin/cryptsetup-reencrypt .
 )
 
 
