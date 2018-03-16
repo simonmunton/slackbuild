@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=qt-creator
-TARNAMEEXTRA=-opensource-src
+TARNAME=mpir
+TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q
+TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=4.5.2
+VERSION=3.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://qt.nokia.com/products/developer-tools/"
+WEBPAGE="http://mpir.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,34 +55,32 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir build
-cd build
-
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
-PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin:$PATH
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-qmake IDE_LIBRARY_BASENAME=lib${LIBDIRSUFFIX} ../qtcreator.pro
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-cxx
 
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+fi
 
 fi
 
@@ -96,9 +94,7 @@ then
   exit
 fi
 
-make install INSTALL_ROOT=${PKG}/usr
-
-cd ..
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -115,9 +111,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Cross-platform integrated development environment"
-Qt Creator is a cross-platform integrated development environment 
-(IDE) tailored to the needs of Qt developers. 
+make_slack_desc << EOF "MPIR: Multiple Precision Integers and Rationals"
+MPIR is a highly optimised library for bignum arithmetic forked from 
+the GMP bignum library. It is written in assembly language and C. It 
+is currently maintained by William Hart.
 
 EOF
 
