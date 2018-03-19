@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
 VERSION=1.82
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://cppcheck.sourceforge.net/"
 
@@ -79,6 +79,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DHAVE_RULES=yes \
+      -DBUILD_GUI=on \
       ..
 fi
 
@@ -96,7 +98,20 @@ fi
 
 make install DESTDIR=${PKG}
 
+rm ${PKG}/usr/bin/*.qm
+
 cd ..
+
+(cd man
+ xsltproc --nonet --param man.charmap.use.subset "0" /usr/share/xml/docbook/xsl-stylesheets-*/manpages/docbook.xsl cppcheck.1.xml
+ mkdir -p ${PKG}/usr/man/man1
+ cp cppcheck.1 ${PKG}/usr/man/man1
+
+ if [ ! -e manual.pdf ]
+ then
+   wget http://cppcheck.sourceforge.net/manual.pdf
+ fi
+)
 
 strip_binaries
 
@@ -107,7 +122,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO man/manual.pdf \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
