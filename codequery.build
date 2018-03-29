@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=rust
+TARNAME=codequery
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.25.0
-VERSIONEXTRA=-x86_64-unknown-linux-gnu
+VERSION=0.21.0
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.rust-lang.org/en-US/"
+WEBPAGE="https://github.com/ruben2020/codequery"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -57,18 +57,21 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir build
+cd build
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,15 +80,15 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      -D-DBUILD_QT5=ON \
+      ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,16 +96,12 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
+make install DESTDIR=${PKG}
 
-./install.sh \
-    --destdir=${PKG} \
-    --prefix=/usr \
-    --sysconfdir=${PKG}/etc \
-    --bindir=${PKG}/usr/bin \
-    --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} \
-    --mandir=${PKG}/usr/man \
-    --disable-ldconfig
+cd ..
+
+mkdir -p ${PKG}//usr/man/man1
+cp ${CWD}/codequery-*.1 ${PKG}//usr/man/man1
 
 strip_binaries
 
@@ -119,9 +118,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Rust is a systems programming language"
-Rust is a systems programming language that runs blazingly fast, 
-prevents segfaults, and guarantees thread safety. 
+make_slack_desc << EOF "code-understanding tool"
+A code-understanding, code-browsing or code-search tool. This is a 
+tool to index, then query or search C, C++, Java, Python, Ruby, Go 
+and Javascript source code. It builds upon the databases of cscope 
+and ctags, and provides a nice GUI tool. 
 
 EOF
 

@@ -8,7 +8,7 @@ TARSEP="-"
 #TARDIR=~/tmp/gnu/gnutls
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=3.3.23
+VERSION=3.5.18
 VERSIONEXTRA=
 BUILD=1
 
@@ -65,8 +65,10 @@ CXXFLAGS="${SLKCFLAGS}" \
             --infodir=/usr/info \
             --with-included-libtasn1 \
             --mandir=/usr/man \
-            --enable-static=no \
-            --disable-rpath
+            --enable-static=yes \
+            --disable-rpath \
+            --with-included-libtasn1 \
+            --enable-openssl-compatibility
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -81,7 +83,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-sanitise_la_files ${PKG}/usr/lib
+sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
 
 #strip_binaries
 
@@ -92,7 +94,7 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* doc/TODO \
+  AUTHORS COPYING* INSTALL LICENSE NEWS PLANS README* doc/TODO doc/COPYING* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
