@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=googletest
-TARNAMEEXTRA=-release
+TARNAME=gwenhywfar
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.8.0
+VERSION=4.20.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://code.google.com/p/googletest/"
+WEBPAGE="https://github.com/aqbanking/gwenhywfar"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=gtest
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -46,6 +46,11 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+
+ if [ ! -f ./configure -a -f ./configure.ac ]
+ then
+   autogen.sh
+ fi
 )
 fi
 
@@ -59,7 +64,7 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if false # [ -f ./configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -67,7 +72,10 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --with-qt4-includes=/usr/lib${LIBDIRSUFFIX}/qt4/include \
+	    --with-qt4-libs=/usr/lib${LIBDIRSUFFIX}/qt4/lib
+
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,11 +85,6 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -Dgtest_build_tests=ON \
-      -Dgmock_build_tests=ON \
-      -DBUILD_SHARED_LIBS=ON \
-      -DBUILD_GMOCK=ON \
-      -DBUILD_GTEST=ON \
       .
 fi
 
@@ -89,7 +92,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} GTEST_DIR=/usr/src/gtest GTEST_HEADERS="/usr/include/gtest/*.h /usr/include/gtest/internal/*.h" || exit
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -98,32 +101,6 @@ then
 fi
 
 make install DESTDIR=${PKG}
-
-if [ -n "${LIBDIRSUFFIX}" ]
-then
-  mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
-fi
-
-mkdir -p ${PKG}/usr/src/googletest
-cp -pr googlemock ${PKG}/usr/src/googletest
-cp -pr googletest ${PKG}/usr/src/googletest
-cp CMakeLists.txt ${PKG}/usr/src/googletest
-ln -s /usr/src/googletest/googlemock ${PKG}/usr/src/gmock
-ln -s /usr/src/googletest/googletest ${PKG}/usr/src/gtest
-
-mkdir -p ${PKG}/usr/bin
-cp -pr googlemock/scripts/generator/gmock_gen.py ${PKG}/usr/bin
-
-mkdir -p ${PKG}/usr/share/gmock
-cp -pr googlemock/scripts/generator/cpp ${PKG}/usr/share/gmock
-
-#mkdir -p ${PKG}/usr/src/gtest ${PKG}/usr/include ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
-
-#cp -pr make samples ${PKG}/usr/doc/${TARNAME}-${VERSION}/examples
-#cp -pr include/gtest ${PKG}/usr/include
-#cp -pr src ${PKG}/usr/src/gtest
-#cp -pr CMakeLists.txt ${PKG}/usr/src/gtest
-#cp -pr cmake ${PKG}/usr/src/gtest
 
 strip_binaries
 
@@ -140,13 +117,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Google C++ Testing Framework"
-Google's framework for writing C++ tests on a variety of platforms 
-(Linux, Mac OS X, Windows, Cygwin, Windows CE, and Symbian). Based on 
-the xUnit architecture. Supports automatic test discovery, a rich set 
-of assertions, user-defined assertions, death tests, fatal and 
-non-fatal failures, value- and type-parameterized tests, various 
-options for running the tests, and XML test report generation. 
+make_slack_desc << EOF "Gwenhywfar"
+This is Gwenhywfar, a multi-platform helper library for networking and
+security applications and libraries.
 
 EOF
 
