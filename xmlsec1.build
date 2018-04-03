@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=gnucash
+TARNAME=xmlsec1
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/g
+TARSEP="-"
+TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=3.0
+VERSION=1.2.25
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="https://www.aleksey.com/xmlsec/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/gnucash-2.4.10.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -52,10 +55,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#	    --with-html-engine=webkit \
-
 if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -64,8 +67,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-            --mandir=/usr/man \
-            --enable-dbi
+	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,10 +82,6 @@ fi
 
 fi
 
-# Prevent picking up installed .la file
-mkdir lib${LIBDIRSUFFIX}
-touch lib${LIBDIRSUFFIX}/libgnc-core-utils.la
-
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
@@ -96,9 +94,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-sed -i -e 's/gnucash-icon/gnucash-icon.png/' ${PKG}/usr/share/applications/gnucash.desktop
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -113,13 +109,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "personal finance manager"
-GnuCash is a personal finance manager. A check-book like register GUI
-allows you to enter and track bank accounts, stocks, income and even
-currency trades. A full set of reports allow you to see the state of
-your finances. The interface is designed to be simple and easy to use,
-but is backed with double-entry accounting principles to ensure
-balanced books.
+make_slack_desc << EOF "XML Security Library"
+XML Security Library is a C library based on LibXML2. The library 
+supports major XML security standards:
+
+    XML Signature
+    XML Encryption
+    Canonical XML (part of the LibXML2)
+    Exclusive Canonical XML (part of the LibXML2)
 
 EOF
 
