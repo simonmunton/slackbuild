@@ -1,0 +1,805 @@
+Description: HDF5 use different types for native char depending on the
+ architecture. See the relevant #define from HDF5 header H5Tpublic.h:
+  #define H5T_NATIVE_CHAR \
+    (CHAR_MIN?H5T_NATIVE_SCHAR:H5T_NATIVE_UCHAR)
+Author: Gilles Filippini <pini@debian.org>
+Index: med-fichier-3.0.6/tests/c/test4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test4.sh
++++ med-fichier-3.0.6/tests/c/test4.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test6.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test6.sh
++++ med-fichier-3.0.6/tests/c/test6.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test10.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test10.sh
++++ med-fichier-3.0.6/tests/c/test10.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test14.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test14.sh
++++ med-fichier-3.0.6/tests/c/test14.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test16.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test16.sh
++++ med-fichier-3.0.6/tests/c/test16.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test23.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test23.sh
++++ med-fichier-3.0.6/tests/c/test23.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test25.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test25.sh
++++ med-fichier-3.0.6/tests/c/test25.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test31.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test31.sh
++++ med-fichier-3.0.6/tests/c/test31.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} test31.med
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/c/test8.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/c/test8.sh
++++ med-fichier-3.0.6/tests/c/test8.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test10.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test10.sh
++++ med-fichier-3.0.6/tests/f/test10.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test14.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test14.sh
++++ med-fichier-3.0.6/tests/f/test14.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test16.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test16.sh
++++ med-fichier-3.0.6/tests/f/test16.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test23.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test23.sh
++++ med-fichier-3.0.6/tests/f/test23.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test25.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test25.sh
++++ med-fichier-3.0.6/tests/f/test25.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test31.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test31.sh
++++ med-fichier-3.0.6/tests/f/test31.sh
+@@ -5,13 +5,13 @@ ${EXECDIR}/${file} test31.med > /dev/nul
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test4.sh
++++ med-fichier-3.0.6/tests/f/test4.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test6.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test6.sh
++++ med-fichier-3.0.6/tests/f/test6.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/f/test8.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/f/test8.sh
++++ med-fichier-3.0.6/tests/f/test8.sh
+@@ -7,13 +7,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ 	 ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/c/Test_MEDmeshStructElementVarAttWr.shn
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/c/Test_MEDmeshStructElementVarAttWr.shn
++++ med-fichier-3.0.6/tests/unittests/c/Test_MEDmeshStructElementVarAttWr.shn
+@@ -7,13 +7,13 @@ ${H5DUMP} ${BUILDDIR}/${file}.med > ${BU
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/c/Test_MEDstructElementConstAttWithProfileWr.shn
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/c/Test_MEDstructElementConstAttWithProfileWr.shn
++++ med-fichier-3.0.6/tests/unittests/c/Test_MEDstructElementConstAttWithProfileWr.shn
+@@ -7,13 +7,13 @@ ${H5DUMP} ${BUILDDIR}/${file}.med > ${BU
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/c/Test_MEDstructElementVarAttCr.shn
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/c/Test_MEDstructElementVarAttCr.shn
++++ med-fichier-3.0.6/tests/unittests/c/Test_MEDstructElementVarAttCr.shn
+@@ -7,13 +7,13 @@ ${H5DUMP} ${BUILDDIR}/${file}.med > ${BU
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/c/MEDmesh/Test_MEDmeshNodeCoordinateTrsfWr.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/c/MEDmesh/Test_MEDmeshNodeCoordinateTrsfWr.sh
++++ med-fichier-3.0.6/tests/unittests/c/MEDmesh/Test_MEDmeshNodeCoordinateTrsfWr.sh
+@@ -7,13 +7,13 @@ ${H5DUMP} ${BUILDDIR}/${file}.med > ${BU
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/f/Unittest_MEDlink_1.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/f/Unittest_MEDlink_1.sh
++++ med-fichier-3.0.6/tests/unittests/f/Unittest_MEDlink_1.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/f/Unittest_MEDstructElement_4.sh
++++ med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_4.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_7.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/f/Unittest_MEDstructElement_7.sh
++++ med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_7.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_9.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/unittests/f/Unittest_MEDstructElement_9.sh
++++ med-fichier-3.0.6/tests/unittests/f/Unittest_MEDstructElement_9.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_1.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_1.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_1.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_10.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_10.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_10.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_13.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_13.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_13.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_15.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_15.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_15.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_17.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_17.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_17.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_4.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_4.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_7.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDfield_7.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDfield_7.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDmesh_10.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDmesh_10.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDmesh_10.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDmesh_4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDmesh_4.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDmesh_4.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDstructElement_1.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/c/UsesCase_MEDstructElement_1.sh
++++ med-fichier-3.0.6/tests/usecases/c/UsesCase_MEDstructElement_1.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDfield_1.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/f/UsesCase_MEDfield_1.sh
++++ med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDfield_1.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDfield_4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/f/UsesCase_MEDfield_4.sh
++++ med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDfield_4.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDmesh_10.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/f/UsesCase_MEDmesh_10.sh
++++ med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDmesh_10.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \
+Index: med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDmesh_4.sh
+===================================================================
+--- med-fichier-3.0.6.orig/tests/usecases/f/UsesCase_MEDmesh_4.sh
++++ med-fichier-3.0.6/tests/usecases/f/UsesCase_MEDmesh_4.sh
+@@ -6,13 +6,13 @@ ${CHECKER} ${EXECDIR}/${file} > ${output
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/${file}.dump > ${BUILDDIR}/${file}.dump.tmp && \
+ sed -e 's/H5T_STD_I32BE//g' -e 's/H5T_STD_I32LE//g'	 \
+     -e 's/H5T_STD_I64BE//g' -e 's/H5T_STD_I64LE//g'  \
+     -e 's/H5T_IEEE_F64BE//g' -e 's/H5T_IEEE_F64LE//g'  \
+-    -e 's/H5T_STD_I8LE//g' -e 's/H5T_STD_U8BE//g'  \
++    -e 's/H5T_STD_[IU]8LE//g' -e 's/H5T_STD_[IU]8BE//g'  \
+     -e 's/HDF5.*{//g' \
+ ${BUILDDIR}/dumps.ref/${file}.dump > ${BUILDDIR}/${file}.dump.ref && \
+ diff ${BUILDDIR}/${file}.dump.ref ${BUILDDIR}/${file}.dump.tmp && \

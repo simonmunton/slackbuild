@@ -1,0 +1,104 @@
+Description: This test does several calls to localtime() to use the
+ result as a seed for random(). The intent is that the seed is always
+ the same during the run. But it happens that local time increments
+ between two calls, generating a different seed and breaking the test.
+ This patch makes the seed generated only once in the main() function.
+Author: Gilles Filippini <pini@debian.org>
+Index: med-fichier-3.0.6/tests/parallel/filterBlockOfentities.c
+===================================================================
+--- med-fichier-3.0.6.orig/tests/parallel/filterBlockOfentities.c
++++ med-fichier-3.0.6/tests/parallel/filterBlockOfentities.c
+@@ -81,7 +81,7 @@ med_err generateFieldFile( const med_int
+ 			   const med_switch_mode constituentmode,GetBlocksOfEntitiesType getBlockOfEntities, const med_int nbblocksperproc,
+ 			   GenerateDataType generateDatas,
+ 			   const med_storage_mode storagemode, const med_size profilearraysize,  const char * const fieldnameprefix,
+-			   int mpi_size, med_idt _fid, MPI_Comm comm, int mpi_rank, med_int *_filterarray,
++			   int mpi_size, med_idt _fid, MPI_Comm comm, int mpi_rank, unsigned int seed, med_int *_filterarray,
+                            med_int    _nentitiesfiltered, MPI_Info info) {
+ 
+ /*   static int   _fileno=0; */
+@@ -247,7 +247,7 @@ med_err generateFieldFile( const med_int
+     /*TODO : Déplacer cette appel dans le main après avoir externaliser la génération du profile */
+     if (!_filterarray)
+       if ( generateFilterArray(  nentities,  nvaluesperentity, nconstituentpervalue,
+-				 profilearraysize, _profilearray,
++				 profilearraysize, _profilearray, seed,
+ 				 &_nentitiesfiltered, &_filterarray ) < 0 ) {
+ 	goto ERROR;
+       }
+@@ -401,13 +401,14 @@ int main (int argc, char **argv)
+   int           _nvaluesperentity      = 0;
+   int           _nconstituentpervalue  = 0;
+ 
+-  if (mpi_rank == 0 ) {
++  struct tm  *_tm ;
++  time_t _tt=time(NULL);
++  _tm = localtime(&_tt);
++  unsigned int _seed = (*_tm).tm_sec * (*_tm).tm_min;
+ 
+-    struct tm *_tm ;
+-    time_t _tt=time(0);
+-    _tm = localtime(&_tt);
++  if (mpi_rank == 0 ) {
+ 
+-    srandom((*_tm).tm_sec * (*_tm).tm_min );
++    srandom(_seed);
+     _nbblocksperproc         = 1 + (int) (mpi_size * (random() / (RAND_MAX + 1.0)));
+     _nentities            = 1 + (int) (1000.0 * (random() / (RAND_MAX + 1.0)));
+     _nvaluesperentity     = 1 + (int) (11.0 * (random() / (RAND_MAX + 1.0)));
+@@ -458,7 +459,7 @@ int main (int argc, char **argv)
+       if ( generateFieldFile( _nentities,  _nvaluesperentity, _nconstituentpervalue,
+ 			      _switchmode, getCyclicBlocksOfEntities, _nbblocksperproc, generateDatas,
+ 			      _storagemode, _profilearraysize,  _fieldnameprefix, mpi_size, _fid, comm,
+-			      mpi_rank, _filterarray, _nentitiesfiltered, info) < 0 ) {
++			      mpi_rank, _seed, _filterarray, _nentitiesfiltered, info) < 0 ) {
+ 	MED_ERR_(_ret,MED_ERR_WRITE,MED_ERR_FIELD,_fieldnameprefix);
+ 	ISCRUTE(mpi_rank);
+ 	goto ERROR;
+Index: med-fichier-3.0.6/tests/parallel/generateFilterArray.c
+===================================================================
+--- med-fichier-3.0.6.orig/tests/parallel/generateFilterArray.c
++++ med-fichier-3.0.6/tests/parallel/generateFilterArray.c
+@@ -28,7 +28,7 @@
+ static int cmp(const med_int *p1, const med_int *p2) { return *p1-*p2; }
+ 
+ med_err generateFilterArray( const med_int nentities, const med_size nvaluesperentity, const med_size nconstituentpervalue,
+-			     const med_size profilearraysize, const med_int * const profilearray,
++			     const med_size profilearraysize, const med_int * const profilearray, unsigned int seed,
+ 			     med_int  * const nentitiesfiltered, med_int **filterarray ) {
+ 
+ 
+@@ -36,11 +36,6 @@ med_err generateFilterArray( const med_i
+   med_int    _nentitiesfiltered=0,_maxfilternentities=0;
+   med_int    *_indexarray=NULL;
+   int        _i=0;
+-  struct tm  *_tm ;
+-  time_t _tt=time(0);
+-
+-  _tm = localtime(&_tt);
+-
+ 
+   /*Taille du tableau des numéros d'entités à filtrer */
+   if ( profilearraysize ) {
+@@ -51,7 +46,7 @@ med_err generateFilterArray( const med_i
+ 
+   /* Allocation du tableau de filtre */
+ 
+-  srandom((*_tm).tm_sec * (*_tm).tm_min );
++  srandom(seed);
+   _nentitiesfiltered         = 1 + (int) ((float)(_maxfilternentities) * (random() / (RAND_MAX + 1.0)));
+   /*       _nentitiesfiltered         = 2; */
+ 
+Index: med-fichier-3.0.6/tests/parallel/generateFilterArray.h
+===================================================================
+--- med-fichier-3.0.6.orig/tests/parallel/generateFilterArray.h
++++ med-fichier-3.0.6/tests/parallel/generateFilterArray.h
+@@ -23,7 +23,7 @@
+ #define MESGERR 1
+ 
+ med_err generateFilterArray( const med_int nentities, const med_size nvaluesperentity, const med_size nconstituentpervalue,
+-			     const med_size profilearraysize, const med_int * const profilearray,
++			     const med_size profilearraysize, const med_int * const profilearray, unsigned int seed,
+ 			     med_int  * const nentitiesfiltered, med_int **filterarray );
+ 
+ #endif
