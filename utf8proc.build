@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=wcslib
+TARNAME=utf8proc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=5.18
+VERSION=2.1.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://www.atnf.csiro.au/people/Mark.Calabretta/WCS/"
+WEBPAGE="https://julialang.org/utf8proc/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,16 +57,22 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+#mkdir _BuilD_
+#cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-
+#if [ -f ../configure ]
+#then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#../configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+#elif [ -f ../CMakeLists.txt ]
+#then
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
@@ -74,13 +80,16 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DMAN_INSTALL_DIR=/usr/man \
 #      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
+#      ..
+#fi
+:
 fi
+
+MAKE_FLAGS="prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX}"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ${MAKE_FLAGS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +97,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install DESTDIR=${PKG} ${MAKE_FLAGS}
+
+#cd ..
 
 strip_binaries
 
@@ -105,8 +116,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "implementation of the FITS WCS standard"
-WCSLIB 4.18 - an implementation of the FITS WCS standard.
+make_slack_desc << EOF "a clean C library for processing UTF-8 Unicode data"
+utf8proc is a small, clean C library that provides Unicode 
+normalization, case-folding, and other operations for data in the 
+UTF-8 encoding, supporting Unicode version 9.0. It was initially 
+developed by Jan Behrens and the rest of the Public Software Group, 
+who deserve nearly all of the credit for this package. With the 
+blessing of the Public Software Group, the Julia developers have taken 
+over development of utf8proc, since the original developers have moved 
+to other projects.
 
 EOF
 
