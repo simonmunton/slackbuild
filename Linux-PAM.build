@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=1.3.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://www.linux-pam.org/"
 
@@ -87,13 +87,11 @@ cat >> ${PKG}/etc/pam.d/system-auth.new << EOF
 # default; standard UN*X access
 #
 auth     required       pam_env.so
-auth     sufficient     pam_unix.so try_first_pass nullok
-auth     required       pam_deny.so
+auth     required       pam_unix.so try_first_pass nullok
 
 account  required       pam_unix.so
 
-password sufficient     pam_unix.so try_first_pass use_authtok nullok shadow
-password required       pam_deny.so
+password required       pam_unix.so try_first_pass use_authtok nullok shadow
 
 session  required       pam_unix.so
 EOF
@@ -107,7 +105,26 @@ password include      system-auth
 session  include      system-auth
 EOF
 
-doinst_config etc/pam.d/other.new etc/pam.d/system-auth.new
+cat >> ${PKG}/etc/pam.d/system-login.new << EOF
+#%PAM-1.0
+#
+auth     include      system-auth
+account  include      system-auth
+password include      system-auth
+session  include      system-auth
+-session  optional     pam_ck_connector.so nox11
+EOF
+
+cat >> ${PKG}/etc/pam.d/system-local-login.new << EOF
+#%PAM-1.0
+#
+auth     include      system-auth
+account  include      system-auth
+password include      system-auth
+session  include      system-auth
+EOF
+
+doinst_config etc/pam.d/other.new etc/pam.d/system-auth.new etc/pam.d/system-login.new etc/pam.d/system-local-login.new
 
 sanitise_la_files ${PKG}/lib${LIBDIRSUFFIX}
 
