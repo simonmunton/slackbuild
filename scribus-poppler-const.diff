@@ -1,0 +1,191 @@
+--- scribus-1.5.3/scribus/plugins/import/pdf/importpdf.h.orig	2017-05-28 10:10:24.000000000 +0100
++++ scribus-1.5.3/scribus/plugins/import/pdf/importpdf.h	2018-04-18 21:25:46.579590113 +0100
+@@ -81,7 +81,7 @@
+ private:
+ 	bool convert(const QString& fn);
+ 	QRectF getCBox(int box, int pgNum);
+-	QString UnicodeParsedString(GooString *s1);
++	QString UnicodeParsedString(const GooString *s1);
+ 	
+ 	QList<PageItem*> Elements;
+ 	double baseX, baseY;
+--- scribus-1.5.3/scribus/plugins/import/pdf/importpdf.cpp.orig	2018-04-18 22:09:40.289092682 +0100
++++ scribus-1.5.3/scribus/plugins/import/pdf/importpdf.cpp	2018-04-18 21:24:45.675593019 +0100
+@@ -1065,7 +1065,7 @@
+ 	return cRect;
+ }
+ 
+-QString PdfPlug::UnicodeParsedString(GooString *s1)
++QString PdfPlug::UnicodeParsedString(const GooString *s1)
+ {
+ 	if ( !s1 || s1->getLength() == 0 )
+ 		return QString();
+--- scribus-1.5.3/scribus/plugins/import/pdf/slaoutput.cpp.orig	2018-04-18 22:09:40.290092681 +0100
++++ scribus-1.5.3/scribus/plugins/import/pdf/slaoutput.cpp	2018-04-18 21:36:03.919560658 +0100
+@@ -44,7 +44,7 @@
+ 				{
+ 					if (obj3.isName())
+ 					{
+-						char *name = obj3.getName();
++						const char *name = obj3.getName();
+ 						if (!strcmp(name, "URL"))
+ 						{
+ 							obj2 = obj1.dictLookup("F");
+@@ -509,7 +509,7 @@
+ 	if (act->getKind() == actionGoTo)
+ 	{
+ 		LinkGoTo *gto = (LinkGoTo*)act;
+-		LinkDest *dst = gto->getDest();
++		const LinkDest *dst = gto->getDest();
+ 		if (dst)
+ 		{
+ 			if (dst->getKind() == destXYZ)
+@@ -528,7 +528,7 @@
+ 		}
+ 		else
+ 		{
+-			GooString *ndst = gto->getNamedDest();
++			const GooString *ndst = gto->getNamedDest();
+ 			if (ndst)
+ 			{
+ 				LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -555,7 +555,7 @@
+ 	{
+ 		LinkGoToR *gto = (LinkGoToR*)act;
+ 		fileName = UnicodeParsedString(gto->getFileName());
+-		LinkDest *dst = gto->getDest();
++		const LinkDest *dst = gto->getDest();
+ 		if (dst)
+ 		{
+ 			if (dst->getKind() == destXYZ)
+@@ -568,7 +568,7 @@
+ 		}
+ 		else
+ 		{
+-			GooString *ndst = gto->getNamedDest();
++			const GooString *ndst = gto->getNamedDest();
+ 			if (ndst)
+ 			{
+ 				LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -709,7 +709,7 @@
+ 			bool bgFound = false;
+ 			if (achar)
+ 			{
+-				AnnotColor *bgCol = achar->getBackColor();
++				const AnnotColor *bgCol = achar->getBackColor();
+ 				if (bgCol)
+ 				{
+ 					bgFound = true;
+@@ -717,7 +717,7 @@
+ 				}
+ 				else
+ 					CurrColorFill = CommonStrings::None;
+-				AnnotColor *fgCol = achar->getBorderColor();
++				const AnnotColor *fgCol = achar->getBorderColor();
+ 				if (fgCol)
+ 				{
+ 					fgFound = true;
+@@ -1054,7 +1054,7 @@
+ 			int xco = 0;
+ 			int yco = 0;
+ 			LinkGoTo *gto = (LinkGoTo*)Lact;
+-			LinkDest *dst = gto->getDest();
++			const LinkDest *dst = gto->getDest();
+ 			if (dst)
+ 			{
+ 				if (dst->getKind() == destXYZ)
+@@ -1075,7 +1075,7 @@
+ 			}
+ 			else
+ 			{
+-				GooString *ndst = gto->getNamedDest();
++				const GooString *ndst = gto->getNamedDest();
+ 				if (ndst)
+ 				{
+ 					LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -1107,7 +1107,7 @@
+ 			int yco = 0;
+ 			LinkGoToR *gto = (LinkGoToR*)Lact;
+ 			QString fileName = UnicodeParsedString(gto->getFileName());
+-			LinkDest *dst = gto->getDest();
++			const LinkDest *dst = gto->getDest();
+ 			if (dst)
+ 			{
+ 				if (dst->getKind() == destXYZ)
+@@ -1123,7 +1123,7 @@
+ 			}
+ 			else
+ 			{
+-				GooString *ndst = gto->getNamedDest();
++				const GooString *ndst = gto->getNamedDest();
+ 				if (ndst)
+ 				{
+ 					LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -4032,7 +4032,7 @@
+ 	return fNam;
+ }
+ 
+-QString SlaOutputDev::getAnnotationColor(AnnotColor *color)
++QString SlaOutputDev::getAnnotationColor(const AnnotColor *color)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+@@ -4252,7 +4252,7 @@
+ 	m_groupStack.push(gElements);
+ }
+ 
+-QString SlaOutputDev::UnicodeParsedString(GooString *s1)
++QString SlaOutputDev::UnicodeParsedString(const GooString *s1)
+ {
+ 	if ( !s1 || s1->getLength() == 0 )
+ 		return QString();
+--- scribus-1.5.3/scribus/plugins/import/pdf/slaoutput.h.orig	2017-05-28 10:10:24.000000000 +0100
++++ scribus-1.5.3/scribus/plugins/import/pdf/slaoutput.h	2018-04-18 21:43:07.916540428 +0100
+@@ -61,9 +61,9 @@
+ 	// Destructor.
+ 	virtual ~LinkSubmitForm();
+ 	// Was the LinkImportData created successfully?
+-	virtual GBool isOk() { return fileName != NULL; }
++	virtual GBool isOk() const { return fileName != NULL; }
+ 	// Accessors.
+-	virtual LinkActionKind getKind() { return actionUnknown; }
++	virtual LinkActionKind getKind() const { return actionUnknown; }
+ 	GooString *getFileName() { return fileName; }
+ 	int getFlags() { return m_flags; }
+ private:
+@@ -83,9 +83,9 @@
+ 	// Destructor.
+ 	virtual ~LinkImportData();
+ 	// Was the LinkImportData created successfully?
+-	virtual GBool isOk() { return fileName != NULL; }
++	virtual GBool isOk() const { return fileName != NULL; }
+ 	// Accessors.
+-	virtual LinkActionKind getKind() { return actionUnknown; }
++	virtual LinkActionKind getKind() const { return actionUnknown; }
+ 	GooString *getFileName() { return fileName; }
+ private:
+ 	GooString *fileName;		// file name
+@@ -98,7 +98,7 @@
+ {
+ public:
+ 
+-	SplashOutFontFileID(Ref *rA) { r = *rA; }
++	SplashOutFontFileID(const Ref *rA) { r = *rA; }
+ 	~SplashOutFontFileID() {}
+ 	GBool matches(SplashFontFileID *id)
+ 	{
+@@ -261,12 +261,12 @@
+ private:
+ 	void getPenState(GfxState *state);
+ 	QString getColor(GfxColorSpace *color_space, GfxColor *color, int *shade);
+-	QString getAnnotationColor(AnnotColor *color);
++	QString getAnnotationColor(const AnnotColor *color);
+ 	QString convertPath(GfxPath *path);
+ 	int getBlendMode(GfxState *state);
+ 	void applyMask(PageItem *ite);
+ 	void pushGroup(QString maskName = "", GBool forSoftMask = gFalse, GBool alpha = gFalse, bool inverted = false);
+-	QString UnicodeParsedString(GooString *s1);
++	QString UnicodeParsedString(const GooString *s1);
+ 	bool checkClip();
+ 	bool pathIsClosed;
+ 	QString CurrColorFill;

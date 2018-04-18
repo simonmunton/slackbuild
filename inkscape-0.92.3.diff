@@ -1,0 +1,89 @@
+--- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2018-03-11 20:38:09.000000000 +0000
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-04-18 20:18:07.689081499 +0100
+@@ -2582,7 +2582,7 @@
+   }
+ }
+ 
+-void PdfParser::doShowText(GooString *s) {
++void PdfParser::doShowText(const GooString *s) {
+   GfxFont *font;
+   int wMode;
+   double riseX, riseY;
+@@ -2595,7 +2595,7 @@
+   Object charProc;
+   Dict *resDict;
+   Parser *oldParser;
+-  char *p;
++  const char *p;
+   int len, n, uLen;
+ 
+   font = state->getFont();
+@@ -2732,7 +2732,7 @@
+ {
+   Object obj1, obj2, obj3, refObj;
+ 
+-  char *name = args[0].getName();
++  const char *name = args[0].getName();
+ #if defined(POPPLER_NEW_OBJECT_API)
+   if ((obj1 = res->lookupXObject(name)).isNull()) {
+ #else
+--- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2018-03-11 20:38:09.000000000 +0000
++++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-04-18 20:21:21.858072235 +0100
+@@ -1030,7 +1030,7 @@
+     char *font_family = NULL;
+     char *font_style = NULL;
+     char *font_style_lowercase = NULL;
+-    char *plus_sign = strstr(_font_specification, "+");
++    const char *plus_sign = strstr(_font_specification, "+");
+     if (plus_sign) {
+         font_family = g_strdup(plus_sign + 1);
+         _font_specification = plus_sign + 1;
+@@ -1361,7 +1361,7 @@
+     _glyphs.clear();
+ }
+ 
+-void SvgBuilder::beginString(GfxState *state, GooString * /*s*/) {
++void SvgBuilder::beginString(GfxState *state, const GooString * /*s*/) {
+     if (_need_font_update) {
+         updateFont(state);
+     }
+--- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h.orig	2018-03-11 20:38:09.000000000 +0000
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h	2018-04-18 20:13:30.059094746 +0100
+@@ -287,7 +287,7 @@
+   void opMoveShowText(Object args[], int numArgs);
+   void opMoveSetShowText(Object args[], int numArgs);
+   void opShowSpaceText(Object args[], int numArgs);
+-  void doShowText(GooString *s);
++  void doShowText(const GooString *s);
+ 
+   // XObject operators
+   void opXObject(Object args[], int numArgs);
+--- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.h.orig	2018-03-11 20:38:09.000000000 +0000
++++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.h	2018-04-18 20:21:05.120073034 +0100
+@@ -81,7 +81,7 @@
+     bool style_changed;  // Set to true if style has to be reset
+     SPCSSAttr *style;
+     int render_mode;    // Text render mode
+-    char *font_specification;   // Pointer to current font specification
++    const char *font_specification;   // Pointer to current font specification
+ };
+ 
+ /**
+@@ -136,7 +136,7 @@
+     void clearSoftMask(GfxState *state);
+ 
+     // Text handling
+-    void beginString(GfxState *state, GooString *s);
++    void beginString(GfxState *state, const GooString *s);
+     void endString(GfxState *state);
+     void addChar(GfxState *state, double x, double y,
+                  double dx, double dy,
+@@ -203,7 +203,7 @@
+ 
+     SPCSSAttr *_font_style;          // Current font style
+     GfxFont *_current_font;
+-    char *_font_specification;
++    const char *_font_specification;
+     double _font_scaling;
+     bool _need_font_update;
+     Geom::Affine _text_matrix;
