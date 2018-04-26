@@ -188,14 +188,14 @@
  	avr = NULL;
  
  	// Free AVFrames
---- libopenshot-0.1.9/src/bindings/ruby/openshot.i.orig	2018-02-02 22:21:52.887556792 +0000
-+++ libopenshot-0.1.9/src/bindings/ruby/openshot.i	2018-02-02 22:26:22.283557785 +0000
+--- libopenshot-0.1.9/src/bindings/ruby/openshot.i.orig	2018-04-23 21:49:02.567556849 +0100
++++ libopenshot-0.1.9/src/bindings/ruby/openshot.i	2018-04-25 20:41:10.477926637 +0100
 @@ -40,12 +40,11 @@
  %include <std_except.i>
  
  namespace std {
 -{
-   template < class T > class shared_ptr {
+   template<class T> class shared_ptr {
    public:
      T *operator->();
    };
@@ -336,3 +336,110 @@
  		   	 $ENV{FFMPEGDIR}/bin/ )
  
  SET( FFMPEG_FOUND FALSE )
+--- libopenshot-0.1.9/src/FFmpegWriter.cpp.orig	2018-04-23 21:49:02.566557349 +0100
++++ libopenshot-0.1.9/src/FFmpegWriter.cpp	2018-04-25 20:38:50.954933294 +0100
+@@ -543,8 +543,13 @@
+ {
+     if (info.has_audio && audio_codec && audio_st->codec->codec_type == AVMEDIA_TYPE_AUDIO && audio_codec->frame_size <= 1)
+         return;
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+     if (info.has_video && video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO && (oc->oformat->flags & AVFMT_RAWPICTURE) && video_codec->codec->id == AV_CODEC_ID_RAWVIDEO)
+         return;
++#else
++    if (info.has_video && video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO && video_codec->codec->id == AV_CODEC_ID_RAWVIDEO)
++        return;
++#endif
+ 
+     int error_code = 0;
+     int stop_encoding = 1;
+@@ -858,7 +863,7 @@
+ 
+ 	// some formats want stream headers to be separate
+ 	if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+-		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
++		c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+ 
+ 	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::add_audio_stream", "c->codec_id", c->codec_id, "c->bit_rate", c->bit_rate, "c->channels", c->channels, "c->sample_fmt", c->sample_fmt, "c->channel_layout", c->channel_layout, "c->sample_rate", c->sample_rate);
+ 
+@@ -931,7 +936,7 @@
+ 		c->mb_decision = 2;
+ 	// some formats want stream headers to be separate
+ 	if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+-		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
++		c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+ 
+ 	// Find all supported pixel formats for this codec
+     const PixelFormat* supported_pixel_formats = codec->pix_fmts;
+@@ -948,17 +953,23 @@
+             // Raw video should use RGB24
+         	c->pix_fmt = PIX_FMT_RGB24;
+ 
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+         if (strcmp(fmt->name, "gif") != 0)
+ 			// If not GIF format, skip the encoding process
+ 			// Set raw picture flag (so we don't encode this video)
+ 			oc->oformat->flags |= AVFMT_RAWPICTURE;
++#endif
+         } else {
+         	// Set the default codec
+         	c->pix_fmt = PIX_FMT_YUV420P;
+         }
+     }
+ 
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::add_video_stream (" + (string)fmt->name + " : " + (string)av_get_pix_fmt_name(c->pix_fmt) + ")", "c->codec_id", c->codec_id, "c->bit_rate", c->bit_rate, "c->pix_fmt", c->pix_fmt, "oc->oformat->flags", oc->oformat->flags, "AVFMT_RAWPICTURE", AVFMT_RAWPICTURE, "", -1);
++#else
++	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::add_video_stream (" + (string)fmt->name + " : " + (string)av_get_pix_fmt_name(c->pix_fmt) + ")", "c->codec_id", c->codec_id, "c->bit_rate", c->bit_rate, "c->pix_fmt", c->pix_fmt, "oc->oformat->flags", oc->oformat->flags, "", -1, "", -1);
++#endif
+ 
+ 	return st;
+ }
+@@ -1018,7 +1029,7 @@
+ 	audio_encoder_buffer_size = AUDIO_PACKET_ENCODING_SIZE;
+ 	audio_encoder_buffer = new uint8_t[audio_encoder_buffer_size];
+ 
+-	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::open_audio", "audio_codec->thread_count", audio_codec->thread_count, "audio_input_frame_size", audio_input_frame_size, "buffer_size", AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE, "", -1, "", -1, "", -1);
++	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::open_audio", "audio_codec->thread_count", audio_codec->thread_count, "audio_input_frame_size", audio_input_frame_size, "buffer_size", AVCODEC_MAX_AUDIO_FRAME_SIZE + AV_INPUT_BUFFER_PADDING_SIZE, "", -1, "", -1, "", -1);
+ 
+ }
+ 
+@@ -1473,6 +1484,7 @@
+ // write video frame
+ bool FFmpegWriter::write_video_packet(std::shared_ptr<Frame> frame, AVFrame* frame_final)
+ {
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::write_video_packet", "frame->number", frame->number, "oc->oformat->flags & AVFMT_RAWPICTURE", oc->oformat->flags & AVFMT_RAWPICTURE, "", -1, "", -1, "", -1, "", -1);
+ 
+ 	if (oc->oformat->flags & AVFMT_RAWPICTURE) {
+@@ -1501,7 +1513,10 @@
+ 		AV_FREE_PACKET(&pkt);
+ 
+ 	} else {
+-
++#else
++	ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::write_video_packet", "frame->number", frame->number, "oc->oformat->flags", oc->oformat->flags, "", -1, "", -1, "", -1, "", -1);
++	{
++#endif
+ 		AVPacket pkt;
+ 		av_init_packet(&pkt);
+ 		pkt.data = NULL;
+--- libopenshot-0.1.9/src/FFmpegReader.cpp.orig	2018-04-23 21:49:02.567556849 +0100
++++ libopenshot-0.1.9/src/FFmpegReader.cpp	2018-04-24 22:31:35.702004134 +0100
+@@ -903,7 +903,7 @@
+ 	int data_size = 0;
+ 
+ 	// re-initialize buffer size (it gets changed in the avcodec_decode_audio2 method call)
+-	int buf_size = AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE;
++	int buf_size = AVCODEC_MAX_AUDIO_FRAME_SIZE + AV_INPUT_BUFFER_PADDING_SIZE;
+ 	int used = avcodec_decode_audio4(aCodecCtx, audio_frame, &frame_finished, packet);
+ 
+ 	if (frame_finished) {
+@@ -976,7 +976,7 @@
+ 
+ 
+ 	// Allocate audio buffer
+-	int16_t *audio_buf = new int16_t[AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE];
++	int16_t *audio_buf = new int16_t[AVCODEC_MAX_AUDIO_FRAME_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
+ 
+ 	ZmqLogger::Instance()->AppendDebugMethod("FFmpegReader::ProcessAudioPacket (ReSample)", "packet_samples", packet_samples, "info.channels", info.channels, "info.sample_rate", info.sample_rate, "aCodecCtx->sample_fmt", aCodecCtx->sample_fmt, "AV_SAMPLE_FMT_S16", AV_SAMPLE_FMT_S16, "", -1);
+ 

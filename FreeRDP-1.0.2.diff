@@ -38,3 +38,75 @@
  	if (mdecoder->decoded_size_max == 0)
  		mdecoder->decoded_size_max = AVCODEC_MAX_AUDIO_FRAME_SIZE + 16;
  	mdecoder->decoded_data = xzalloc(mdecoder->decoded_size_max);
+--- FreeRDP-1.0.2/channels/drdynvc/tsmf/ffmpeg/tsmf_ffmpeg.c.orig	2018-04-25 22:17:07.753432128 +0100
++++ FreeRDP-1.0.2/channels/drdynvc/tsmf/ffmpeg/tsmf_ffmpeg.c	2018-04-25 22:19:39.449424890 +0100
+@@ -168,8 +168,8 @@
+ 		}
+ 	}
+ 
+-	if (mdecoder->codec->capabilities & CODEC_CAP_TRUNCATED)
+-		mdecoder->codec_context->flags |= CODEC_FLAG_TRUNCATED;
++	if (mdecoder->codec->capabilities & AV_CODEC_CAP_TRUNCATED)
++		mdecoder->codec_context->flags |= AV_CODEC_FLAG_TRUNCATED;
+ 
+ 	return true;
+ }
+@@ -207,28 +207,28 @@
+ 	switch (media_type->SubType)
+ 	{
+ 		case TSMF_SUB_TYPE_WVC1:
+-			mdecoder->codec_id = CODEC_ID_VC1;
++			mdecoder->codec_id = AV_CODEC_ID_VC1;
+ 			break;
+ 		case TSMF_SUB_TYPE_WMA2:
+-			mdecoder->codec_id = CODEC_ID_WMAV2;
++			mdecoder->codec_id = AV_CODEC_ID_WMAV2;
+ 			break;
+ 		case TSMF_SUB_TYPE_WMA9:
+-			mdecoder->codec_id = CODEC_ID_WMAPRO;
++			mdecoder->codec_id = AV_CODEC_ID_WMAPRO;
+ 			break;
+ 		case TSMF_SUB_TYPE_MP3:
+-			mdecoder->codec_id = CODEC_ID_MP3;
++			mdecoder->codec_id = AV_CODEC_ID_MP3;
+ 			break;
+ 		case TSMF_SUB_TYPE_MP2A:
+-			mdecoder->codec_id = CODEC_ID_MP2;
++			mdecoder->codec_id = AV_CODEC_ID_MP2;
+ 			break;
+ 		case TSMF_SUB_TYPE_MP2V:
+-			mdecoder->codec_id = CODEC_ID_MPEG2VIDEO;
++			mdecoder->codec_id = AV_CODEC_ID_MPEG2VIDEO;
+ 			break;
+ 		case TSMF_SUB_TYPE_WMV3:
+-			mdecoder->codec_id = CODEC_ID_WMV3;
++			mdecoder->codec_id = AV_CODEC_ID_WMV3;
+ 			break;
+ 		case TSMF_SUB_TYPE_AAC:
+-			mdecoder->codec_id = CODEC_ID_AAC;
++			mdecoder->codec_id = AV_CODEC_ID_AAC;
+ 			/* For AAC the pFormat is a HEAACWAVEINFO struct, and the codec data
+ 			   is at the end of it. See
+ 			   http://msdn.microsoft.com/en-us/library/dd757806.aspx */
+@@ -240,10 +240,10 @@
+ 			break;
+ 		case TSMF_SUB_TYPE_H264:
+ 		case TSMF_SUB_TYPE_AVC1:
+-			mdecoder->codec_id = CODEC_ID_H264;
++			mdecoder->codec_id = AV_CODEC_ID_H264;
+ 			break;
+ 		case TSMF_SUB_TYPE_AC3:
+-			mdecoder->codec_id = CODEC_ID_AC3;
++			mdecoder->codec_id = AV_CODEC_ID_AC3;
+ 			break;
+ 		default:
+ 			return false;
+@@ -451,7 +451,7 @@
+ 
+ 	switch (mdecoder->codec_context->pix_fmt)
+ 	{
+-		case PIX_FMT_YUV420P:
++		case AV_PIX_FMT_YUV420P:
+ 			return RDP_PIXFMT_I420;
+ 
+ 		default:
