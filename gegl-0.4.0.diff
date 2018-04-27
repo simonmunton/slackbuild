@@ -1,0 +1,51 @@
+--- gegl-0.4.0/operations/external/ff-save.c.orig	2018-04-24 17:42:13.000000000 +0100
++++ gegl-0.4.0/operations/external/ff-save.c	2018-04-27 20:03:30.787489081 +0100
+@@ -290,7 +290,7 @@
+   c->codec_type = AVMEDIA_TYPE_AUDIO;
+ 
+   if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+-    c->flags |= CODEC_FLAG_GLOBAL_HEADER;
++    c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+ 
+   return st;
+ }
+@@ -631,7 +631,7 @@
+ #endif
+ 
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+-     c->flags |= CODEC_FLAG_GLOBAL_HEADER;
++     c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+ 
+   return st;
+ }
+@@ -699,12 +699,14 @@
+     }
+ 
+   p->video_outbuf = NULL;
++#if 0
+   if (!(oc->oformat->flags & AVFMT_RAWPICTURE))
+     {
+       /* allocate output buffer, 1 mb / frame, might fail for some codecs on UHD - but works for now */
+       p->video_outbuf_size = 1024 * 1024;
+       p->video_outbuf = malloc (p->video_outbuf_size);
+     }
++#endif
+ 
+   /* allocate the encoded raw picture */
+   p->picture = alloc_picture (c->pix_fmt, c->width, c->height);
+@@ -803,6 +805,7 @@
+   picture_ptr      = p->picture;
+   picture_ptr->pts = p->frame_count;
+ 
++#if 0
+   if (oc->oformat->flags & AVFMT_RAWPICTURE)
+     {
+       /* raw video case. The API will change slightly in the near
+@@ -821,6 +824,7 @@
+       ret = av_write_frame (oc, &pkt);
+     }
+   else
++#endif
+     {
+       /* encode the image */
+       AVPacket pkt2;
