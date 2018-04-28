@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnu/barcode
 #TAR_EXT=.tar.gz
-VERSION=0.98
+VERSION=0.99
 VERSIONEXTRA=
 BUILD=1
 
@@ -76,7 +76,17 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} prefix=$PKG/usr
+make install DESTDIR=${PKG}
+
+mv ${PKG}/usr/bin/sample ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+mkdir ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp libbarcode.la ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp .libs/libbarcode.a ${PKG}/usr/lib${LIBDIRSUFFIX}
+mkdir ${PKG}/usr/include
+cp barcode.h ${PKG}/usr/include
+sed -i -e "/config.h/d; /gettext/d; /define _N/d" ${PKG}/usr/include/barcode.h
+
 
 #strip_binaries
 
