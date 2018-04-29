@@ -2,13 +2,15 @@
 #
 . ../build_funcs
 
-TARNAME=Class-MethodMaker
+TARNAME=Crypt-Rijndael
 TARNAMEEXTRA=
-TARDIR=~/tmp/cpan/MINICPAN/authors/id/S/SC/SCHWIGON/class-methodmaker
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/L/LE/LEONT
 #TAR_EXT=.tar.gz
-VERSION=2.24
+VERSION=1.13
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,18 +47,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#if [ -f Build.PL ]
-#then
-#  perl Build.PL
-#  ./Build
-#  ./Build test
-#  ./Build install --destdir=${PKG} --installdirs=vendor
-#else
+if [ -f Build.PL ]
+then
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG} --installdirs=vendor
+else
   perl Makefile.PL
   make
   make test
   make install DESTDIR=${PKG} INSTALLDIRS=vendor
-#fi
+fi
 
 perllocalpod
 
@@ -74,27 +76,8 @@ cp -a \
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
-
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: 
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
 EOF
 
 post_install
