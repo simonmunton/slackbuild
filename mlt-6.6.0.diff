@@ -1,0 +1,23 @@
+--- mlt-6.6.0/src/modules/frei0r/factory.c.orig	2018-01-23 06:41:00.000000000 +0000
++++ mlt-6.6.0/src/modules/frei0r/factory.c	2018-05-05 19:23:07.141257164 +0100
+@@ -443,7 +443,7 @@
+ 			if ( firstname && mlt_properties_get( blacklist, firstname ) )
+ 				continue;
+ 
+-			void* handle=dlopen(strcat(name, LIBSUF),RTLD_LAZY);
++			void* handle=dlopen(strcat(name, LIBSUF),RTLD_NOW);
+ 			if (handle){
+ 				void (*plginfo)(f0r_plugin_info_t*)=dlsym(handle,"f0r_get_plugin_info");
+ 
+@@ -478,7 +478,10 @@
+ 						MLT_REGISTER_METADATA( transition_type, pluginname, fill_param_info, name );
+ 					}
+ 				}
+-				dlclose(handle);
++				int rv = dlclose(handle);
++				if (rv != 0) {
++					printf("dlclose failed for '%s': %s\n", name, dlerror());
++				}
+ 			}
+ 		}
+ 		mlt_factory_register_for_clean_up(direntries, (mlt_destructor) mlt_properties_close);
