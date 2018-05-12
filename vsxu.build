@@ -2,16 +2,17 @@
 #
 . build_funcs
 
-TARNAME=projectM
-TARNAMEEXTRA=-complete
+TARNAME=vsxu
+TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p/projectM
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=2.1.0
-VERSIONEXTRA=-Source
-BUILD=3
+VERSION=0.6.2
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://projectm.sourceforge.net/"
+WEBPAGE="https://github.com/vovoid/vsxu"
+#http://vsxu.com/
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +37,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/projectM-2.1.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -57,16 +58,22 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -74,8 +81,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DINCLUDE-PROJECTM-JACK=1 \
-      .
+      ..
+fi
 
 fi
 
@@ -90,7 +97,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
-mkdir ${PKG}/usr/share/projectM/textures
+
+cd ..
 
 strip_binaries
 
@@ -107,11 +115,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "projectM is an awesome music visualizer"
-projectM is an awesome music visualizer. There is nothing better in 
-the world of Unix. projectM\'s greatness comes from the hard work of 
-the community. Users like you can create presets that connect music 
-with incredible visuals.
+make_slack_desc << EOF "Vovoid VSXu"
+VSXu (VSX Ultra) is an OpenGL-based (hardware-accelerated), modular 
+programming environment with its main purpose to visualize music and 
+create real time graphic effects.
+
+The aim is to bridge the gap between programmer and artist and 
+enabling acreative and inspiring environment to work in for all 
+parties involved.
+
+VSXu is built on a modular plug-in-based architecture so anyone can 
+extend it and or make visualization presets ("visuals" or "states").
 
 EOF
 
