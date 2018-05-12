@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=luminance-hdr
+TARNAME=youtube-dl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/y
 #TAR_EXT=.tar.gz
-VERSION=2.5.1
+VERSION=2018.05.09
 VERSIONEXTRA=
-BUILD=8
+BUILD=1
 
-WEBPAGE="http://qtpfsgui.sourceforge.net/"
+WEBPAGE="http://rg3.github.io/youtube-dl/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/luminance-hdr-2.4.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,6 +59,7 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+:
 #CFLAGS="${SLKCFLAGS}" \
 #CXXFLAGS="${SLKCFLAGS}" \
 #./configure --prefix=/usr \
@@ -67,21 +68,20 @@ then
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      -DLIBS=mvec \
-      .
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +89,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
+
+mv ${PKG}/usr/etc ${PKG}
+
+rm ${PKG}/usr/share/doc/youtube_dl/README.txt
+rmdir -p ${PKG}/usr/share/doc/youtube_dl
 
 strip_binaries
 
@@ -106,9 +112,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GUI for HDR imaging"
-Luminance HDR is an open source graphical user interface application 
-that aims to provide a workflow for HDR imaging.
+make_slack_desc << EOF "Download videos from YouTube (and more sites)"
+youtube-dl is a command-line program to download videos from 
+YouTube.com and a few more sites. It requires the Python interpreter 
+(2.6, 2.7, or 3.2+), and it is not platform specific. We also provide 
+a Windows executable that includes Python. youtube-dl should work in 
+your Unix box, in Windows or in Mac OS X. It is released to the 
+public domain, which means you can modify it, redistribute it or use 
+it however you like.
 
 EOF
 
