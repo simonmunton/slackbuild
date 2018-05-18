@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p/python
 #TAR_EXT=.tar.gz
-VERSION=3.5.5
+VERSION=3.6.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,10 +45,21 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- if [ $ARCH == "x86_64" ]
+ patch -p1 < ${CWD}/python3.readline.set_pre_input_hook.diff
+ # We don't want a large libpython*.a.
+ patch -p1 < ${CWD}/python3.no-static-library.diff
+
+ if [ ${ARCH} == "x86_64" ]
  then
-   patch -p1 -b -z .orig< ${CWD}/Python-3.5.1-x86_64.diff
+   patch -p1 -b -z .orig< ${CWD}/python3.x86_64.diff
  fi
+
+ # Fix python3 path in cgi.py.
+ sed -i '1s|^#.*/usr/local/bin/python|#!/usr/bin/python3|' Lib/cgi.py
+
+ # If system we're building on already has Python3 with pip in site-packages,
+ # ignore it and install pip anyway.
+ sed -i 's|\("install",\)|\1 "--ignore-installed",|' Lib/ensurepip/__init__.py
 )
 fi
 
@@ -79,7 +90,11 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --docdir=/usr/doc/python-${VERSION} \
 	    --with-threads \
 	    --enable-ipv6 \
-	    --enable-shared
+	    --enable-shared \
+	    --with-system-expat \
+	    --with-system-ffi \
+	    --enable-loadable-sqlite-extensions \
+	    --without-ensurepip
 
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -106,6 +121,19 @@ mv ${PKG}/usr/doc/Python-${VERSION} ${PKG}/usr/doc/python-${VERSION}
 
 make install DESTDIR=${PKG}
 
+# Remove to avoid overwriting a copy from Python2.
+rm -f ${PKG}/usr/bin/2to3
+
+# We'll install the python-tools under site-packages:
+mkdir -p ${SITEPK}
+cp -a Tools/* ${SITEPK}
+
+# Remove DOS batch/exe files.
+find ${PKG} \( -name '*.exe' -o -name '*.bat' \) -exec rm -f '{}' \;
+
+# Fix permissions on dynamic libraries.
+find ${PKG} -type f -perm 555 -exec chmod 755 '{}' \;
+
 (cd ${PKG}/usr/include
  ln -s python${PY_VER}m python${PY_VER}
 )
@@ -113,22 +141,19 @@ make install DESTDIR=${PKG}
 # Install some python-demo files:
 cp -a Demo ${PKG}/usr/doc/python-${VERSION}
 
-# We'll install the python-tools under site-packages:
-mkdir -p ${SITEPK}
-cp -a Tools/* ${SITEPK}
 
-mv ${SITEPK}/README ${PKG}/usr/doc/python-${VERSION}/README.python-tools
-( cd ${PKG}/usr/doc/python-${VERSION}
-  ln -sf ${TOOLSDIR} Tools
-)
-# Make a few useful symlinks:
-mkdir -p ${PKG}/usr/bin
-( cd ${PKG}/usr/bin
-#  ln -sf ${TOOLSDIR}/modulator/modulator.py modulator
-  ln -sf ${TOOLSDIR}/pynche/pynche pynche
-  ln -sf ${TOOLSDIR}/i18n/msgfmt.py .
-  ln -sf ${TOOLSDIR}/i18n/pygettext.py .
-)
+#mv ${SITEPK}/README ${PKG}/usr/doc/python-${VERSION}/README.python-tools
+#( cd ${PKG}/usr/doc/python-${VERSION}
+#  ln -sf ${TOOLSDIR} Tools
+#)
+## Make a few useful symlinks:
+#mkdir -p ${PKG}/usr/bin
+#( cd ${PKG}/usr/bin
+##  ln -sf ${TOOLSDIR}/modulator/modulator.py modulator
+#  ln -sf ${TOOLSDIR}/pynche/pynche pynche
+#  ln -sf ${TOOLSDIR}/i18n/msgfmt.py .
+#  ln -sf ${TOOLSDIR}/i18n/pygettext.py .
+#)
 
 ( cd ${PKG}/usr/bin
   rm -f python
