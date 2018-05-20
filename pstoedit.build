@@ -6,9 +6,9 @@ TARNAME=pstoedit
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=3.71
+VERSION=3.72
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://www.pstoedit.net/"
 
@@ -46,12 +46,17 @@ fi
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/pstoedit-3.50.diff
 
- if [ ${ARCH} == "x86_64" ]
- then
-   patch -p1 < ${CWD}/pstoedit-3.70_x64.diff
- fi
+# if [ ${ARCH} == "x86_64" ]
+# then
+#   patch -p1 < ${CWD}/pstoedit-3.70_x64.diff
+# fi
  sed -i -e 's/-pedantic//' configure
 )
+fi
+
+if [ ${ARCH} == "x86_64" ]
+then
+  FLAG64="-DCOMPILEDFOR64BIT=1"
 fi
 
 pre_configure
@@ -62,8 +67,8 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
+CFLAGS="${SLKCFLAGS} ${FLAG64}" \
+CXXFLAGS="${SLKCFLAGS} ${FLAG64}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
@@ -72,6 +77,8 @@ CXXFLAGS="${SLKCFLAGS}" \
 
 #            --with-libemf-include=/usr/include/libEMF
 fi
+
+touch doc/pstoedit.1 doc/pstoedit.htm doc/pstoedit.pdf
 
 if [ ${DO_MAKE} == "yes" ]
 then
