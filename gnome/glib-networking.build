@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=2.54.1
+VERSION=2.56.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -75,11 +75,16 @@ CXXFLAGS="${SLKCFLAGS}" \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
+meson --prefix=/usr _BuilD_
+
+# --libdir=/usr/lib${LIBDIRSUFFIX}
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+ninja -C _BuilD_ || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,7 +92,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+DESTDIR=${PKG} ninja -C _BuilD_ install
+
+cd ..
 
 strip_binaries
 
