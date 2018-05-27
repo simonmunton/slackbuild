@@ -1,0 +1,23 @@
+Description: fix crash on dictionary starting with whitespace
+Forwarded: no
+Author: Jonathan Vollebregt <jonathan-vola@hotmail.com>
+Last-Update: 2016-03-12
+Bug-Debian: http://bugs.debian.org/759477
+--- a/restrict.c
++++ b/restrict.c
+@@ -70,12 +70,10 @@ check_pass(char *pass, char *dict)
+  while ((fgets(string, MAX_DICT_STRING_SIZE, dct) != NULL))
+   {
+    tmp = strtok (string," \t\n\0");
+-   if( tmp != NULL)
+-     string = tmp;
+-   else
++   if( tmp == NULL)
+      continue;
+-   if(strlen(string) != strlen(pass)) continue;
+-   else if (strncmp(string, pass, strlen(pass)) == 0)
++   if(strlen(tmp) != strlen(pass)) continue;
++   else if (strncmp(tmp, pass, strlen(pass)) == 0)
+     {
+      free ( (void *)string);
+      fclose (dct);
