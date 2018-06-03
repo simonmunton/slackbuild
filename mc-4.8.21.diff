@@ -1,0 +1,70 @@
+--- mc-4.8.21/src/viewer/display.c.orig	2018-05-27 20:56:21.000000000 +0100
++++ mc-4.8.21/src/viewer/display.c	2018-06-03 13:41:45.296621446 +0100
+@@ -182,8 +182,24 @@
+                         "");
+         }
+     }
++    if (width > 62)
++    {
++        char buffer[BUF_TINY];
++        widget_move (view, top, width - 54);
++        if (!view->mode_flags.hex)
++        {
++            off_t line, col;
++            mcview_offset_to_coord (view, &line, &col, view->dpy_start);
++            size_trunc_len (buffer, 5, mcview_get_filesize (view), 0, panels_options.kilobyte_si);
++            tty_printf ("Line %" PRIuMAX " Col %" PRIuMAX , (uintmax_t) line+1,
++                        (uintmax_t) (view->mode_flags.wrap ? col : view->dpy_text_column)
++                );
++        }
++    }
+     widget_move (view, top, left);
+-    if (width > 40)
++    if (width > 62)
++        tty_print_string (str_fit_to_term (file_label, width - 56, J_LEFT_FIT));
++    else if (width > 40)
+         tty_print_string (str_fit_to_term (file_label, width - 34, J_LEFT_FIT));
+     else
+         tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
+--- mc-4.8.21/src/editor/editwidget.c.orig	2018-05-27 20:56:21.000000000 +0100
++++ mc-4.8.21/src/editor/editwidget.c	2018-06-03 13:35:35.939639069 +0100
+@@ -960,6 +960,18 @@
+             int cmd, ch;
+             cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++            if (parm == KEY_BTAB) {
++                edit_execute_key_command (e, cmd, '\t');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++             }
++
++            if ((parm & 0xff) == '\n') {
++                edit_execute_key_command (e, cmd, '\n');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++            }
++
+             /* The user may override the access-keys for the menu bar. */
+             if (macro_index == -1 && edit_execute_macro (e, parm))
+             {
+--- mc-4.8.21/src/filemanager/panel.c.orig	2018-05-27 20:56:21.000000000 +0100
++++ mc-4.8.21/src/filemanager/panel.c	2018-06-03 13:35:35.939639069 +0100
+@@ -3784,7 +3784,7 @@
+     panel_field_t *col_sort_format = NULL;
+     format_e *format;
+ 
+-    for (i = 0, format = panel->format; format != NULL; format = format->next)
++    for (i = 1, format = panel->format; format != NULL; format = format->next)
+     {
+         i += format->field_len;
+         if (x < i + 1)
+--- mc-4.8.21/misc/syntax/php.syntax.orig	2017-11-18 17:45:59.000000000 +0000
++++ mc-4.8.21/misc/syntax/php.syntax	2018-06-03 13:35:35.939639069 +0100
+@@ -3135,6 +3135,7 @@
+ 
+ context ' ' brightgreen
+     spellcheck
++    keyword \\\\ brightcyan
+     keyword \\' brightcyan
+ 
+ context exclusive <? ?> cyan
