@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libinput
+TARNAME=idna
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/i
 #TAR_EXT=.tar.gz
-VERSION=1.11.0
+VERSION=2.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://freedesktop.org/wiki/Software/libinput/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=idna-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -59,35 +59,29 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-fi
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-meson --prefix=/usr builddir/ -Dudev-dir=/lib/udev
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-ninja -C builddir/ || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -96,7 +90,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-DESTDIR=${PKG} ninja -C builddir/ install
+python3 setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -113,12 +107,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "library to handle input devices in Wayland compositors"
-libinput is a library to handle input devices in Wayland compositors 
-and to provide a generic X.Org input driver. It provides device 
-detection, device handling, input device event processing and 
-abstraction so minimize the amount of custom input code compositors 
-need to provide the common set of functionality that users expect.
+make_slack_desc << EOF "idns"
+Support for the Internationalised Domain Names in Applications (IDNA)
+protocol as specified in RFC 5891. This is the latest version of the 
+protocol and is sometimes referred to as IDNA 2008.
+
+This library also provides support for Unicode Technical Standard 46, 
+Unicode IDNA Compatibility Processing.
+
+This acts as a suitable replacement for the encodings.idna module 
+that comes with the Python standard library, but only supports the 
+old, deprecated IDNA specification (RFC 3490).
 
 EOF
 
