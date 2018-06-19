@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=Hack
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/h
+#TAR_EXT=.tar.gz
+VERSION=v3.003
+VERSIONEXTRA=-ttf
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=fonts_Hack
+#PKGVERSION=
+#BUILD_SUFFIX=
+ARCH=noarch
+
+WEBPAGE="https://sourcefoundry.org/hack/"
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+pre_configure
+
+DESTDIR=usr/share/fonts/truetype/Hack
+
+mkdir -p ${PKG}/${DESTDIR}
+
+(cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+ mv ttf/* .
+ rmdir ttf
+ chmod o+r *
+ mv *ttf ${PKG}/${DESTDIR}
+ chmod -x,+X *
+)
+
+touch ${PKG}/${DESTDIR}/{fonts.dir,fonts.scale}
+
+cat >> ${PKG}/install/doinst.sh << EOF
+#
+if [ -x usr/X11R6/bin/mkfontscale ]; then
+  echo "Creating font.scale:  /usr/X11R6/bin/mkfontscale"
+  usr/X11R6/bin/mkfontscale ${DESTDIR}
+fi
+if [ -x usr/X11R6/bin/mkfontdir ]; then
+  echo "Creating font.dir:  /usr/X11R6/bin/mkfontdir"
+  usr/X11R6/bin/mkfontdir ${DESTDIR}
+fi
+if [ -x usr/X11R6/bin/fc-cache ]; then
+  echo "Updating X font indexes:  /usr/X11R6/bin/fc-cache"
+  usr/X11R6/bin/fc-cache
+fi
+
+EOF
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "Hack Fonts"
+Hack has deep roots in the libre, open source typeface community and 
+includes the contributions of the Bitstream Vera & DejaVu projects.
+
+The face has been re-designed with an expanded glyph set, 
+modifications of the original glyph shapes, and meticulous attention 
+to metrics. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
