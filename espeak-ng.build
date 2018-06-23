@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pocketsphinx
+TARNAME=espeak-ng
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s/sphinx
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=0.8
+VERSION=1.49.2
 VERSIONEXTRA=
-BUILD=10
+BUILD=1
 
-WEBPAGE="http://cmusphinx.sourceforge.net"
+WEBPAGE="https://github.com/espeak-ng/espeak-ng"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,6 +59,8 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -66,21 +68,31 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,9 +100,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -107,10 +122,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "pocketsphinx"
-This is PocketSphinx, one of Carnegie Mellon University's open source
-large vocabulary, speaker-independent continuous speech recognition
-engine. Please see the LICENSE file for terms of use.
+make_slack_desc << EOF "eSpeak NG is an open source speech synthesizer that supports 102 languages and accents"
+The eSpeak NG (Next Generation) Text-to-Speech program is an open 
+source speech synthesizer that supports 102 languages and accents, 
+based on the eSpeak engine created by Jonathan Duddington. It supports 
+spectral and Klatt formant synthesis, and the ability to use MBROLA 
+voices.
 
 EOF
 

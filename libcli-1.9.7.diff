@@ -1,0 +1,87 @@
+--- libcli-1.9.7/libciscocli.c.orig	2012-11-12 20:34:18.000000000 +0000
++++ libcli-1.9.7/libciscocli.c	2018-06-23 15:15:55.582046615 +0100
+@@ -19,7 +19,7 @@
+ #ifndef WIN32
+ #include <regex.h>
+ #endif
+-#include "libcli.h"
++#include "libciscocli.h"
+ 
+ // vim:sw=4 tw=120 et
+ 
+--- libcli-1.9.7/Makefile.orig	2012-11-12 20:34:18.000000000 +0000
++++ libcli-1.9.7/Makefile	2018-06-23 15:14:01.899052040 +0100
+@@ -5,8 +5,8 @@
+ MAJOR = 1
+ MINOR = 9
+ REVISION = 7
+-LIB = libcli.so
+-LIB_STATIC = libcli.a
++LIB = libciscocli.so
++LIB_STATIC = libciscocli.a
+ 
+ CC = gcc
+ AR = ar
+@@ -26,40 +26,40 @@
+ 
+ all: $(LIB) $(LIB_STATIC) clitest
+ 
+-$(LIB): libcli.o
++$(LIB): libciscocli.o
+ 	$(CC) -o $(LIB).$(MAJOR).$(MINOR).$(REVISION) $^ $(LDFLAGS) $(LIBS)
+ 	-rm -f $(LIB) $(LIB).$(MAJOR).$(MINOR)
+ 	ln -s $(LIB).$(MAJOR).$(MINOR).$(REVISION) $(LIB).$(MAJOR).$(MINOR)
+ 	ln -s $(LIB).$(MAJOR).$(MINOR) $(LIB)
+ 
+-$(LIB_STATIC): libcli.o
++$(LIB_STATIC): libciscocli.o
+ 	$(AR) $(ARFLAGS) $@ $^
+ 
+ %.o: %.c
+ 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -o $@ -c $<
+ 
+-libcli.o: libcli.h
++libciscocli.o: libciscocli.h
+ 
+ clitest: clitest.o $(LIB)
+-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< -L. -lcli
++	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< -L. -lciscocli
+ 
+-clitest.exe: clitest.c libcli.o
+-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< libcli.o -lws2_32
++clitest.exe: clitest.c libciscocli.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< libciscocli.o -lws2_32
+ 
+ clean:
+ 	rm -f *.o $(LIB)* $(LIB_STATIC) clitest
+ 
+ install: $(LIB)
+ 	install -d $(DESTDIR)$(PREFIX)/include $(DESTDIR)$(PREFIX)/lib
+-	install -m 0644 libcli.h $(DESTDIR)$(PREFIX)/include
++	install -m 0644 libciscocli.h $(DESTDIR)$(PREFIX)/include
+ 	install -m 0755 $(LIB).$(MAJOR).$(MINOR).$(REVISION) $(DESTDIR)$(PREFIX)/lib
+ 	cd $(DESTDIR)$(PREFIX)/lib && \
+ 	    ln -fs $(LIB).$(MAJOR).$(MINOR).$(REVISION) $(LIB).$(MAJOR).$(MINOR) && \
+ 	    ln -fs $(LIB).$(MAJOR).$(MINOR) $(LIB)
+ 
+ rpm:
+-	mkdir libcli-$(MAJOR).$(MINOR).$(REVISION)
+-	cp -R *.c *.h Makefile Doc README *.spec libcli-$(MAJOR).$(MINOR).$(REVISION)
+-	tar zcvf libcli-$(MAJOR).$(MINOR).$(REVISION).tar.gz --exclude CVS --exclude *.tar.gz libcli-$(MAJOR).$(MINOR).$(REVISION)
+-	rm -rf libcli-$(MAJOR).$(MINOR).$(REVISION)
+-	rpm -ta libcli-$(MAJOR).$(MINOR).$(REVISION).tar.gz --clean
++	mkdir libciscocli-$(MAJOR).$(MINOR).$(REVISION)
++	cp -R *.c *.h Makefile Doc README *.spec libciscocli-$(MAJOR).$(MINOR).$(REVISION)
++	tar zcvf libciscocli-$(MAJOR).$(MINOR).$(REVISION).tar.gz --exclude CVS --exclude *.tar.gz libciscocli-$(MAJOR).$(MINOR).$(REVISION)
++	rm -rf libciscocli-$(MAJOR).$(MINOR).$(REVISION)
++	rpm -ta libciscocli-$(MAJOR).$(MINOR).$(REVISION).tar.gz --clean
+--- libcli-1.9.7/libciscocli.h.orig	2012-11-12 20:34:18.000000000 +0000
++++ libcli-1.9.7/libciscocli.h	2018-06-23 15:16:14.874045695 +0100
+@@ -1,5 +1,5 @@
+-#ifndef __LIBCLI_H__
+-#define __LIBCLI_H__
++#ifndef __LIBCISCOCLI_H__
++#define __LIBCISCOCLI_H__
+ 
+ // vim:sw=4 tw=120 et
+ 
