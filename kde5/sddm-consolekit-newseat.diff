@@ -1,0 +1,83 @@
+--- sddm-0.18.0/src/daemon/LogindDBusTypes.h.orig	2018-07-18 11:31:40.000000000 +0100
++++ sddm-0.18.0/src/daemon/LogindDBusTypes.h	2018-07-20 15:24:56.481790308 +0100
+@@ -13,6 +13,7 @@
+     static QString sessionIfaceName();
+     static QString seatIfaceName();
+     static QString userIfaceName();
++    static QString newSeatSignalName();
+ };
+ 
+ 
+--- sddm-0.18.0/src/daemon/LogindDBusTypes.cpp.orig	2018-07-18 11:31:40.000000000 +0100
++++ sddm-0.18.0/src/daemon/LogindDBusTypes.cpp	2018-07-20 15:38:56.476339568 +0100
+@@ -18,6 +18,7 @@
+     QString sessionIfaceName;
+     QString seatIfaceName;
+     QString userIfaceName;
++    QString newSeatSignalName;
+ };
+ 
+ LogindPathInternal::LogindPathInternal()
+@@ -55,11 +56,12 @@
+         seatIfaceName = QStringLiteral("org.freedesktop.login1.Seat");
+         sessionIfaceName = QStringLiteral("org.freedesktop.login1.Session");
+         userIfaceName = QStringLiteral("org.freedesktop.login1.User");
++        newSeatSignalName = QStringLiteral("SeatNew");
+         return;
+     }
+ 
+     if (QDBusConnection::systemBus().interface()->isServiceRegistered(QStringLiteral("org.freedesktop.ConsoleKit"))) {
+-        qDebug() << "Console kit interface found";
++        qDebug() << "ConsoleKit interface found";
+         available = true;
+         serviceName = QStringLiteral("org.freedesktop.ConsoleKit");
+         managerPath = QStringLiteral("/org/freedesktop/ConsoleKit/Manager");
+@@ -67,6 +69,7 @@
+         seatIfaceName = QStringLiteral("org.freedesktop.ConsoleKit.Seat");
+         sessionIfaceName = QStringLiteral("org.freedesktop.ConsoleKit.Session");
+         userIfaceName = QStringLiteral("org.freedesktop.ConsoleKit.User");
++        newSeatSignalName = QStringLiteral("SeatAdded");
+         return;
+     }
+     qDebug() << "No session manager found";
+@@ -109,3 +112,8 @@
+ {
+     return s_instance->userIfaceName;
+ }
++
++QString Logind::newSeatSignalName()
++{
++    return s_instance->newSeatSignalName;
++}
+--- sddm-0.18.0/src/daemon/SeatManager.cpp.orig	2018-07-18 11:31:40.000000000 +0100
++++ sddm-0.18.0/src/daemon/SeatManager.cpp	2018-07-20 15:24:56.481790308 +0100
+@@ -26,6 +26,7 @@
+ #include <QDBusMessage>
+ #include <QDBusPendingReply>
+ #include <QDBusContext>
++#include <QDebug>
+ 
+ #include "LogindDBusTypes.h"
+ 
+@@ -59,6 +60,12 @@
+         QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply);
+         connect(watcher, &QDBusPendingCallWatcher::finished, this, [=]() {
+             watcher->deleteLater();
++            if (Logind::serviceName().contains(QStringLiteral("ConsoleKit"))) {
++                m_canGraphical = true;
++                emit canGraphicalChanged(m_canGraphical);
++                return;
++            }
++
+             if (!reply.isValid())
+                 return;
+ 
+@@ -112,7 +119,7 @@
+             }
+         });
+ 
+-        QDBusConnection::systemBus().connect(Logind::serviceName(), Logind::managerPath(), Logind::managerIfaceName(), QStringLiteral("SeatNew"), this, SLOT(logindSeatAdded(QString,QDBusObjectPath)));
++        QDBusConnection::systemBus().connect(Logind::serviceName(), Logind::managerPath(), Logind::managerIfaceName(), Logind::newSeatSignalName(), this, SLOT(logindSeatAdded(QString,QDBusObjectPath)));
+         QDBusConnection::systemBus().connect(Logind::serviceName(), Logind::managerPath(), Logind::managerIfaceName(), QStringLiteral("SeatRemoved"), this, SLOT(logindSeatRemoved(QString,QDBusObjectPath)));
+     }
+ 
