@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=kicad-footprints
+TARNAME=projectlibre
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=5.0.0
+VERSION=1.8.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://kicad-pcb.org/"
+WEBPAGE="http://www.projectlibre.org"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,23 +55,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,15 +77,23 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-# make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+#  make ${NUM_JOBS} || exit
 :
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -96,12 +101,26 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+#  make install DESTDIR=${PKG}
+:
+fi
 
-cd ..
+mkdir -p ${PKG}/opt/${TARNAME}
+mkdir -p ${PKG}/usr/bin
 
-#mkdir -p ${PKG}/usr/share/kicad/modules/
-#cp -pr *.pretty ${PKG}/usr/share/kicad/modules/
+cp -pr ./lib ./*.sh ./*.jar ${PKG}/opt/${TARNAME}
+
+cat > ${PKG}/usr/bin/${TARNAME} << EOF
+#! /bin/bash
+#
+/opt/${TARNAME}/${TARNAME}.sh "\$@"
+EOF
+
+chmod +x ${PKG}/usr/bin/${TARNAME}
 
 strip_binaries
 
@@ -112,14 +131,20 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO readme.html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
-A Cross Platform and Open Source Electronics Design Automation Suite
+make_slack_desc << EOF "Project Management software: alternative to Microsoft Project"
+ProjectLibre is project management software, an alternative to 
+Microsoft Project. It is also the new updated version. We developed 
+OpenProj they recommend you do not use that but use US! A compliment 
+to OpenOffice and LibreOffice. It has been downloaded over 3,000,000 
+times in 200 countries and won InfoWorld "Best of Open Source" award. 
+ProjectLibre is compatible with Microsoft Project 2003, 2007 and 
+2010 files.
 
 EOF
 

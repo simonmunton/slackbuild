@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=26
+VERSION=28
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,20 +55,41 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_ _BuilD_lib
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+pushd _BuilD_
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --enable-xspice
+popd
+pushd _BuilD_lib
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-ngshared \
+	    --enable-xspice
+popd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+pushd _BuilD_
 make ${NUM_JOBS} || exit
+popd
+pushd _BuilD_lib
+make ${NUM_JOBS} || exit
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -76,9 +97,19 @@ then
   exit
 fi
 
+pushd _BuilD_
 make install DESTDIR=${PKG}
+popd
+pushd _BuilD_lib
+make install DESTDIR=${PKG}
+popd
 
-rm ${PKG}/usr/bin/makeidx
+if [ -e ${PKG}/usr/bin/makeidx ]
+then
+  rm ${PKG}/usr/bin/makeidx
+fi
+
+rm ${PKG}/usr/man/man1/{ngmakeidx,ngmultidec,ngnutmeg,ngproc2mod,ngsconvert}*
 
 #strip_binaries
 

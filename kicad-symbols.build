@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=krunner
+TARNAME=kicad-symbols
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k/kde-frameworks-5.49
+TARDIR=~/tmp/new/k
 #TAR_EXT=.tar.gz
-VERSION=5.49.0
+VERSION=5.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://kicad-pcb.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,35 +55,40 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
-export QTDIR
-
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 mkdir _BuilD_
 cd _BuilD_
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
-      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
-      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
-      -Wno-dev \
-      .. \
-      2>&1 | tee _Build_config.log
+      ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+# make ${NUM_JOBS} || exit
+:
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,8 +100,10 @@ make install DESTDIR=${PKG}
 
 cd ..
 
-make_debug_files
-#strip_binaries
+#mkdir -p ${PKG}/usr/share/kicad/modules/
+#cp -pr *.pretty ${PKG}/usr/share/kicad/modules/
+
+strip_binaries
 
 fix_links
 
@@ -111,7 +118,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
+A Cross Platform and Open Source Electronics Design Automation Suite
+
 EOF
 
 post_install
