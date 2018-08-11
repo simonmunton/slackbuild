@@ -77,7 +77,7 @@ export EXPAT_LIBPATH=/usr/lib${LIBDIRSUFFIX}
 if [ ${DO_MAKE} == "yes" ]
 then
 #make LIBS="$LIBS" || exit
-./bjam link=shared runtime-link=shared --layout=system --build-dir=build-x stage
+./bjam cxxflags="-std=c++14" link=shared runtime-link=shared --layout=system --build-dir=build-x stage
 #./bjam link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x stage
 #./bjam ${LIBS} ${OPTS} --stagedir=stage-s    --build-dir=build-s                   variant=release threading=single stage
 #./bjam ${LIBS} ${OPTS} --stagedir=stage-mt   --build-dir=build-mt   --buildid=mt   variant=release threading=multi  stage
@@ -92,7 +92,7 @@ fi
 
 #make install prefix=${PKG}/usr LIBS="$LIBS" 
 INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
-./bjam ${INSTALL_OPTS} link=shared runtime-link=shared --layout=system --build-dir=build-x install
+./bjam ${INSTALL_OPTS} cxxflags="-std=c++14" link=shared runtime-link=shared --layout=system --build-dir=build-x install
 #INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
 #./bjam ${INSTALL_OPTS} link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x install
 
@@ -103,7 +103,6 @@ INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/l
 
 #./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-d    --buildid=d    variant=debug   threading=single install
 #./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-mt-d --buildid=mt-d variant=debug   threading=multi  install
-
 
 
 mkdir -p ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
@@ -160,6 +159,14 @@ cp -a \
  find . -type d -name tools -exec rm -rf {} \;
  find . -type d -name "*ide" -exec rm -rf {} \;
 )
+
+if [ -e ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams ]
+then
+  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams
+  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams.o
+  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/single_stream
+  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/single_stream.o
+fi
 
 fix_docs
 
