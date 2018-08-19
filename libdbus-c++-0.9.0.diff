@@ -1,0 +1,34 @@
+--- libdbus-c++-0.9.0/examples/glib/Makefile.in.orig	2011-12-01 12:46:54.000000000 +0000
++++ libdbus-c++-0.9.0/examples/glib/Makefile.in	2018-08-12 22:20:56.551238480 +0100
+@@ -221,7 +221,7 @@
+ AM_CPPFLAGS = -I$(top_srcdir)/include $(gtkmm_CFLAGS) -I$(top_srcdir)/tools
+ dbus_browser_SOURCES = dbus-glue.h dbus-browser.h dbus-browser.cpp $(top_srcdir)/tools/xml.cpp
+ dbus_browser_LDADD = $(top_builddir)/src/integration/glib/libdbus-c++-glib-1.la \
+-	$(top_builddir)/src/libdbus-c++-1.la $(gtkmm_LIBS)
++	$(top_builddir)/src/libdbus-c++-1.la $(gtkmm_LIBS) -lexpat
+ 
+ BUILT_SOURCES = dbus-glue.h
+ CLEANFILES = $(BUILT_SOURCES)
+--- libdbus-c++-0.9.0/examples/glib/dbus-browser.h.orig	2011-11-28 15:03:19.000000000 +0000
++++ libdbus-c++-0.9.0/examples/glib/dbus-browser.h	2018-08-12 22:19:17.971243184 +0100
+@@ -1,9 +1,9 @@
+ #ifndef __DEMO_DBUS_BROWSER_H
+ #define __DEMO_DBUS_BROWSER_H
+ 
++#include <gtkmm.h>
+ #include <dbus-c++/dbus.h>
+ #include <dbus-c++/glib-integration.h>
+-#include <gtkmm.h>
+ 
+ #include "dbus-glue.h"
+ 
+--- libdbus-c++-0.9.0/src/eventloop-integration.cpp.orig	2011-11-28 15:04:18.000000000 +0000
++++ libdbus-c++-0.9.0/src/eventloop-integration.cpp	2018-08-12 22:16:42.711250592 +0100
+@@ -34,6 +34,7 @@
+ #include <dbus/dbus.h>
+ 
+ /* STD */
++#include <unistd.h>
+ #include <string.h>
+ #include <cassert>
+ #include <sys/poll.h>
