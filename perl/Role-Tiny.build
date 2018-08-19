@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=Role-Tiny
+TARNAMEEXTRA=
+TARDIR=~/tmp/cpan/MINICPAN/authors/id/H/HA/HAARG
+#TAR_EXT=.tar.gz
+VERSION=2.000006
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=perl_${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < $CWD/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+if [ -f Build.PL ]
+then
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install --destdir=${PKG} --installdirs=vendor
+else
+  perl Makefile.PL
+  make
+  make test
+  make install DESTDIR=${PKG} INSTALLDIRS=vendor
+fi
+
+perllocalpod
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
