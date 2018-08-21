@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. ../build_funcs
+. build_funcs
 
-TARNAME=calligra
+TARNAME=secp256k1
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=3.1.0
+VERSION=20180815
 VERSIONEXTRA=
-BUILD=8
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://github.com/bitcoin-core/secp256k1"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/calligra-2.8.1.diff
+ #patch -p1 < ${CWD}/
+
+ ./autogen.sh
 )
 fi
 
@@ -55,35 +57,44 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-# This avoids compiling a version number into KDE's .la files:
-QTDIR=/usr/lib${LIBDIRSUFFIX}/qt
-export QTDIR
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir _BuilD_
-cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DIHAVEPATCHEDQT=1 \
-      -DMARBLE_INCLUDE_DIR=/usr/include/marble4 \
-      -DMARBLE_GLOBAL_HEADER=/usr/include/marble4/marble/MarbleGlobal.h \
-      -DMARBLE_LIBRARIES=/usr/lib${LIBDIRSUFFIX}/libmarblewidget.so \
-      .. \
-      2>&1 | tee ${TARNAME}.config
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,12 +102,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
-cd ..
-
-make_debug_files
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -111,12 +124,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "KDE office suite"
-Calligra is an integrated suite of applications that cover office, 
-creative and management needs. Its the most comprehensive free suite 
-of applications anywhere and we expect the number of applications to 
-grow as the project matures. Calligra offers its applications on both 
-desktop computers and mobile platforms like tablets and smartphones.
+make_slack_desc << EOF "Optimized C library for EC operations on curve secp256k1"
+Optimized C library for EC operations on curve secp256k1
 
 EOF
 
