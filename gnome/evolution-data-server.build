@@ -5,9 +5,9 @@
 TARNAME=evolution-data-server
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/gnome/
 #TAR_EXT=.tar.gz
-VERSION=3.0.2.1
+VERSION=3.28.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,9 +55,12 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-LDFLAGS="-L/usr/lib/seamonkey -lnssutil3 -lplds4" \
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -70,13 +73,31 @@ CXXFLAGS="${SLKCFLAGS}" \
             --with-openldap=yes \
             --enable-gnome-keyring \
             --enable-smime
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
 
-MAKE_OPTS="GTKDOC_REBASE=gtkdoc-rebase"
+fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} ${MAKE_OPTS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,9 +105,14 @@ then
   exit
 fi
 
-make install ${MAKE_OPTS} DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
-#strip_binaries
+strip_binaries
 
 fix_links
 

@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=wayland
+TARNAME=autoconf
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/gnu/autoconf
 #TAR_EXT=.tar.gz
-VERSION=1.16.0
+VERSION=2.13
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://wayland.freedesktop.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=autoconf213
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -45,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/autoconf213-avoid-find.pl.patch
+ patch -p1 < ${CWD}/autoconf213-config-update.patch
+ patch -p1 < ${CWD}/autoconf213-other-debian.patch
 )
 fi
 
@@ -55,8 +57,6 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
@@ -65,17 +65,8 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
+            --infodir=/usr/info \
 	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -88,9 +79,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+make install prefix=${PKG}/usr infodir=${PKG}/usr/info
 
-strip_binaries
+rm -rf ${PKG}/usr/info
+
+for f in ${PKG}/usr/bin/*
+do
+  mv ${f} ${f}2.13
+done
+
+#strip_binaries
 
 fix_links
 
@@ -99,19 +97,21 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS BUGS COPYING* INSTALL NEWS PLANS README* THANKS TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Wayland compositor protocol"
-Wayland is a project to define a protocol for a compositor to talk to
-its clients as well as a library implementation of the protocol.  The
-compositor can be a standalone display server running on Linux kernel
-modesetting and evdev input devices, an X application, or a wayland
-client itself.  The clients can be traditional applications, X servers
-(rootless or fullscreen) or other display servers.
+make_slack_desc << EOF "generate configuration scripts"
+GNU autoconf is an extensible package of m4 macros that produce shell
+scripts to automatically configure software source code packages.
+These scripts can adapt the packages to many kinds of UNIX-like
+systems without manual user intervention.  Autoconf creates a
+configuration script for a package from a template file that lists the
+operating system features that the package can use, in the form of m4
+macro calls.  You must install the "m4" package to be able to use
+autoconf.
 
 EOF
 
