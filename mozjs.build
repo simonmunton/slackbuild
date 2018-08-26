@@ -1,0 +1,167 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=mozjs
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/m
+#TAR_EXT=.tar.gz
+VERSION=52.9.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/mozjs-fix-soname.patch
+ patch -p1 < ${CWD}/mozjs-copy-headers.patch
+ patch -p1 < ${CWD}/mozjs-disable-mozglue.patch
+ patch -p1 < ${CWD}/mozjs-Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+ patch -p1 < ${CWD}/mozjs-Add-intl-icu_sources_data.py-from-firefox-esr.patch
+ patch -p1 < ${CWD}/mozjs-icu_sources_data.py-Decouple-from-Mozilla-build-system.patch
+ patch -p1 < ${CWD}/mozjs-icu_sources_data-Write-command-output-to-our-stderr.patch
+ patch -p1 < ${CWD}/mozjs-Don-t-include-xlocale.patch
+ patch -p1 < ${CWD}/mozjs-tests-increase-timeout.patch
+
+ cd js/src
+ autoconf2.13
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+cd js/src
+mkdir obj
+cd obj
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+                --libdir=/usr/lib${LIBDIRSUFFIX} \
+                --without-system-icu \
+                --enable-posix-nspr-emulation \
+                --with-system-zlib \
+                --disable-strip \
+                --with-intl-api \
+                --enable-readline \
+                --disable-optimize
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ../../..
+
+# move library and create additional symlinks to standardize the file layout
+(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  mv libjs_static.ajs libmozjs-52.a
+  mv libmozjs-52.so libmozjs-52.so.0.0.0
+  ln -s libmozjs-52.so.0.0.0 libmozjs-52.so.0
+  ln -s libmozjs-52.so.0 libmozjs-52.so
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "SpiderMonkey JavaScript library"
+SpiderMonkey is the code-name for Mozilla Firefox's C++ implementation 
+of JavaScript. It is intended to be embedded in other applications
+that provide host environments for JavaScript
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
