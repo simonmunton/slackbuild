@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=1.6.5
+VERSION=1.8.4
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/jsoncpp-0.6.0-rc2.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -59,30 +59,42 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS} --std=c++11" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./xCMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} --std=c++11" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS} --std=c++11" \
+  meson --prefix=/usr _BuilD_
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons platform=linux-gcc ${NUM_JOBS} prefix=/usr || exit
-#make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,38 +102,12 @@ then
   exit
 fi
 
-#scons platform=linux-gcc prefix=/usr install destdir=${PKG}
-#make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig ${PKG}/usr/include/jsoncpp/json
-
-V=`sed -r s/-rc[0-9]+\$// version`
-cp libs/linux-gcc-*/libjson_linux-gcc-*_libmt.so ${PKG}/usr/lib${LIBDIRSUFFIX}/libjsoncpp.so.${V}
-ln -s libjsoncpp.so.${V} ${PKG}/usr/lib${LIBDIRSUFFIX}/libjsoncpp.so.${V%.*.*}
-ln -s libjsoncpp.so.${V} ${PKG}/usr/lib${LIBDIRSUFFIX}/libjsoncpp.so
-cp libs/linux-gcc-*/libjson_linux-gcc-*_libmt.a ${PKG}/usr/lib/libjsoncpp.a
-
-cp include/json/* ${PKG}/usr/include/jsoncpp/json
-
-#mkdir -p ${PKG}/usr/doc/jsoncpp-api-html
-#cp dist/doxygen/jsoncpp-api-html-$(V)*/* $(PKG)/usr/share/doc/jsoncpp-api-html
-
-cat > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/jsoncpp.pc << EOF
-prefix=/usr
-libdir=\${prefix}/lib${LIBDIRSUFFIX}
-includedir=\${prefix}/include/jsoncpp
-
-version = ${V}
-
-name = jsoncpp
-pkgname = libjsoncpp0
-
-Name: \${name}
-Version: \${version}
-Description: Jsoncpp library version ${V}
-Cflags: -I\${includedir}
-Libs: -L\${libdir} -ljsoncpp
-EOF
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -139,9 +125,9 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "C++ JSON reader/writer"
-jsoncpp is an implementation of a JSON (http://json.org) reader and 
-writer in C++. JSON (JavaScript Object Notation) is a lightweight 
-data-interchange format. It is easy for humans to read and write. It 
+jsoncpp is an implementation of a JSON (http://json.org) reader and
+writer in C++. JSON (JavaScript Object Notation) is a lightweight
+data-interchange format. It is easy for humans to read and write. It
 is easy for machines to parse and generate.
 
 EOF

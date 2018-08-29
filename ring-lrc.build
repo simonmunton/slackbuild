@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=20180816.2.e26b79f
+VERSION=20180826.1.da17c64
 VERSIONEXTRA=
 BUILD=1
 
@@ -57,6 +57,9 @@ fix_perms
 
 cd lrc
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
@@ -70,17 +73,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_BUILD_TYPE=Debug \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DCMAKE_INSTALL_LIBDIR=/usr/lib${LIBDIRSUFFIX} \
-      .
+      ..
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
@@ -109,6 +112,8 @@ then
 else
   make install DESTDIR=${PKG}
 fi
+
+cd ..
 
 strip_binaries
 

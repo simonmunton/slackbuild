@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=sshfs
+TARNAME=geocode-glib
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/s
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=3.5.0
+VERSION=3.26.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/libfuse/sshfs"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -57,21 +57,18 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir _BuilD_
-cd _BuilD_
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./xconfigure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,17 +77,22 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr -D enable-installed-tests=false _BuilD_
 fi
-
-meson .. --prefix=/usr
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} || exit
-ninja  || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -98,10 +100,12 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-DESTDIR=${PKG} ninja install
-
-cd ..
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -118,10 +122,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "sshfs"
-SSHFS allows you to mount a remote filesystem using SFTP. Most SSH 
-servers support and enable this SFTP access by default, so SSHFS is 
-very simple to use - there's nothing to do on the server-side.
+make_slack_desc << EOF "geocoding library"
+geocode-glib is a convenience library for the geocoding (finding 
+longitude, and latitude from an address) and reverse geocoding 
+(finding an address from coordinates). It uses Nominatim service to 
+achieve that. It also caches (reverse-)geocoding requests for faster 
+results and to avoid unnecessary server load.
 
 EOF
 

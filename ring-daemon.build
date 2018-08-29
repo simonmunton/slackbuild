@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=20180816.2.e26b79f
+VERSION=20180826.1.da17c64
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,10 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- (cd daemon
-  ./autogen.sh
- )
 )
 fi
 
@@ -63,6 +59,14 @@ cd daemon
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+cd contrib
+mkdir -p native
+cd native
+../bootstrap
+make || exit
+cd ../..
+./autogen.sh
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 if [ -f ./configure ]
@@ -73,7 +77,8 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-shared
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
