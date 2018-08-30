@@ -1,0 +1,232 @@
+--- gsm-1.0.18/Makefile.orig	2018-05-06 03:07:28.000000000 +0100
++++ gsm-1.0.18/Makefile	2018-08-30 22:05:45.844900799 +0100
+@@ -44,7 +44,7 @@
+ # CCFLAGS 	= -c -O
+ 
+ CC		= gcc -ansi -pedantic
+-CCFLAGS 	= -c -O2 -DNeedFunctionPrototypes=1 -Wall -Wno-comment
++CCFLAGS 	= $(OPTFLAGS) -DNeedFunctionPrototypes=1 -Wall -Wno-comment
+ 
+ LD 		= $(CC)
+ 
+@@ -64,6 +64,7 @@
+ # LDLIB	= -lgcc
+ ######### Additional libraries needed by $(LD)
+ 
++PICFLAGS = -fPIC
+ 
+ # Where do you want to install libraries, binaries, a header file
+ # and the manual pages?
+@@ -78,9 +79,9 @@
+ # Leave GSM_INSTALL_ROOT empty to not install the GSM library outside of
+ # this directory.
+ 
+-GSM_INSTALL_ROOT = $(INSTALL_ROOT)
++GSM_INSTALL_ROOT = $(INSTALL_ROOT)/usr
+ GSM_INSTALL_LIB = $(GSM_INSTALL_ROOT)/lib
+-GSM_INSTALL_INC = $(GSM_INSTALL_ROOT)/inc
++GSM_INSTALL_INC = $(GSM_INSTALL_ROOT)/include/gsm
+ GSM_INSTALL_MAN = $(GSM_INSTALL_ROOT)/man/man3
+ 
+ 
+@@ -89,12 +90,13 @@
+ # Leave TOAST_INSTALL_ROOT empty to not install the toast binaries outside
+ # of this directory.
+ 
+-TOAST_INSTALL_ROOT	  = $(INSTALL_ROOT)
++TOAST_INSTALL_ROOT = $(INSTALL_ROOT)/usr
+ TOAST_INSTALL_BIN = $(TOAST_INSTALL_ROOT)/bin
+ TOAST_INSTALL_MAN = $(TOAST_INSTALL_ROOT)/man/man1
+ 
+ #  Other tools
+ 
++MV		= mv
+ SHELL		= /bin/sh
+ LN		= ln
+ BASENAME 	= basename
+@@ -140,6 +142,7 @@
+ # Targets
+ 
+ LIBGSM	= $(LIB)/libgsm.a
++LIBGSMSO= $(LIB)/libgsm.so
+ 
+ TOAST	= $(BIN)/toast
+ UNTOAST	= $(BIN)/untoast
+@@ -222,6 +225,8 @@
+ 		$(SRC)/short_term.o	\
+ 		$(SRC)/table.o
+ 
++GSM_SHOBJECTS = $(foreach OBJX,$(GSM_OBJECTS),$(patsubst $(SRC)/%,shared/%,$(OBJX)))
++
+ TOAST_OBJECTS =	$(SRC)/toast.o 		\
+ 		$(SRC)/toast_lin.o	\
+ 		$(SRC)/toast_ulaw.o	\
+@@ -257,7 +262,7 @@
+ # Install targets
+ 
+ GSM_INSTALL_TARGETS =	\
+-		$(GSM_INSTALL_LIB)/libgsm.a		\
++		$(GSM_INSTALL_LIB)/libgsm.so.1.0.10	\
+ 		$(GSM_INSTALL_INC)/gsm.h		\
+ 		$(GSM_INSTALL_MAN)/gsm.3		\
+ 		$(GSM_INSTALL_MAN)/gsm_explode.3	\
+@@ -274,12 +279,12 @@
+ # Default rules
+ 
+ .c.o:
+-		$(CC) $(CFLAGS) $?
+-		@-mv `$(BASENAME) $@` $@ > /dev/null 2>&1
++		$(CC) -c $(CFLAGS) $? -o $@
++#		@-mv `$(BASENAME) $@` $@ > /dev/null 2>&1
+ 
+ # Target rules
+ 
+-all:		$(LIBGSM) $(TOAST) $(TCAT) $(UNTOAST)
++all:		$(LIBGSMSO) $(TOAST) $(TCAT) $(UNTOAST)
+ 		@-echo $(ROOT): Done.
+ 
+ tst:		$(TST)/lin2cod $(TST)/cod2lin $(TOAST) $(TST)/test-result
+@@ -298,24 +303,37 @@
+ 
+ 
+ # The basic API: libgsm
++#$(LIBGSMSO):   $(LIB) $(GSM_OBJECTS)
++#		ld -o $@.1.0.10 -shared -soname libgsm.so.1 $(GSM_OBJECTS)
+ 
+ $(LIBGSM):	$(LIB) $(GSM_OBJECTS)
+-		-rm $(RMFLAGS) $(LIBGSM)
+ 		$(AR) $(ARFLAGS) $(LIBGSM) $(GSM_OBJECTS)
+ 		$(RANLIB) $(LIBGSM)
+ 
+ 
++shared:
++		mkdir shared
++
++shared/%.o:
++		$(CC) -c $(CFLAGS) $(PICFLAGS) -o $@ $(addprefix $(SRC)/,$(patsubst %.o,%.c,$(@F))) 
++
++#libgsm.so.2: shared $(GSM_SHOBJECTS)
++#		echo $(GSM_SHOBJECTS)
++#		cd shared; $(CC) -shared -Wl -soname libgsm.so.2 -o libgsm.so.2.0 *.o
++
++$(LIBGSMSO): shared $(GSM_SHOBJECTS)		
++		cd shared; $(CC) -o ../lib/libgsm.so.1.0.10 -shared -Wl,-soname=libgsm.so.1 *.o
++		$(LN) -sf libgsm.so.1.0.10 lib/libgsm.so
++
+ # Toast, Untoast and Tcat -- the compress-like frontends to gsm.
+ 
+ $(TOAST):	$(BIN) $(TOAST_OBJECTS) $(LIBGSM)
+-		$(LD) $(LFLAGS) -o $(TOAST) $(TOAST_OBJECTS) $(LIBGSM) $(LDLIB)
++		$(LD) $(LFLAGS) -o $(TOAST) $(TOAST_OBJECTS) $(LIBGSMSO) $(LDLIB)
+ 
+ $(UNTOAST):	$(BIN) $(TOAST)
+-		-rm $(RMFLAGS) $(UNTOAST)
+ 		$(LN) $(TOAST) $(UNTOAST)
+ 
+ $(TCAT):	$(BIN) $(TOAST)
+-		-rm $(RMFLAGS) $(TCAT)
+ 		$(LN) $(TOAST) $(TCAT)
+ 
+ 
+@@ -351,53 +369,47 @@
+ 		fi
+ 
+ $(TOAST_INSTALL_BIN)/toast:	$(TOAST)
+-		-rm $@
+ 		cp $(TOAST) $@
+ 		chmod 755 $@
+ 
+ $(TOAST_INSTALL_BIN)/untoast:	$(TOAST_INSTALL_BIN)/toast
+-		-rm $@
+-		ln $? $@
++		ln -sf toast $@
+ 
+ $(TOAST_INSTALL_BIN)/tcat:	$(TOAST_INSTALL_BIN)/toast
+-		-rm $@
+-		ln $? $@
++		ln -sf toast $@
+ 
+ $(TOAST_INSTALL_MAN)/toast.1:	$(MAN)/toast.1
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_MAN)/gsm.3:	$(MAN)/gsm.3
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_MAN)/gsm_option.3:	$(MAN)/gsm_option.3
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_MAN)/gsm_explode.3:	$(MAN)/gsm_explode.3
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_MAN)/gsm_print.3:	$(MAN)/gsm_print.3
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_INC)/gsm.h:	$(INC)/gsm.h
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
+ $(GSM_INSTALL_LIB)/libgsm.a:	$(LIBGSM)
+-		-rm $@
+ 		cp $? $@
+ 		chmod 444 $@
+ 
++$(GSM_INSTALL_LIB)/libgsm.so.1.0.10: $(LIBGSMSO).1.0.10
++		cp $? $@
++		ln -sf libgsm.so.1.0.10 $(GSM_INSTALL_LIB)/libgsm.so.1
++		ln -sf libgsm.so.1.0.10 $(GSM_INSTALL_LIB)/libgsm.so
+ 
+ # Distribution
+ 
+@@ -425,7 +437,7 @@
+ 			-print | xargs rm $(RMFLAGS)
+ 
+ clean:	semi-clean
+-		-rm $(RMFLAGS) $(LIBGSM) $(ADDTST)/add		\
++		-rm $(RMFLAGS) $(ADDTST)/add		\
+ 			$(TOAST) $(TCAT) $(UNTOAST)	\
+ 			$(ROOT)/gsm-1.0.tar.Z
+ 
+@@ -473,22 +485,22 @@
+ $(TST)/test-result:	$(TST)/lin2cod $(TST)/cod2lin $(TOAST) $(TST)/run
+ 			( cd $(TST); ./run ) 
+ 
+-$(TST)/lin2txt:		$(TST)/lin2txt.o $(LIBGSM)
++$(TST)/lin2txt:		$(TST)/lin2txt.o $(LIBGSMSO)
+ 			$(LD) $(LFLAGS) -o $(TST)/lin2txt \
+-				$(TST)/lin2txt.o $(LIBGSM) $(LDLIB)
++				$(TST)/lin2txt.o $(LIBGSMSO) $(LDLIB)
+ 
+-$(TST)/lin2cod:		$(TST)/lin2cod.o $(LIBGSM)
++$(TST)/lin2cod:		$(TST)/lin2cod.o $(LIBGSMSO)
+ 			$(LD) $(LFLAGS) -o $(TST)/lin2cod \
+-				$(TST)/lin2cod.o $(LIBGSM) $(LDLIB)
++				$(TST)/lin2cod.o $(LIBGSMSO) $(LDLIB)
+ 
+-$(TST)/gsm2cod:		$(TST)/gsm2cod.o $(LIBGSM)
++$(TST)/gsm2cod:		$(TST)/gsm2cod.o $(LIBGSMSO)
+ 			$(LD) $(LFLAGS) -o $(TST)/gsm2cod \
+-				$(TST)/gsm2cod.o $(LIBGSM) $(LDLIB)
++				$(TST)/gsm2cod.o $(LIBGSMSO) $(LDLIB)
+ 
+-$(TST)/cod2txt:		$(TST)/cod2txt.o $(LIBGSM)
++$(TST)/cod2txt:		$(TST)/cod2txt.o $(LIBGSMSO)
+ 			$(LD) $(LFLAGS) -o $(TST)/cod2txt \
+-				$(TST)/cod2txt.o $(LIBGSM) $(LDLIB)
++				$(TST)/cod2txt.o $(LIBGSMSO) $(LDLIB)
+ 
+-$(TST)/cod2lin:		$(TST)/cod2lin.o $(LIBGSM)
++$(TST)/cod2lin:		$(TST)/cod2lin.o $(LIBGSMSO)
+ 			$(LD) $(LFLAGS) -o $(TST)/cod2lin \
+-				$(TST)/cod2lin.o $(LIBGSM) $(LDLIB)
++				$(TST)/cod2lin.o $(LIBGSMSO) $(LDLIB)
