@@ -1,0 +1,18 @@
+Description: Fix rlimit setting in rtkit-test
+ The max rlimit allowed by rtkit is 100ms, but it was being
+ incorrectly set to 100 seconds instead.
+Author: Felipe Sateler <fsateler@debian.org>
+Forwarded: yes, via private mail
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/rtkit-test.c
++++ b/rtkit-test.c
+@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
+                 printf("Rttime limit is: %lld ns\n", rttime_usec_max);
+ 
+         memset(&rlim, 0, sizeof(rlim));
+-        rlim.rlim_cur = rlim.rlim_max = 100000000ULL; /* 100ms */
++        rlim.rlim_cur = rlim.rlim_max = 100000ULL; /* 100ms */
+         if ((setrlimit(RLIMIT_RTTIME, &rlim) < 0))
+                 fprintf(stderr, "Failed to set RLIMIT_RTTIME: %s\n", strerror(errno));
+ 
