@@ -1,0 +1,28 @@
+From: Bilal Akhtar <bilalakhtar@ubuntu.com>
+Date: Wed, 10 Aug 2011 14:48:55 +0300
+Subject: Don't exit in case of a failed memory allocation
+
+Description: Don't exit in case of a failed memory allocation
+ This patch modifies src/xmalloc.c to not exit in case of a
+ failure of memory allocation. This fixes lintian X: tag
+ shlib-calls-exit.
+Author: Bilal Akhtar <bilalakhtar@ubuntu.com>
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+---
+ src/xmalloc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/xmalloc.c b/src/xmalloc.c
+index bd2136f..15f7135 100644
+--- a/src/xmalloc.c
++++ b/src/xmalloc.c
+@@ -30,7 +30,7 @@
+ static void *xmalloc_fatal(size_t size) {
+   if (size==0) return NULL;
+   fprintf(stderr, "Out of memory.");
+-  exit(1);
++  return NULL;
+ }
+ 
+ void *xmalloc (size_t size) {
