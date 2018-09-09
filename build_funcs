@@ -1,6 +1,15 @@
 # build utility functions
 #
 CWD=`pwd`
+# find the subdir of the build tree that we're in
+if [ -h build_funcs ]
+then
+  TOPDIR=$(cd $(dirname $(readlink build_funcs)); pwd)
+else
+  TOPDIR=$(cd $(dirname $BASH_SOURCE); pwd)
+fi
+SUBDIR=${CWD#${TOPDIR}}
+SUBDIR=${SUBDIR#/}
 
 DO_CHECK_VERSION=no
 DO_CONFIGURE=yes
@@ -8,7 +17,7 @@ DO_MAKE=yes
 DO_INSTALL=yes
 NUM_JOBS="-j 1"
 FORCE_32=no
-
+BUILD_DIR=$(dirname ${TOPDIR})/build_dir
 
 # Note that we use `"$@"' to let each command-line parameter expand to a
 # separate word. The quotes around `$@' are essential!
@@ -32,8 +41,16 @@ while true ; do
   esac
 done
 
+# adjust buid dir for 32 bit
+if [ ${FORCE_32} == "yes" ]
+then
+  BUILD_DIR=${BUILD_DIR}.32
+fi
 
-
+# change to build dir
+BUILD_DIR=${BUILD_DIR}/${SUBDIR}
+mkdir -p ${BUILD_DIR}
+cd ${BUILD_DIR}
 
 guess_tar_prog ()
 {

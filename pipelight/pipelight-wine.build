@@ -1,0 +1,167 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=wine
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/w
+#TAR_EXT=.tar.gz
+VERSION=1.8.3
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=pipelight-wine
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+#WINE_GECKO=${TARDIR}/wine_gecko-1.0.0-x86.cab
+WINE_GECKO=${TARDIR}/wine_gecko-2.40-x86.msi
+WINE_MONO=${TARDIR}/wine-mono-4.5.6.msi
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+ARCH=i486
+LIBDIRSUFFIX=""
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/../wine-libunwind.diff
+
+ tar xzf ${TARDIR}/wine-staging-${VERSION}*.tar.gz --strip-components 1
+ make -C ./patches DESTDIR=$(pwd) install
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+#if [ ${DO_CONFIGURE} == "yes" ]
+#then
+#mkdir wine64
+#cd wine64
+#../configure --prefix=/opt/pipelight-wine \
+#            --sysconfdir=/opt/pipelight-wine/etc \
+#            --libdir=/opt/pipelight-wine/lib64 \
+#            --localstatedir=/opt/pipelight-wine/var/lib \
+#	    --mandir=/opt/pipelight-wine/man \
+#	    --enable-win64 \
+#	    --with-xattr \
+#	    | tee configure.log
+#cd ..
+#fi
+
+#if [ ${DO_MAKE} == "yes" ]
+#then
+#cd wine64
+#make ${NUM_JOBS} || exit
+#cd ..
+#fi
+
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+mkdir wine32
+cd wine32
+../configure --prefix=/opt/pipelight-wine \
+            --sysconfdir=/opt/pipelight-wine/etc \
+            --libdir=/opt/pipelight-wine/lib \
+            --localstatedir=/opt/pipelight-wine/var/lib \
+	    --mandir=/opt/pipelight-wine/man \
+	    --with-xattr \
+	    | tee configure.log
+cd ..
+
+#	    --with-wine64=../wine64 \
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+cd wine32
+make ${NUM_JOBS} || exit
+cd ..
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+cd wine32
+make install DESTDIR=${PKG}
+cd ..
+
+#cd wine64
+#make install DESTDIR=${PKG}
+#cd ..
+
+
+mkdir -p ${PKG}/opt/pipelight-wine/share/wine/gecko
+cp ${WINE_GECKO} ${PKG}/opt/pipelight-wine/share/wine/gecko/
+#cp ${WINE_GECKO/x86/x86_64} ${PKG}/opt/pipelight-wine/share/wine/gecko/
+chmod a+r ${PKG}/opt/pipelight-wine/share/wine/gecko/*
+mkdir -p ${PKG}/opt/pipelight-wine/share/wine/mono
+cp ${WINE_MONO} ${PKG}/opt/pipelight-wine/share/wine/mono/
+chmod a+r ${PKG}/opt/pipelight-wine/share/wine/mono/*
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+mv ${PKG}/usr/doc/${TARNAME}-${VERSION} ${PKG}/usr/doc/pipelight-${TARNAME}-${VERSION}
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "implementation of the Windows API"
+Wine is a program which allows running Microsoft Windows programs
+(including DOS, Windows 3.x and Win32 executables) on Unix.  It
+consists of a program loader which loads and executes a Microsoft
+Windows binary, and a library (called Winelib) that implements Windows
+API calls using their Unix or X11 equivalents.  The library may also
+be used for porting Win32 code into native Unix executables.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
