@@ -1,5 +1,5 @@
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-05-20 08:33:37.037906336 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-09-22 13:55:06.387450417 +0100
 @@ -38,7 +38,6 @@
  
  #include "goo/gmem.h"
@@ -34,6 +34,15 @@
 +  const char *name = args[0].getName();
  #if defined(POPPLER_NEW_OBJECT_API)
    if ((obj1 = res->lookupXObject(name)).isNull()) {
+ #else
+@@ -3687,7 +3686,7 @@
+ 	break;
+       }
+ #if defined(POPPLER_NEW_OBJECT_API)
+-      dict.dictAdd(key, std::move(obj));
++      dict.dictAdd(const_cast<const char*>(key), std::move(obj));
+     }
+     obj = parser->getObj();
  #else
 --- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2018-03-11 20:38:09.000000000 +0000
 +++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-04-18 20:21:21.858072235 +0100

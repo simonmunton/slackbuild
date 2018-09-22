@@ -1,0 +1,34 @@
+--- scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp.orig	2017-12-21 23:32:37.000000000 +0000
++++ scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp	2018-09-22 16:49:48.194245402 +0100
+@@ -556,12 +556,10 @@
+ 									}
+ 									else
+ 									{
+-										GooList *ocgs;
+-										int i;
+-										ocgs = ocg->getOCGs ();
+-										for (i = 0; i < ocgs->getLength (); ++i)
++										const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++										for (auto &n : ocgs)
+ 										{
+-											OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++											OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 											QString ocgName = UnicodeParsedString(oc->getName());
+ 											if (!ocgNames.contains(ocgName))
+ 											{
+@@ -574,12 +572,10 @@
+ 							}
+ 							else
+ 							{
+-								GooList *ocgs;
+-								int i;
+-								ocgs = ocg->getOCGs ();
+-								for (i = 0; i < ocgs->getLength (); ++i)
++								const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++								for (auto &n : ocgs)
+ 								{
+-									OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++									OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 									QString ocgName = UnicodeParsedString(oc->getName());
+ 									if (!ocgNames.contains(ocgName))
+ 									{
