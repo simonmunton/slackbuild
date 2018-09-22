@@ -1,0 +1,29 @@
+#
+# /etc/rc.d/rc.elogind
+#     Initializes the elogind service on Slackware.
+#
+# Author:
+#     Eric Hameleers <alien@slackware.com> 2016
+#
+# Description:
+#     We use elogind (standalone subset extracted from systemd) instead of
+#     systemd itself; so we need to initialize a systemd-like state.
+#
+# Note:
+#     Slackware has a tmpfs mounted on /run (see rc.S).
+#
+
+# The systemd/elogind state directory:
+mkdir -p /run/systemd
+chmod 0755 /run/systemd
+
+# Toplevel directory for runtime user session data:
+mkdir -p /run/user
+chmod 1777 /run/user
+
+# Elogind uses cgroups to organize processes like mapping PIDs to sessions.
+#  Elogind's cgroup hierarchy isn't associated with any resource controller
+# ("subsystem") so we must create it manually:
+mkdir -p /sys/fs/cgroup/elogind
+mount -t cgroup -o none,name=elogind elogind /sys/fs/cgroup/elogind
+
