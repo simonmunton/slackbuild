@@ -1,0 +1,52 @@
+From: "Steve M. Robbins" <smr@sumost.ca>
+Date: Sun, 27 Aug 2017 20:10:20 -0500
+Subject: Rename the qtav_dev and qtav_dev_links target as libqtav* rather
+ than simply qtav*.
+
+---
+ src/libQtAV.pro            | 4 ++--
+ widgets/libQtAVWidgets.pro | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/libQtAV.pro b/src/libQtAV.pro
+index 0ad5f67..29015ff 100644
+--- a/src/libQtAV.pro
++++ b/src/libQtAV.pro
+@@ -627,7 +627,7 @@ DEB_INSTALL_LIST = $$join(SDK_HEADERS, \\n.$$[QT_INSTALL_HEADERS]/, .$$[QT_INSTA
+ DEB_INSTALL_LIST += .$$[QT_INSTALL_LIBS]/libQt*AV.prl .$$[QT_INSTALL_LIBS]/libQt*AV.so
+ MKSPECS_DIR=$$[QT_HOST_DATA]/mkspecs # we only build deb for qt5, so QT_HOST_DATA is fine. qt4 can use $$[QMAKE_MKSPECS]
+ DEB_INSTALL_LIST += .$${MKSPECS_DIR}/features/av.prf .$${MKSPECS_DIR}/modules/qt_lib_av.pri
+-qtav_dev.target = qtav-dev.install
++qtav_dev.target = libqtav-dev.install
+ qtav_dev.commands = echo \"$$join(DEB_INSTALL_LIST, \\n)\" >$$PROJECTROOT/debian/$${qtav_dev.target}
+ QMAKE_EXTRA_TARGETS += qtav_dev
+ target.depends *= $${qtav_dev.target}
+@@ -640,7 +640,7 @@ QMAKE_EXTRA_TARGETS += qtav_private_dev
+ target.depends *= $${qtav_private_dev.target}
+ 
+ greaterThan(QT_MAJOR_VERSION, 4) {
+-  qtav_dev_links.target = qtav-dev.links
++  qtav_dev_links.target = libqtav-dev.links
+   qtav_dev_links.commands = echo \"$$[QT_INSTALL_LIBS]/libQtAV.so $$[QT_INSTALL_LIBS]/libQt$${QT_MAJOR_VERSION}AV.so\" >$$PROJECTROOT/debian/$${qtav_dev_links.target}
+   QMAKE_EXTRA_TARGETS *= qtav_dev_links
+   target.depends *= $${qtav_dev_links.target}
+diff --git a/widgets/libQtAVWidgets.pro b/widgets/libQtAVWidgets.pro
+index 62809b9..3176d09 100644
+--- a/widgets/libQtAVWidgets.pro
++++ b/widgets/libQtAVWidgets.pro
+@@ -152,13 +152,13 @@ DEB_INSTALL_LIST = $$join(SDK_HEADERS, \\n.$$[QT_INSTALL_HEADERS]/, .$$[QT_INSTA
+ DEB_INSTALL_LIST += .$$[QT_INSTALL_LIBS]/libQt*AVWidgets.prl .$$[QT_INSTALL_LIBS]/libQt*AVWidgets.so
+ MKSPECS_DIR=$$[QT_HOST_DATA]/mkspecs
+ DEB_INSTALL_LIST += .$${MKSPECS_DIR}/features/avwidgets.prf .$${MKSPECS_DIR}/modules/qt_lib_avwidgets.pri
+-qtavwidgets_dev.target = qtav-dev.install #like qtmultimedia5-dev, contains widgets headers
++qtavwidgets_dev.target = libqtav-dev.install #like qtmultimedia5-dev, contains widgets headers
+ qtavwidgets_dev.commands = echo \"$$join(DEB_INSTALL_LIST, \\n)\" >>$$PROJECTROOT/debian/$${qtavwidgets_dev.target}
+ QMAKE_EXTRA_TARGETS += qtavwidgets_dev
+ target.depends *= $${qtavwidgets_dev.target}
+ 
+ greaterThan(QT_MAJOR_VERSION, 4) {
+-  qtavwidgets_dev_links.target = qtav-dev.links #like qtmultimedia5-dev, contains widgets .so
++  qtavwidgets_dev_links.target = libqtav-dev.links #like qtmultimedia5-dev, contains widgets .so
+   qtavwidgets_dev_links.commands = echo \"$$[QT_INSTALL_LIBS]/libQtAVWidgets.so $$[QT_INSTALL_LIBS]/libQt$${QT_MAJOR_VERSION}AVWidgets.so\" >>$$PROJECTROOT/debian/$${qtavwidgets_dev_links.target}
+   QMAKE_EXTRA_TARGETS *= qtavwidgets_dev_links
+   target.depends *= $${qtavwidgets_dev_links.target}

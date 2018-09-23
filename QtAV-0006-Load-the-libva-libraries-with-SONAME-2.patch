@@ -1,0 +1,59 @@
+From: Pino Toscano <pino@debian.org>
+Date: Thu, 23 Nov 2017 19:52:12 +0100
+Subject: Load the libva libraries with SONAME 2
+
+This follow the transition to libva 2.0, which broke ABI and thus
+bumped the SONAME of its libraries to 2.
+---
+ src/vaapi/vaapi_helper.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/vaapi/vaapi_helper.h b/src/vaapi/vaapi_helper.h
+index 8d37518..6dda8ee 100644
+--- a/src/vaapi/vaapi_helper.h
++++ b/src/vaapi/vaapi_helper.h
+@@ -107,7 +107,7 @@ public:
+         return instance().f_vaReleaseBufferHandle(dpy, buf_id);
+     }
+ protected:
+-    va_0_38() : dll_helper(QString::fromLatin1("va"), 1) {
++    va_0_38() : dll_helper(QString::fromLatin1("va"), 2) {
+         f_vaAcquireBufferHandle = (vaAcquireBufferHandle_t)resolve("vaAcquireBufferHandle");
+         f_vaReleaseBufferHandle = (vaReleaseBufferHandle_t)resolve("vaReleaseBufferHandle");
+     }
+@@ -120,7 +120,7 @@ private:
+ class VAAPI_DRM : protected dll_helper {
+ public:
+     typedef VADisplay vaGetDisplayDRM_t(int fd);
+-    VAAPI_DRM(): dll_helper(QString::fromLatin1("va-drm"),1) {
++    VAAPI_DRM(): dll_helper(QString::fromLatin1("va-drm"),2) {
+         fp_vaGetDisplayDRM = (vaGetDisplayDRM_t*)resolve("vaGetDisplayDRM");
+     }
+     VADisplay vaGetDisplayDRM(int fd) {
+@@ -140,7 +140,7 @@ public:
+                                    short, short, unsigned short,  unsigned short,
+                                    short, short, unsigned short, unsigned short,
+                                    VARectangle *, unsigned int,  unsigned int);
+-    VAAPI_X11(): dll_helper(QString::fromLatin1("va-x11"),1) {
++    VAAPI_X11(): dll_helper(QString::fromLatin1("va-x11"),2) {
+         fp_vaGetDisplay = (vaGetDisplay_t*)resolve("vaGetDisplay");
+         fp_vaPutSurface = (vaPutSurface_t*)resolve("vaPutSurface");
+     }
+@@ -168,7 +168,7 @@ class VAAPI_EGL : protected dll_helper { //not implemented
+     typedef VAStatus vaGetEGLClientBufferFromSurface_t(VADisplay dpy, VASurfaceID surface, EGLClientBuffer *buffer/* out*/);
+     vaGetEGLClientBufferFromSurface_t* fp_vaGetEGLClientBufferFromSurface;
+ public:
+-    VAAPI_EGL(): dll_helper(QString::fromLatin1("va-egl"),1) {
++    VAAPI_EGL(): dll_helper(QString::fromLatin1("va-egl"),2) {
+         fp_vaGetEGLClientBufferFromSurface = (vaGetEGLClientBufferFromSurface_t*)resolve("vaGetEGLClientBufferFromSurface");
+     }
+     VAStatus vaGetEGLClientBufferFromSurface(VADisplay dpy, VASurfaceID surface, EGLClientBuffer *buffer/* out*/) {
+@@ -183,7 +183,7 @@ public:
+     typedef VAStatus vaCreateSurfaceGLX_t(VADisplay, GLenum, GLuint, void **);
+     typedef VAStatus vaDestroySurfaceGLX_t(VADisplay, void *);
+     typedef VAStatus vaCopySurfaceGLX_t(VADisplay, void *, VASurfaceID, unsigned int);
+-    VAAPI_GLX(): dll_helper(QString::fromLatin1("va-glx"),1) {
++    VAAPI_GLX(): dll_helper(QString::fromLatin1("va-glx"),2) {
+         fp_vaGetDisplayGLX = (vaGetDisplayGLX_t*)resolve("vaGetDisplayGLX");
+         fp_vaCreateSurfaceGLX = (vaCreateSurfaceGLX_t*)resolve("vaCreateSurfaceGLX");
+         fp_vaDestroySurfaceGLX = (vaDestroySurfaceGLX_t*)resolve("vaDestroySurfaceGLX");

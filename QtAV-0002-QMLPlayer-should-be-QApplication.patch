@@ -1,0 +1,49 @@
+From: "Steve M. Robbins" <smr@sumost.ca>
+Date: Sat, 31 Dec 2016 13:20:10 -0600
+Subject: QMLPlayer should be QApplication
+
+Replaced QGuiApplication by QApplication; else pressing the open file button
+results in a crash with this message:
+
+  Fatal: QWidget: Cannot create a QWidget without QApplication
+
+Based the .pro change on player.pro.
+---
+ examples/QMLPlayer/QMLPlayer.pro | 1 +
+ examples/QMLPlayer/main.cpp      | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/examples/QMLPlayer/QMLPlayer.pro b/examples/QMLPlayer/QMLPlayer.pro
+index 5f84a29..79cc72b 100644
+--- a/examples/QMLPlayer/QMLPlayer.pro
++++ b/examples/QMLPlayer/QMLPlayer.pro
+@@ -3,6 +3,7 @@ QT += sql
+ android {
+   QT += androidextras
+ }
++greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+ *maemo*: DEFINES += Q_OS_MAEMO
+ # Add more folders to ship with the application, here
+ folder_01.source = qml/QMLPlayer
+diff --git a/examples/QMLPlayer/main.cpp b/examples/QMLPlayer/main.cpp
+index f7e5743..f29a531 100644
+--- a/examples/QMLPlayer/main.cpp
++++ b/examples/QMLPlayer/main.cpp
+@@ -21,7 +21,7 @@
+ #include <QtCore/QtDebug>
+ #include <QtCore/QDir>
+ #include <QtCore/QFile>
+-#include <QtGui/QGuiApplication>
++#include <QApplication>
+ #include <QQuickItem>
+ #include <QtQml/QQmlEngine>
+ #include <QtQml/QQmlContext>
+@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
+     Config::setName(QString::fromLatin1("QMLPlayer"));
+     do_common_options_before_qapp(options);
+ 
+-    QGuiApplication app(argc, argv);
++    QApplication app(argc, argv);
+     app.setApplicationName(QStringLiteral("QMLPlayer"));
+     app.setApplicationDisplayName(QStringLiteral("QtAV QMLPlayer"));
+     QDir::setCurrent(qApp->applicationDirPath());
