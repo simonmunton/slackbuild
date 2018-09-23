@@ -1,0 +1,23 @@
+--- ConsoleKit2-1.2.1/src/ck-inhibit.c.orig	2017-06-02 02:31:44.000000000 +0100
++++ ConsoleKit2-1.2.1/src/ck-inhibit.c	2018-09-23 19:59:27.978839161 +0100
+@@ -335,6 +335,11 @@
+                 return;
+         }
+ 
++        /* keep a ref to ourselves so we don't get destroyed before
++         * all the messages are sent. Probably not going to happen
++         * during the initial inhibit signals but better to be safe. */
++        g_object_ref (inhibit);
++
+         priv = CK_INHIBIT_GET_PRIVATE (inhibit);
+ 
+         if (CK_IS_INHIBIT (inhibit) && priv->inhibitors[CK_INHIBIT_EVENT_SHUTDOWN]) {
+@@ -371,6 +376,8 @@
+                 priv->inhibitors[CK_INHIBIT_EVENT_LID_SWITCH] = FALSE;
+                 g_signal_emit(G_OBJECT (inhibit), __signals[SIG_CHANGED_EVENT], 0, priv->mode, CK_INHIBIT_EVENT_LID_SWITCH, FALSE);
+         }
++
++        g_object_unref (inhibit);
+ }
+ 
+ /*
