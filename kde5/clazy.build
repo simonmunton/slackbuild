@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=libopenshot
+TARNAME=clazy
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=0.2.2
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.openshot.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/libopenshot-0.1.9.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,32 +55,30 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
+      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
+      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
       -Wno-dev \
-      .
-fi
-
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -95,7 +93,10 @@ fi
 
 make install DESTDIR=${PKG}
 
-strip_binaries
+cd ..
+
+make_debug_files
+#strip_binaries
 
 fix_links
 
@@ -110,12 +111,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenShot Library"
-OpenShot Library (libopenshot) is an open-source project dedicated to
-delivering high quality video editing, animation, and playback 
-solutions to the world. For more information visit 
-<http://www.openshot.org/>.
-
+make_slack_desc << EOF
 EOF
 
 post_install
