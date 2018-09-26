@@ -1,6 +1,6 @@
---- hplip-3.18.7/Makefile.in.orig	2018-08-03 22:44:10.642108321 +0100
-+++ hplip-3.18.7/Makefile.in	2018-08-03 22:49:48.972201839 +0100
-@@ -9329,14 +9329,14 @@
+--- hplip-3.18.9/Makefile.in.orig	2018-09-21 04:59:34.000000000 +0100
++++ hplip-3.18.9/Makefile.in	2018-09-26 19:06:11.458403174 +0100
+@@ -9381,14 +9381,14 @@
  
  install-data-hook:
  @HPLIP_BUILD_TRUE@	if [ \( "$(UNAME)" = "x86_64" -a  -d "$(libdir)/" \) ]; then \
@@ -21,7 +21,7 @@
  @HPLIP_BUILD_TRUE@	fi
  #	   If scanner build, add hpaio entry to sane dll.conf.
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@	if [ "$(scan_build)" = "yes" ]; then \
-@@ -9349,14 +9349,14 @@
+@@ -9401,14 +9401,14 @@
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@		  echo hpaio >>$(DESTDIR)/etc/sane.d/dll.conf ; \
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@	   fi; \
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@ 	   if [ \( "$(UNAME)" = "x86_64" -a  -d "$(libdir)/x86_64-linux-gnu/sane" \) ]; then \
@@ -42,3 +42,54 @@
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@	   fi \
  @HPLIP_BUILD_TRUE@@HPLIP_CLASS_DRIVER_FALSE@	fi
  #	   Create hp-xxx commands in bindir.
+--- hplip-3.18.9/installer/distros.dat.orig	2018-09-26 19:06:11.456403174 +0100
++++ hplip-3.18.9/installer/distros.dat	2018-09-26 19:09:37.684393334 +0100
+@@ -2197,7 +2197,7 @@
+ # ****************************************
+ [slackware]
+ index=8
+-versions=9.0,9.1,10.0,10.1,10.2,11,12,12.1
++versions=9.0,9.1,10.0,10.1,10.2,11,12,12.1,14.0
+ display_name=Slackware Linux
+ alt_names=
+ display=0
+@@ -2368,6 +2368,26 @@
+ release_date=
+ notes=
+ ppd_install=ppd
++udev_mode_fix=1
++ppd_dir=/usr/share/ppd/HP
++fix_ppd_symlink=0
++drv_dir=/usr/share/cups/drv/HP
++ui_toolkit=none
++
++# ********************
++[slackware:14.0]
++code_name=
++supported=0
++scan_supported=0
++fax_supported=0
++pcard_supported=0
++network_supported=0
++parallel_supported=0
++usb_supported=0
++packaged_version=3.12.9
++release_date=
++notes=
++ppd_install=ppd
+ udev_mode_fix=1
+ ppd_dir=/usr/share/ppd/HP
+ fix_ppd_symlink=0
+--- hplip-3.18.9/base/utils.py.orig	2018-09-21 04:56:23.000000000 +0100
++++ hplip-3.18.9/base/utils.py	2018-09-26 19:06:11.453403174 +0100
+@@ -284,8 +284,8 @@
+                         except ValueError:
+                             yield fullname
+ 
+-        #if os.path.islink(fullname):
+-        #    fullname = os.path.realpath(os.readlink(fullname))
++        if os.path.islink(fullname):
++            fullname = os.path.realpath(os.readlink(fullname))
+ 
+         if recurse and os.path.isdir(fullname): # or os.path.islink(fullname):
+             for f in walkFiles(fullname, recurse, abs_paths, return_folders, pattern, path):
