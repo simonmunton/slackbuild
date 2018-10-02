@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l/llvm
 #TAR_EXT=.tar.gz
-VERSION=4.0.1
+VERSION=6.0.1
 VERSIONEXTRA=.src
 BUILD=1
 
@@ -49,7 +49,7 @@ fi
   tar xf ${TARDIR}/cfe-${VERSION}.src.tar.xz
   mv cfe* clang
 
-  tar xvf ${TARDIR}/lldb-$VERSION.src.tar.xz
+  tar xvf ${TARDIR}/lldb-${VERSION}.src.tar.xz
   mv lldb-${VERSION}* lldb
  )
 
@@ -59,12 +59,20 @@ fi
  )
 
  (cd projects
-  tar xvf ${TARDIR}/compiler-rt-$VERSION.src.tar.xz
+  tar xvf ${TARDIR}/compiler-rt-${VERSION}.src.tar.xz
   mv compiler-rt-${VERSION}* compiler-rt
 
-#  tar xvf ${TARDIR}/openmp-$VERSION.src.tar.xz
-#  mv openmp-${VERSION}* openmp
+  tar xvf ${TARDIR}/openmp-${VERSION}.src.tar.xz
+  mv openmp-${VERSION}* openmp
+
+  tar xvf ${TARDIR}/libcxx-${VERSION}.src.tar.xz
+  mv libcxx-${VERSION}* libcxx
+
+  tar xvf ${TARDIR}/libcxxabi-${VERSION}.src.tar.xz
+  mv libcxxabi-${VERSION}* libcxxabi
  )
+
+ patch -p0 < ${CWD}/llvm-n_clang_allow_BUILD_SHARED_LIBRARY.patch
 
  if [ -n "${LIBDIRSUFFIX}" ]
  then
@@ -121,17 +129,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DCLANG_BUILD_SHARED_LIBS=ON \
       -DLLVM_BUILD_LLVM_DYLIB=ON \
-      -DLLVM_DYLIB_EXPORT_ALL=ON \
       -DLLVM_LINK_LLVM_DYLIB=ON \
       -DLLVM_ENABLE_RTTI=ON \
       -DLLVM_ENABLE_FFI=ON \
       -DLLVM_ENABLE_ASSERTIONS=OFF \
+      -DLLVM_USE_OPROFILE=ON \
       -DLLVM_BINUTILS_INCDIR=/usr/include \
       -DCLANG_RESOURCE_DIR="../lib${LIBDIRSUFFIX}/clang/${VERSION}" \
       ..
 
-#      -DBUILD_SHARED_LIBS=on \
+     # -DCMAKE_C_COMPILER="clang" \
+     # -DCMAKE_CXX_COMPILER="clang++" \
+      #      -DBUILD_SHARED_LIBS=on \
 
 fi
 
@@ -157,16 +169,31 @@ for i in ccc c++; do
     ${PKG}/usr/bin/$i-analyzer || exit 1
 done
 
+# Remove symlink to libgomp, which is already provided by gcc
+rm -f ${PKG}/usr/lib${LIBDIRSUFFIX}/libgomp.so
+
 # Install Python bindings
-mkdir -p "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages"
-cp -a tools/clang/bindings/python/clang "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/"
+for pyver in 2.7 ; do
+  mkdir -p "${PKG}/usr/lib${LIBDIRSUFFIX}/python$pyver/site-packages"
+  cp -a tools/clang/bindings/python/clang "${PKG}/usr/lib${LIBDIRSUFFIX}/python$pyver/site-packages/"
+done
+
+# Remove bundled python-six
+rm -f "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/six.py"
 
 # Compile Python scripts
 python -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
 python -O -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/clang"
-
-
-rm ${PKG}/usr/lib64/python2.7/site-packages/six.py
+#python3 -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python3.6/site-packages/clang"
+#python3 -O -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python3.6/site-packages/clang"
+#python -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/lldb"
+#python -O -m compileall "${PKG}/usr/lib${LIBDIRSUFFIX}/python2.7/site-packages/lldb"
+python -m compileall "${PKG}/usr/share/scan-view"
+python -O -m compileall "${PKG}/usr/share/scan-view"
+python -m compileall "${PKG}/usr/share/clang"
+python -O -m compileall "${PKG}/usr/share/clang"
+python -m compileall "${PKG}/usr/share/opt-viewer"
+python -O -m compileall "${PKG}/usr/share/opt-viewer"
 
 
 ln -s /usr/share/clang/clang-format-diff.py ${PKG}/usr/bin/clang-format-diff
