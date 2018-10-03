@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=3.17
+VERSION=3.18
 VERSIONEXTRA=
 BUILD=1
 
@@ -68,9 +68,11 @@ then
 #	    --enable-dbus
 fi
 
+PYTHON_VER=$(python -c 'import sys; print "%d.%d" % sys.version_info[:2]')
+
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} || exit
+scons ${NUM_JOBS} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages || exit
 #make ${NUM_JOBS} || exit
 fi
 
@@ -79,7 +81,7 @@ then
   exit
 fi
 
-DESTDIR=${PKG} scons prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} install
+DESTDIR=${PKG} scons prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages install
 #make install DESTDIR=${PKG}
 
 fix_pkgconfig_libdir
