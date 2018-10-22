@@ -1,0 +1,42 @@
+--- cups-filters-1.21.3/scripting/php/phpcups.h.orig	2018-10-03 21:12:51.000000000 +0100
++++ cups-filters-1.21.3/scripting/php/phpcups.h	2018-10-22 12:33:19.027947842 +0100
+@@ -19,7 +19,7 @@
+ 
+ #  include <cups/cups.h>
+ #  include <cups/language.h>
+-#  include <cups/debug-private.h>
++//#  include <cups/debug-private.h>
+ #  include <fcntl.h>
+ #  include <sys/stat.h>
+ #  if defined(WIN32) || defined(__EMX__)
+--- cups-filters-1.21.3/scripting/php/phpcups.c.orig	2018-10-03 21:12:51.000000000 +0100
++++ cups-filters-1.21.3/scripting/php/phpcups.c	2018-10-22 12:33:19.027947842 +0100
+@@ -26,7 +26,7 @@
+  * Include necessary headers...
+  */
+ 
+-#include <cups/string-private.h>
++//#include <cups/string-private.h>
+ #include "php.h"
+ #include "php_ini.h"
+ #include "ext/standard/info.h"
+--- cups-filters-1.21.3/filter/pdftoraster.cxx.orig	2018-10-22 12:33:19.028947842 +0100
++++ cups-filters-1.21.3/filter/pdftoraster.cxx	2018-10-22 12:35:39.426941143 +0100
+@@ -283,7 +283,7 @@
+ #if POPPLER_VERSION_MAJOR > 0 || POPPLER_VERSION_MINOR >= 19
+ #if POPPLER_VERSION_MAJOR > 0 || POPPLER_VERSION_MINOR >= 23
+ void CDECL myErrorFun(void *data, ErrorCategory category,
+-    Goffset pos, char *msg)
++    Goffset pos, const char *msg)
+ #else
+ void CDECL myErrorFun(void *data, ErrorCategory category,
+     int pos, char *msg)
+@@ -1686,7 +1686,7 @@
+ {
+   SplashBitmap *bitmap;
+   Page *page = catalog->getPage(pageNo);
+-  PDFRectangle *mediaBox = page->getMediaBox();
++  PDFRectangle const *mediaBox = page->getMediaBox();
+   int rotate = page->getRotate();
+   double paperdimensions[2], /* Physical size of the paper */
+     margins[4];	/* Physical margins of print */
