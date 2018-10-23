@@ -1,5 +1,16 @@
+--- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-input.cpp.orig	2018-03-11 20:38:09.000000000 +0000
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-input.cpp	2018-10-22 14:02:16.069901741 +0100
+@@ -793,7 +793,7 @@
+             dlg->getImportSettings(prefs);
+ 
+         // Apply crop settings
+-        PDFRectangle *clipToBox = NULL;
++        PDFRectangle const *clipToBox = NULL;
+         double crop_setting;
+         sp_repr_get_double(prefs, "cropTo", &crop_setting);
+ 
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-09-22 13:55:06.387450417 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-10-22 14:11:44.240874632 +0100
 @@ -38,7 +38,6 @@
  
  #include "goo/gmem.h"
@@ -8,7 +19,84 @@
  #include "GlobalParams.h"
  #include "CharTypes.h"
  #include "Object.h"
-@@ -2582,7 +2581,7 @@
+@@ -295,8 +294,8 @@
+                      int /*pageNum*/,
+ 		     int rotate,
+ 		     Dict *resDict,
+-                     PDFRectangle *box,
+-		     PDFRectangle *cropBox) :
++                     const PDFRectangle *box,
++		     const PDFRectangle *cropBox) :
+     xref(xrefA),
+     builder(builderA),
+     subPage(gFalse),
+@@ -318,7 +317,7 @@
+   builder->setDocumentSize(Inkscape::Util::Quantity::convert(state->getPageWidth(), "pt", "px"),
+                            Inkscape::Util::Quantity::convert(state->getPageHeight(), "pt", "px"));
+ 
+-  double *ctm = state->getCTM();
++  const double *ctm = state->getCTM();
+   double scaledCTM[6];
+   for (int i = 0; i < 6; ++i) {
+     baseMatrix[i] = ctm[i];
+@@ -353,7 +352,7 @@
+ PdfParser::PdfParser(XRef *xrefA,
+ 		     Inkscape::Extension::Internal::SvgBuilder *builderA,
+                      Dict *resDict,
+-		     PDFRectangle *box) :
++		     const PDFRectangle *box) :
+     xref(xrefA),
+     builder(builderA),
+     subPage(gTrue),
+@@ -571,8 +570,8 @@
+ }
+ 
+ void PdfParser::execOp(Object *cmd, Object args[], int numArgs) {
+-  PdfOperator *op;
+-  char *name;
++  const PdfOperator *op;
++  const char *name;
+   Object *argPtr;
+   int i;
+ 
+@@ -620,7 +619,7 @@
+   (this->*op->func)(argPtr, numArgs);
+ }
+ 
+-PdfOperator* PdfParser::findOp(char *name) {
++PdfOperator* PdfParser::findOp(const char *name) {
+   int a = -1;
+   int b = numOps;
+   int cmp = -1;
+@@ -1752,7 +1751,8 @@
+                                              GBool stroke, GBool eoFill) {
+   GfxShading *shading;
+   GfxPath *savedPath;
+-  double *ctm, *btm, *ptm;
++  const double *ctm, *ptm;
++  double *btm;
+   double m[6], ictm[6], m1[6];
+   double xMin, yMin, xMax, yMax;
+   double det;
+@@ -1994,7 +1994,7 @@
+   GfxColor color0M, color1M, colorM0, colorM1, colorMM;
+   GfxColor colors2[4];
+   double functionColorDelta = colorDeltas[pdfFunctionShading-1];
+-  double *matrix;
++  const double *matrix;
+   double xM, yM;
+   int nComps, i, j;
+ 
+@@ -2174,7 +2174,7 @@
+   }
+ }
+ 
+-void PdfParser::fillPatch(GfxPatch *patch, int nComps, int depth) {
++void PdfParser::fillPatch(const GfxPatch *patch, int nComps, int depth) {
+   GfxPatch patch00 = blankPatch();
+   GfxPatch patch01 = blankPatch();
+   GfxPatch patch10 = blankPatch();
+@@ -2582,7 +2582,7 @@
    }
  }
  
@@ -17,7 +105,12 @@
    GfxFont *font;
    int wMode;
    double riseX, riseY;
-@@ -2595,7 +2594,7 @@
+@@ -2591,11 +2591,11 @@
+   double x, y, dx, dy, tdx, tdy;
+   double originX, originY, tOriginX, tOriginY;
+   double oldCTM[6], newCTM[6];
+-  double *mat;
++  const double *mat;
    Object charProc;
    Dict *resDict;
    Parser *oldParser;
@@ -26,7 +119,7 @@
    int len, n, uLen;
  
    font = state->getFont();
-@@ -2732,7 +2731,7 @@
+@@ -2732,7 +2732,7 @@
  {
    Object obj1, obj2, obj3, refObj;
  
@@ -35,7 +128,7 @@
  #if defined(POPPLER_NEW_OBJECT_API)
    if ((obj1 = res->lookupXObject(name)).isNull()) {
  #else
-@@ -3687,7 +3686,7 @@
+@@ -3687,7 +3687,7 @@
  	break;
        }
  #if defined(POPPLER_NEW_OBJECT_API)
@@ -45,7 +138,74 @@
      obj = parser->getObj();
  #else
 --- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-04-18 20:21:21.858072235 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-10-22 14:17:44.982857420 +0100
+@@ -625,7 +625,7 @@
+     if ( pattern != NULL ) {
+         if ( pattern->getType() == 2 ) {  // Shading pattern
+             GfxShadingPattern *shading_pattern = static_cast<GfxShadingPattern *>(pattern);
+-            double *ptm;
++            const double *ptm;
+             double m[6] = {1, 0, 0, 1, 0, 0};
+             double det;
+ 
+@@ -672,7 +672,7 @@
+ 
+     Inkscape::XML::Node *pattern_node = _xml_doc->createElement("svg:pattern");
+     // Set pattern transform matrix
+-    double *p2u = tiling_pattern->getMatrix();
++    const double *p2u = tiling_pattern->getMatrix();
+     double m[6] = {1, 0, 0, 1, 0, 0};
+     double det;
+     det = _ttm[0] * _ttm[3] - _ttm[1] * _ttm[2];    // see LP Bug 1168908
+@@ -698,7 +698,7 @@
+     pattern_node->setAttribute("patternUnits", "userSpaceOnUse");
+     // Set pattern tiling
+     // FIXME: don't ignore XStep and YStep
+-    double *bbox = tiling_pattern->getBBox();
++    const double *bbox = tiling_pattern->getBBox();
+     sp_repr_set_svg_double(pattern_node, "x", 0.0);
+     sp_repr_set_svg_double(pattern_node, "y", 0.0);
+     sp_repr_set_svg_double(pattern_node, "width", bbox[2] - bbox[0]);
+@@ -751,7 +751,7 @@
+  */
+ gchar *SvgBuilder::_createGradient(GfxShading *shading, double *matrix, bool for_shading) {
+     Inkscape::XML::Node *gradient;
+-    Function *func;
++    const Function *func;
+     int num_funcs;
+     bool extend0, extend1;
+ 
+@@ -865,7 +865,7 @@
+ 
+ #define INT_EPSILON 8
+ bool SvgBuilder::_addGradientStops(Inkscape::XML::Node *gradient, GfxShading *shading,
+-                                   Function *func) {
++                                   const Function *func) {
+     int type = func->getType();
+     if ( type == 0 || type == 2 ) {  // Sampled or exponential function
+         GfxRGB stop1, stop2;
+@@ -877,9 +877,9 @@
+             _addStopToGradient(gradient, 1.0, &stop2, 1.0);
+         }
+     } else if ( type == 3 ) { // Stitching
+-        StitchingFunction *stitchingFunc = static_cast<StitchingFunction*>(func);
+-        double *bounds = stitchingFunc->getBounds();
+-        double *encode = stitchingFunc->getEncode();
++        const StitchingFunction *stitchingFunc = static_cast<const StitchingFunction*>(func);
++        const double *bounds = stitchingFunc->getBounds();
++        const double *encode = stitchingFunc->getEncode();
+         int num_funcs = stitchingFunc->getNumFuncs();
+ 
+         // Add stops from all the stitched functions
+@@ -890,7 +890,7 @@
+             svgGetShadingColorRGB(shading, bounds[i + 1], &color);
+             // Add stops
+             if (stitchingFunc->getFunc(i)->getType() == 2) {    // process exponential fxn
+-                double expE = (static_cast<ExponentialFunction*>(stitchingFunc->getFunc(i)))->getE();
++                double expE = (static_cast<const ExponentialFunction*>(stitchingFunc->getFunc(i)))->getE();
+                 if (expE > 1.0) {
+                     expE = (bounds[i + 1] - bounds[i])/expE;    // approximate exponential as a single straight line at x=1
+                     if (encode[2*i] == 0) {    // normal sequence
 @@ -1030,7 +1030,7 @@
      char *font_family = NULL;
      char *font_style = NULL;
@@ -55,6 +215,24 @@
      if (plus_sign) {
          font_family = g_strdup(plus_sign + 1);
          _font_specification = plus_sign + 1;
+@@ -1148,7 +1148,7 @@
+     Inkscape::CSSOStringStream os_font_size;
+     double css_font_size = _font_scaling * state->getFontSize();
+     if ( font->getType() == fontType3 ) {
+-        double *font_matrix = font->getFontMatrix();
++        const double *font_matrix = font->getFontMatrix();
+         if ( font_matrix[0] != 0.0 ) {
+             css_font_size *= font_matrix[3] / font_matrix[0];
+         }
+@@ -1193,7 +1193,7 @@
+ void SvgBuilder::updateTextMatrix(GfxState *state) {
+     _flushText();
+     // Update text matrix
+-    double *text_matrix = state->getTextMat();
++    const double *text_matrix = state->getTextMat();
+     double w_scale = sqrt( text_matrix[0] * text_matrix[0] + text_matrix[2] * text_matrix[2] );
+     double h_scale = sqrt( text_matrix[1] * text_matrix[1] + text_matrix[3] * text_matrix[3] );
+     double max_scale;
 @@ -1361,7 +1361,7 @@
      _glyphs.clear();
  }
@@ -65,7 +243,39 @@
          updateFont(state);
      }
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h	2018-04-18 20:13:30.059094746 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h	2018-10-22 14:10:47.742877328 +0100
+@@ -127,11 +127,11 @@
+ 
+   // Constructor for regular output.
+   PdfParser(XRef *xrefA, SvgBuilder *builderA, int pageNum, int rotate,
+-            Dict *resDict, PDFRectangle *box, PDFRectangle *cropBox);
++            Dict *resDict, const PDFRectangle *box, const PDFRectangle *cropBox);
+ 
+   // Constructor for a sub-page object.
+   PdfParser(XRef *xrefA, Inkscape::Extension::Internal::SvgBuilder *builderA,
+-            Dict *resDict, PDFRectangle *box);
++            Dict *resDict, const PDFRectangle *box);
+ 
+   virtual ~PdfParser();
+ 
+@@ -185,7 +185,7 @@
+ 
+   void go(GBool topLevel);
+   void execOp(Object *cmd, Object args[], int numArgs);
+-  PdfOperator *findOp(char *name);
++  PdfOperator *findOp(const char *name);
+   GBool checkArg(Object *arg, TchkType type);
+   int getPos();
+ 
+@@ -256,7 +256,7 @@
+ 			   double x2, double y2, GfxColor *color2,
+ 			   int nComps, int depth);
+   void doPatchMeshShFill(GfxPatchMeshShading *shading);
+-  void fillPatch(GfxPatch *patch, int nComps, int depth);
++  void fillPatch(const GfxPatch *patch, int nComps, int depth);
+   void doEndPath();
+ 
+   // path clipping operators
 @@ -287,7 +287,7 @@
    void opMoveShowText(Object args[], int numArgs);
    void opMoveSetShowText(Object args[], int numArgs);
@@ -76,7 +286,7 @@
    // XObject operators
    void opXObject(Object args[], int numArgs);
 --- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.h.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.h	2018-04-18 20:21:05.120073034 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.h	2018-10-22 14:16:54.026859851 +0100
 @@ -81,7 +81,7 @@
      bool style_changed;  // Set to true if style has to be reset
      SPCSSAttr *style;
@@ -95,6 +305,15 @@
      void endString(GfxState *state);
      void addChar(GfxState *state, double x, double y,
                   double dx, double dy,
+@@ -175,7 +175,7 @@
+     void _addStopToGradient(Inkscape::XML::Node *gradient, double offset,
+                             GfxRGB *color, double opacity);
+     bool _addGradientStops(Inkscape::XML::Node *gradient, GfxShading *shading,
+-                           Function *func);
++                           const Function *func);
+     gchar *_createTilingPattern(GfxTilingPattern *tiling_pattern, GfxState *state,
+                                 bool is_stroke=false);
+     // Image/mask creation
 @@ -203,7 +203,7 @@
  
      SPCSSAttr *_font_style;          // Current font style
