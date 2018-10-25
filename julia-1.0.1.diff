@@ -1,0 +1,754 @@
+--- julia-1.0.1/deps/scratch/openblas-e8a68ef261a33568b0f0cf53e0e2287e9f12e69e/relapack/src/lapack_wrappers.c.orig	2018-07-30 06:25:01.000000000 +0100
++++ julia-1.0.1/deps/scratch/openblas-e8a68ef261a33568b0f0cf53e0e2287e9f12e69e/relapack/src/lapack_wrappers.c	2018-07-30 06:25:01.000000000 +0100
+@@ -69,23 +69,23 @@
+ }
+ #endif
+ 
+-#if INCLUDE_CSYGST
+-void LAPACK(csygst)(
++#if INCLUDE_CHEGST
++void LAPACK(chegst)(
+     const int *itype, const char *uplo, const int *n,
+     float *A, const int *ldA, const float *B, const int *ldB,
+     int *info
+ ) {
+-    RELAPACK_csygst(itype, uplo, n, A, ldA, B, ldB, info);
++    RELAPACK_chegst(itype, uplo, n, A, ldA, B, ldB, info);
+ }
+ #endif
+ 
+-#if INCLUDE_ZSYGST
+-void LAPACK(zsygst)(
++#if INCLUDE_ZHEGST
++void LAPACK(zhegst)(
+     const int *itype, const char *uplo, const int *n,
+     double *A, const int *ldA, const double *B, const int *ldB,
+     int *info
+ ) {
+-    RELAPACK_zsygst(itype, uplo, n, A, ldA, B, ldB, info);
++    RELAPACK_zhegst(itype, uplo, n, A, ldA, B, ldB, info);
+ }
+ #endif
+ 
+--- julia-1.0.1/deps/scratch/dsfmt-2.2.3/dSFMT.h.orig	2013-12-19 04:37:46.000000000 +0000
++++ julia-1.0.1/deps/scratch/dsfmt-2.2.3/dSFMT.h	2018-10-25 20:02:39.099457803 +0100
+@@ -40,6 +40,7 @@
+ 
+ #include <stdio.h>
+ #include <assert.h>
++#include <stddef.h>
+ 
+ #if !defined(DSFMT_MEXP)
+ #ifdef __GNUC__
+@@ -180,16 +181,17 @@
+ extern const int dsfmt_global_mexp;
+ 
+ void dsfmt_gen_rand_all(dsfmt_t *dsfmt);
+-void dsfmt_fill_array_open_close(dsfmt_t *dsfmt, double array[], int size);
+-void dsfmt_fill_array_close_open(dsfmt_t *dsfmt, double array[], int size);
+-void dsfmt_fill_array_open_open(dsfmt_t *dsfmt, double array[], int size);
+-void dsfmt_fill_array_close1_open2(dsfmt_t *dsfmt, double array[], int size);
++void dsfmt_fill_array_open_close(dsfmt_t *dsfmt, double array[], ptrdiff_t size);
++void dsfmt_fill_array_close_open(dsfmt_t *dsfmt, double array[], ptrdiff_t size);
++void dsfmt_fill_array_open_open(dsfmt_t *dsfmt, double array[], ptrdiff_t size);
++void dsfmt_fill_array_close1_open2(dsfmt_t *dsfmt, double array[], ptrdiff_t size);
+ void dsfmt_chk_init_gen_rand(dsfmt_t *dsfmt, uint32_t seed, int mexp);
+ void dsfmt_chk_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
+                              int key_length, int mexp);
+ const char *dsfmt_get_idstring(void);
+ int dsfmt_get_min_array_size(void);
+ 
++/*
+ #if defined(__GNUC__)
+ #  define DSFMT_PRE_INLINE inline static
+ #  define DSFMT_PST_INLINE __attribute__((always_inline))
+@@ -200,6 +202,10 @@
+ #  define DSFMT_PRE_INLINE inline static
+ #  define DSFMT_PST_INLINE
+ #endif
++*/
++#define DSFMT_PRE_INLINE
++#define DSFMT_PST_INLINE
++
+ DSFMT_PRE_INLINE uint32_t dsfmt_genrand_uint32(dsfmt_t *dsfmt) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE double dsfmt_genrand_close1_open2(dsfmt_t *dsfmt)
+     DSFMT_PST_INLINE;
+@@ -214,13 +220,13 @@
+ DSFMT_PRE_INLINE double dsfmt_gv_genrand_close_open(void) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE double dsfmt_gv_genrand_open_close(void) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE double dsfmt_gv_genrand_open_open(void) DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void dsfmt_gv_fill_array_open_close(double array[], int size)
++DSFMT_PRE_INLINE void dsfmt_gv_fill_array_open_close(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void dsfmt_gv_fill_array_close_open(double array[], int size)
++DSFMT_PRE_INLINE void dsfmt_gv_fill_array_close_open(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void dsfmt_gv_fill_array_open_open(double array[], int size)
++DSFMT_PRE_INLINE void dsfmt_gv_fill_array_open_open(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void dsfmt_gv_fill_array_close1_open2(double array[], int size)
++DSFMT_PRE_INLINE void dsfmt_gv_fill_array_close1_open2(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE void dsfmt_gv_init_gen_rand(uint32_t seed) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE void dsfmt_gv_init_by_array(uint32_t init_key[],
+@@ -238,7 +244,7 @@
+  * @param dsfmt dsfmt internal state date
+  * @return double precision floating point pseudorandom number
+  */
+-inline static uint32_t dsfmt_genrand_uint32(dsfmt_t *dsfmt) {
++uint32_t dsfmt_genrand_uint32(dsfmt_t *dsfmt) {
+     uint32_t r;
+     uint64_t *psfmt64 = &dsfmt->status[0].u[0];
+ 
+@@ -259,7 +265,7 @@
+  * @param dsfmt dsfmt internal state date
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_genrand_close1_open2(dsfmt_t *dsfmt) {
++double dsfmt_genrand_close1_open2(dsfmt_t *dsfmt) {
+     double r;
+     double *psfmt64 = &dsfmt->status[0].d[0];
+ 
+@@ -278,7 +284,7 @@
+  * before this function.  This function uses \b global variables.
+  * @return double precision floating point pseudorandom number
+  */
+-inline static uint32_t dsfmt_gv_genrand_uint32(void) {
++uint32_t dsfmt_gv_genrand_uint32(void) {
+     return dsfmt_genrand_uint32(&dsfmt_global_data);
+ }
+ 
+@@ -289,7 +295,7 @@
+  * before this function. This function uses \b global variables.
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_gv_genrand_close1_open2(void) {
++double dsfmt_gv_genrand_close1_open2(void) {
+     return dsfmt_genrand_close1_open2(&dsfmt_global_data);
+ }
+ 
+@@ -301,7 +307,7 @@
+  * @param dsfmt dsfmt internal state date
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_genrand_close_open(dsfmt_t *dsfmt) {
++double dsfmt_genrand_close_open(dsfmt_t *dsfmt) {
+     return dsfmt_genrand_close1_open2(dsfmt) - 1.0;
+ }
+ 
+@@ -312,7 +318,7 @@
+  * before this function. This function uses \b global variables.
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_gv_genrand_close_open(void) {
++double dsfmt_gv_genrand_close_open(void) {
+     return dsfmt_gv_genrand_close1_open2() - 1.0;
+ }
+ 
+@@ -324,7 +330,7 @@
+  * @param dsfmt dsfmt internal state date
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_genrand_open_close(dsfmt_t *dsfmt) {
++double dsfmt_genrand_open_close(dsfmt_t *dsfmt) {
+     return 2.0 - dsfmt_genrand_close1_open2(dsfmt);
+ }
+ 
+@@ -335,7 +341,7 @@
+  * before this function. This function uses \b global variables.
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_gv_genrand_open_close(void) {
++double dsfmt_gv_genrand_open_close(void) {
+     return 2.0 - dsfmt_gv_genrand_close1_open2();
+ }
+ 
+@@ -347,7 +353,7 @@
+  * @param dsfmt dsfmt internal state date
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_genrand_open_open(dsfmt_t *dsfmt) {
++double dsfmt_genrand_open_open(dsfmt_t *dsfmt) {
+     double *dsfmt64 = &dsfmt->status[0].d[0];
+     union {
+         double d;
+@@ -370,7 +376,7 @@
+  * before this function. This function uses \b global variables.
+  * @return double precision floating point pseudorandom number
+  */
+-inline static double dsfmt_gv_genrand_open_open(void) {
++double dsfmt_gv_genrand_open_open(void) {
+     return dsfmt_genrand_open_open(&dsfmt_global_data);
+ }
+ 
+@@ -385,7 +391,7 @@
+  * @param size the number of pseudorandom numbers to be generated.
+  * see also \sa dsfmt_fill_array_close1_open2()
+  */
+-inline static void dsfmt_gv_fill_array_close1_open2(double array[], int size) {
++void dsfmt_gv_fill_array_close1_open2(double array[], ptrdiff_t size) {
+     dsfmt_fill_array_close1_open2(&dsfmt_global_data, array, size);
+ }
+ 
+@@ -401,7 +407,7 @@
+  * see also \sa dsfmt_fill_array_close1_open2() and \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void dsfmt_gv_fill_array_open_close(double array[], int size) {
++void dsfmt_gv_fill_array_open_close(double array[], ptrdiff_t size) {
+     dsfmt_fill_array_open_close(&dsfmt_global_data, array, size);
+ }
+ 
+@@ -417,7 +423,7 @@
+  * see also \sa dsfmt_fill_array_close1_open2() \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void dsfmt_gv_fill_array_close_open(double array[], int size) {
++void dsfmt_gv_fill_array_close_open(double array[], ptrdiff_t size) {
+     dsfmt_fill_array_close_open(&dsfmt_global_data, array, size);
+ }
+ 
+@@ -433,7 +439,7 @@
+  * see also \sa dsfmt_fill_array_close1_open2() \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void dsfmt_gv_fill_array_open_open(double array[], int size) {
++void dsfmt_gv_fill_array_open_open(double array[], ptrdiff_t size) {
+     dsfmt_fill_array_open_open(&dsfmt_global_data, array, size);
+ }
+ 
+@@ -443,7 +449,7 @@
+  * @param dsfmt dsfmt state vector.
+  * @param seed a 32-bit integer used as the seed.
+  */
+-inline static void dsfmt_init_gen_rand(dsfmt_t *dsfmt, uint32_t seed) {
++void dsfmt_init_gen_rand(dsfmt_t *dsfmt, uint32_t seed) {
+     dsfmt_chk_init_gen_rand(dsfmt, seed, DSFMT_MEXP);
+ }
+ 
+@@ -453,7 +459,7 @@
+  * @param seed a 32-bit integer used as the seed.
+  * see also \sa dsfmt_init_gen_rand()
+  */
+-inline static void dsfmt_gv_init_gen_rand(uint32_t seed) {
++void dsfmt_gv_init_gen_rand(uint32_t seed) {
+     dsfmt_init_gen_rand(&dsfmt_global_data, seed);
+ }
+ 
+@@ -464,7 +470,7 @@
+  * @param init_key the array of 32-bit integers, used as a seed.
+  * @param key_length the length of init_key.
+  */
+-inline static void dsfmt_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
++void dsfmt_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
+                                        int key_length) {
+     dsfmt_chk_init_by_array(dsfmt, init_key, key_length, DSFMT_MEXP);
+ }
+@@ -477,7 +483,7 @@
+  * @param key_length the length of init_key.
+  * see also \sa dsfmt_init_by_array()
+  */
+-inline static void dsfmt_gv_init_by_array(uint32_t init_key[], int key_length) {
++void dsfmt_gv_init_by_array(uint32_t init_key[], int key_length) {
+     dsfmt_init_by_array(&dsfmt_global_data, init_key, key_length);
+ }
+ 
+@@ -491,13 +497,13 @@
+ DSFMT_PRE_INLINE double genrand_close_open(void) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE double genrand_open_close(void) DSFMT_PST_INLINE;
+ DSFMT_PRE_INLINE double genrand_open_open(void) DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void fill_array_open_close(double array[], int size)
++DSFMT_PRE_INLINE void fill_array_open_close(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void fill_array_close_open(double array[], int size)
++DSFMT_PRE_INLINE void fill_array_close_open(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void fill_array_open_open(double array[], int size)
++DSFMT_PRE_INLINE void fill_array_open_open(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+-DSFMT_PRE_INLINE void fill_array_close1_open2(double array[], int size)
++DSFMT_PRE_INLINE void fill_array_close1_open2(double array[], ptrdiff_t size)
+     DSFMT_PST_INLINE;
+ 
+ /**
+@@ -505,7 +511,7 @@
+  * @return id string.
+  * see also \sa dsfmt_get_idstring()
+  */
+-inline static const char *get_idstring(void) {
++const char *get_idstring(void) {
+     return dsfmt_get_idstring();
+ }
+ 
+@@ -514,7 +520,7 @@
+  * @return minimum size of array used for fill_array functions.
+  * see also \sa dsfmt_get_min_array_size()
+  */
+-inline static int get_min_array_size(void) {
++int get_min_array_size(void) {
+     return dsfmt_get_min_array_size();
+ }
+ 
+@@ -523,7 +529,7 @@
+  * @param seed a 32-bit integer used as the seed.
+  * see also \sa dsfmt_gv_init_gen_rand(), \sa dsfmt_init_gen_rand().
+  */
+-inline static void init_gen_rand(uint32_t seed) {
++void init_gen_rand(uint32_t seed) {
+     dsfmt_gv_init_gen_rand(seed);
+ }
+ 
+@@ -533,7 +539,7 @@
+  * @param key_length the length of init_key.
+  * see also \sa dsfmt_gv_init_by_array(), \sa dsfmt_init_by_array().
+  */
+-inline static void init_by_array(uint32_t init_key[], int key_length) {
++void init_by_array(uint32_t init_key[], int key_length) {
+     dsfmt_gv_init_by_array(init_key, key_length);
+ }
+ 
+@@ -543,7 +549,7 @@
+  * see also \sa dsfmt_genrand_close1_open2() \sa
+  * dsfmt_gv_genrand_close1_open2()
+  */
+-inline static double genrand_close1_open2(void) {
++double genrand_close1_open2(void) {
+     return dsfmt_gv_genrand_close1_open2();
+ }
+ 
+@@ -553,7 +559,7 @@
+  * see also \sa dsfmt_genrand_close_open() \sa
+  * dsfmt_gv_genrand_close_open()
+  */
+-inline static double genrand_close_open(void) {
++double genrand_close_open(void) {
+     return dsfmt_gv_genrand_close_open();
+ }
+ 
+@@ -563,7 +569,7 @@
+  * see also \sa dsfmt_genrand_open_close() \sa
+  * dsfmt_gv_genrand_open_close()
+  */
+-inline static double genrand_open_close(void) {
++double genrand_open_close(void) {
+     return dsfmt_gv_genrand_open_close();
+ }
+ 
+@@ -573,7 +579,7 @@
+  * see also \sa dsfmt_genrand_open_open() \sa
+  * dsfmt_gv_genrand_open_open()
+  */
+-inline static double genrand_open_open(void) {
++double genrand_open_open(void) {
+     return dsfmt_gv_genrand_open_open();
+ }
+ 
+@@ -586,7 +592,7 @@
+  * dsfmt_fill_array_close1_open2(), \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void fill_array_open_close(double array[], int size) {
++void fill_array_open_close(double array[], ptrdiff_t size) {
+     dsfmt_gv_fill_array_open_close(array, size);
+ }
+ 
+@@ -599,7 +605,7 @@
+  * dsfmt_fill_array_close1_open2(), \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void fill_array_close_open(double array[], int size) {
++void fill_array_close_open(double array[], ptrdiff_t size) {
+     dsfmt_gv_fill_array_close_open(array, size);
+ }
+ 
+@@ -612,7 +618,7 @@
+  * dsfmt_fill_array_close1_open2(), \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void fill_array_open_open(double array[], int size) {
++void fill_array_open_open(double array[], ptrdiff_t size) {
+     dsfmt_gv_fill_array_open_open(array, size);
+ }
+ 
+@@ -624,7 +630,7 @@
+  * see also \sa dsfmt_fill_array_close1_open2(), \sa
+  * dsfmt_gv_fill_array_close1_open2()
+  */
+-inline static void fill_array_close1_open2(double array[], int size) {
++void fill_array_close1_open2(double array[], ptrdiff_t size) {
+     dsfmt_gv_fill_array_close1_open2(array, size);
+ }
+ #endif /* DSFMT_DO_NOT_USE_OLD_NAMES */
+--- julia-1.0.1/deps/srccache/libgit2-8d36dc62ba1b5d7deb66b6f982e005ddbc2ce343/src/CMakeLists.txt.orig	2018-10-25 20:02:40.166457752 +0100
++++ julia-1.0.1/deps/srccache/libgit2-8d36dc62ba1b5d7deb66b6f982e005ddbc2ce343/src/CMakeLists.txt	2018-10-25 20:02:41.428457692 +0100
+@@ -282,8 +282,13 @@
+ ELSEIF (SHA1_BACKEND STREQUAL "mbedTLS")
+ 	ADD_FEATURE_INFO(SHA ON "using mbedTLS")
+ 	SET(GIT_SHA1_MBEDTLS 1)
+-	FILE(GLOB SRC_SHA1 src/hash/hash_mbedtls.c)
+-	LIST(APPEND LIBGIT2_PC_REQUIRES "mbedtls")
++	FILE(GLOB SRC_SHA1 hash/hash_mbedtls.c)
++	LIST(APPEND LIBGIT2_INCLUDES ${MBEDTLS_INCLUDE_DIR})
++	LIST(APPEND LIBGIT2_LIBS ${MBEDTLS_LIBRARIES})
++	# mbedTLS has no pkgconfig file, hence we can't require it
++	# https://github.com/ARMmbed/mbedtls/issues/228
++	# For now, pass its link flags as our own
++	LIST(APPEND LIBGIT2_PC_LIBS ${MBEDTLS_LIBRARIES})
+ ELSE()
+ 	MESSAGE(FATAL_ERROR "Asked for unknown SHA1 backend ${SHA1_BACKEND}")
+ ENDIF()
+--- julia-1.0.1/deps/srccache/libgit2-8d36dc62ba1b5d7deb66b6f982e005ddbc2ce343/src/transports/ssh.c.orig	2018-06-10 17:06:38.000000000 +0100
++++ julia-1.0.1/deps/srccache/libgit2-8d36dc62ba1b5d7deb66b6f982e005ddbc2ce343/src/transports/ssh.c	2018-10-25 20:02:41.546457687 +0100
+@@ -301,8 +301,10 @@
+ 
+ 	rc = libssh2_agent_connect(agent);
+ 
+-	if (rc != LIBSSH2_ERROR_NONE)
++	if (rc != LIBSSH2_ERROR_NONE) {
++		rc = LIBSSH2_ERROR_AUTHENTICATION_FAILED;
+ 		goto shutdown;
++	}
+ 
+ 	rc = libssh2_agent_list_identities(agent);
+ 
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/PowerPC/PPCISelLowering.h.orig	2018-01-24 15:33:33.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/PowerPC/PPCISelLowering.h	2018-10-25 20:02:47.236457415 +0100
+@@ -884,6 +884,11 @@
+       }
+     };
+ 
++    bool isNoopAddrSpaceCast(unsigned SrcAS, unsigned DestAS) const override {
++      // Addrspacecasts are always noops.
++      return true;
++    }
++
+     bool canReuseLoadAddress(SDValue Op, EVT MemVT, ReuseLoadInfo &RLI,
+                              SelectionDAG &DAG,
+                              ISD::LoadExtType ET = ISD::NON_EXTLOAD) const;
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86DomainReassignment.cpp.orig	2018-10-25 20:03:02.096456706 +0100
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86DomainReassignment.cpp	2018-10-25 20:03:03.046456661 +0100
+@@ -26,6 +26,7 @@
+ #include "llvm/CodeGen/MachineRegisterInfo.h"
+ #include "llvm/CodeGen/TargetRegisterInfo.h"
+ #include "llvm/Support/Debug.h"
++#include "llvm/Support/Printable.h"
+ #include <bitset>
+ 
+ using namespace llvm;
+@@ -291,8 +292,12 @@
+   /// Domains which this closure can legally be reassigned to.
+   std::bitset<NumDomains> LegalDstDomains;
+ 
++  /// An ID to uniquely identify this closure, even when it gets
++  /// moved around
++  unsigned ID;
++
+ public:
+-  Closure(std::initializer_list<RegDomain> LegalDstDomainList) {
++  Closure(unsigned ID, std::initializer_list<RegDomain> LegalDstDomainList) : ID(ID) {
+     for (RegDomain D : LegalDstDomainList)
+       LegalDstDomains.set(D);
+   }
+@@ -328,6 +333,10 @@
+     return Instrs;
+   }
+ 
++  unsigned getID() const {
++    return ID;
++  }
++
+ };
+ 
+ class X86DomainReassignment : public MachineFunctionPass {
+@@ -339,7 +348,7 @@
+   DenseSet<unsigned> EnclosedEdges;
+ 
+   /// All instructions that are included in some closure.
+-  DenseMap<MachineInstr *, Closure *> EnclosedInstrs;
++  DenseMap<MachineInstr *, unsigned> EnclosedInstrs;
+ 
+ public:
+   static char ID;
+@@ -416,14 +425,14 @@
+ void X86DomainReassignment::encloseInstr(Closure &C, MachineInstr *MI) {
+   auto I = EnclosedInstrs.find(MI);
+   if (I != EnclosedInstrs.end()) {
+-    if (I->second != &C)
++    if (I->second != C.getID())
+       // Instruction already belongs to another closure, avoid conflicts between
+       // closure and mark this closure as illegal.
+       C.setAllIllegal();
+     return;
+   }
+ 
+-  EnclosedInstrs[MI] = &C;
++  EnclosedInstrs[MI] = C.getID();
+   C.addInstruction(MI);
+ 
+   // Mark closure as illegal for reassignment to domains, if there is no
+@@ -704,6 +713,7 @@
+   std::vector<Closure> Closures;
+ 
+   // Go over all virtual registers and calculate a closure.
++  unsigned ClosureID = 0;
+   for (unsigned Idx = 0; Idx < MRI->getNumVirtRegs(); ++Idx) {
+     unsigned Reg = TargetRegisterInfo::index2VirtReg(Idx);
+ 
+@@ -716,7 +726,7 @@
+       continue;
+ 
+     // Calculate closure starting with Reg.
+-    Closure C({MaskDomain});
++    Closure C(ClosureID++, {MaskDomain});
+     buildClosure(C, Reg);
+ 
+     // Collect all closures that can potentially be converted.
+@@ -724,12 +734,13 @@
+       Closures.push_back(std::move(C));
+   }
+ 
+-  for (Closure &C : Closures)
++  for (Closure &C : Closures) {
+     if (isReassignmentProfitable(C, MaskDomain)) {
+       reassign(C, MaskDomain);
+       ++NumClosuresConverted;
+       Changed = true;
+     }
++  }
+ 
+   for (auto I : Converters)
+     delete I.second;
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86InstrInfo.cpp.orig	2017-12-17 11:01:33.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86InstrInfo.cpp	2018-10-25 20:03:09.394456358 +0100
+@@ -7944,9 +7944,6 @@
+   case X86::VMOVUPSZ256mr_NOVLX:
+     return expandNOVLXStore(MIB, &getRegisterInfo(), get(X86::VMOVUPSYmr),
+                             get(X86::VEXTRACTF64x4Zmr), X86::sub_ymm);
+-  case X86::TEST8ri_NOREX:
+-    MI.setDesc(get(X86::TEST8ri));
+-    return true;
+   case X86::MOV32ri64:
+     MI.setDesc(get(X86::MOV32ri));
+     return true;
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86ISelLowering.cpp.orig	2018-10-25 20:02:56.760456961 +0100
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Target/X86/X86ISelLowering.cpp	2018-10-25 20:03:09.391456358 +0100
+@@ -8136,6 +8136,32 @@
+       return LD;
+   }
+ 
++  // If this is a splat of pairs of 32-bit elements, we can use a narrower
++  // build_vector and broadcast it.
++  // TODO: We could probably generalize this more.
++  if (Subtarget.hasAVX2() && EVTBits == 32 && Values.size() == 2) {
++    SDValue Ops[4] = { Op.getOperand(0), Op.getOperand(1),
++                       DAG.getUNDEF(ExtVT), DAG.getUNDEF(ExtVT) };
++    auto CanSplat = [](SDValue Op, unsigned NumElems, ArrayRef<SDValue> Ops) {
++      // Make sure all the even/odd operands match.
++      for (unsigned i = 2; i != NumElems; ++i)
++        if (Ops[i % 2] != Op.getOperand(i))
++          return false;
++      return true;
++    };
++    if (CanSplat(Op, NumElems, Ops)) {
++      MVT WideEltVT = VT.isFloatingPoint() ? MVT::f64 : MVT::i64;
++      MVT NarrowVT = MVT::getVectorVT(ExtVT, 4);
++      // Create a new build vector and cast to v2i64/v2f64.
++      SDValue NewBV = DAG.getBitcast(MVT::getVectorVT(WideEltVT, 2),
++                                     DAG.getBuildVector(NarrowVT, dl, Ops));
++      // Broadcast from v2i64/v2f64 and cast to final VT.
++      MVT BcastVT = MVT::getVectorVT(WideEltVT, NumElems/2);
++      return DAG.getBitcast(VT, DAG.getNode(X86ISD::VBROADCAST, dl, BcastVT,
++                                            NewBV));
++    }
++  }
++
+   // For AVX-length vectors, build the individual 128-bit pieces and use
+   // shuffles to put them in place.
+   if (VT.is256BitVector() || VT.is512BitVector()) {
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Analysis/LoopInfo.cpp.orig	2017-12-01 18:33:58.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Analysis/LoopInfo.cpp	2018-10-25 20:03:01.982456712 +0100
+@@ -222,15 +222,14 @@
+     BasicBlock *H = getHeader();
+     for (BasicBlock *BB : this->blocks()) {
+       TerminatorInst *TI = BB->getTerminator();
+-      MDNode *MD = nullptr;
+ 
+       // Check if this terminator branches to the loop header.
+-      for (BasicBlock *Successor : TI->successors()) {
+-        if (Successor == H) {
+-          MD = TI->getMetadata(LLVMContext::MD_loop);
+-          break;
+-        }
+-      }
++      bool IsPredecessor = any_of(TI->successors(),
++        [=](BasicBlock *Successor) { return Successor == H; });
++      if (!IsPredecessor)
++        continue;
++
++      MDNode *MD = TI->getMetadata(LLVMContext::MD_loop);
+       if (!MD)
+         return nullptr;
+ 
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Analysis/ScalarEvolutionExpander.cpp.orig	2018-10-25 20:03:22.344455740 +0100
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Analysis/ScalarEvolutionExpander.cpp	2018-10-25 20:03:24.396455642 +0100
+@@ -1629,14 +1629,15 @@
+   for (int i = S->getNumOperands()-2; i >= 0; --i) {
+     // In the case of mixed integer and pointer types, do the
+     // rest of the comparisons as integer.
+-    if (S->getOperand(i)->getType() != Ty) {
++    Type *OpTy = S->getOperand(i)->getType();
++    if (OpTy->isIntegerTy() != Ty->isIntegerTy()) {
+       Ty = SE.getEffectiveSCEVType(Ty);
+       LHS = InsertNoopCastOfTo(LHS, Ty);
+     }
+     Value *RHS = expandCodeFor(S->getOperand(i), Ty);
+     Value *ICmp = Builder.CreateICmpSGT(LHS, RHS);
+     rememberInstruction(ICmp);
+-    Value *Sel = Builder.CreateSelect(ICmp, LHS, RHS, "smax");
++    Value *Sel = Builder.CreateSelect(ICmp, LHS, RHS, "smin");
+     rememberInstruction(Sel);
+     LHS = Sel;
+   }
+@@ -1653,13 +1654,64 @@
+   for (int i = S->getNumOperands()-2; i >= 0; --i) {
+     // In the case of mixed integer and pointer types, do the
+     // rest of the comparisons as integer.
+-    if (S->getOperand(i)->getType() != Ty) {
++    Type *OpTy = S->getOperand(i)->getType();
++    if (OpTy->isIntegerTy() != Ty->isIntegerTy()) {
+       Ty = SE.getEffectiveSCEVType(Ty);
+       LHS = InsertNoopCastOfTo(LHS, Ty);
+     }
+     Value *RHS = expandCodeFor(S->getOperand(i), Ty);
+     Value *ICmp = Builder.CreateICmpUGT(LHS, RHS);
+     rememberInstruction(ICmp);
++    Value *Sel = Builder.CreateSelect(ICmp, LHS, RHS, "umin");
++    rememberInstruction(Sel);
++    LHS = Sel;
++  }
++  // In the case of mixed integer and pointer types, cast the
++  // final result back to the pointer type.
++  if (LHS->getType() != S->getType())
++    LHS = InsertNoopCastOfTo(LHS, S->getType());
++  return LHS;
++}
++
++Value *SCEVExpander::visitSMinExpr(const SCEVSMinExpr *S) {
++  Value *LHS = expand(S->getOperand(S->getNumOperands()-1));
++  Type *Ty = LHS->getType();
++  for (int i = S->getNumOperands()-2; i >= 0; --i) {
++    // In the case of mixed integer and pointer types, do the
++    // rest of the comparisons as integer.
++    Type *OpTy = S->getOperand(i)->getType();
++    if (OpTy->isIntegerTy() != Ty->isIntegerTy()) {
++      Ty = SE.getEffectiveSCEVType(Ty);
++      LHS = InsertNoopCastOfTo(LHS, Ty);
++    }
++    Value *RHS = expandCodeFor(S->getOperand(i), Ty);
++    Value *ICmp = Builder.CreateICmpSLT(LHS, RHS);
++    rememberInstruction(ICmp);
++    Value *Sel = Builder.CreateSelect(ICmp, LHS, RHS, "smax");
++    rememberInstruction(Sel);
++    LHS = Sel;
++  }
++  // In the case of mixed integer and pointer types, cast the
++  // final result back to the pointer type.
++  if (LHS->getType() != S->getType())
++    LHS = InsertNoopCastOfTo(LHS, S->getType());
++  return LHS;
++}
++
++Value *SCEVExpander::visitUMinExpr(const SCEVUMinExpr *S) {
++  Value *LHS = expand(S->getOperand(S->getNumOperands()-1));
++  Type *Ty = LHS->getType();
++  for (int i = S->getNumOperands()-2; i >= 0; --i) {
++    // In the case of mixed integer and pointer types, do the
++    // rest of the comparisons as integer.
++    Type *OpTy = S->getOperand(i)->getType();
++    if (OpTy->isIntegerTy() != Ty->isIntegerTy()) {
++      Ty = SE.getEffectiveSCEVType(Ty);
++      LHS = InsertNoopCastOfTo(LHS, Ty);
++    }
++    Value *RHS = expandCodeFor(S->getOperand(i), Ty);
++    Value *ICmp = Builder.CreateICmpULT(LHS, RHS);
++    rememberInstruction(ICmp);
+     Value *Sel = Builder.CreateSelect(ICmp, LHS, RHS, "umax");
+     rememberInstruction(Sel);
+     LHS = Sel;
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/MC/MCObjectFileInfo.cpp.orig	2017-12-13 22:33:58.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/MC/MCObjectFileInfo.cpp	2018-10-25 20:02:42.050457663 +0100
+@@ -289,6 +289,8 @@
+   case Triple::mips64el:
+     FDECFIEncoding = dwarf::DW_EH_PE_sdata8;
+     break;
++  case Triple::aarch64:
++  case Triple::aarch64_be:
+   case Triple::x86_64:
+     FDECFIEncoding = dwarf::DW_EH_PE_pcrel |
+                      (Large ? dwarf::DW_EH_PE_sdata8 : dwarf::DW_EH_PE_sdata4);
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Transforms/Scalar/JumpThreading.cpp.orig	2018-10-25 20:02:44.691457537 +0100
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Transforms/Scalar/JumpThreading.cpp	2018-10-25 20:02:47.674457394 +0100
+@@ -1452,6 +1452,9 @@
+     if (PredToDest.second)
+       DestPopularity[PredToDest.second]++;
+ 
++  if (DestPopularity.empty())
++    return nullptr;
++
+   // Find the most popular dest.
+   DenseMap<BasicBlock*, unsigned>::iterator DPI = DestPopularity.begin();
+   BasicBlock *MostPopularDest = DPI->first;
+@@ -1627,8 +1630,20 @@
+   // threadable destination (the common case) we can avoid this.
+   BasicBlock *MostPopularDest = OnlyDest;
+ 
+-  if (MostPopularDest == MultipleDestSentinel)
++  if (MostPopularDest == MultipleDestSentinel) {
++    // Remove any loop headers from the Dest list, ThreadEdge conservatively
++    // won't process them, but we might have other destination that are eligible
++    // and we still want to process.
++    erase_if(PredToDestList,
++             [&](const std::pair<BasicBlock *, BasicBlock *> &PredToDest) {
++               return LoopHeaders.count(PredToDest.second) != 0;
++             });
++
++    if (PredToDestList.empty())
++      return false;
++
+     MostPopularDest = FindMostPopularDest(BB, PredToDestList);
++  }
+ 
+   // Now that we know what the most popular destination is, factor all
+   // predecessors that will jump to it into a single predecessor.
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Transforms/Utils/LoopUtils.cpp.orig	2018-02-19 15:24:45.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/lib/Transforms/Utils/LoopUtils.cpp	2018-10-25 20:02:42.206457655 +0100
+@@ -513,6 +513,7 @@
+     return InstDesc(Kind == RK_IntegerOr, I);
+   case Instruction::Xor:
+     return InstDesc(Kind == RK_IntegerXor, I);
++  case Instruction::FDiv:
+   case Instruction::FMul:
+     return InstDesc(Kind == RK_FloatMult, I, UAI);
+   case Instruction::FSub:
+--- julia-1.0.1/deps/srccache/llvm-6.0.0/cmake/modules/HandleLLVMOptions.cmake.orig	2017-11-29 18:05:32.000000000 +0000
++++ julia-1.0.1/deps/srccache/llvm-6.0.0/cmake/modules/HandleLLVMOptions.cmake	2018-10-25 20:03:16.894456000 +0100
+@@ -567,7 +567,7 @@
+ 
+   if (LLVM_ENABLE_PEDANTIC AND LLVM_COMPILER_IS_GCC_COMPATIBLE)
+     append("-pedantic" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+-    append("-Wno-long-long" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
++    append("-Wno-long-long -Wundef" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+   endif()
+ 
+   add_flag_if_supported("-Wcovered-switch-default" COVERED_SWITCH_DEFAULT_FLAG)
+--- julia-1.0.1/Makefile.orig	2018-09-29 20:08:15.000000000 +0100
++++ julia-1.0.1/Makefile	2018-10-25 22:52:20.119046751 +0100
+@@ -313,7 +313,7 @@
+ $(eval $(call std_dll,atomic-1))
+ endif
+ define stringreplace
+-	$(build_depsbindir)/stringreplace $$(strings -t x - $1 | grep '$2' | awk '{print $$1;}') '$3' 255 "$(call cygpath_w,$1)"
++	$(build_depsbindir)/stringreplace $$(strings-GNU -t x - $1 | grep '$2' | awk '{print $$1;}') '$3' 255 "$(call cygpath_w,$1)"
+ endef
+ 
+ install: $(build_depsbindir)/stringreplace $(BUILDROOT)/doc/_build/html/en/index.html
