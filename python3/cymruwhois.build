@@ -2,18 +2,20 @@
 #
 . build_funcs
 
-TARNAME=mkvtoolnix
+TARNAME=cymruwhois
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=28.2.0
+VERSION=1.6
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="https://pythonhosted.org/cymruwhois/"
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=cymruwhois-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -53,30 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#export WX_CONFIG="/usr/bin/wx-config --version=2.8"
-export WX_CONFIG=/usr/lib/wx/config/gtk2-unicode-release-2.8
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-qt
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#            --with-boost-system=boost_system-mt \
-#            --with-boost-filesystem=boost_filesystem-mt \
-#            --with-boost-regex=boost_regex-mt
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-rake || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,9 +89,10 @@ then
   exit
 fi
 
-rake install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+python3 setup.py install --root=${PKG}
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -101,10 +107,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "tools for Matroska files"
-MKVToolnix is a set of tools to create, alter and inspect Matroska 
-files under Linux, other Unices and Windows. They do for Matroska 
-what the OGMtools do for the OGM format and then some.
+make_slack_desc << EOF "cymruwhois is a python library for interfacing with the whois.cymru.com service"
+cymruwhois is a python library for interfacing with the 
+whois.cymru.com service.
 
 EOF
 
