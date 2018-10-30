@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libgee
+TARNAME=birdfont
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnome
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.20.1
+VERSION=2.23.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://birdfont.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -59,28 +59,38 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+./configure --prefix=/usr
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+#  make ${NUM_JOBS} || exit
+ ./build.py
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,7 +98,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+#  make install DESTDIR=${PKG}
+  ./install.py -d ${PKG} -n /man -l /lib${LIBDIRSUFFIX}
+fi
 
 strip_binaries
 
@@ -105,9 +121,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a collection library providing GObject-based interfaces and classes"
-Libgee is a collection library providing GObject-based interfaces and 
-classes for commonly used data structures. 
+make_slack_desc << EOF "Birdfont is a free font editor"
+Birdfont is a free font editor which lets you create vector graphics 
+and export TTF, OTF, EOT and SVG fonts.
 
 EOF
 
