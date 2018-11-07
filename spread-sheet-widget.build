@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pspp
+TARNAME=spread-sheet-widget
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnu/pspp
+TARDIR=~/tmp/gnu/ssw
 #TAR_EXT=.tar.gz
-VERSION=1.2.0
+VERSION=0.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.gnu.org/software/pspp/"
+WEBPAGE="https://www.gnu.org/software/ssw/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -78,13 +78,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +100,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -109,10 +122,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GNU PSPP is a program for statistical analysis of sampled data"
-GNU PSPP is a program for statistical analysis of sampled data. It is 
-a Free replacement for the proprietary program SPSS, and appears very 
-similar to it with a few exceptions.
+make_slack_desc << EOF "GNU Spread Sheet Widget"
+GNU Spread Sheet Widget is a library for Gtk+ which provides a widget 
+for viewing and manipulating 2 dimensional tabular data in a manner 
+similar to many popular spread sheet programs.
+
+The design follows the model-view-controller paradigm and is of 
+complexity O(1) in both time and space. This means that it is 
+efficient and fast even for very large data.
+
+Features commonly found in graphical user interfaces such as cut and 
+paste, drag and drop and row/column labelling are also included.
 
 EOF
 
