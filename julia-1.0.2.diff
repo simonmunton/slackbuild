@@ -1,0 +1,89 @@
+--- julia-1.0.2/Make.inc.orig   2018-11-10 09:59:00.417086641 +0000
++++ julia-1.0.2/Make.inc        2018-11-10 10:33:46.784987094 +0000
+@@ -181,7 +181,7 @@
+ # Directories where said libraries get installed to
+ prefix ?= $(BUILDROOT)/julia-$(JULIA_COMMIT)
+ bindir := $(prefix)/bin
+-libdir := $(prefix)/lib
++libdir := $(prefix)/lib64
+ libexecdir := $(prefix)/libexec
+ datarootdir := $(prefix)/share
+ docdir := $(datarootdir)/doc/julia
+--- julia-1.0.2/Make.inc.orig	2018-11-08 20:15:38.000000000 +0000
++++ julia-1.0.2/Make.inc	2018-11-10 08:51:26.126571154 +0000
+@@ -195,7 +195,7 @@
+ build_staging := $(build_prefix)-staging
+ build_bindir := $(build_prefix)/bin
+ build_depsbindir := $(build_prefix)/tools
+-build_libdir := $(build_prefix)/lib
++build_libdir := $(build_prefix)/lib64
+ build_libexecdir := $(build_prefix)/libexec
+ build_datarootdir := $(build_prefix)/share
+ build_mandir := $(build_datarootdir)/man
+--- julia-1.0.2/Make.inc.orig   2018-11-10 10:35:01.631983523 +0000
++++ julia-1.0.2/Make.inc        2018-11-10 11:11:51.963401341 +0000
+@@ -261,8 +261,8 @@
+ # the user may have unwittingly set.  To pass PKG_CONFIG_* variables
+ # through to the buildsystem, these must be set either on the command
+ # line, or through `override` directives within Make.user
+-export PKG_CONFIG_PATH = $(JULIAHOME)/usr/lib/pkgconfig
+-export PKG_CONFIG_LIBDIR = $(JULIAHOME)/usr/lib/pkgconfig
++export PKG_CONFIG_PATH = $(JULIAHOME)/usr/lib64/pkgconfig
++export PKG_CONFIG_LIBDIR = $(JULIAHOME)/usr/lib64/pkgconfig
+
+ # Figure out OS and architecture
+ BUILD_OS := $(shell uname)
+ 
+--- julia-1.0.2/deps/libssh2.mk.orig	2018-11-11 08:35:56.272504687 +0000
++++ julia-1.0.2/deps/libssh2.mk	2018-11-11 08:35:36.473505631 +0000
+@@ -28,7 +28,11 @@
+ LIBSSH2_OPTS += -DBUILD_TESTING=OFF
+ endif
+ 
+-$(SRCCACHE)/$(LIBSSH2_SRC_DIR)/libssh2-encryptedpem.patch-applied: $(SRCCACHE)/$(LIBSSH2_SRC_DIR)/source-extracted
++$(SRCCACHE)/$(LIBSSH2_SRC_DIR)/libssh2-lib64.patch-applied: $(SRCCACHE)/$(LIBSSH2_SRC_DIR)/source-extracted
++	cd $(SRCCACHE)/$(LIBSSH2_SRC_DIR) && patch -p1 -f < $(SRCDIR)/patches/libssh2-lib64.patch
++	echo 1 > $@
++
++$(SRCCACHE)/$(LIBSSH2_SRC_DIR)/libssh2-encryptedpem.patch-applied: $(SRCCACHE)/$(LIBSSH2_SRC_DIR)/source-extracted $(SRCCACHE)/$(LIBSSH2_SRC_DIR)/libssh2-lib64.patch-applied
+ 	cd $(SRCCACHE)/$(LIBSSH2_SRC_DIR) && patch -p1 -f < $(SRCDIR)/patches/libssh2-encryptedpem.patch
+ 	echo 1 > $@
+ 
+--- julia-1.0.2/deps/patches/libssh2-lib64.patch.orig	2018-11-11 08:33:13.998512429 +0000
++++ julia-1.0.2/deps/patches/libssh2-lib64.patch	2018-11-10 13:50:48.553613306 +0000
+@@ -0,0 +1,17 @@
++--- libssh2-30e9c1347e3b8baa2951db612f05e6d87fc8e2f2/src/CMakeLists.txt.orig	2018-11-10 13:46:24.534355529 +0000
+++++ libssh2-30e9c1347e3b8baa2951db612f05e6d87fc8e2f2/src/CMakeLists.txt	2018-11-10 13:49:39.249616613 +0000
++@@ -390,7 +390,7 @@
++ ## During package installation, install Libssh2Config.cmake
++ install(EXPORT Libssh2Config
++   NAMESPACE Libssh2::
++-  DESTINATION lib/cmake/libssh2)
+++  DESTINATION lib64/cmake/libssh2)
++ 
++ ## During build, register directly from build tree
++ # create Libssh2Config.cmake
++@@ -422,4 +422,4 @@
++   COMPATIBILITY SameMajorVersion)
++ install(
++   FILES ${CMAKE_CURRENT_BINARY_DIR}/Libssh2ConfigVersion.cmake
++-  DESTINATION lib/cmake/libssh2)
+++  DESTINATION lib64/cmake/libssh2)
+--- julia-1.0.2/deps/llvm.mk.orig	2018-09-29 20:08:15.000000000 +0100
++++ julia-1.0.2/deps/llvm.mk	2018-11-11 10:39:46.469343332 +0000
+@@ -65,7 +65,7 @@
+ LLVM_CPPFLAGS += $(CPPFLAGS)
+ LLVM_LDFLAGS += $(LDFLAGS)
+ LLVM_CMAKE += -DLLVM_TARGETS_TO_BUILD:STRING="$(LLVM_TARGETS)" -DCMAKE_BUILD_TYPE="$(LLVM_CMAKE_BUILDTYPE)"
+-LLVM_CMAKE += -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_LIBXML2=OFF
++LLVM_CMAKE += -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_LIBDIR_SUFFIX="$(LLVM_LIBDIR_SUFFIX)"
+ ifeq ($(USE_POLLY_ACC),1)
+ LLVM_CMAKE += -DPOLLY_ENABLE_GPGPU_CODEGEN=ON
+ endif
+--- julia-1.0.2/deps/llvm-options.mk.orig	2018-07-13 23:23:03.000000000 +0100
++++ julia-1.0.2/deps/llvm-options.mk	2018-11-11 10:37:13.500350630 +0000
+@@ -23,3 +23,4 @@
+ LLVM_SRC_DIR:=$(SRCCACHE)/llvm-$(LLVM_VER)
+ LLVM_BUILD_DIR:=$(BUILDDIR)/llvm-$(LLVM_VER)
+ LLVM_BUILDDIR_withtype := $(LLVM_BUILD_DIR)/build_$(LLVM_BUILDTYPE)
++LLVM_LIBDIR_SUFFIX := 64
