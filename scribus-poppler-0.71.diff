@@ -1,0 +1,317 @@
+--- scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp.orig	2017-12-21 23:32:37.000000000 +0000
++++ scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp	2018-11-14 15:08:55.618045479 +0000
+@@ -461,7 +461,7 @@
+ 				GBool useMediaBox = gTrue;
+ 				GBool crop = gTrue;
+ 				GBool printing = gFalse;
+-				PDFRectangle *mediaBox = pdfDoc->getPage(1)->getMediaBox();
++				const PDFRectangle *mediaBox = pdfDoc->getPage(1)->getMediaBox();
+ 				QRectF mediaRect = QRectF(QPointF(mediaBox->x1, mediaBox->y1), QPointF(mediaBox->x2, mediaBox->y2)).normalized();
+ 				bool boxesAreDifferent = false;
+ 				if (getCBox(Crop_Box, 1) != mediaRect)
+@@ -535,7 +535,7 @@
+ 									if (orderItem.isDict())
+ 									{
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 58, 0)
+-										Object ref = order->getNF(i);		
++										Object ref = order->getNF(i);
+ #else
+ 										Object ref;
+ 										order->getNF(i, &ref);
+@@ -556,12 +556,10 @@
+ 									}
+ 									else
+ 									{
+-										GooList *ocgs;
+-										int i;
+-										ocgs = ocg->getOCGs ();
+-										for (i = 0; i < ocgs->getLength (); ++i)
++										const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++										for (auto &n : ocgs)
+ 										{
+-											OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++											OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 											QString ocgName = UnicodeParsedString(oc->getName());
+ 											if (!ocgNames.contains(ocgName))
+ 											{
+@@ -574,12 +572,10 @@
+ 							}
+ 							else
+ 							{
+-								GooList *ocgs;
+-								int i;
+-								ocgs = ocg->getOCGs ();
+-								for (i = 0; i < ocgs->getLength (); ++i)
++								const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++								for (auto &n : ocgs)
+ 								{
+-									OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++									OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 									QString ocgName = UnicodeParsedString(oc->getName());
+ 									if (!ocgNames.contains(ocgName))
+ 									{
+@@ -1008,7 +1004,7 @@
+ {
+ 	if (!m_pdfDoc)
+ 		return QImage();
+-	
++
+ 	double h = m_pdfDoc->getPageMediaHeight(pgNum);
+ 	double w = m_pdfDoc->getPageMediaWidth(pgNum);
+ 	double scale = qMin(height / h, width / w);
+@@ -1066,7 +1062,7 @@
+ 
+ QRectF PdfPlug::getCBox(int box, int pgNum)
+ {
+-	PDFRectangle *cBox = NULL;
++	const PDFRectangle *cBox = NULL;
+ 	if (box == Media_Box)
+ 		cBox = m_pdfDoc->getPage(pgNum)->getMediaBox();
+ 	else if (box == Bleed_Box)
+@@ -1081,7 +1077,7 @@
+ 	return cRect;
+ }
+ 
+-QString PdfPlug::UnicodeParsedString(GooString *s1)
++QString PdfPlug::UnicodeParsedString(const GooString *s1)
+ {
+ 	if ( !s1 || s1->getLength() == 0 )
+ 		return QString();
+--- scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.cpp.orig	2018-04-29 18:48:09.773874431 +0100
++++ scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.cpp	2018-11-14 15:20:03.895013593 +0000
+@@ -189,7 +189,7 @@
+ 	m_itemText = s->copy();
+ }
+ 
+-QString AnoOutputDev::getColor(GfxColorSpace *color_space, GfxColor *color, int *shade)
++QString AnoOutputDev::getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+@@ -1604,7 +1604,7 @@
+ void SlaOutputDev::clip(GfxState *state)
+ {
+ //	qDebug() << "Clip";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QString output = convertPath(state->getPath());
+@@ -1641,7 +1641,7 @@
+ void SlaOutputDev::eoClip(GfxState *state)
+ {
+ //	qDebug() << "EoClip";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QString output = convertPath(state->getPath());
+@@ -1678,7 +1678,7 @@
+ void SlaOutputDev::stroke(GfxState *state)
+ {
+ //	qDebug() << "Stroke";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1770,7 +1770,7 @@
+ void SlaOutputDev::fill(GfxState *state)
+ {
+ //	qDebug() << "Fill";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1815,7 +1815,7 @@
+ void SlaOutputDev::eoFill(GfxState *state)
+ {
+ //	qDebug() << "EoFill";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1864,14 +1864,14 @@
+ 	double GrEndX;
+ 	double GrEndY;
+ 	int shade = 100;
+-	Function *func = shading->getFunc(0);
++	const Function *func = shading->getFunc(0);
+ 	VGradient FillGradient = VGradient(VGradient::linear);
+ 	FillGradient.clearStops();
+ 	GfxColorSpace *color_space = shading->getColorSpace();
+ 	if (func->getType() == 3)
+ 	{
+ 		StitchingFunction *stitchingFunc = (StitchingFunction*)func;
+-		double *bounds = stitchingFunc->getBounds();
++		const double *bounds = stitchingFunc->getBounds();
+ 		int num_funcs = stitchingFunc->getNumFuncs();
+ 		// Add stops from all the stitched functions
+ 		for ( int i = 0 ; i < num_funcs ; i++ )
+@@ -1905,7 +1905,7 @@
+ 	state->getClipBBox(&xmin, &ymin, &xmax, &ymax);
+ 	QRectF crect = QRectF(QPointF(xmin, ymin), QPointF(xmax, ymax));
+ 	crect = crect.normalized();
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	FPointArray gr;
+@@ -1975,14 +1975,14 @@
+ 	double GrEndX;
+ 	double GrEndY;
+ 	int shade = 100;
+-	Function *func = shading->getFunc(0);
++	const Function *func = shading->getFunc(0);
+ 	VGradient FillGradient = VGradient(VGradient::linear);
+ 	FillGradient.clearStops();
+ 	GfxColorSpace *color_space = shading->getColorSpace();
+ 	if (func->getType() == 3)
+ 	{
+ 		StitchingFunction *stitchingFunc = (StitchingFunction*)func;
+-		double *bounds = stitchingFunc->getBounds();
++		const double *bounds = stitchingFunc->getBounds();
+ 		int num_funcs = stitchingFunc->getNumFuncs();
+ 		// Add stops from all the stitched functions
+ 		for ( int i = 0 ; i < num_funcs ; i++ )
+@@ -2021,7 +2021,7 @@
+ 	double GrFocalY = y1;
+ 	GrEndX = GrFocalX + r1;
+ 	GrEndY = GrFocalY;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	FPointArray gr;
+@@ -2104,7 +2104,7 @@
+ 	output += QString("Z");
+ 	pathIsClosed = true;
+ 	Coords = output;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	int z = m_doc->itemAdd(PageItem::Polygon, PageItem::Rectangle, xCoor + crect.x(), yCoor + crect.y(), crect.width(), crect.height(), 0, CurrColorFill, CommonStrings::None);
+@@ -2185,7 +2185,7 @@
+ 	output += QString("Z");
+ 	pathIsClosed = true;
+ 	Coords = output;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	int z = m_doc->itemAdd(PageItem::Polygon, PageItem::Rectangle, xCoor + crect.x(), yCoor + crect.y(), crect.width(), crect.height(), 0, CurrColorFill, CommonStrings::None);
+@@ -2211,7 +2211,7 @@
+ 	for (int i = 0; i < shading->getNPatches(); i++)
+ 	{
+ 		int shade = 100;
+-		GfxPatch *patch = shading->getPatch(i);
++		const GfxPatch *patch = shading->getPatch(i);
+ 		GfxColor color;
+ 		meshGradientPatch patchM;
+ 		int u, v;
+@@ -2339,7 +2339,7 @@
+ 	box.y1 = bbox[1];
+ 	box.x2 = bbox[2];
+ 	box.y2 = bbox[3];
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QTransform mm = QTransform(mat[0], mat[1], mat[2], mat[3], mat[4], mat[5]);
+@@ -2512,7 +2512,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2658,7 +2658,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2808,7 +2808,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2973,7 +2973,7 @@
+ 		delete image;
+ 		return;
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -3326,7 +3326,7 @@
+ 	char *tmpBuf;
+ 	int tmpBufLen = 0;
+ 	int *codeToGID;
+-	double *textMat;
++	const double *textMat;
+ 	double m11, m12, m21, m22, fontSize;
+ 	SplashCoord mat[4];
+ 	int n = 0;
+@@ -3793,7 +3793,7 @@
+ 				if (f & splashPathLast)
+ 					qPath.closeSubpath();
+ 			}
+-			double *ctm;
++			const double *ctm;
+ 			ctm = state->getCTM();
+ 			m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 			double xCoor = m_doc->currentPage()->xOffset();
+@@ -3948,7 +3948,7 @@
+ 	}
+ }
+ 
+-QString SlaOutputDev::getColor(GfxColorSpace *color_space, GfxColor *color, int *shade)
++QString SlaOutputDev::getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+--- scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.h.orig	2018-04-29 18:48:09.774873931 +0100
++++ scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.h	2018-11-14 15:19:24.880015455 +0000
+@@ -49,6 +49,10 @@
+ #include <poppler/splash/SplashPath.h>
+ #include <poppler/splash/SplashGlyphBitmap.h>
+ 
++typedef bool GBool;
++#define gTrue true
++#define gFalse false
++
+ //------------------------------------------------------------------------
+ // LinkSubmitData
+ //------------------------------------------------------------------------
+@@ -135,7 +139,7 @@
+ 	GooString *m_fontName;
+ 	GooString *m_itemText;
+ private:
+-	QString getColor(GfxColorSpace *color_space, GfxColor *color, int *shade);
++	QString getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade);
+ 	ScribusDoc* m_doc;
+ 	QStringList *m_importedColors;
+ };
+@@ -260,7 +264,7 @@
+ 
+ private:
+ 	void getPenState(GfxState *state);
+-	QString getColor(GfxColorSpace *color_space, GfxColor *color, int *shade);
++	QString getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade);
+ 	QString getAnnotationColor(const AnnotColor *color);
+ 	QString convertPath(GfxPath *path);
+ 	int getBlendMode(GfxState *state);
