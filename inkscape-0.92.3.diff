@@ -1,5 +1,14 @@
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-input.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-input.cpp	2018-10-22 14:02:16.069901741 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-input.cpp	2018-12-06 20:22:46.224179215 +0000
+@@ -319,7 +319,7 @@
+     _render_thumb = true;
+ 
+     // Create PopplerDocument
+-    Glib::ustring filename = _pdf_doc->getFileName()->getCString();
++    Glib::ustring filename = _pdf_doc->getFileName()->c_str();
+     if (!Glib::path_is_absolute(filename)) {
+         filename = Glib::build_filename(Glib::get_current_dir(),filename);
+     }
 @@ -793,7 +793,7 @@
              dlg->getImportSettings(prefs);
  
@@ -10,7 +19,7 @@
          sp_repr_get_double(prefs, "cropTo", &crop_setting);
  
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-10-22 14:11:44.240874632 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.cpp	2018-12-06 20:23:58.964175744 +0000
 @@ -38,7 +38,6 @@
  
  #include "goo/gmem.h"
@@ -96,6 +105,17 @@
    GfxPatch patch00 = blankPatch();
    GfxPatch patch01 = blankPatch();
    GfxPatch patch10 = blankPatch();
+@@ -2381,8 +2381,8 @@
+   }
+   if (printCommands) {
+     printf("  font: tag=%s name='%s' %g\n",
+-	   font->getTag()->getCString(),
+-	   font->getName() ? font->getName()->getCString() : "???",
++	   font->getTag()->c_str(),
++	   font->getName() ? font->getName()->c_str() : "???",
+ 	   args[1].getNum());
+     fflush(stdout);
+   }
 @@ -2582,7 +2582,7 @@
    }
  }
@@ -119,6 +139,24 @@
    int len, n, uLen;
  
    font = state->getFont();
+@@ -2631,7 +2631,7 @@
+     double lineX = state->getLineX();
+     double lineY = state->getLineY();
+     oldParser = parser;
+-    p = s->getCString();
++    p = s->c_str();
+     len = s->getLength();
+     while (len > 0) {
+       n = font->getNextChar(p, len, &code,
+@@ -2686,7 +2686,7 @@
+ 
+   } else {
+     state->textTransformDelta(0, state->getRise(), &riseX, &riseY);
+-    p = s->getCString();
++    p = s->c_str();
+     len = s->getLength();
+     while (len > 0) {
+       n = font->getNextChar(p, len, &code,
 @@ -2732,7 +2732,7 @@
  {
    Object obj1, obj2, obj3, refObj;
@@ -138,7 +176,7 @@
      obj = parser->getObj();
  #else
 --- inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-10-22 14:17:44.982857420 +0100
++++ inkscape-0.92.3/src/extension/internal/pdfinput/svg-builder.cpp	2018-12-06 20:24:22.104174640 +0000
 @@ -625,7 +625,7 @@
      if ( pattern != NULL ) {
          if ( pattern->getType() == 2 ) {  // Shading pattern
@@ -206,6 +244,15 @@
                  if (expE > 1.0) {
                      expE = (bounds[i + 1] - bounds[i])/expE;    // approximate exponential as a single straight line at x=1
                      if (encode[2*i] == 0) {    // normal sequence
+@@ -1020,7 +1020,7 @@
+     GfxFont *font = state->getFont();
+     // Store original name
+     if (font->getName()) {
+-        _font_specification = font->getName()->getCString();
++        _font_specification = font->getName()->c_str();
+     } else {
+         _font_specification = (char*) "Arial";
+     }
 @@ -1030,7 +1030,7 @@
      char *font_family = NULL;
      char *font_style = NULL;
@@ -215,6 +262,15 @@
      if (plus_sign) {
          font_family = g_strdup(plus_sign + 1);
          _font_specification = plus_sign + 1;
+@@ -1047,7 +1047,7 @@
+ 
+     // Font family
+     if (font->getFamily()) { // if font family is explicitly given use it.
+-        sp_repr_css_set_property(_font_style, "font-family", font->getFamily()->getCString());
++        sp_repr_css_set_property(_font_style, "font-family", font->getFamily()->c_str());
+     } else { 
+         int attr_value = 1;
+         sp_repr_get_int(_preferences, "localFonts", &attr_value);
 @@ -1148,7 +1148,7 @@
      Inkscape::CSSOStringStream os_font_size;
      double css_font_size = _font_scaling * state->getFontSize();
@@ -243,8 +299,19 @@
          updateFont(state);
      }
 --- inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h.orig	2018-03-11 20:38:09.000000000 +0000
-+++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h	2018-10-22 14:10:47.742877328 +0100
-@@ -127,11 +127,11 @@
++++ inkscape-0.92.3/src/extension/internal/pdfinput/pdf-parser.h	2018-11-01 19:50:48.805127315 +0000
+@@ -28,6 +28,10 @@
+ #include "goo/gtypes.h"
+ #include "Object.h"
+ 
++typedef bool GBool;
++#define gTrue true
++#define gFalse false
++
+ class GooString;
+ class XRef;
+ class Array;
+@@ -127,11 +131,11 @@
  
    // Constructor for regular output.
    PdfParser(XRef *xrefA, SvgBuilder *builderA, int pageNum, int rotate,
@@ -258,7 +325,7 @@
  
    virtual ~PdfParser();
  
-@@ -185,7 +185,7 @@
+@@ -185,7 +189,7 @@
  
    void go(GBool topLevel);
    void execOp(Object *cmd, Object args[], int numArgs);
@@ -267,7 +334,7 @@
    GBool checkArg(Object *arg, TchkType type);
    int getPos();
  
-@@ -256,7 +256,7 @@
+@@ -256,7 +260,7 @@
  			   double x2, double y2, GfxColor *color2,
  			   int nComps, int depth);
    void doPatchMeshShFill(GfxPatchMeshShading *shading);
@@ -276,7 +343,7 @@
    void doEndPath();
  
    // path clipping operators
-@@ -287,7 +287,7 @@
+@@ -287,7 +291,7 @@
    void opMoveShowText(Object args[], int numArgs);
    void opMoveSetShowText(Object args[], int numArgs);
    void opShowSpaceText(Object args[], int numArgs);
