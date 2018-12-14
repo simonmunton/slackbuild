@@ -3,15 +3,15 @@
 . build_funcs
 
 TARNAME=wxmaxima
-TARNAMEEXTRA=
+TARNAMEEXTRA=-Version
 TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=15.04.0
+VERSION=18.11.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://wxmaxima.sourceforge.net/"
+WEBPAGE="https://wxmaxima-developers.github.io/wxmaxima/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,23 +55,47 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export WX_CONFIG="/usr/bin/wx-config --version=2.8"
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-wx-config=/usr/lib${LIBDIRSUFFIX}/wx/config/gtk2-unicode-3.0
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,9 +103,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
-#strip_binaries
+cd ..
+
+strip_binaries
 
 fix_links
 
@@ -97,7 +128,7 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "wxWidgets interface for maxima"
-wxMaxima is a wxWidgets interface for the computer algebra system 
+wxMaxima is a wxWidgets interface for the computer algebra system
 Maxima.
 
 EOF
