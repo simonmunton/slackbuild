@@ -1,0 +1,208 @@
+--- pyexiv2-0.3.2/src/exiv2wrapper.hpp.orig	2011-10-24 18:06:02.000000000 +0100
++++ pyexiv2-0.3.2/src/exiv2wrapper.hpp	2018-12-21 09:18:32.604815325 +0000
+@@ -30,6 +30,7 @@
+ 
+ #include "exiv2/image.hpp"
+ #include "exiv2/preview.hpp"
++#include "exiv2/version.hpp"
+ 
+ #include "boost/python.hpp"
+ 
+--- pyexiv2-0.3.2/src/exiv2wrapper.cpp.orig	2011-10-24 18:06:02.000000000 +0100
++++ pyexiv2-0.3.2/src/exiv2wrapper.cpp	2018-12-21 09:33:59.901771081 +0000
+@@ -40,7 +40,7 @@
+ 
+ // Custom macros
+ #define CHECK_METADATA_READ \
+-    if (!_dataRead) throw Exiv2::Error(METADATA_NOT_READ);
++    if (!_dataRead) throw Exiv2::Error(Exiv2::ErrorCode(METADATA_NOT_READ));
+ 
+ namespace exiv2wrapper
+ {
+@@ -51,7 +51,7 @@
+ 
+     // If an exception is thrown, it has to be done outside of the
+     // Py_{BEGIN,END}_ALLOW_THREADS block.
+-    Exiv2::Error error(0);
++    Exiv2::Error error(Exiv2::ErrorCode(0));
+ 
+     // Release the GIL to allow other python threads to run
+     // while opening the file.
+@@ -132,7 +132,7 @@
+ {
+     // If an exception is thrown, it has to be done outside of the
+     // Py_{BEGIN,END}_ALLOW_THREADS block.
+-    Exiv2::Error error(0);
++    Exiv2::Error error(Exiv2::ErrorCode(0));
+ 
+     // Release the GIL to allow other python threads to run
+     // while reading metadata.
+@@ -166,7 +166,7 @@
+ 
+     // If an exception is thrown, it has to be done outside of the
+     // Py_{BEGIN,END}_ALLOW_THREADS block.
+-    Exiv2::Error error(0);
++    Exiv2::Error error(Exiv2::ErrorCode(0));
+ 
+     // Release the GIL to allow other python threads to run
+     // while writing metadata.
+@@ -230,7 +230,7 @@
+ 
+     if(_exifData->findKey(exifKey) == _exifData->end())
+     {
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+     }
+ 
+     return ExifTag(key, &(*_exifData)[key], _exifData, _image->byteOrder());
+@@ -244,7 +244,7 @@
+     Exiv2::ExifMetadata::iterator datum = _exifData->findKey(exifKey);
+     if(datum == _exifData->end())
+     {
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+     }
+ 
+     _exifData->erase(datum);
+@@ -277,7 +277,7 @@
+ 
+     if(_iptcData->findKey(iptcKey) == _iptcData->end())
+     {
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+     }
+ 
+     return IptcTag(key, _iptcData);
+@@ -292,7 +292,7 @@
+ 
+     if (dataIterator == _iptcData->end())
+     {
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+     }
+ 
+     while (dataIterator != _iptcData->end())
+@@ -330,7 +330,7 @@
+ 
+     if(_xmpData->findKey(xmpKey) == _xmpData->end())
+     {
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+     }
+ 
+     return XmpTag(key, &(*_xmpData)[key]);
+@@ -347,7 +347,7 @@
+         _xmpData->erase(i);
+     }
+     else
+-        throw Exiv2::Error(KEY_NOT_FOUND, key);
++        throw Exiv2::Error(Exiv2::ErrorCode(KEY_NOT_FOUND), key);
+ }
+ 
+ const std::string Image::getComment() const
+@@ -389,7 +389,7 @@
+ void Image::copyMetadata(Image& other, bool exif, bool iptc, bool xmp) const
+ {
+     CHECK_METADATA_READ
+-    if (!other._dataRead) throw Exiv2::Error(METADATA_NOT_READ);
++    if (!other._dataRead) throw Exiv2::Error(Exiv2::ErrorCode(METADATA_NOT_READ));
+ 
+     if (exif)
+         other._image->setExifData(*_exifData);
+@@ -601,7 +601,7 @@
+     int result = _datum->setValue(value);
+     if (result != 0)
+     {
+-        throw Exiv2::Error(INVALID_VALUE);
++        throw Exiv2::Error(Exiv2::ErrorCode(INVALID_VALUE));
+     }
+ }
+ 
+@@ -715,7 +715,7 @@
+                 ++nb_values;
+                 if (!_repeatable && (nb_values > 1))
+                 {
+-                    throw Exiv2::Error(NON_REPEATABLE);
++                    throw Exiv2::Error(Exiv2::ErrorCode(NON_REPEATABLE));
+                 }
+             }
+         }
+@@ -736,7 +736,7 @@
+     {
+         // The tag is not repeatable but we are trying to assign it more than
+         // one value.
+-        throw Exiv2::Error(NON_REPEATABLE);
++        throw Exiv2::Error(Exiv2::ErrorCode(NON_REPEATABLE));
+     }
+ 
+     unsigned int index = 0;
+@@ -751,7 +751,7 @@
+             int result = iterator->setValue(value);
+             if (result != 0)
+             {
+-                throw Exiv2::Error(INVALID_VALUE);
++                throw Exiv2::Error(Exiv2::ErrorCode(INVALID_VALUE));
+             }
+             // Jump to the next datum matching the key
+             ++iterator;
+@@ -767,12 +767,12 @@
+             int result = datum.setValue(value);
+             if (result != 0)
+             {
+-                throw Exiv2::Error(INVALID_VALUE);
++                throw Exiv2::Error(Exiv2::ErrorCode(INVALID_VALUE));
+             }
+             int state = _data->add(datum);
+             if (state == 6)
+             {
+-                throw Exiv2::Error(NON_REPEATABLE);
++                throw Exiv2::Error(Exiv2::ErrorCode(NON_REPEATABLE));
+             }
+             // Reset iterator that has been invalidated by appending a datum
+             iterator = _data->end();
+@@ -1030,6 +1030,7 @@
+ 
+ const boost::python::list XmpTag::getArrayValue()
+ {
++#if 0
+     std::vector<std::string> value =
+         dynamic_cast<const Exiv2::XmpArrayValue*>(&_datum->value())->value_;
+     boost::python::list rvalue;
+@@ -1039,6 +1040,14 @@
+         rvalue.append(*i);
+     }
+     return rvalue;
++#else
++    boost::python::list rvalue;
++    for(long i = 0; i < (&_datum->value())->count(); i++)
++    {
++        rvalue.append((&_datum->value())->toString(i));
++    }
++
++#endif
+ }
+ 
+ const boost::python::dict XmpTag::getLangAltValue()
+@@ -1371,7 +1380,7 @@
+         Exiv2::XmpProperties::registerNs(name, prefix);
+         return;
+     }
+-    throw Exiv2::Error(EXISTING_PREFIX, prefix);
++    throw Exiv2::Error(Exiv2::ErrorCode(EXISTING_PREFIX), prefix);
+ }
+ 
+ void unregisterXmpNs(const std::string& name)
+@@ -1390,11 +1399,11 @@
+             return;
+         }
+         // The namespace hasn’t been unregistered because it’s builtin.
+-        throw Exiv2::Error(BUILTIN_NS, name);
++        throw Exiv2::Error(Exiv2::ErrorCode(BUILTIN_NS), name);
+     }
+     else
+     {
+-        throw Exiv2::Error(NOT_REGISTERED, name);
++        throw Exiv2::Error(Exiv2::ErrorCode(NOT_REGISTERED), name);
+     } 
+ }
+ 

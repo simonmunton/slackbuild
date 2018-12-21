@@ -1,0 +1,54 @@
+--- digikam-5.9.0/core/libs/dmetadata/metaengine_exif.cpp.orig	2018-03-19 09:41:58.000000000 +0000
++++ digikam-5.9.0/core/libs/dmetadata/metaengine_exif.cpp	2018-12-21 10:24:29.416852167 +0000
+@@ -1007,7 +1007,7 @@
+ 
+         if (pos == d->exifMetadata().end() || pos->count() != 1 || pos->toLong() != 0)
+         {
+-            throw Exiv2::Error(1, "Exif.Image.NewSubfileType missing or not set as main image");
++            throw Exiv2::Error(Exiv2::kerErrorMessage, "Exif.Image.NewSubfileType missing or not set as main image");
+         }
+ 
+         // Remove sub-IFD tags
+--- digikam-5.9.0/core/libs/dmetadata/metaengine.cpp.orig	2018-03-19 09:41:58.000000000 +0000
++++ digikam-5.9.0/core/libs/dmetadata/metaengine.cpp	2018-12-21 10:21:59.514859319 +0000
+@@ -31,6 +31,8 @@
+ #include "metaengine.h"
+ #include "metaengine_p.h"
+ 
++#include <exiv2/version.hpp>
++
+ // Local includes
+ 
+ #include "digikam_debug.h"
+--- digikam-5.9.0/core/libs/dmetadata/metaengine_p.cpp.orig	2018-03-19 09:41:58.000000000 +0000
++++ digikam-5.9.0/core/libs/dmetadata/metaengine_p.cpp	2018-12-21 10:22:36.147857571 +0000
+@@ -25,6 +25,8 @@
+ 
+ #include "metaengine_p.h"
+ 
++#include <exiv2/version.hpp>
++
+ // C ANSI includes
+ 
+ extern "C"
+--- digikam-5.9.0/core/cmake/modules/FindExiv2.cmake.orig	2018-03-19 09:41:56.000000000 +0000
++++ digikam-5.9.0/core/cmake/modules/FindExiv2.cmake	2018-12-21 09:12:46.917831818 +0000
+@@ -64,6 +64,18 @@
+   string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
+   set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
+ 
++  if(EXIV2_VERSION_MAJOR STREQUAL "")
++    file(READ ${EXIV2_INCLUDE_DIR}/exiv2/exv_conf.h EXIV2_VERSION_CONTENT)
++    string(REGEX MATCH "#define EXIV2_MAJOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MAJOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_MINOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MINOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
++  endif(EXIV2_VERSION_MAJOR STREQUAL "")
++
+   set(EXIV2_VERSION "${EXIV2_VERSION_MAJOR}.${EXIV2_VERSION_MINOR}.${EXIV2_VERSION_PATCH}" CACHE STRING "Version number of Exiv2" FORCE)
+ endif(EXIV2_INCLUDE_DIR  AND NOT  EXIV2_VERSION)
+ 

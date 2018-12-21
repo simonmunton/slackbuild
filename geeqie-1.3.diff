@@ -9,3 +9,82 @@
  AC_DEFINE_UNQUOTED([GQ_BIN_DIR], "$gq_bindir", [Location of helper scripts and executables])
  AC_SUBST(gq_bindir)
  
+--- geeqie-1.3/src/exiv2.cc.orig	2016-05-27 10:37:56.000000000 +0100
++++ geeqie-1.3/src/exiv2.cc	2018-12-21 08:59:21.057870268 +0000
+@@ -24,6 +24,7 @@
+ 
+ #include <exiv2/image.hpp>
+ #include <exiv2/exif.hpp>
++#include <exiv2/version.hpp>
+ #include <iostream>
+ 
+ // EXIV2_TEST_VERSION is defined in Exiv2 0.15 and newer.
+@@ -358,7 +359,7 @@
+ #endif
+ 			Exiv2::Image *image = imageData_->image();
+ 
+-			if (!image) Exiv2::Error(21);
++			if (!image) Exiv2::Error(Exiv2::kerImageWriteFailed);
+ 			image->setExifData(exifData_);
+ 			image->setIptcData(iptcData_);
+ #if EXIV2_TEST_VERSION(0,16,0)
+@@ -378,7 +379,7 @@
+ 			sidecar->setXmpData(xmpData_);
+ 			sidecar->writeMetadata();
+ #else
+-			throw Exiv2::Error(3, "xmp");
++			throw Exiv2::Error(Exiv2::kerNotAnImage, "xmp");
+ #endif
+ 			}
+ 	}
+@@ -425,7 +426,7 @@
+ void exif_init(void)
+ {
+ #ifdef EXV_ENABLE_NLS
+-	bind_textdomain_codeset (EXV_PACKAGE, "UTF-8");
++	bind_textdomain_codeset (EXV_PACKAGE_NAME, "UTF-8");
+ #endif
+ }
+ 
+@@ -1329,7 +1330,7 @@
+ 		}
+ */
+         if (io.open() != 0) {
+-            throw Error(9, io.path(), strError());
++            throw Error(kerDataSourceOpenFailed, io.path(), strError());
+         }
+ 
+         map_data = io.mmap();
+@@ -1359,7 +1360,7 @@
+ #endif
+ #if EXIV2_TEST_VERSION(0,13,0)
+ 		case Exiv2::ImageType::raf:
+-			if (map_len < 84 + 4) throw Error(14);
++			if (map_len < 84 + 4) throw Error(kerFailedToReadImageData);
+ 			offset = getULong(map_data + 84, bigEndian);
+ 			return;
+ #endif
+@@ -1374,7 +1375,7 @@
+ 			}
+ 
+ 		default:
+-			throw Error(3, "RAW");
++			throw Error(kerNotAnImage, "RAW");
+ 	}
+ 
+ 	// process tiff-like formats
+@@ -1383,12 +1384,12 @@
+ 
+ 	rootDir = createFct(Tag::root, Group::none);
+ 	if (0 == rootDir.get()) {
+-		throw Error(1, "No root element defined in TIFF structure");
++		throw Error(kerErrorMessage, "No root element defined in TIFF structure");
+ 	}
+ 
+ 	if (tiffHeader)
+ 		{
+-		if (!tiffHeader->read(map_data, map_len)) throw Error(3, "TIFF");
++		if (!tiffHeader->read(map_data, map_len)) throw Error(kerNotAnImage, "TIFF");
+ #if EXIV2_TEST_VERSION(0,16,0)
+ 		rootDir->setStart(map_data + tiffHeader->offset());
+ #else

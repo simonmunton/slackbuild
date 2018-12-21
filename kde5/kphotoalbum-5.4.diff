@@ -1,0 +1,31 @@
+--- kphotoalbum-5.4/Exif/Info.cpp.orig	2018-10-13 18:47:27.000000000 +0100
++++ kphotoalbum-5.4/Exif/Info.cpp	2018-12-21 09:45:29.946738157 +0000
+@@ -29,6 +29,7 @@
+ 
+ #include <exiv2/image.hpp>
+ #include <exiv2/exif.hpp>
++#include <exiv2/version.hpp>
+ 
+ using namespace Exif;
+ 
+--- kphotoalbum-5.4/cmake/modules/FindExiv2.cmake.orig	2018-10-13 18:47:27.000000000 +0100
++++ kphotoalbum-5.4/cmake/modules/FindExiv2.cmake	2018-12-21 09:41:16.633750243 +0000
+@@ -67,6 +67,18 @@
+   string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
+   set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
+ 
++  if(EXIV2_VERSION_MAJOR STREQUAL "")
++    file(READ ${EXIV2_INCLUDE_DIR}/exiv2/exv_conf.h EXIV2_VERSION_CONTENT)
++    string(REGEX MATCH "#define EXIV2_MAJOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MAJOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_MINOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MINOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
++  endif(EXIV2_VERSION_MAJOR STREQUAL "")
++
+   set(EXIV2_VERSION "${EXIV2_VERSION_MAJOR}.${EXIV2_VERSION_MINOR}.${EXIV2_VERSION_PATCH}" CACHE STRING "Version number of Exiv2" FORCE)
+ endif(EXIV2_INCLUDE_DIR  AND NOT  EXIV2_VERSION)
+ 
