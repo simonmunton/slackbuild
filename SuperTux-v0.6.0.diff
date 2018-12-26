@@ -1,0 +1,49 @@
+--- SuperTux-v0.6.0/src/video/gl/gl_painter.cpp.orig	2018-12-23 19:11:32.000000000 +0000
++++ SuperTux-v0.6.0/src/video/gl/gl_painter.cpp	2018-12-24 10:12:45.593062770 +0000
+@@ -38,11 +38,11 @@
+ inline std::tuple<GLenum, GLenum> blend_factor(Blend blend)
+ {
+   switch(blend) {
+-    case Blend::NONE: return {GL_ONE, GL_ZERO};
+-    case Blend::BLEND: return {GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA};
+-    case Blend::ADD: return {GL_SRC_ALPHA, GL_ONE};
+-    case Blend::MOD: return {GL_DST_COLOR, GL_ZERO};
+-    default: return {GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA};
++    case Blend::NONE: return std::make_tuple(GL_ONE, GL_ZERO);
++    case Blend::BLEND: return std::make_tuple(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
++    case Blend::ADD: return std::make_tuple(GL_SRC_ALPHA, GL_ONE);
++    case Blend::MOD: return std::make_tuple(GL_DST_COLOR, GL_ZERO);
++    default: return std::make_tuple(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   }
+ }
+ 
+--- SuperTux-v0.6.0/src/video/ttf_surface.cpp.orig	2018-12-23 19:11:32.000000000 +0000
++++ SuperTux-v0.6.0/src/video/ttf_surface.cpp	2018-12-24 10:18:48.375045460 +0000
+@@ -57,10 +57,10 @@
+ 
+     const std::initializer_list<std::tuple<int, int> > positions[] = {
+       {},
+-      {{0, 0}},
+-      {{-1, 0}, {1, 0}, {0, -1}, {0, 1}},
+-      {{-2, 0}, {2, 0}, {0, -2}, {0, 2},
+-       {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}
++      {std::make_tuple(0, 0)},
++      {std::make_tuple(-1, 0), std::make_tuple(1, 0), std::make_tuple(0, -1), std::make_tuple(0, 1)},
++      {std::make_tuple(-2, 0), std::make_tuple(2, 0), std::make_tuple(0, -2), std::make_tuple(0, 2),
++       std::make_tuple(-1, -1), std::make_tuple(1, -1), std::make_tuple(-1, 1), std::make_tuple(1, 1)}
+     };
+ 
+     int shadow_size = std::min(2, font.get_shadow_size());
+@@ -79,9 +79,9 @@
+ 
+     const std::initializer_list<std::tuple<int, int> > positions[] = {
+       {},
+-      {{-1, 0}, {1, 0}, {0, -1}, {0, 1}},
+-      {{-2, 0}, {2, 0}, {0, -2}, {0, 2},
+-       {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}
++      {std::make_tuple(-1, 0), std::make_tuple(1, 0), std::make_tuple(0, -1), std::make_tuple(0, 1)},
++      {std::make_tuple(-2, 0), std::make_tuple(2, 0), std::make_tuple(0, -2), std::make_tuple(0, 2),
++       std::make_tuple(-1, -1), std::make_tuple(1, -1), std::make_tuple(-1, 1), std::make_tuple(1, 1)}
+     };
+ 
+     int border = std::min(2, font.get_border());
