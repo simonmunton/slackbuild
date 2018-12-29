@@ -1,0 +1,69 @@
+--- pulseeffects-4.4.1/src/application_ui.cpp.orig	2018-12-03 22:11:27.000000000 +0000
++++ pulseeffects-4.4.1/src/application_ui.cpp	2018-12-29 19:25:35.673350613 +0000
+@@ -271,13 +271,13 @@
+ 
+   connections.push_back(app->pm->new_default_sink.connect([&](auto name) {
+     if (stack->get_visible_child_name() == "sink_inputs") {
+-      update_headerbar_subtitle(0);
++      this->update_headerbar_subtitle(0);
+     }
+   }));
+ 
+   connections.push_back(app->pm->new_default_source.connect([&](auto name) {
+     if (stack->get_visible_child_name() == "source_outputs") {
+-      update_headerbar_subtitle(1);
++      this->update_headerbar_subtitle(1);
+     }
+   }));
+ 
+--- pulseeffects-4.4.1/src/convolver_ui.cpp.orig	2018-12-03 22:11:27.000000000 +0000
++++ pulseeffects-4.4.1/src/convolver_ui.cpp	2018-12-29 19:27:53.763344025 +0000
+@@ -125,7 +125,7 @@
+   settings->signal_changed("kernel-path").connect([=](auto key) {
+     auto f = [=]() {
+       std::lock_guard<std::mutex> lock(lock_guard_irs_info);
+-      get_irs_info();
++      this->get_irs_info();
+     };
+ 
+     auto future = std::async(std::launch::async, f);
+--- pulseeffects-4.4.1/src/equalizer_ui.cpp.orig	2018-12-03 22:11:27.000000000 +0000
++++ pulseeffects-4.4.1/src/equalizer_ui.cpp	2018-12-29 19:28:34.463342083 +0000
+@@ -76,7 +76,7 @@
+       sigc::mem_fun(*this, &EqualizerUi::on_listbox_sort));
+ 
+   presets_listbox->signal_row_activated().connect(
+-      [&](auto row) { load_preset(row->get_name() + ".json"); });
++      [&](auto row) { this->load_preset(row->get_name() + ".json"); });
+ 
+   // gsettings bindings
+ 
+--- pulseeffects-4.4.1/include/pulse_manager.hpp.orig	2018-12-03 22:11:27.000000000 +0000
++++ pulseeffects-4.4.1/include/pulse_manager.hpp	2018-12-29 19:21:11.717363207 +0000
+@@ -115,7 +115,7 @@
+   pa_mainloop_api* main_loop_api = nullptr;
+   pa_context* context = nullptr;
+ 
+-  std::array<std::string, 10> blacklist_apps = {"PulseEffects",
++  std::array<std::string, 10> blacklist_apps = {{"PulseEffects",
+                                                 "pulseeffects",
+                                                 "PulseEffectsWebrtcProbe",
+                                                 "gsd-media-keys",
+@@ -124,13 +124,13 @@
+                                                 "gnome-pomodoro",
+                                                 "PulseAudio Volume Control",
+                                                 "Screenshot",
+-                                                "speech-dispatcher"};
++                                                "speech-dispatcher"}};
+ 
+-  std::array<std::string, 5> blacklist_media_name = {
++  std::array<std::string, 5> blacklist_media_name = {{
+       "pulsesink probe", "bell-window-system", "audio-volume-change",
+-      "Peak detect", "screen-capture"};
++      "Peak detect", "screen-capture"}};
+ 
+-  std::array<std::string, 1> blacklist_media_role = {"event"};
++  std::array<std::string, 1> blacklist_media_role = {{"event"}};
+ 
+   static void context_state_cb(pa_context* ctx, void* data);
+ 

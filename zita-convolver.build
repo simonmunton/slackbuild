@@ -2,14 +2,16 @@
 #
 . build_funcs
 
-TARNAME=wget
+TARNAME=zita-convolver
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/gnu/wget
+TARDIR=~/tmp/new/z
 #TAR_EXT=.tar.gz
-VERSION=1.20.1
+VERSION=4.0.3
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://kokkinizita.linuxaudio.org/linuxaudio/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -43,7 +45,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/wget.c7229732.fix.background.logging.diff
+ #patch -p1 < ${CWD}/
+
+ sed -i -e "s/ldconfig/#ldconfig/" source/Makefile
 )
 fi
 
@@ -53,7 +57,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -62,11 +70,33 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
+
+fi
+
+cd source
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} PREFIX=/usr LIBDIR=/usr/lib${LIBDIRSUFFIX} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,12 +104,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG} PREFIX=/usr LIBDIR=/usr/lib${LIBDIRSUFFIX}
+fi
 
-mv ${PKG}/etc/wgetrc ${PKG}/etc/wgetrc.new
-doinst_config etc/wgetrc.new
+cd ..
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -88,19 +122,16 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL MAILING-LIST PATCHES NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a non-interactive network retriever"
-GNU Wget is a free network utility to retrieve files from the 
-World Wide Web using HTTP and FTP, the two most widely used Internet
-protocols.  It works non-interactively, thus enabling work in the
-background after having logged off.
-
-The author of Wget is Hrvoje Niksic <hniksic@srce.hr>.
+make_slack_desc << EOF "C++ library implementing a real-time convolution matrix"
+Zita convolver is a C++ library implementing a real-time convolution 
+matrix for up to 64 inputs and outputs. It uses multiple partition 
+sizes to provide both low delay and efficient CPU use. 
 
 EOF
 
