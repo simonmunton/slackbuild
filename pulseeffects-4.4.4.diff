@@ -1,0 +1,132 @@
+--- pulseeffects-4.4.4/src/application_ui.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/application_ui.cpp	2019-01-02 21:59:36.072556016 +0000
+@@ -59,13 +59,13 @@
+ 
+   connections.push_back(app->pm->new_default_sink.connect([&](auto name) {
+     if (stack->get_visible_child_name() == "sink_inputs") {
+-      update_headerbar_subtitle(0);
++      this->update_headerbar_subtitle(0);
+     }
+   }));
+ 
+   connections.push_back(app->pm->new_default_source.connect([&](auto name) {
+     if (stack->get_visible_child_name() == "source_outputs") {
+-      update_headerbar_subtitle(1);
++      this->update_headerbar_subtitle(1);
+     }
+   }));
+ 
+--- pulseeffects-4.4.4/src/blacklist_settings_ui.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/blacklist_settings_ui.cpp	2019-01-02 22:03:34.011544664 +0000
+@@ -52,12 +52,12 @@
+ 
+   connections.push_back(
+       settings->signal_changed("blacklist-in").connect([&](auto key) {
+-        populate_blacklist_in_listbox();
++        this->populate_blacklist_in_listbox();
+       }));
+ 
+   connections.push_back(
+       settings->signal_changed("blacklist-out").connect([&](auto key) {
+-        populate_blacklist_out_listbox();
++        this->populate_blacklist_out_listbox();
+       }));
+ 
+   populate_blacklist_in_listbox();
+--- pulseeffects-4.4.4/src/general_settings_ui.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/general_settings_ui.cpp	2019-01-02 22:02:10.964548626 +0000
+@@ -71,7 +71,7 @@
+ 
+   connections.push_back(
+       settings->signal_changed("priority-type").connect([&](auto key) {
+-        set_priority_controls_visibility();
++        this->set_priority_controls_visibility();
+ 
+         app->sie->set_null_pipeline();
+         app->soe->set_null_pipeline();
+--- pulseeffects-4.4.4/src/convolver/gstpeconvolver.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/convolver/gstpeconvolver.cpp	2019-01-02 21:59:36.073556016 +0000
+@@ -156,6 +156,7 @@
+ }
+ 
+ static void gst_peconvolver_init(GstPeconvolver* peconvolver) {
++  new (peconvolver) GstPeconvolver;
+   peconvolver->log_tag = "convolver: ";
+   peconvolver->ready = false;
+   peconvolver->rate = 0;
+--- pulseeffects-4.4.4/src/convolver_ui.cpp.orig	2019-01-02 21:59:36.072556016 +0000
++++ pulseeffects-4.4.4/src/convolver_ui.cpp	2019-01-02 22:00:54.973552252 +0000
+@@ -126,7 +126,7 @@
+       settings->signal_changed("kernel-path").connect([=](auto key) {
+         auto f = [=]() {
+           std::lock_guard<std::mutex> lock(lock_guard_irs_info);
+-          get_irs_info();
++          this->get_irs_info();
+         };
+ 
+         auto future = std::async(std::launch::async, f);
+--- pulseeffects-4.4.4/src/equalizer_ui.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/equalizer_ui.cpp	2019-01-02 22:04:08.433543021 +0000
+@@ -87,7 +87,7 @@
+       sigc::mem_fun(*this, &EqualizerUi::on_listbox_sort));
+ 
+   presets_listbox->signal_row_activated().connect(
+-      [&](auto row) { load_preset(row->get_name() + ".json"); });
++      [&](auto row) { this->load_preset(row->get_name() + ".json"); });
+ 
+   connections.push_back(
+       settings->signal_changed("split-channels").connect([&](auto key) {
+@@ -102,10 +102,10 @@
+         bool split = settings->get_boolean("split-channels");
+ 
+         if (split) {
+-          build_bands(bands_grid_left, settings_left, nbands->get_value());
+-          build_bands(bands_grid_right, settings_right, nbands->get_value());
++          this->build_bands(bands_grid_left, settings_left, nbands->get_value());
++          this->build_bands(bands_grid_right, settings_right, nbands->get_value());
+         } else {
+-          build_unified_bands(nbands->get_value());
++          this->build_unified_bands(nbands->get_value());
+         }
+       }));
+ 
+--- pulseeffects-4.4.4/src/spectrum_ui.cpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/src/spectrum_ui.cpp	2019-01-02 22:02:47.493546883 +0000
+@@ -23,7 +23,7 @@
+ 
+   connections.push_back(
+       settings->signal_changed("spectrum-color").connect([&](auto key) {
+-        init_custom_color();
++        this->init_custom_color();
+       }));
+ 
+   connections.push_back(
+--- pulseeffects-4.4.4/include/pulse_manager.hpp.orig	2018-12-31 16:42:35.000000000 +0000
++++ pulseeffects-4.4.4/include/pulse_manager.hpp	2019-01-02 21:59:36.073556016 +0000
+@@ -115,7 +115,7 @@
+   pa_mainloop_api* main_loop_api = nullptr;
+   pa_context* context = nullptr;
+ 
+-  std::array<std::string, 10> blacklist_apps = {"PulseEffects",
++  std::array<std::string, 10> blacklist_apps = {{"PulseEffects",
+                                                 "pulseeffects",
+                                                 "PulseEffectsWebrtcProbe",
+                                                 "gsd-media-keys",
+@@ -124,13 +124,13 @@
+                                                 "gnome-pomodoro",
+                                                 "PulseAudio Volume Control",
+                                                 "Screenshot",
+-                                                "speech-dispatcher"};
++                                                "speech-dispatcher"}};
+ 
+-  std::array<std::string, 5> blacklist_media_name = {
++  std::array<std::string, 5> blacklist_media_name = {{
+       "pulsesink probe", "bell-window-system", "audio-volume-change",
+-      "Peak detect", "screen-capture"};
++      "Peak detect", "screen-capture"}};
+ 
+-  std::array<std::string, 1> blacklist_media_role = {"event"};
++  std::array<std::string, 1> blacklist_media_role = {{"event"}};
+ 
+   static void context_state_cb(pa_context* ctx, void* data);
+ 
