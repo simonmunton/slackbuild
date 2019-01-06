@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
 VERSION=3.3.8
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -75,8 +75,11 @@ make clean
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
             --enable-shared \
-	    --enable-threads \
-            --enable-sse2
+            --disable-static \
+            --enable-threads \
+            --enable-openmp \
+            --enable-sse2 \
+            --enable-avx
 
 make ${NUM_JOBS} || exit
 
@@ -90,9 +93,12 @@ make clean
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
             --enable-shared \
-	    --enable-threads \
-            --enable-sse \
-	    --enable-float
+            --disable-static \
+            --enable-threads \
+            --enable-openmp \
+            --enable-sse2 \
+            --enable-avx \
+            --enable-float
 
 make ${NUM_JOBS} || exit
 
@@ -106,8 +112,27 @@ make clean
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
             --enable-shared \
-	    --enable-threads \
-	    --enable-long-double
+            --disable-static \
+            --enable-threads \
+            --enable-openmp \
+            --enable-long-double
+
+make ${NUM_JOBS} || exit
+
+make install DESTDIR=${PKG}
+
+# now make a long quad precision version
+make clean
+
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+            --enable-shared \
+            --disable-static \
+            --enable-threads \
+            --enable-openmp \
+            --enable-quad-precision
 
 make ${NUM_JOBS} || exit
 
