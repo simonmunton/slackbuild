@@ -2,28 +2,23 @@
 #
 . build_funcs
 
-TARNAME=flash_player_npapi
+TARNAME=dstat
 TARNAMEEXTRA=
-TARSEP="_"
-TARDIR=~/tmp/new/f/flash
+TARSEP="-"
+TARDIR=~/tmp/new/d
 #TAR_EXT=.tar.gz
-VERSION=32.0.0.114
+VERSION=0.7.3
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://github.com/dagwieers/dstat"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=flashplayer
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
-
-case `uname -m` in
-    x86_64) VERSIONEXTRA=_linux.x86_64 ;;
-    *) VERSIONEXTRA=_linux.i386 ;;
-esac
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -39,11 +34,8 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
-mkdir ${TARNAME}-${VERSION}
-cd ${TARNAME}-${VERSION}
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-cd ..
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
@@ -81,7 +73,6 @@ then
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -89,8 +80,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-:
-#make ${NUM_JOBS} || exit
+make ${NUM_JOBS} || exit
+#python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -98,17 +89,8 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
-
-cp -p libflashplayer.so ${PKG}/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
-cp -pr usr ${PKG}
-if [ -n "${LIBDIRSUFFIX}" ]
-then
-  mv ${PKG}/usr/lib/* ${PKG}/usr/lib${LIBDIRSUFFIX}
-  rm -rf ${PKG}/usr/lib
-fi
+make install DESTDIR=${PKG}
+#python setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -119,13 +101,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO readme.txt \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "systems monitor"
+Dstat is a versatile replacement for vmstat, iostat, mpstat, netstat 
+and ifstat. Dstat overcomes some of their limitations and while also 
+adding extra features, more counters and flexibility. Dstat is handy 
+for monitoring systems during performance tuning tests, benchmarks or 
+troubleshooting.
+
 EOF
 
 post_install
