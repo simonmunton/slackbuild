@@ -1,0 +1,54 @@
+--- libkexiv2-18.12.1/src/kexiv2exif.cpp.orig	2018-09-25 15:59:20.000000000 +0100
++++ libkexiv2-18.12.1/src/kexiv2exif.cpp	2019-01-10 21:55:16.724492666 +0000
+@@ -987,7 +987,7 @@
+ 
+         if (pos == d->exifMetadata().end() || pos->count() != 1 || pos->toLong() != 0)
+         {
+-            throw Exiv2::Error(1, "Exif.Image.NewSubfileType missing or not set as main image");
++            throw Exiv2::Error(Exiv2::kerErrorMessage, "Exif.Image.NewSubfileType missing or not set as main image");
+         }
+ 
+         // Remove sub-IFD tags
+--- libkexiv2-18.12.1/src/kexiv2.cpp.orig	2018-09-25 15:59:20.000000000 +0100
++++ libkexiv2-18.12.1/src/kexiv2.cpp	2019-01-10 21:52:50.254499655 +0000
+@@ -28,6 +28,8 @@
+ #include "kexiv2.h"
+ #include "kexiv2_p.h"
+ 
++#include <exiv2/version.hpp>
++
+ // Local includes
+ 
+ #include "libkexiv2_version.h"
+--- libkexiv2-18.12.1/src/kexiv2_p.cpp.orig	2018-09-25 15:59:20.000000000 +0100
++++ libkexiv2-18.12.1/src/kexiv2_p.cpp	2019-01-10 21:53:17.896498336 +0000
+@@ -27,6 +27,8 @@
+ 
+ #include "kexiv2_p.h"
+ 
++#include <exiv2/version.hpp>
++
+ // C ANSI includes
+ 
+ extern "C"
+--- libkexiv2-18.12.1/cmake/modules/FindExiv2.cmake.orig	2018-09-25 15:59:20.000000000 +0100
++++ libkexiv2-18.12.1/cmake/modules/FindExiv2.cmake	2019-01-10 21:49:57.353507904 +0000
+@@ -67,6 +67,18 @@
+   string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
+   set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
+ 
++  if(EXIV2_VERSION_MAJOR STREQUAL "")
++    file(READ ${EXIV2_INCLUDE_DIR}/exiv2/exv_conf.h EXIV2_VERSION_CONTENT)
++    string(REGEX MATCH "#define EXIV2_MAJOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MAJOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_MINOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MINOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
++  endif(EXIV2_VERSION_MAJOR STREQUAL "")
++
+   set(EXIV2_VERSION "${EXIV2_VERSION_MAJOR}.${EXIV2_VERSION_MINOR}.${EXIV2_VERSION_PATCH}" CACHE STRING "Version number of Exiv2" FORCE)
+ endif(EXIV2_INCLUDE_DIR  AND NOT  EXIV2_VERSION)
+ 
