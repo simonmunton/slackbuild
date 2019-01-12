@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2.4.4
+VERSION=2.4.5
 VERSIONEXTRA=
 BUILD=1
 
@@ -79,6 +79,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_PLUGIN=on \
       .
 fi
 
@@ -87,8 +88,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 (cd src
-make ${NUM_JOBS} LIB=lib${LIBDIRSUFFIX} all gmic_qt zart || exit
+make LIB=lib${LIBDIRSUFFIX} all gmic_qt zart || exit
 )
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -99,6 +101,7 @@ fi
 (cd src
 make install DESTDIR=${PKG} LIB=lib${LIBDIRSUFFIX}
 )
+#make install DESTDIR=${PKG}
 
 strip_binaries
 
