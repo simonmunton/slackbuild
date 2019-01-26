@@ -1,0 +1,44 @@
+--- krita-4.1.7.101/libs/ui/kisexiv2/kis_xmp_io.cpp.orig	2018-12-16 12:44:52.000000000 +0000
++++ krita-4.1.7.101/libs/ui/kisexiv2/kis_xmp_io.cpp	2019-01-26 14:10:26.645941452 +0000
+@@ -17,7 +17,7 @@
+ #include "kis_xmp_io.h"
+ 
+ #include <string>
+-#include <exiv2/xmp.hpp>
++#include <exiv2/xmp_exiv2.hpp>
+ 
+ #include "kis_exiv2.h"
+ 
+@@ -277,9 +277,8 @@
+                 const Exiv2::XmpArrayValue* xav = dynamic_cast<const Exiv2::XmpArrayValue*>(value.get());
+                 Q_ASSERT(xav);
+                 QList<KisMetaData::Value> array;
+-                for (std::vector< std::string >::const_iterator it = xav->value_.begin();
+-                        it != xav->value_.end(); ++it) {
+-                    QString value = it->c_str();
++                for (long n = 0; n < xav->count(); n++) {
++                    QString value = xav->toString(n).c_str();
+                     if (parser) {
+                         array.push_back(parser->parse(value));
+                     } else {
+--- krita-4.1.7.101/cmake/modules/FindExiv2.cmake.orig	2018-12-16 12:44:52.000000000 +0000
++++ krita-4.1.7.101/cmake/modules/FindExiv2.cmake	2019-01-26 13:39:22.259383208 +0000
+@@ -67,6 +67,18 @@
+   string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
+   set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
+ 
++  if(EXIV2_VERSION_MAJOR STREQUAL "")
++    file(READ ${EXIV2_INCLUDE_DIR}/exiv2/exv_conf.h EXIV2_VERSION_CONTENT)
++    string(REGEX MATCH "#define EXIV2_MAJOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MAJOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_MINOR_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_MINOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define EXIV2_PATCH_VERSION +\\( *([0-9]+) *\\)"  _dummy "${EXIV2_VERSION_CONTENT}")
++    set(EXIV2_VERSION_PATCH "${CMAKE_MATCH_1}")
++  endif(EXIV2_VERSION_MAJOR STREQUAL "")
++
+   set(EXIV2_VERSION "${EXIV2_VERSION_MAJOR}.${EXIV2_VERSION_MINOR}.${EXIV2_VERSION_PATCH}" CACHE STRING "Version number of Exiv2" FORCE)
+ endif(EXIV2_INCLUDE_DIR  AND NOT  EXIV2_VERSION)
+ 
