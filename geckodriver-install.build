@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=geckodriver
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/g
+#TAR_EXT=.tar.gz
+VERSION=v0.24.0
+VERSIONEXTRA=-linux64
+BUILD=1
+
+WEBPAGE="https://github.com/mozilla/geckodriver"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+mkdir -p ${PKG}/usr/bin
+cd ${PKG}/usr/bin
+pwd
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+fi
+
+#pre_configure
+
+fix_perms
+
+#strip_binaries
+
+#fix_links
+
+#compress_manpages
+
+#compress_info
+
+#cp -a \
+#  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+#  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+#fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Proxy for using W3C WebDriver compatible clients"
+Proxy for using W3C WebDriver compatible clients to interact with 
+Gecko-based browsers.
+
+This program provides the HTTP API described by the WebDriver protocol 
+to communicate with Gecko browsers, such as Firefox. It translates 
+calls into the Firefox remote protocol by acting as a proxy between 
+the local- and remote ends.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

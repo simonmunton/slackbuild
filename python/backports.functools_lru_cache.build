@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=rrdtool
+TARNAME=backports.functools_lru_cache
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/r
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=1.7.1
+VERSION=1.5
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://oss.oetiker.ch/rrdtool/"
+WEBPAGE="https://pypi.org/project/backports.functools_lru_cache/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/rrdtool-1.5.3.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,22 +55,33 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-perl-options='INSTALLDIRS="vendor"' \
-	    --disable-static
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,11 +89,10 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} RUBY_MAKE_OPTIONS=
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
 
 strip_binaries
-
-sanitise_la_files ${PKG}/usr/lib
 
 fix_links
 
@@ -96,18 +106,9 @@ cp -a \
 
 fix_docs
 
-rm -rf ${PKG}/usr/doc/${TARNAME}-${VERSION}/txt
-
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Round Robin Database Tool to store and display time-series data"
-RRD is the Acronym for Round Robin Database. RRD is a system to store 
-and display time-series data (i.e. network bandwidth, machine-room 
-temperature, server load average). It stores the data in a very 
-compact way that will not expand over time, and it presents useful 
-graphs by processing the data to enforce a certain data density. It 
-can be used either via simple wrapper scripts (from shell or Perl) or 
-via frontends that poll network devices and put a friendly user 
-interface on it.
+make_slack_desc << EOF "Backport of functools.lru_cache from Python 3.3"
+Backport of functools.lru_cache from Python 3.3
 
 EOF
 
