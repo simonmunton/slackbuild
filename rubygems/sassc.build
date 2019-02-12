@@ -2,23 +2,23 @@
 #
 . build_funcs
 
-TARNAME=opencore-amr
+TARNAME=sassc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/o
-#TAR_EXT=.tar.gz
-VERSION=0.1.5
+TARDIR=~//tmp/new/r/rubygems
+TAR_EXT=.gem
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://sourceforge.net/projects/opencore-amr/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=rubygem-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
-#ARCH=noarch
+ARCH=noarch
 
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
@@ -35,14 +35,16 @@ fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-  echo "${TARNAME}-${VERSION} directory not found"
-  exit
-fi
+mkdir ${TARNAME}-${VERSION}
+
+#if [ ! -d ${TARNAME}-${VERSION} ]
+#then 
+#  echo "${TARNAME}-${VERSION} directory not found"
+#  exit
+#fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
@@ -55,23 +57,29 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+RUBY_SITELIB=`ruby -rrbconfig -e 'puts RbConfig::CONFIG["sitelibdir"] '`
+RUBY_SITEARCH=`ruby -rrbconfig -e 'puts RbConfig::CONFIG["sitearchdir"] '`
+GEMDIR=`ruby -rubygems -e 'puts Gem::dir' 2>/dev/null`
+
+export CONFIGURE_ARGS="--with-cflags=\"${SLKCFLAGS}\""
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
 #cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
 #      -DCMAKE_BUILD_TYPE=Release \
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
 #      -DSYSCONF_INSTALL_DIR=/etc \
 #      .
 
@@ -79,7 +87,8 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+:
+#make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,7 +96,7 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+gem install  --local --install-dir ${PKG}${GEMDIR} --force ${FULL_TARNAME}
 
 strip_binaries
 
@@ -97,17 +106,18 @@ compress_manpages
 
 compress_info
 
-cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+#cp -a \
+#  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+#  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+(cd ${PKG}/usr/doc
+ rmdir ${TARNAME}-${VERSION}
+ ln -s ${GEMDIR}/doc/${TARNAME}-${VERSION} rubygem-${TARNAME}-${VERSION}
+)
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Opencore Adaptive Multi Rate codecs"
-Library of OpenCORE Framework implementation of Adaptive Multi Rate 
-Narrowband and Wideband speech codec 
-
+make_slack_desc << EOF
 EOF
 
 post_install
