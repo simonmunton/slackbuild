@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=xbmc
+TARNAME=libnfs
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=18.1
-VERSIONEXTRA=-Leia
+VERSION=4.0.0
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://xbmc.org/"
+WEBPAGE="https://github.com/sahlberg/libnfs"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,12 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/xbmc-17.6.diff
-
- if [ ! -e configure ]
- then
-   ./bootstrap
- fi
+ patch -p1 < ${CWD}/libnfs-4.0.0.diff
 )
 fi
 
@@ -61,26 +56,20 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-export LIBDCADEC_CFLAGS=" "
-export LIBDCADEC_LIBS=" "
-
-mkdir _BuilD_
-cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man \
-#	    --enable-pulse \
-#	    --enable-rtmp \
-#	    --enable-libbluray \
-#	    --with-ffmpeg=shared
-
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -88,13 +77,22 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -102,9 +100,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-cd ..
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -121,13 +122,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "XBMC"
-XBMC is an award-winning free and open source (GPL) software media 
-player and entertainment hub that can be installed on Linux, OSX, 
-Windows, iOS, and Android, featuring a 10-foot user interface for use 
-with televisions and remote controls. It allows users to play and view 
-most videos, music, podcasts, and other digital media files from local 
-and network storage media and the internet.
+make_slack_desc << EOF "NFS client library"
+LIBNFS is a client library for accessing NFS shares over a network.
 
 EOF
 
