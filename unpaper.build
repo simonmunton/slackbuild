@@ -3,15 +3,16 @@
 . build_funcs
 
 TARNAME=unpaper
-TARNAMEEXTRA=-bin
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=0.3
+VERSION=6.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://unpaper.berlios.de/"
+#WEBPAGE="http://unpaper.berlios.de/"
+WEBPAGE="https://www.flameeyes.com/projects/unpaper"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,15 +56,44 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-./make.sh || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -71,10 +101,12 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-
-mkdir -p ${PKG}/usr/bin
-cp unpaper ${PKG}/usr/bin
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -85,18 +117,18 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "scan post-processing tool"
-unpaper is a post-processing tool for scanned sheets of paper, 
-especially for book pages that have been scanned from previously 
-created photocopies. The main purpose is to make scanned book pages 
-better readable on screen after conversion to PDF. Additionally, 
-unpaper might be useful to enhance the quality of scanned pages before 
+unpaper is a post-processing tool for scanned sheets of paper,
+especially for book pages that have been scanned from previously
+created photocopies. The main purpose is to make scanned book pages
+better readable on screen after conversion to PDF. Additionally,
+unpaper might be useful to enhance the quality of scanned pages before
 performing optical character recognition (OCR).
 
 EOF
