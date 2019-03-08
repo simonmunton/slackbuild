@@ -1,0 +1,137 @@
+--- parallel-3.1.3/src/pconnect.cc.orig	2018-08-03 08:41:42.570478207 +0100
++++ parallel-3.1.3/src/pconnect.cc	2019-03-06 21:41:53.160952988 +0000
+@@ -533,7 +533,7 @@
+               dcprintf ("hostname %i written (%s)\n", j, hosts(j).c_str ());
+             }
+ 
+-          std::string directory = octave_env::get_current_directory ();
++          std::string directory = octave::sys::env::get_current_directory ();
+ 
+           conn->get_cmd_stream ()->network_send_string (directory.c_str ());
+           dcprintf ("directory written (%s)\n", directory.c_str ());
+--- parallel-3.1.3/src/pserver.cc.orig	2018-08-03 08:41:42.570478207 +0100
++++ parallel-3.1.3/src/pserver.cc	2019-03-06 21:43:22.474948727 +0000
+@@ -169,7 +169,7 @@
+           if (octave_completion_matches_called)
+             octave_completion_matches_called = false;
+           else
+-            command_editor::increment_current_command_number ();
++            octave::command_editor::increment_current_command_number ();
+           dsprintf ("reval loop, no error, after caring for Octave command number\n");
+         }
+     }
+@@ -1116,10 +1116,10 @@
+           OCTAVE__INTERPRETER__SYMBOL_TABLE__ASSIGN ("sockets", sockets);
+           dsprintf ("'sockets' installed\n");
+ 
+-          int cd_ok = octave_env::chdir (directory.c_str ());
++          int cd_ok = octave::sys::env::chdir (directory.c_str ());
+           if (! cd_ok)
+             {
+-            octave_env::chdir ("/tmp");
++            octave::sys::env::chdir ("/tmp");
+             dsprintf ("performed chdir to /tmp\n");
+             }
+           else
+--- parallel-3.1.3/src/minimal-load-save.cc.orig	2018-08-03 08:41:42.558477970 +0100
++++ parallel-3.1.3/src/minimal-load-save.cc	2019-03-06 21:58:16.471931176 +0000
+@@ -30,7 +30,7 @@
+ #include "error-helpers.h"
+ 
+ int minimal_read_header (std::istream& is, bool& swap,
+-                         OCTAVE__MACH_INFO::float_format& flt_fmt)
++                         octave::mach_info::float_format& flt_fmt)
+ {
+   /*
+     slightly changed from load-save.cc
+@@ -43,9 +43,9 @@
+   magic[magic_len] = '\0';
+ 
+   if (strncmp (magic, "1L", magic_len) == 0)
+-    swap = OCTAVE__MACH_INFO::words_big_endian ();
++    swap = octave::mach_info::words_big_endian ();
+   else if (strncmp (magic, "1B", magic_len) == 0)
+-    swap = ! OCTAVE__MACH_INFO::words_big_endian ();
++    swap = ! octave::mach_info::words_big_endian ();
+   else
+     {
+       _p_error ("could not read binary header");
+@@ -58,7 +58,7 @@
+ 
+   flt_fmt = mopt_digit_to_float_format (tmp);
+ 
+-  if (flt_fmt == OCTAVE__MACH_INFO::flt_fmt_unknown)
++  if (flt_fmt == octave::mach_info::float_format::flt_fmt_unknown)
+     {
+       _p_error ("unrecognized binary format");
+ 
+@@ -69,7 +69,7 @@
+ }
+ 
+ int minimal_read_data (std::istream& is, octave_value& val,
+-                       bool swap, OCTAVE__MACH_INFO::float_format flt_fmt)
++                       bool swap, octave::mach_info::float_format flt_fmt)
+ {
+   int32_t len;
+   if (! is.read (reinterpret_cast<char *> (&len), 4))
+@@ -112,10 +112,10 @@
+     reduce overhead
+   */
+ 
+-  os << (OCTAVE__MACH_INFO::words_big_endian () ? "1B" : "1L");
++  os << (octave::mach_info::words_big_endian () ? "1B" : "1L");
+ 
+-  OCTAVE__MACH_INFO::float_format flt_fmt =
+-    OCTAVE__MACH_INFO::native_float_format ();
++  octave::mach_info::float_format flt_fmt =
++    octave::mach_info::native_float_format ();
+ 
+   char tmp = static_cast<char> (float_format_to_mopt_digit (flt_fmt));
+ 
+--- parallel-3.1.3/src/fload.cc.orig	2018-08-03 08:41:42.538477575 +0100
++++ parallel-3.1.3/src/fload.cc	2019-03-06 21:57:08.184934435 +0000
+@@ -46,7 +46,7 @@
+       if (is)
+         {
+           bool swap;
+-          OCTAVE__MACH_INFO::float_format flt_fmt;
++          octave::mach_info::float_format flt_fmt;
+ 
+           if (minimal_read_header (*is, swap, flt_fmt))
+             {
+--- parallel-3.1.3/src/p-connection.h.orig	2018-08-03 08:41:42.566478128 +0100
++++ parallel-3.1.3/src/p-connection.h	2019-03-06 21:56:52.434935186 +0000
+@@ -333,7 +333,7 @@
+   // for Octaves save and load functions
+   bool global;
+   bool swap;
+-  OCTAVE__MACH_INFO::float_format flt_fmt;
++  octave::mach_info::float_format flt_fmt;
+   std::string doc;
+ };
+ 
+--- parallel-3.1.3/src/minimal-load-save.h.orig	2018-08-03 08:41:42.558477970 +0100
++++ parallel-3.1.3/src/minimal-load-save.h	2019-03-06 21:58:37.472930174 +0000
+@@ -24,10 +24,10 @@
+ #include "config.h"
+ 
+ int minimal_read_header (std::istream& is, bool& swap,
+-                         OCTAVE__MACH_INFO::float_format& flt_fmt);
++                         octave::mach_info::float_format& flt_fmt);
+ 
+ int minimal_read_data (std::istream& is, octave_value& val,
+-                       bool swap, OCTAVE__MACH_INFO::float_format flt_fmt);
++                       bool swap, octave::mach_info::float_format flt_fmt);
+ 
+ void minimal_write_header (std::ostream& os);
+ 
+--- parallel-3.1.3/src/error-helpers.cc.orig	2018-08-03 08:41:42.534477496 +0100
++++ parallel-3.1.3/src/error-helpers.cc	2019-03-06 21:48:00.951446959 +0000
+@@ -18,6 +18,7 @@
+ */
+ 
+ #include <octave/oct.h>
++#include <iostream>
+ 
+ #include "error-helpers.h"
+ 

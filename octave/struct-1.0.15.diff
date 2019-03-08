@@ -1,0 +1,122 @@
+--- struct-1.0.15/src/error-helpers.h.orig	2018-05-11 09:42:06.440266748 +0100
++++ struct-1.0.15/src/error-helpers.h	2019-03-06 22:35:48.440823729 +0000
+@@ -26,9 +26,9 @@
+ // call verror, for _linking_ also against Octave versions who have no
+ // verror() with these arguments
+ #ifdef HAVE_OCTAVE_VERROR_ARG_EXC
+-void c_verror (octave_execution_exception&, const char *, ...);
++void c_verror (octave::execution_exception&, const char *, ...);
+ #else
+-void c_verror (const octave_execution_exception&, const char *, ...);
++void c_verror (const octave::execution_exception&, const char *, ...);
+ #endif
+ 
+ void _p_error (const char *fmt, ...);
+@@ -37,7 +37,7 @@
+ // both if Octave uses exceptions for errors and if it still uses
+ // error_state. In the latter case return 'retval'.
+ #ifdef HAVE_OCTAVE_ERROR_STATE
+-  // can throw octave_execution_exception despite of this
++  // can throw execution_exception despite of this
+   #define CHECK_ERROR(code, retval, ...)      \
+     try \
+       { \
+@@ -50,7 +50,7 @@
+             return retval; \
+           } \
+       } \
+-    catch (octave_execution_exception& e) \
++    catch (octave::execution_exception& e) \
+       { \
+         c_verror (e, __VA_ARGS__); \
+       }
+@@ -60,7 +60,7 @@
+       { \
+         code ; \
+       } \
+-    catch (octave_execution_exception& e) \
++    catch (octave::execution_exception& e) \
+       { \
+         verror (e, __VA_ARGS__); \
+       }
+@@ -70,7 +70,7 @@
+ // Octave doesn't throw exceptions for errors but still uses
+ // error_state.
+ #ifdef HAVE_OCTAVE_ERROR_STATE
+-  // can throw octave_execution_exception despite of this
++  // can throw execution_exception despite of this
+   #define CHECK_ERROR_EXIT1(code, ...) \
+     try \
+       { \
+@@ -83,7 +83,7 @@
+             exit (1); \
+           } \
+       } \
+-    catch (octave_execution_exception&) \
++    catch (octave::execution_exception&) \
+       { \
+         _p_error (__VA_ARGS__); \
+  \
+@@ -95,7 +95,7 @@
+       { \
+         code ; \
+       } \
+-    catch (octave_execution_exception&) \
++    catch (octave::execution_exception&) \
+       { \
+         _p_error (__VA_ARGS__); \
+  \
+@@ -107,7 +107,7 @@
+ // Octave uses exceptions for errors and if it still uses
+ // error_state. In the latter case reset error_state to 0.
+ #ifdef HAVE_OCTAVE_ERROR_STATE
+-  // can throw octave_execution_exception despite of this
++  // can throw execution_exception despite of this
+   #define SET_ERR(code, err) \
+     err = false; \
+  \
+@@ -120,7 +120,7 @@
+             err = true; \
+           } \
+       } \
+-    catch (octave_execution_exception&) \
++    catch (octave::execution_exception&) \
+       { \
+         err = true; \
+       }
+@@ -132,7 +132,7 @@
+       { \
+         code ; \
+       } \
+-    catch (octave_execution_exception&) \
++    catch (octave::execution_exception&) \
+       { \
+         err = true; \
+       }
+--- struct-1.0.15/src/error-helpers.cc.orig	2018-05-11 09:42:06.440266748 +0100
++++ struct-1.0.15/src/error-helpers.cc	2019-03-06 22:35:56.709823334 +0000
+@@ -18,13 +18,14 @@
+ */
+ 
+ #include <octave/oct.h>
++#include <iostream>
+ 
+ #include "error-helpers.h"
+ 
+ // call verror
+ #ifdef HAVE_OCTAVE_VERROR_ARG_EXC
+ void
+-c_verror (octave_execution_exception& e, const char *fmt, ...)
++c_verror (octave::execution_exception& e, const char *fmt, ...)
+ {
+   va_list args;
+   va_start (args, fmt);
+@@ -33,7 +34,7 @@
+ }
+ #else
+ void
+-c_verror (const octave_execution_exception&, const char *fmt, ...)
++c_verror (const octave::execution_exception&, const char *fmt, ...)
+ {
+   va_list args;
+   va_start (args, fmt);
