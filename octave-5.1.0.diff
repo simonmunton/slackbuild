@@ -1,0 +1,56 @@
+--- octave-5.1.0/scripts/pkg/private/install.m.orig	2019-02-23 17:33:37.000000000 +0000
++++ octave-5.1.0/scripts/pkg/private/install.m	2019-03-04 22:42:07.382745876 +0000
+@@ -62,7 +62,10 @@
+     for i = 1:length (files)
+       tgz = files{i};
+ 
+-      if (exist (tgz, "file"))
++      ## The filename pointed to an uncompressed package to begin with.
++      if (isfolder (tgz))
++        dirlist = {".", "..", tgz};
++      elseif (exist (tgz, "file"))
+         ## Create a temporary directory.
+         tmpdir = tempname ();
+         tmpdirs{end+1} = tmpdir;
+@@ -91,17 +94,16 @@
+         endif
+       endif
+ 
+-      ## The filename pointed to an uncompressed package to begin with.
+-      if (isfolder (tgz))
+-        dirlist = {".", "..", tgz};
+-      endif
+-
+-      if (exist (tgz, "file") || isfolder (tgz))
++      if (exist (tgz, "file"))
+         ## The two first entries of dirlist are "." and "..".
+-        if (exist (tgz, "file"))
+-          packdir = fullfile (tmpdir, dirlist{3});
++        if (isfolder(tgz))
++          if (tgz(1) == '/')
++            packdir = tgz;
++          else
++            packdir = fullfile (pwd (), dirlist{3});
++          endif
+         else
+-          packdir = fullfile (pwd (), dirlist{3});
++          packdir = fullfile (tmpdir, dirlist{3});
+         endif
+         packdirs{end+1} = packdir;
+ 
+--- octave-5.1.0/scripts/image/image.m.orig	2019-02-23 17:33:37.000000000 +0000
++++ octave-5.1.0/scripts/image/image.m	2019-03-04 19:38:00.566514801 +0000
+@@ -103,6 +103,13 @@
+     y = varargin{2};
+     img = varargin{3};
+     chararg = 4;
++    [r c z] = size(img);
++    if (isscalar(x))
++      x = [x, x+c-1];
++    end
++    if (isscalar(y))
++      y = [y, y+r-1];
++    end
+   endif
+ 
+   if (iscomplex (img))
