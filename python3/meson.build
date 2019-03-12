@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=0.49.0
+VERSION=0.50.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://mesonbuild.com/"
 
