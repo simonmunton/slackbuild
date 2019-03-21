@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.113
+VERSION=0.115
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,6 +46,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/polkit-dont-set-wheel-group-as-admin.diff
+
  if [ -n "${LIBDIRSUFFIX}" ]
  then
    patch -p1 < ${CWD}/polkit-0.112-lib64.diff
@@ -68,7 +70,17 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var \
-	    --mandir=/usr/man \
+            --mandir=/usr/man \
+            --docdir=/usr/doc/${TARNAME}-${VERSION} \
+            --enable-man-pages \
+            --enable-gtk-doc \
+            --disable-static \
+            --disable-examples \
+            --enable-introspection \
+            --enable-libsystemd-login=no \
+            --enable-libelogind=no \
+            --with-authfw=pam \
+            --enable-verbose-mode
 
 #	    --enable-introspection=no
 fi
@@ -87,7 +99,7 @@ make install DESTDIR=${PKG} libprivdir=/usr/lib${LIBDIRSUFFIX}/polkit-1
 
 mkdir -p ${PKG}/etc/polkit-1/rules.d
 
-for f in ${CWD}/polkit-*.rules
+for f in ${CWD}/polkit-10-org.freedesktop.NetworkManager.rules ${CWD}/polkit-20-plugdev-group-mount-override.rules
 do
   cp ${f} ${PKG}/etc/polkit-1/rules.d/${f#*polkit-}
 done
