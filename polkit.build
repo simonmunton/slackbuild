@@ -129,10 +129,19 @@ post_install
 
 doinst_systemaddusergrp polkitd polkitd x x
 
+# for old polkit user home dir
+mkdir -p ${PKG}/var/lib/polkit
+
+cat << EOF >> ${PKG}/install/doinst.sh
+#
+chown polkitd.polkitd etc/polkit-1/rules.d usr/share/polkit-1/rules.d
+
+EOF
+
 cd ${PKG}
 su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
-chmod 700 var/lib/polkit-1 etc/polkit-1/localauthority ; \
+chmod 700 etc/polkit-1/rules.d usr/share/polkit-1/rules.d ; \
 chmod 4755 usr/lib${LIBDIRSUFFIX}/polkit-1/polkit-agent-helper-1 usr/bin/pkexec ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
