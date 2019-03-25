@@ -1,6 +1,15 @@
 diff -rNaud eudev-3.1.old/rules/60-cdrom_id.rules eudev-3.1/rules/60-cdrom_id.rules
 --- eudev-3.1.old/rules/60-cdrom_id.rules	2015-03-19 22:57:28.000000000 +0100
 +++ eudev-3.1/rules/60-cdrom_id.rules	2015-10-24 12:36:13.350966101 +0200
+@@ -9,7 +9,7 @@
+ KERNEL=="sr[0-9]*", ENV{ID_CDROM}="1"
+ 
+ # media eject button pressed
+-ENV{DISK_EJECT_REQUEST}=="?*", RUN+="cdrom_id --eject-media $devnode", GOTO="cdrom_end"
++ENV{DISK_EJECT_REQUEST}=="?*", RUN+="/sbin/umount $devnode", RUN+="cdrom_id --eject-media $devnode", GOTO="cdrom_end"
+ 
+ # import device and media properties and lock tray to
+ # enable the receiving of media eject button events
 @@ -20,6 +20,25 @@
  # stale mounts after ejecting
  ENV{DISK_MEDIA_CHANGE}=="?*", ENV{ID_CDROM_MEDIA}!="?*", ENV{SYSTEMD_READY}="0"
