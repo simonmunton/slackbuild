@@ -1,0 +1,22 @@
+--- ConsoleKit2-1.2.1/src/ck-inhibit.c.orig	2017-06-02 02:31:44.000000000 +0100
++++ ConsoleKit2-1.2.1/src/ck-inhibit.c	2019-03-23 21:20:46.325381455 +0000
+@@ -439,7 +439,8 @@
+         /* We're about to return FALSE and close the glib source so reset it */
+         inhibit->priv->fd_source = 0;
+ 
+-        close_named_pipe (inhibit);
++        //close_named_pipe (inhibit);
++        g_object_unref(inhibit);
+         return FALSE;
+ }
+ 
+@@ -627,7 +628,8 @@
+ void
+ ck_inhibit_remove_lock (CkInhibit   *inhibit)
+ {
+-        return close_named_pipe (inhibit);
++        g_object_unref(inhibit);
++        //return close_named_pipe (inhibit);
+ }
+ 
+ /* Adds what to the string, frees the old string if needed, and returns the
