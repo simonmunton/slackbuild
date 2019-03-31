@@ -49,19 +49,19 @@ fix_perms
 
 if [ -f Build.PL ]
 then
-  perl Build.PL
-  ./Build
-  ./Build test
-  ./Build install --destdir=${PKG} --installdirs=vendor
+  perl Build.PL || exit
+  ./Build || exit
+  ./Build test || exit
+  ./Build install --destdir=${PKG} --installdirs=vendor || exit
 else
-#  perl Makefile.PL
-#  make all
-#  make test
+#  perl Makefile.PL || exit
+#  make all || exit
+#  make test || exit
   eval `perl '-V:sitelib'`
   eval `perl '-V:sitebin'`
   mkdir -p ${PKG}${sitebin} ${PKG}${sitelib}
   touch ${PKG}/usr/doc/sample.pl
-  make docs install install_html DESTDIR=${PKG} BINDIR=${PKG}${sitebin} PERL5DIR=${PKG}${sitelib} HTMLDIR=${PKG}/usr/doc/${TARNAME}-${VERSION}
+  make docs install install_html DESTDIR=${PKG} BINDIR=${PKG}${sitebin} PERL5DIR=${PKG}${sitelib} HTMLDIR=${PKG}/usr/doc/${TARNAME}-${VERSION} || exit
   rm ${PKG}/usr/doc/sample.pl ${PKG}/usr/doc/${TARNAME}-${VERSION}/SGMLSpm/sample.pl
 fi
 

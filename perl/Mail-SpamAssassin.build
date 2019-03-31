@@ -49,15 +49,15 @@ fix_perms
 
 if [ -f Build.PL ]
 then
-  perl Build.PL
-  ./Build
-  ./Build test
-  ./Build install --destdir=${PKG} --installdirs=vendor
+  perl Build.PL || exit
+  ./Build || exit
+  ./Build test || exit
+  ./Build install --destdir=${PKG} --installdirs=vendor || exit
 else
-  perl Makefile.PL
-  make INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr"
-  make test INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr"
-  make install DESTDIR=${PKG} INSTALLDIRS=vendor INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr"
+  perl Makefile.PL || exit
+  make INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr" || exit
+  make test INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr" || exit
+  make install DESTDIR=${PKG} INSTALLDIRS=vendor INSTALLSITELIB='$(INSTALLVENDORLIB)' SITEPREFIX="/usr" || exit
 fi
 
 perllocalpod

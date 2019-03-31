@@ -63,18 +63,18 @@ fix_perms
 
 if [ -f Build.PL ]
 then
-  perl Build.PL
-  ./Build
-  ./Build test
-  ./Build install --destdir=${PKG} --installdirs=vendor
+  perl Build.PL || exit
+  ./Build || exit
+  ./Build test || exit
+  ./Build install --destdir=${PKG} --installdirs=vendor || exit
 else
-  perl Makefile.PL XFT=1
+  perl Makefile.PL XFT=1 || exit
 
   find . -name Makefile | xargs perl -pi -e 's/^\tLD_RUN_PATH=[^\s]+\s*/\t/'
 
-  make
-  make test
-  make install DESTDIR=${PKG} INSTALLDIRS=vendor
+  make || exit
+  make test || exit
+  make install DESTDIR=${PKG} INSTALLDIRS=vendor || exit
 
 #  make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 
