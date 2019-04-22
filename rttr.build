@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ring
+TARNAME=rttr
 TARNAMEEXTRA=
-TARSEP="_"
+TARSEP="-"
 TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=20190419.4.4d1448f
+VERSION=0.9.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://ring.cx/"
+WEBPAGE="https://www.rttr.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=ring-daemon
+#PKGNAME=
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,19 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-project ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/ring-20180830.1.2b1e63a.diff
-# patch -p1 < ${CWD}/ring-20181001.4.a99aaec.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,17 +55,7 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd daemon
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-cd contrib
-mkdir -p native
-cd native
-../bootstrap
-make || exit
-cd ../..
-./autogen.sh
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -78,8 +67,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-shared
+	    --mandir=/usr/man
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -134,9 +122,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Ring daemon"
-Ring is a free and universal communication platform which preserves 
-the users' privacy and freedoms.
+make_slack_desc << EOF "An open source library, which adds reflection to C++"
+RTTR stands for Run Time Type Reflection. It describes the ability of 
+a computer program to introspect and modify an object at runtime. It 
+is also the name of the library itself, which is written in C++ and 
+released as open source library.
+
+The goal of this project is to provide an easy and intuitive way to 
+use reflection in C++.
 
 EOF
 
