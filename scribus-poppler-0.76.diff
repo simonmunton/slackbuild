@@ -1,0 +1,794 @@
+--- scribus-1.5.4/scribus/plugins/import/pdf/importpdf.h.orig	2017-04-21 17:54:47.000000000 +0100
++++ scribus-1.5.4/scribus/plugins/import/pdf/importpdf.h	2019-02-24 21:22:41.194583817 +0000
+@@ -81,7 +81,7 @@
+ private:
+ 	bool convert(const QString& fn);
+ 	QRectF getCBox(int box, int pgNum);
+-	QString UnicodeParsedString(GooString *s1);
++	QString UnicodeParsedString(const GooString *s1);
+ 	
+ 	QList<PageItem*> Elements;
+ 	double baseX, baseY;
+--- scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp.orig	2017-12-21 23:32:37.000000000 +0000
++++ scribus-1.5.4/scribus/plugins/import/pdf/importpdf.cpp	2019-03-21 22:01:06.197178688 +0000
+@@ -461,7 +461,7 @@
+ 				GBool useMediaBox = gTrue;
+ 				GBool crop = gTrue;
+ 				GBool printing = gFalse;
+-				PDFRectangle *mediaBox = pdfDoc->getPage(1)->getMediaBox();
++				const PDFRectangle *mediaBox = pdfDoc->getPage(1)->getMediaBox();
+ 				QRectF mediaRect = QRectF(QPointF(mediaBox->x1, mediaBox->y1), QPointF(mediaBox->x2, mediaBox->y2)).normalized();
+ 				bool boxesAreDifferent = false;
+ 				if (getCBox(Crop_Box, 1) != mediaRect)
+@@ -534,8 +534,10 @@
+ #endif
+ 									if (orderItem.isDict())
+ 									{
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 58, 0)
+-										Object ref = order->getNF(i);		
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 75, 0)
++										Object ref = order->getNF(i).copy();
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 58, 0)
++										Object ref = order->getNF(i);
+ #else
+ 										Object ref;
+ 										order->getNF(i, &ref);
+@@ -556,12 +558,10 @@
+ 									}
+ 									else
+ 									{
+-										GooList *ocgs;
+-										int i;
+-										ocgs = ocg->getOCGs ();
+-										for (i = 0; i < ocgs->getLength (); ++i)
++										const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++										for (auto &n : ocgs)
+ 										{
+-											OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++											OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 											QString ocgName = UnicodeParsedString(oc->getName());
+ 											if (!ocgNames.contains(ocgName))
+ 											{
+@@ -574,12 +574,10 @@
+ 							}
+ 							else
+ 							{
+-								GooList *ocgs;
+-								int i;
+-								ocgs = ocg->getOCGs ();
+-								for (i = 0; i < ocgs->getLength (); ++i)
++								const std::unordered_map< Ref, std::unique_ptr< OptionalContentGroup > > &ocgs = ocg->getOCGs ();
++								for (auto &n : ocgs)
+ 								{
+-									OptionalContentGroup *oc = (OptionalContentGroup *)ocgs->get(i);
++									OptionalContentGroup *oc = ocg->findOcgByRef(n.first);
+ 									QString ocgName = UnicodeParsedString(oc->getName());
+ 									if (!ocgNames.contains(ocgName))
+ 									{
+@@ -1008,7 +1006,7 @@
+ {
+ 	if (!m_pdfDoc)
+ 		return QImage();
+-	
++
+ 	double h = m_pdfDoc->getPageMediaHeight(pgNum);
+ 	double w = m_pdfDoc->getPageMediaWidth(pgNum);
+ 	double scale = qMin(height / h, width / w);
+@@ -1066,7 +1064,7 @@
+ 
+ QRectF PdfPlug::getCBox(int box, int pgNum)
+ {
+-	PDFRectangle *cBox = NULL;
++	const PDFRectangle *cBox = NULL;
+ 	if (box == Media_Box)
+ 		cBox = m_pdfDoc->getPage(pgNum)->getMediaBox();
+ 	else if (box == Bleed_Box)
+@@ -1081,7 +1079,7 @@
+ 	return cRect;
+ }
+ 
+-QString PdfPlug::UnicodeParsedString(GooString *s1)
++QString PdfPlug::UnicodeParsedString(const GooString *s1)
+ {
+ 	if ( !s1 || s1->getLength() == 0 )
+ 		return QString();
+--- scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.cpp.orig	2017-12-10 13:12:11.000000000 +0000
++++ scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.cpp	2019-04-22 19:34:32.082030156 +0100
+@@ -44,7 +44,7 @@
+ 				{
+ 					if (obj3.isName())
+ 					{
+-						char *name = obj3.getName();
++						const char *name = obj3.getName();
+ 						if (!strcmp(name, "URL"))
+ 						{
+ 							obj2 = obj1.dictLookup("F");
+@@ -189,7 +189,7 @@
+ 	m_itemText = s->copy();
+ }
+ 
+-QString AnoOutputDev::getColor(GfxColorSpace *color_space, GfxColor *color, int *shade)
++QString AnoOutputDev::getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+@@ -229,7 +229,7 @@
+ 	else if (color_space->getMode() == csSeparation)
+ 	{
+ 		GfxCMYK cmyk;
+-		QString name = QString(((GfxSeparationColorSpace*)color_space)->getName()->getCString());
++		QString name = QString(((GfxSeparationColorSpace*)color_space)->getName()->c_str());
+ 		double Cc, Mc, Yc, Kc;
+ 		bool isRegistrationColor = (name == "All");
+ 		if (!isRegistrationColor)
+@@ -316,7 +316,11 @@
+ 	if (obj.isDict())
+ 	{
+ 		Dict* adic = obj.getDict();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 75, 0)
++		additionalActions = adic->lookupNF("A").copy();
++#else
+ 		additionalActions = adic->lookupNF("A");
++#endif
+ 		Object additionalActionsObject = additionalActions.fetch(pdfDoc->getXRef());
+ 		if (additionalActionsObject.isDict())
+ 		{
+@@ -376,7 +380,11 @@
+ 	if (obj.isDict())
+ 	{
+ 		Dict* adic = obj.getDict();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 75, 0)
++		additionalActions = adic->lookupNF("AA").copy();
++#else
+ 		additionalActions = adic->lookupNF("AA");
++#endif
+ 		Object additionalActionsObject = additionalActions.fetch(pdfDoc->getXRef());
+ 		if (additionalActionsObject.isDict())
+ 		{
+@@ -509,7 +517,7 @@
+ 	if (act->getKind() == actionGoTo)
+ 	{
+ 		LinkGoTo *gto = (LinkGoTo*)act;
+-		LinkDest *dst = gto->getDest();
++		const LinkDest *dst = gto->getDest();
+ 		if (dst)
+ 		{
+ 			if (dst->getKind() == destXYZ)
+@@ -517,7 +525,11 @@
+ 				if (dst->isPageRef())
+ 				{
+ 					Ref dstr = dst->getPageRef();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 76, 0)
++					pagNum = pdfDoc->findPage(dstr);
++#else
+ 					pagNum = pdfDoc->findPage(dstr.num, dstr.gen);
++#endif
+ 				}
+ 				else
+ 					pagNum = dst->getPageNum();
+@@ -528,7 +540,7 @@
+ 		}
+ 		else
+ 		{
+-			GooString *ndst = gto->getNamedDest();
++			const GooString *ndst = gto->getNamedDest();
+ 			if (ndst)
+ 			{
+ 				LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -539,7 +551,11 @@
+ 						if (dstn->isPageRef())
+ 						{
+ 							Ref dstr = dstn->getPageRef();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 76, 0)
++							pagNum = pdfDoc->findPage(dstr);
++#else
+ 							pagNum = pdfDoc->findPage(dstr.num, dstr.gen);
++#endif
+ 						}
+ 						else
+ 							pagNum = dstn->getPageNum();
+@@ -555,7 +571,7 @@
+ 	{
+ 		LinkGoToR *gto = (LinkGoToR*)act;
+ 		fileName = UnicodeParsedString(gto->getFileName());
+-		LinkDest *dst = gto->getDest();
++		const LinkDest *dst = gto->getDest();
+ 		if (dst)
+ 		{
+ 			if (dst->getKind() == destXYZ)
+@@ -568,7 +584,7 @@
+ 		}
+ 		else
+ 		{
+-			GooString *ndst = gto->getNamedDest();
++			const GooString *ndst = gto->getNamedDest();
+ 			if (ndst)
+ 			{
+ 				LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -709,7 +725,7 @@
+ 			bool bgFound = false;
+ 			if (achar)
+ 			{
+-				AnnotColor *bgCol = achar->getBackColor();
++				const AnnotColor *bgCol = achar->getBackColor();
+ 				if (bgCol)
+ 				{
+ 					bgFound = true;
+@@ -717,7 +733,7 @@
+ 				}
+ 				else
+ 					CurrColorFill = CommonStrings::None;
+-				AnnotColor *fgCol = achar->getBorderColor();
++				const AnnotColor *fgCol = achar->getBorderColor();
+ 				if (fgCol)
+ 				{
+ 					fgFound = true;
+@@ -945,7 +961,11 @@
+ 				QList<int> radList;
+ 				for (int i = 0; i < obj2.arrayGetLength(); i++)
+ 				{
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 75, 0)
++					Object childRef = obj2.arrayGetNF(i).copy();
++#else
+ 					Object childRef = obj2.arrayGetNF(i);
++#endif
+ 					if (!childRef.isRef())
+ 						continue;
+ 					Object childObj = obj2.arrayGet(i);
+@@ -1054,7 +1074,7 @@
+ 			int xco = 0;
+ 			int yco = 0;
+ 			LinkGoTo *gto = (LinkGoTo*)Lact;
+-			LinkDest *dst = gto->getDest();
++			const LinkDest *dst = gto->getDest();
+ 			if (dst)
+ 			{
+ 				if (dst->getKind() == destXYZ)
+@@ -1062,7 +1082,11 @@
+ 					if (dst->isPageRef())
+ 					{
+ 						Ref dstr = dst->getPageRef();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 76, 0)
++						pagNum = pdfDoc->findPage(dstr);
++#else
+ 						pagNum = pdfDoc->findPage(dstr.num, dstr.gen);
++#endif
+ 					}
+ 					else
+ 						pagNum = dst->getPageNum();
+@@ -1075,7 +1099,7 @@
+ 			}
+ 			else
+ 			{
+-				GooString *ndst = gto->getNamedDest();
++				const GooString *ndst = gto->getNamedDest();
+ 				if (ndst)
+ 				{
+ 					LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -1086,7 +1110,11 @@
+ 							if (dstn->isPageRef())
+ 							{
+ 								Ref dstr = dstn->getPageRef();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 76, 0)
++								pagNum = pdfDoc->findPage(dstr);
++#else
+ 								pagNum = pdfDoc->findPage(dstr.num, dstr.gen);
++#endif
+ 							}
+ 							else
+ 								pagNum = dstn->getPageNum();
+@@ -1107,7 +1135,7 @@
+ 			int yco = 0;
+ 			LinkGoToR *gto = (LinkGoToR*)Lact;
+ 			QString fileName = UnicodeParsedString(gto->getFileName());
+-			LinkDest *dst = gto->getDest();
++			const LinkDest *dst = gto->getDest();
+ 			if (dst)
+ 			{
+ 				if (dst->getKind() == destXYZ)
+@@ -1123,7 +1151,7 @@
+ 			}
+ 			else
+ 			{
+-				GooString *ndst = gto->getNamedDest();
++				const GooString *ndst = gto->getNamedDest();
+ 				if (ndst)
+ 				{
+ 					LinkDest *dstn = pdfDoc->findDest(ndst);
+@@ -1604,7 +1632,7 @@
+ void SlaOutputDev::clip(GfxState *state)
+ {
+ //	qDebug() << "Clip";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QString output = convertPath(state->getPath());
+@@ -1641,7 +1669,7 @@
+ void SlaOutputDev::eoClip(GfxState *state)
+ {
+ //	qDebug() << "EoClip";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QString output = convertPath(state->getPath());
+@@ -1678,7 +1706,7 @@
+ void SlaOutputDev::stroke(GfxState *state)
+ {
+ //	qDebug() << "Stroke";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1770,7 +1798,7 @@
+ void SlaOutputDev::fill(GfxState *state)
+ {
+ //	qDebug() << "Fill";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1815,7 +1843,7 @@
+ void SlaOutputDev::eoFill(GfxState *state)
+ {
+ //	qDebug() << "EoFill";
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -1864,14 +1892,14 @@
+ 	double GrEndX;
+ 	double GrEndY;
+ 	int shade = 100;
+-	Function *func = shading->getFunc(0);
++	const Function *func = shading->getFunc(0);
+ 	VGradient FillGradient = VGradient(VGradient::linear);
+ 	FillGradient.clearStops();
+ 	GfxColorSpace *color_space = shading->getColorSpace();
+ 	if (func->getType() == 3)
+ 	{
+ 		StitchingFunction *stitchingFunc = (StitchingFunction*)func;
+-		double *bounds = stitchingFunc->getBounds();
++		const double *bounds = stitchingFunc->getBounds();
+ 		int num_funcs = stitchingFunc->getNumFuncs();
+ 		// Add stops from all the stitched functions
+ 		for ( int i = 0 ; i < num_funcs ; i++ )
+@@ -1905,7 +1933,7 @@
+ 	state->getClipBBox(&xmin, &ymin, &xmax, &ymax);
+ 	QRectF crect = QRectF(QPointF(xmin, ymin), QPointF(xmax, ymax));
+ 	crect = crect.normalized();
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	FPointArray gr;
+@@ -1975,14 +2003,14 @@
+ 	double GrEndX;
+ 	double GrEndY;
+ 	int shade = 100;
+-	Function *func = shading->getFunc(0);
++	const Function *func = shading->getFunc(0);
+ 	VGradient FillGradient = VGradient(VGradient::linear);
+ 	FillGradient.clearStops();
+ 	GfxColorSpace *color_space = shading->getColorSpace();
+ 	if (func->getType() == 3)
+ 	{
+ 		StitchingFunction *stitchingFunc = (StitchingFunction*)func;
+-		double *bounds = stitchingFunc->getBounds();
++		const double *bounds = stitchingFunc->getBounds();
+ 		int num_funcs = stitchingFunc->getNumFuncs();
+ 		// Add stops from all the stitched functions
+ 		for ( int i = 0 ; i < num_funcs ; i++ )
+@@ -2021,7 +2049,7 @@
+ 	double GrFocalY = y1;
+ 	GrEndX = GrFocalX + r1;
+ 	GrEndY = GrFocalY;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	FPointArray gr;
+@@ -2104,7 +2132,7 @@
+ 	output += QString("Z");
+ 	pathIsClosed = true;
+ 	Coords = output;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	int z = m_doc->itemAdd(PageItem::Polygon, PageItem::Rectangle, xCoor + crect.x(), yCoor + crect.y(), crect.width(), crect.height(), 0, CurrColorFill, CommonStrings::None);
+@@ -2185,7 +2213,7 @@
+ 	output += QString("Z");
+ 	pathIsClosed = true;
+ 	Coords = output;
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	int z = m_doc->itemAdd(PageItem::Polygon, PageItem::Rectangle, xCoor + crect.x(), yCoor + crect.y(), crect.width(), crect.height(), 0, CurrColorFill, CommonStrings::None);
+@@ -2211,7 +2239,7 @@
+ 	for (int i = 0; i < shading->getNPatches(); i++)
+ 	{
+ 		int shade = 100;
+-		GfxPatch *patch = shading->getPatch(i);
++		const GfxPatch *patch = shading->getPatch(i);
+ 		GfxColor color;
+ 		meshGradientPatch patchM;
+ 		int u, v;
+@@ -2339,7 +2367,7 @@
+ 	box.y1 = bbox[1];
+ 	box.x2 = bbox[2];
+ 	box.y2 = bbox[3];
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 	QTransform mm = QTransform(mat[0], mat[1], mat[2], mat[3], mat[4], mat[5]);
+@@ -2512,7 +2540,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2658,7 +2686,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2808,7 +2836,7 @@
+ 			t++;
+ 		}
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -2973,7 +3001,7 @@
+ 		delete image;
+ 		return;
+ 	}
+-	double *ctm;
++	const double *ctm;
+ 	ctm = state->getCTM();
+ 	double xCoor = m_doc->currentPage()->xOffset();
+ 	double yCoor = m_doc->currentPage()->yOffset();
+@@ -3190,13 +3218,13 @@
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 58, 0)
+ 			Object obj = properties->lookup((char*) "Title");
+ 			if (obj.isString())
+-				lName = QString(obj.getString()->getCString());
++				lName = QString(obj.getString()->c_str());
+ #else
+ 			Object obj;
+ 			if (properties->lookup((char*)"Title", &obj))
+ 			{
+ 				if (obj.isString())
+-					lName =  QString(obj.getString()->getCString());
++					lName =  QString(obj.getString()->c_str());
+ 				obj.free();
+ 			}
+ #endif
+@@ -3326,7 +3354,7 @@
+ 	char *tmpBuf;
+ 	int tmpBufLen = 0;
+ 	int *codeToGID;
+-	double *textMat;
++	const double *textMat;
+ 	double m11, m12, m21, m22, fontSize;
+ 	SplashCoord mat[4];
+ 	int n = 0;
+@@ -3355,7 +3383,7 @@
+ 
+ 		if (!(fontLoc = gfxFont->locateFont(xref, 0))) {
+ 			error(errSyntaxError, -1, "Couldn't find a font for '{0:s}'",
+-			gfxFont->getName() ? gfxFont->getName()->getCString()
++			gfxFont->getName() ? gfxFont->getName()->c_str()
+ 			: "(unnamed)");
+ 			goto err2;
+ 		}
+@@ -3388,7 +3416,7 @@
+ 				(const char **)((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3400,7 +3428,7 @@
+ 							(const char **)((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3412,7 +3440,7 @@
+ 							(const char **)((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3420,7 +3448,7 @@
+ 		case fontTrueType:
+ 		case fontTrueTypeOT:
+ 			if (fileName)
+-				ff = FoFiTrueType::load(fileName->getCString());
++				ff = FoFiTrueType::load(fileName->c_str());
+ 			else
+ 				ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 			if (ff) {
+@@ -3437,7 +3465,7 @@
+ 							codeToGID, n)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3449,7 +3477,7 @@
+ 							fontsrc)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3470,7 +3498,7 @@
+ 							codeToGID, n)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3488,7 +3516,7 @@
+ 				}
+ 			} else {
+ 				if (fileName)
+-					ff = FoFiTrueType::load(fileName->getCString());
++					ff = FoFiTrueType::load(fileName->c_str());
+ 				else
+ 					ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 				if (! ff)
+@@ -3502,7 +3530,7 @@
+ 							codeToGID, n, faceIndex)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+-				gfxFont->getName() ? gfxFont->getName()->getCString()
++				gfxFont->getName() ? gfxFont->getName()->c_str()
+ 				: "(unnamed)");
+ 				goto err2;
+ 			}
+@@ -3604,7 +3632,7 @@
+ 			}
+ 			if (!dfp)
+ 			{
+-		//		error(-1, "Couldn't find a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++		//		error(-1, "Couldn't find a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;
+ 			}
+ 			switch (dfp->kind)
+@@ -3631,28 +3659,28 @@
+ 			case fontType1:
+ 				if (!(fontFile = m_fontEngine->loadType1Font( id, fontsrc, ((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 				{
+-			//		error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++			//		error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 					goto err2;
+ 				}
+ 				break;
+ 			case fontType1C:
+ 				if (!(fontFile = m_fontEngine->loadType1CFont( id, fontsrc, ((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 				{
+-		//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++		//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 					goto err2;
+ 				}
+ 				break;
+ 			case fontType1COT:
+ 				if (!(fontFile = m_fontEngine->loadOpenTypeT1CFont( id, fontsrc, ((Gfx8BitFont *)gfxFont)->getEncoding())))
+ 				{
+-		//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++		//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 					goto err2;
+ 				}
+ 				break;
+ 			case fontTrueType:
+ 			case fontTrueTypeOT:
+ 				if (fileName)
+-					ff = FoFiTrueType::load(fileName->getCString());
++					ff = FoFiTrueType::load(fileName->c_str());
+ 				else
+ 					ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 				if (ff)
+@@ -3668,7 +3696,7 @@
+ 				}
+ 				if (!(fontFile = m_fontEngine->loadTrueTypeFont( id, fontsrc, codeToGID, n)))
+ 				{
+-	//				error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++	//				error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 					goto err2;
+ 				}
+ 			break;
+@@ -3676,14 +3704,14 @@
+ 		case fontCIDType0C:
+ 			if (!(fontFile = m_fontEngine->loadCIDFont( id, fontsrc)))
+ 			{
+-	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;
+ 			}
+ 			break;
+ 		case fontCIDType0COT:
+ 			if (!(fontFile = m_fontEngine->loadOpenTypeCFFFont( id, fontsrc)))
+ 			{
+-	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;
+ 			}
+ 			break;
+@@ -3703,7 +3731,7 @@
+ 			else
+ 			{
+ 				if (fileName)
+-					ff = FoFiTrueType::load(fileName->getCString());
++					ff = FoFiTrueType::load(fileName->c_str());
+ 				else
+ 					ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 				if (!ff)
+@@ -3713,7 +3741,7 @@
+ 			}
+ 			if (!(fontFile = m_fontEngine->loadTrueTypeFont( id, fontsrc, codeToGID, n, faceIndex)))
+ 			{
+-	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
++	//			error(-1, "Couldn't create a font for '%s'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;
+ 			}
+ 			break;
+@@ -3793,7 +3821,7 @@
+ 				if (f & splashPathLast)
+ 					qPath.closeSubpath();
+ 			}
+-			double *ctm;
++			const double *ctm;
+ 			ctm = state->getCTM();
+ 			m_ctm = QTransform(ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+ 			double xCoor = m_doc->currentPage()->xOffset();
+@@ -3948,7 +3976,7 @@
+ 	}
+ }
+ 
+-QString SlaOutputDev::getColor(GfxColorSpace *color_space, GfxColor *color, int *shade)
++QString SlaOutputDev::getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+@@ -3993,7 +4021,7 @@
+ 	else if (color_space->getMode() == csSeparation)
+ 	{
+ 		GfxCMYK cmyk;
+-		QString name = QString(((GfxSeparationColorSpace*)color_space)->getName()->getCString());
++		QString name = QString(((GfxSeparationColorSpace*)color_space)->getName()->c_str());
+ 		double Cc, Mc, Yc, Kc;
+ 		bool isRegistrationColor = (name == "All");
+ 		if (!isRegistrationColor)
+@@ -4032,7 +4060,7 @@
+ 	return fNam;
+ }
+ 
+-QString SlaOutputDev::getAnnotationColor(AnnotColor *color)
++QString SlaOutputDev::getAnnotationColor(const AnnotColor *color)
+ {
+ 	QString fNam;
+ 	QString namPrefix = "FromPDF";
+@@ -4252,7 +4280,7 @@
+ 	m_groupStack.push(gElements);
+ }
+ 
+-QString SlaOutputDev::UnicodeParsedString(GooString *s1)
++QString SlaOutputDev::UnicodeParsedString(const GooString *s1)
+ {
+ 	if ( !s1 || s1->getLength() == 0 )
+ 		return QString();
+--- scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.h.orig	2017-06-05 21:10:08.000000000 +0100
++++ scribus-1.5.4/scribus/plugins/import/pdf/slaoutput.h	2019-02-24 21:22:41.196583816 +0000
+@@ -26,7 +26,6 @@
+ #include "selection.h"
+ #include "vgradient.h"
+ 
+-#include <poppler/goo/gtypes.h>
+ #include <poppler/Object.h>
+ #include <poppler/OutputDev.h>
+ #include <poppler/Gfx.h>
+@@ -49,6 +48,12 @@
+ #include <poppler/splash/SplashPath.h>
+ #include <poppler/splash/SplashGlyphBitmap.h>
+ 
++typedef unsigned char Guchar;
++typedef unsigned short Gushort;
++typedef bool GBool;
++#define gTrue true
++#define gFalse false
++
+ //------------------------------------------------------------------------
+ // LinkSubmitData
+ //------------------------------------------------------------------------
+@@ -61,9 +66,9 @@
+ 	// Destructor.
+ 	virtual ~LinkSubmitForm();
+ 	// Was the LinkImportData created successfully?
+-	virtual GBool isOk() { return fileName != NULL; }
++	virtual GBool isOk() const { return fileName != NULL; }
+ 	// Accessors.
+-	virtual LinkActionKind getKind() { return actionUnknown; }
++	virtual LinkActionKind getKind() const { return actionUnknown; }
+ 	GooString *getFileName() { return fileName; }
+ 	int getFlags() { return m_flags; }
+ private:
+@@ -83,9 +88,9 @@
+ 	// Destructor.
+ 	virtual ~LinkImportData();
+ 	// Was the LinkImportData created successfully?
+-	virtual GBool isOk() { return fileName != NULL; }
++	virtual GBool isOk() const { return fileName != NULL; }
+ 	// Accessors.
+-	virtual LinkActionKind getKind() { return actionUnknown; }
++	virtual LinkActionKind getKind() const { return actionUnknown; }
+ 	GooString *getFileName() { return fileName; }
+ private:
+ 	GooString *fileName;		// file name
+@@ -98,7 +103,7 @@
+ {
+ public:
+ 
+-	SplashOutFontFileID(Ref *rA) { r = *rA; }
++	SplashOutFontFileID(const Ref *rA) { r = *rA; }
+ 	~SplashOutFontFileID() {}
+ 	GBool matches(SplashFontFileID *id)
+ 	{
+@@ -135,7 +140,7 @@
+ 	GooString *m_fontName;
+ 	GooString *m_itemText;
+ private:
+-	QString getColor(GfxColorSpace *color_space, GfxColor *color, int *shade);
++	QString getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade);
+ 	ScribusDoc* m_doc;
+ 	QStringList *m_importedColors;
+ };
+@@ -260,13 +265,13 @@
+ 
+ private:
+ 	void getPenState(GfxState *state);
+-	QString getColor(GfxColorSpace *color_space, GfxColor *color, int *shade);
+-	QString getAnnotationColor(AnnotColor *color);
++	QString getColor(GfxColorSpace *color_space, const GfxColor *color, int *shade);
++	QString getAnnotationColor(const AnnotColor *color);
+ 	QString convertPath(GfxPath *path);
+ 	int getBlendMode(GfxState *state);
+ 	void applyMask(PageItem *ite);
+ 	void pushGroup(QString maskName = "", GBool forSoftMask = gFalse, GBool alpha = gFalse, bool inverted = false);
+-	QString UnicodeParsedString(GooString *s1);
++	QString UnicodeParsedString(const GooString *s1);
+ 	bool checkClip();
+ 	bool pathIsClosed;
+ 	QString CurrColorFill;

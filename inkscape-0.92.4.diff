@@ -1,0 +1,59 @@
+--- inkscape-0.92.4/CMakeLists.txt.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/CMakeLists.txt	2019-04-22 17:21:01.480052375 +0100
+@@ -44,7 +44,7 @@
+     SET(CMAKE_MACOSX_RPATH TRUE)
+     SET(CMAKE_INSTALL_RPATH "@loader_path/../lib/inkscape")
+ else()
+-    SET(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/inkscape")
++    SET(CMAKE_INSTALL_RPATH "$ORIGIN/../lib${LIB_SUFFIX}/inkscape")
+ endif()
+ 
+ # workaround for omission in cmake 2.8.4's GNU.cmake, fixed in 2.8.5
+--- inkscape-0.92.4/src/CMakeLists.txt.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/CMakeLists.txt	2019-04-22 17:21:01.481052375 +0100
+@@ -576,8 +576,8 @@
+     inkscape
+     inkview 
+     RUNTIME DESTINATION bin
+-    LIBRARY DESTINATION lib/inkscape
+-    ARCHIVE DESTINATION lib/inkscape)
++    LIBRARY DESTINATION lib${LIB_SUFFIX}/inkscape
++    ARCHIVE DESTINATION lib${LIB_SUFFIX}/inkscape)
+ else()
+   install(TARGETS
+     inkscape_base
+--- inkscape-0.92.4/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/pdfinput/pdf-parser.cpp	2019-04-22 17:35:02.346012255 +0100
+@@ -426,7 +426,7 @@
+ 	error(errInternal, -1, "Weird page contents");
+     	return;
+   }
+-  parser = new Parser(xref, new Lexer(xref, obj), gFalse);
++  parser = new Parser(xref, obj, gFalse);
+   go(topLevel);
+   delete parser;
+   parser = NULL;
+--- inkscape-0.92.4/CMakeScripts/HelperMacros.cmake.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/CMakeScripts/HelperMacros.cmake	2019-04-22 17:21:01.481052375 +0100
+@@ -39,8 +39,8 @@
+     # (if we ever build shared libraries those would use the RUNTIME target and we might have to revisit this)
+     if(NOT WIN32)
+         install(TARGETS ${name} 
+-            LIBRARY DESTINATION lib/inkscape
+-            ARCHIVE DESTINATION lib/inkscape
++            LIBRARY DESTINATION lib${LIB_SUFFIX}/inkscape
++            ARCHIVE DESTINATION lib${LIB_SUFFIX}/inkscape
+             )
+     endif()
+ 
+--- inkscape-0.92.4/CMakeScripts/ConfigPaths.cmake.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/CMakeScripts/ConfigPaths.cmake	2019-04-22 17:21:01.481052375 +0100
+@@ -16,7 +16,7 @@
+   
+   mark_as_advanced(SHARE_INSTALL)
+ else()
+-  set(INKSCAPE_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
++  set(INKSCAPE_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+   set(INKSCAPE_DATADIR "${CMAKE_INSTALL_PREFIX}/share")
+ 
+   # TODO: check and change this to correct value:
