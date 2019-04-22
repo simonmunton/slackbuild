@@ -103,3 +103,43 @@
  	else {
  		context->audio_input_samples = c->frame_size;
  #ifndef FFMPEG_HAVE_ENCODE_AUDIO2
+--- blender-2.79b/build_files/cmake/platform/platform_unix.cmake.orig	2018-03-23 15:22:25.000000000 +0000
++++ blender-2.79b/build_files/cmake/platform/platform_unix.cmake	2019-04-21 13:44:04.140271132 +0100
+@@ -262,6 +262,7 @@
+ 			list(APPEND __boost_packages iostreams)
+ 		endif()
+ 		list(APPEND __boost_packages system)
++		set(BUILD_SHARED_LIBS ON)
+ 		find_package(Boost 1.48 COMPONENTS ${__boost_packages})
+ 		if(NOT Boost_FOUND)
+ 			# try to find non-multithreaded if -mt not found, this flag
+@@ -270,6 +271,7 @@
+ 			set(Boost_USE_MULTITHREADED OFF)
+ 			find_package(Boost 1.48 COMPONENTS ${__boost_packages})
+ 		endif()
++		set(BUILD_SHARED_LIBS OFF)
+ 		unset(__boost_packages)
+ 		if(Boost_USE_STATIC_LIBS AND WITH_BOOST_ICU)
+ 			find_package(IcuLinux)
+--- blender-2.79b/source/blenderplayer/CMakeLists.txt.orig	2018-03-23 15:22:25.000000000 +0000
++++ blender-2.79b/source/blenderplayer/CMakeLists.txt	2019-04-21 13:50:10.931261931 +0100
+@@ -249,7 +249,7 @@
+ 		list(SORT REM_MSG)
+ 		message(STATUS "Player Skipping: (${REM_MSG})")
+ 	endif()
+-	target_link_libraries(blenderplayer ${BLENDER_SORTED_LIBS})
++	target_link_libraries(blenderplayer ${BLENDER_SORTED_LIBS} Boost::locale)
+ 
+ 	unset(SEARCHLIB)
+ 	unset(SORTLIB)
+--- blender-2.79b/source/creator/CMakeLists.txt.orig	2018-03-23 15:22:25.000000000 +0000
++++ blender-2.79b/source/creator/CMakeLists.txt	2019-04-21 13:49:37.006263549 +0100
+@@ -1054,7 +1054,7 @@
+ add_dependencies(blender makesdna)
+ 
+ setup_blender_sorted_libs()
+-target_link_libraries(blender ${BLENDER_SORTED_LIBS})
++target_link_libraries(blender ${BLENDER_SORTED_LIBS} Boost::locale)
+ 
+ setup_liblinks(blender)
+ 

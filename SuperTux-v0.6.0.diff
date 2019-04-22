@@ -47,3 +47,24 @@
      };
  
      int border = std::min(2, font.get_border());
+--- SuperTux-v0.6.0/CMakeLists.txt.orig	2018-12-23 19:11:31.000000000 +0000
++++ SuperTux-v0.6.0/CMakeLists.txt	2019-04-21 20:50:39.424158457 +0100
+@@ -133,7 +133,9 @@
+ else(ENABLE_BOOST_STATIC_LIBS)
+   set(Boost_USE_STATIC_LIBS FALSE)
+ endif(ENABLE_BOOST_STATIC_LIBS)
++set(BUILD_SHARED_LIBS ON)
+ find_package(Boost REQUIRED COMPONENTS filesystem system date_time locale)
++set(BUILD_SHARED_LIBS OFF)
+ include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+ link_directories(${Boost_LIBRARY_DIRS})
+ 
+@@ -772,7 +774,7 @@
+   target_link_libraries(supertux2_lib PUBLIC ${OPENAL_LIBRARY})
+ endif()
+ target_link_libraries(supertux2_lib PUBLIC ${OGGVORBIS_LIBRARIES})
+-target_link_libraries(supertux2_lib PUBLIC ${Boost_LIBRARIES})
++target_link_libraries(supertux2_lib PUBLIC ${Boost_LIBRARIES} Boost::locale Boost::filesystem)
+ if(USE_SYSTEM_PHYSFS)
+   target_link_libraries(supertux2_lib PUBLIC ${PHYSFS_LIBRARY})
+ else()

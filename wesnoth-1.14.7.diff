@@ -1,0 +1,124 @@
+--- wesnoth-1.14.7/CMakeLists.txt.orig	2019-04-12 02:05:54.000000000 +0100
++++ wesnoth-1.14.7/CMakeLists.txt	2019-04-21 20:52:25.826153380 +0100
+@@ -69,7 +69,9 @@
+ 	set(CRYPTO_LIBRARY "-framework Security")
+ endif()
+ 
++set(BUILD_SHARED_LIBS ON)
+ find_package(Boost 1.50 REQUIRED COMPONENTS iostreams program_options regex system thread random)
++set(BUILD_SHARED_LIBS OFF)
+ 
+ # no, gettext executables are not required when NLS is deactivated
+ find_package(Gettext)
+@@ -514,7 +516,9 @@
+ endif(ENABLE_GAME OR ENABLE_TESTS)
+ 
+ if(ENABLE_TESTS)
++set(BUILD_SHARED_LIBS ON)
+ 	find_package( Boost 1.36 REQUIRED COMPONENTS unit_test_framework )
++set(BUILD_SHARED_LIBS OFF)
+ endif(ENABLE_TESTS)
+ 
+ if(ENABLE_GAME)
+@@ -546,8 +550,10 @@
+ 	endif(ENABLE_HISTORY AND HISTORY_FOUND)
+ endif(ENABLE_GAME)
+ 
++set(BUILD_SHARED_LIBS ON)
+ find_package(Boost 1.50 REQUIRED COMPONENTS filesystem)
+ find_package(Boost 1.50 REQUIRED COMPONENTS locale)
++set(BUILD_SHARED_LIBS OFF)
+ 
+ if(ENABLE_POT_UPDATE_TARGET)
+ 	find_package(TranslationTools REQUIRED)
+--- wesnoth-1.14.7/src/CMakeLists.txt.orig	2019-04-12 02:05:54.000000000 +0100
++++ wesnoth-1.14.7/src/CMakeLists.txt	2019-04-21 21:51:05.995975114 +0100
+@@ -55,11 +55,11 @@
+ 
+ set(common-external-libs
+ 	${sdl-lib}
+-	${Boost_IOSTREAMS_LIBRARY}
+-	${Boost_REGEX_LIBRARY}
+-	${Boost_PROGRAM_OPTIONS_LIBRARY}
+-	${Boost_FILESYSTEM_LIBRARY}
+-	${Boost_LOCALE_LIBRARY}
++	${Boost_IOSTREAMS_LIBRARY} Boost::iostreams
++	${Boost_REGEX_LIBRARY} Boost::regex
++	${Boost_PROGRAM_OPTIONS_LIBRARY} Boost::program_options
++	${Boost_FILESYSTEM_LIBRARY} Boost::filesystem
++	${Boost_LOCALE_LIBRARY} Boost::locale
+ )
+ 
+ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+@@ -72,9 +72,9 @@
+ set(game-external-libs
+ 	${common-external-libs}
+ 	${CRYPTO_LIBRARY}
+-	${Boost_SYSTEM_LIBRARIES}
+-	${Boost_RANDOM_LIBRARY}
+-	${Boost_THREAD_LIBRARY}
++	${Boost_SYSTEM_LIBRARIES} Boost::system
++	${Boost_RANDOM_LIBRARY} Boost::random
++	${Boost_THREAD_LIBRARY} Boost::thread
+ 	${sdl_image-lib}
+ 	${sdl_mixer-lib}
+ 	${sdl_ttf-lib}
+@@ -94,16 +94,16 @@
+ 
+ set(server-external-libs
+ 	${common-external-libs}
+-	${Boost_SYSTEM_LIBRARIES}
++	${Boost_SYSTEM_LIBRARIES} Boost::system
+ 	-lpthread
+ )
+ 
+ set(tools-external-libs
+ 	${common-external-libs}
+ 	${sdl_image-lib}
+-	${Boost_FILESYSTEM_LIBRARY}
+-	${Boost_SYSTEM_LIBRARIES}
+-	${Boost_RANDOM_LIBRARY}
++	${Boost_FILESYSTEM_LIBRARY} Boost::filesystem
++	${Boost_SYSTEM_LIBRARIES} Boost::system
++	${Boost_RANDOM_LIBRARY} Boost::random
+ )
+ 
+ if(ENABLE_FRIBIDI AND FRIBIDI_FOUND)
+@@ -142,7 +142,7 @@
+ # a 'lib' is automatically set in front when creating the library (as in the filename)
+ # internal reference is the name given here
+ add_library(wesnoth-core ${LIBRARY_TYPE} EXCLUDE_FROM_ALL ${libwesnoth-core_STAT_SRC})
+-target_link_libraries(wesnoth-core ${Boost_FILESYSTEM_LIBRARY})
++target_link_libraries(wesnoth-core ${Boost_FILESYSTEM_LIBRARY} Boost::filesystem)
+ 
+ # Depending on the flag create a real file or an empty dummy.
+ #
+@@ -331,7 +331,7 @@
+ 	target_link_libraries(wesnothd
+ 			wesnoth-core
+ 			${server-external-libs}
+-			${Boost_RANDOM_LIBRARY}
++			${Boost_RANDOM_LIBRARY} Boost::random
+ 			${CRYPTO_LIBRARY}
+ 			${MYSQL_LIBS}
+ 		)
+@@ -358,7 +358,7 @@
+ 			wesnoth-core
+ 			${server-external-libs}
+ 			${CRYPTO_LIBRARY}
+-			${Boost_RANDOM_LIBRARY}
++			${Boost_RANDOM_LIBRARY} Boost::random
+ 			${MYSQL_LIBS}
+ 		)
+ 	set_target_properties(campaignd PROPERTIES OUTPUT_NAME ${BINARY_PREFIX}campaignd${BINARY_SUFFIX})
+--- wesnoth-1.14.7/src/server/server_base.cpp.orig	2019-04-12 02:05:54.000000000 +0100
++++ wesnoth-1.14.7/src/server/server_base.cpp	2019-04-21 21:46:31.098998539 +0100
+@@ -65,7 +65,7 @@
+ 
+ void server_base::serve()
+ {
+-	socket_ptr socket = std::make_shared<boost::asio::ip::tcp::socket>(std::ref(io_service_));
++	socket_ptr socket = std::make_shared<boost::asio::ip::tcp::socket>(io_service_);
+ 	acceptor_.async_accept(*socket, std::bind(&server_base::accept_connection, this, _1, socket));
+ }
+ 

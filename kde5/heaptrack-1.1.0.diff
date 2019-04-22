@@ -1,0 +1,57 @@
+--- heaptrack-1.1.0/tests/auto/CMakeLists.txt.orig	2018-05-16 08:34:53.000000000 +0100
++++ heaptrack-1.1.0/tests/auto/CMakeLists.txt	2019-04-21 21:32:28.550038739 +0100
+@@ -32,15 +32,15 @@
+             ${CMAKE_THREAD_LIBS_INIT}
+             ${LIBUNWIND_LIBRARY}
+             rt
+-            ${Boost_SYSTEM_LIBRARY}
+-            ${Boost_FILESYSTEM_LIBRARY}
++            ${Boost_SYSTEM_LIBRARY} Boost::system
++            ${Boost_FILESYSTEM_LIBRARY} Boost::filesystem
+     )
+     add_test(NAME tst_libheaptrack COMMAND tst_libheaptrack)
+ 
+     add_executable(tst_io tst_io.cpp)
+     target_link_libraries(tst_io
+-            ${Boost_SYSTEM_LIBRARY}
+-            ${Boost_FILESYSTEM_LIBRARY}
++            ${Boost_SYSTEM_LIBRARY} Boost::system
++            ${Boost_FILESYSTEM_LIBRARY} Boost::filesystem
+     )
+     add_test(NAME tst_io COMMAND tst_io)
+ 
+@@ -48,8 +48,8 @@
+     add_executable(tst_inject tst_inject.cpp)
+     target_link_libraries(tst_inject
+             ${CMAKE_DL_LIBS}
+-            ${Boost_SYSTEM_LIBRARY}
+-            ${Boost_FILESYSTEM_LIBRARY}
++            ${Boost_SYSTEM_LIBRARY} Boost::system
++            ${Boost_FILESYSTEM_LIBRARY} Boost::filesystem
+     )
+     add_test(NAME tst_inject COMMAND tst_inject)
+ 
+--- heaptrack-1.1.0/CMakeLists.txt.orig	2018-05-16 08:35:09.000000000 +0100
++++ heaptrack-1.1.0/CMakeLists.txt	2019-04-21 21:25:18.866059241 +0100
+@@ -24,8 +24,10 @@
+ 
+ include(FeatureSummary)
+ find_package(Libunwind REQUIRED)
++set(BUILD_SHARED_LIBS ON)
+ find_package(Boost 1.41.0 COMPONENTS system filesystem) # option first
+ find_package(Boost 1.41.0 REQUIRED COMPONENTS iostreams program_options) # then required
++set(BUILD_SHARED_LIBS OFF)
+ find_package(Threads REQUIRED)
+ find_package(ZLIB REQUIRED)
+ find_package(Zstd)
+--- heaptrack-1.1.0/src/analyze/CMakeLists.txt.orig	2018-05-16 08:34:53.000000000 +0100
++++ heaptrack-1.1.0/src/analyze/CMakeLists.txt	2019-04-21 21:31:01.102042912 +0100
+@@ -16,7 +16,7 @@
+ )
+ 
+ target_link_libraries(sharedprint LINK_PUBLIC
+-    ${Boost_LIBRARIES}
++    ${Boost_LIBRARIES} Boost::program_options Boost::iostreams
+     ${ZLIB_LIBRARIES}
+ )
+ 
