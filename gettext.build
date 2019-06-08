@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnu/gettext
 #TAR_EXT=.tar.gz
-VERSION=0.18.1.1
+VERSION=0.20.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -91,6 +91,9 @@ then
   exit
 fi
 
+cd libtextstyle
+make install DESTDIR=${PKG}
+cd ../gettext-runtime
 make install DESTDIR=${PKG}
 
 ( cd $PKG/usr/doc/gettext-$VERSION
@@ -113,10 +116,19 @@ cp -a \
   BUGS intl/COPYING.LIB-2.0 intl/COPYING.LIB-2.1 \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
+cd ../libtextstyle
+mkdir ${PKG}/usr/doc/${TARNAME}-${VERSION}/libtextstyle
+cp -a \
+  AUTHORS COPYING* ChangeLog DEPENDENCIES HACKING INSTALL* NEWS README* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}/libtextstyle
+
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "gettext (internationalization framework)"
+The GNU gettext package contains "gettext" and "ngettext", programs
+that are used to internationalize the messages given by shell scripts.
+
 EOF
 
 post_install
