@@ -1,0 +1,59 @@
+--- mc-4.8.23/src/viewer/display.c.orig	2019-06-16 18:49:31.000000000 +0100
++++ mc-4.8.23/src/viewer/display.c	2019-06-23 15:39:02.136207438 +0100
+@@ -182,8 +182,24 @@
+                         "");
+         }
+     }
++    if (width > 62)
++    {
++        char buffer[BUF_TINY];
++        widget_move (view, top, width - 54);
++        if (!view->mode_flags.hex)
++        {
++            off_t line, col;
++            mcview_offset_to_coord (view, &line, &col, view->dpy_start);
++            size_trunc_len (buffer, 5, mcview_get_filesize (view), 0, panels_options.kilobyte_si);
++            tty_printf ("Line %" PRIuMAX " Col %" PRIuMAX , (uintmax_t) line+1,
++                        (uintmax_t) (view->mode_flags.wrap ? col : view->dpy_text_column)
++                );
++        }
++    }
+     widget_move (view, top, left);
+-    if (width > 40)
++    if (width > 62)
++        tty_print_string (str_fit_to_term (file_label, width - 56, J_LEFT_FIT));
++    else if (width > 40)
+         tty_print_string (str_fit_to_term (file_label, width - 34, J_LEFT_FIT));
+     else
+         tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
+--- mc-4.8.23/src/editor/editwidget.c.orig	2019-06-16 18:49:31.000000000 +0100
++++ mc-4.8.23/src/editor/editwidget.c	2019-06-23 15:39:02.136207438 +0100
+@@ -960,6 +960,18 @@
+             int cmd, ch;
+             cb_ret_t ret = MSG_NOT_HANDLED;
+ 
++            if (parm == KEY_BTAB) {
++                edit_execute_key_command (e, cmd, '\t');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++             }
++
++            if ((parm & 0xff) == '\n') {
++                edit_execute_key_command (e, cmd, '\n');
++                edit_update_screen (e);
++                return MSG_HANDLED;
++            }
++
+             /* The user may override the access-keys for the menu bar. */
+             if (macro_index == -1 && edit_execute_macro (e, parm))
+             {
+--- mc-4.8.23/misc/syntax/php.syntax.orig	2019-06-16 18:49:31.000000000 +0100
++++ mc-4.8.23/misc/syntax/php.syntax	2019-06-23 15:39:02.139207438 +0100
+@@ -3136,6 +3136,7 @@
+ 
+ context ' ' brightgreen
+     spellcheck
++    keyword \\\\ brightcyan
+     keyword \\' brightcyan
+ 
+ context exclusive <? ?> cyan
