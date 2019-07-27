@@ -1,0 +1,213 @@
+--- libwps-0.3.1/src/lib/WKS4Spreadsheet.cpp.orig	2014-12-20 16:09:40.000000000 +0000
++++ libwps-0.3.1/src/lib/WKS4Spreadsheet.cpp	2019-07-13 19:32:59.861396884 +0100
+@@ -731,7 +731,7 @@
+ 		case 4:
+ 		case 5:
+ 		{
+-			char const *(format[]) = { "%H:%M%p", "%I:%M:%S%p", "%H:%M", "%H:%M:%S" };
++			char const *format[] = { "%H:%M%p", "%I:%M:%S%p", "%H:%M", "%H:%M:%S" };
+ 			style.setDTFormat(WPSCell::F_TIME, format[wh-2]);
+ 			break;
+ 		}
+@@ -743,7 +743,7 @@
+ 	}
+ 	case 6:
+ 	{
+-		char const *(format[]) = { "%m/%d/%Y", "%d %B %Y", "%m/%Y", "%B %Y", "%m/%d", "%d %B", "%m/%d/%y:6"/*TODO*/, "%B"};
++		char const *format[] = { "%m/%d/%Y", "%d %B %Y", "%m/%Y", "%B %Y", "%m/%d", "%d %B", "%m/%d/%y:6"/*TODO*/, "%B"};
+ 		style.setDTFormat(WPSCell::F_DATE, format[int(fl[0]>>5)]);
+ 		fl[0] &= 0x18;
+ 		break;
+@@ -990,12 +990,12 @@
+ 			f << "#prevSubForm = " << style.getSubFormat();
+ 		if (newForm==WPSCell::F_DATE && subForm>=0 && subForm<=7)
+ 		{
+-			char const *(wh[])= { "%m/%d/%y", "%B %d, %Y", "%m/%y", "%B %Y", "%m/%d", "%B %d", "%m", "%B"};
++			char const *wh[]= { "%m/%d/%y", "%B %d, %Y", "%m/%y", "%B %Y", "%m/%d", "%B %d", "%m", "%B"};
+ 			style.setDTFormat(newForm, wh[subForm]);
+ 		}
+ 		else if (newForm==WPSCell::F_TIME && subForm>=0 && subForm<=3)
+ 		{
+-			char const *(wh[])= { "%I:%M%p", "%I:%M:%S%p", "%H:%M", "%H:%M:%S"};
++			char const *wh[]= { "%I:%M%p", "%I:%M:%S%p", "%H:%M", "%H:%M:%S"};
+ 			style.setDTFormat(newForm, wh[subForm]);
+ 		}
+ 		else
+--- libwps-0.3.1/src/lib/WPS4Text.cpp.orig	2014-12-25 09:12:55.000000000 +0000
++++ libwps-0.3.1/src/lib/WPS4Text.cpp	2019-07-13 19:40:14.115376165 +0100
+@@ -881,6 +881,7 @@
+ 					}
+ 					m_input->seek(-1, librevenge::RVNG_SEEK_CUR);
+ 				}
++				[[fallthrough]];
+ 			default:
+ 				if (version()<=2)
+ 				{
+@@ -1020,7 +1021,7 @@
+ 
+ 	m_input->seek(newPos, librevenge::RVNG_SEEK_SET);
+ 
+-	static char const * (zName[]) =
++	static char const * zName[] =
+ 	{ "BTEC", "BTEP", "SHdr", "SFtr", "DLINK", "FTNp", "FTNd", "BKMK", "FONT" };
+ 
+ 	for (int i = 0; i < 9; ++i)
+@@ -1564,6 +1565,7 @@
+ 			val = libwps::readU16(m_input); // always 4
+ 			if (val != 4) f << "g1=" << val << ",";
+ 		}
++		[[fallthrough]];
+ 		// fall-through intended
+ 		case 0x40: // spreadsheet range
+ 		case 0x01: // char ?
+@@ -1970,6 +1972,7 @@
+ 			case 0x13: // seems another way to define the left margin
+ 				f << "#left,";
+ 			// fall-through intended
++				[[fallthrough]];
+ 			case 0x12:
+ 				pp.m_margins[1] = arg/1440.;
+ 				break;
+--- libwps-0.3.1/src/lib/WPSCell.cpp.orig	2014-06-27 11:20:19.000000000 +0100
++++ libwps-0.3.1/src/lib/WPSCell.cpp	2019-07-13 19:45:19.302361603 +0100
+@@ -64,12 +64,14 @@
+ 		{
+ 		case 'Y':
+ 			list.insert("number:style", "long");
++			[[fallthrough]];
+ 		case 'y':
+ 			list.insert("librevenge:value-type", "year");
+ 			propVect.append(list);
+ 			break;
+ 		case 'B':
+ 			list.insert("number:style", "long");
++			[[fallthrough]];
+ 		case 'b':
+ 		case 'h':
+ 			list.insert("librevenge:value-type", "month");
+@@ -82,6 +84,7 @@
+ 			break;
+ 		case 'e':
+ 			list.insert("number:style", "long");
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case 'd':
+ 			list.insert("librevenge:value-type", "day");
+@@ -89,6 +92,7 @@
+ 			break;
+ 		case 'A':
+ 			list.insert("number:style", "long");
++			[[fallthrough]];
+ 		case 'a':
+ 			list.insert("librevenge:value-type", "day-of-week");
+ 			propVect.append(list);
+@@ -96,6 +100,7 @@
+ 
+ 		case 'H':
+ 			list.insert("number:style", "long");
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case 'I':
+ 			list.insert("librevenge:value-type", "hours");
+@@ -275,10 +280,12 @@
+ 		{
+ 		case 5: // thousand
+ 			propList.insert("number:grouping", true);
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case 0: // default
+ 			if (m_subFormat==0)
+ 				propList.remove("number:decimal-places");
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case 1: // decimal
+ 			propList.insert("librevenge:value-type", "number");
+--- libwps-0.3.1/src/lib/WPSPageSpan.cpp.orig	2014-04-19 13:25:50.000000000 +0100
++++ libwps-0.3.1/src/lib/WPSPageSpan.cpp	2019-07-13 19:46:53.745357097 +0100
+@@ -114,6 +114,7 @@
+ 	{
+ 	case NEVER:
+ 		_removeHeaderFooter(type, ALL);
++		[[fallthrough]];
+ 	case ALL:
+ 		_removeHeaderFooter(type, ODD);
+ 		_removeHeaderFooter(type, EVEN);
+--- libwps-0.3.1/src/lib/WPS8TextStyle.cpp.orig	2014-06-27 11:20:19.000000000 +0100
++++ libwps-0.3.1/src/lib/WPS8TextStyle.cpp	2019-07-13 19:43:36.908366489 +0100
+@@ -705,6 +705,7 @@
+ 			{
+ 			case 2: // not frequent: only found one time
+ 				f << "#type[bullet]=2,";
++				[[fallthrough]];
+ 			case 1: // the normal case
+ 				para.m_listLevelIndex = 1;
+ 				para.m_listLevel.m_type = libwps::BULLET;
+@@ -790,6 +791,7 @@
+ 					break;
+ 				default:
+ 					f << "#bullet/type=" << type << ",";
++					[[fallthrough]];
+ 				// fall-through intended
+ 				case 2:
+ 					para.m_listLevel.m_type = libwps::ARABIC;
+@@ -1042,7 +1044,7 @@
+ 				f << "extra[tabs]=[" << data.m_recursData[ch] << "],";
+ 			}
+ 		}
+-
++		[[fallthrough]];
+ 		case 0x34: // interline line spacing 8*152400 -> normal, sinon *2
+ 			para.m_spacings[0] = float(data.m_value)/1219200.f;
+ 			if (para.m_spacings[0] < 0 ||
+--- libwps-0.3.1/src/lib/WPS4.cpp.orig	2014-11-28 15:04:05.000000000 +0000
++++ libwps-0.3.1/src/lib/WPS4.cpp	2019-07-13 19:36:26.090387044 +0100
+@@ -568,6 +568,7 @@
+ 		{
+ 		case 0xda1:
+ 			apCreator = 2;
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case 0:
+ 		case 1:
+--- libwps-0.3.1/src/lib/WPS8Table.cpp.orig	2014-11-28 15:04:05.000000000 +0000
++++ libwps-0.3.1/src/lib/WPS8Table.cpp	2019-07-13 19:41:22.393372907 +0100
+@@ -366,10 +366,10 @@
+ 	int mCounter = -1;
+ 	bool ok = true;
+ 
+-	static char const *(borderNames[]) = { "T", "L", "R", "B" };
+-	static int const(borderPos[]) =
++	static char const *borderNames[] = { "T", "L", "R", "B" };
++	static int const borderPos[] =
+ 	{ WPSBorder::Top, WPSBorder::Left, WPSBorder::Right, WPSBorder::Bottom};
+-	static int const(borderBit[]) =
++	static int const borderBit[] =
+ 	{
+ 		WPSBorder::TopBit, WPSBorder::LeftBit,
+ 		WPSBorder::RightBit, WPSBorder::BottomBit
+@@ -614,6 +614,7 @@
+ 						break; // normal
+ 					case 0xFF: // also unset, diff with value = 1 ?
+ 						f2 << "#f" << dt.id() << "=" << std::hex << dt.m_value << std::dec << ",";
++						[[fallthrough]];
+ 					// fall-through intended
+ 					case 1:
+ 						cell->setVerticalSet(false);
+--- libwps-0.3.1/src/lib/WPSContentListener.cpp.orig	2014-06-27 11:20:19.000000000 +0100
++++ libwps-0.3.1/src/lib/WPSContentListener.cpp	2019-07-13 19:46:02.687359533 +0100
+@@ -1316,6 +1316,7 @@
+ 		{
+ 		case WPSPosition::YFull:
+ 			propList.insert("svg:height", double(h), unit);
++			[[fallthrough]];
+ 		// fall-through intended
+ 		case WPSPosition::YTop:
+ 			if (origin[1] < 0.0 || origin[1] > 0.0)
+@@ -1360,6 +1361,7 @@
+ 		{
+ 		case WPSPosition::XFull:
+ 			propList.insert("svg:width", double(w), unit);
++			[[fallthrough]];
+ 		// fallthrough intended
+ 		case WPSPosition::XLeft:
+ 			if (origin[0] < 0.0 || origin[0] > 0.0)

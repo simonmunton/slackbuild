@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=qtwebkit-opensource-src
+TARNAME=qtwebkit
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=5.9.1
+VERSION=5.212.0-alpha3
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,8 +46,9 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/qt5-webkit-pthread.patch
- patch -p1 < ${CWD}/qt5-webkit.gcc7.patch
+# patch -p1 < ${CWD}/qt5-webkit.gcc7.patch
 # patch -p1 < ${CWD}/qt5-webkit.icu59.patch
+# patch -p1 < ${CWD}/qt5-webkit-fix-installation-of-headers.diff
 
 # syncqt.pl -version 5.6.1 Source/sync.profile
 )
@@ -83,10 +84,11 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DPORT=Qt \
       .
 fi
 
-qmake
+#qmake
 
 fi
 
@@ -100,7 +102,7 @@ then
   exit
 fi
 
-make install INSTALL_ROOT=${PKG}
+make install DESTDIR=${PKG}
 
 # Drop QMAKE_PRL_BUILD_DIR because reference the build dir
 find "${PKG}/usr/lib${LIBDIRSUFFIX}/qt5/lib" -type f -name '*.prl' \

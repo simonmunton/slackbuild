@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=0.3.2
+VERSION=1.2.1
 VERSIONEXTRA=
-BUILD=11
+BUILD=1
 
 WEBPAGE="http://tilloy.net/dev/pyexiv2/"
 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/pyexiv2-0.3.2.diff
+# rm pyexiv2/lib/*.{so,dll}
+# patch -p1 < ${CWD}/pyexiv2-0.3.2.diff
 )
 fi
 
@@ -81,8 +82,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-#python setup.py build || exit
-scons ${NUM_JOBS} PREFIX=/usr BOOSTLIB=boost_python27 || exit
+python setup.py build || exit
+#scons ${NUM_JOBS} PREFIX=/usr BOOSTLIB=boost_python27 || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,8 +92,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-#python setup.py install --root=${PKG}
-scons install DESTDIR=${PKG} BOOSTLIB=boost_python27
+python setup.py install --root=${PKG}
+#scons install DESTDIR=${PKG} BOOSTLIB=boost_python27
 
 strip_binaries
 

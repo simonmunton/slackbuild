@@ -1,0 +1,379 @@
+--- dirac-1.0.2/libdirac_decoder/picture_decompress.h.orig	2008-04-29 09:51:52.000000000 +0100
++++ dirac-1.0.2/libdirac_decoder/picture_decompress.h	2019-07-13 17:10:40.499009677 +0100
+@@ -118,7 +118,7 @@
+                             PictureBuffer& my_buffer,int pnum, CompSort cs);
+ 
+         //! Decodes the motion data
+-        void DecompressMVData( std::auto_ptr<MvData>& mv_data, PictureByteIO& picture_byteio );
++        void DecompressMVData( std::unique_ptr<MvData>& mv_data, PictureByteIO& picture_byteio );
+          
+ 
+         //! Set the number of superblocks and blocks
+--- dirac-1.0.2/libdirac_decoder/picture_decompress.cpp.orig	2008-10-01 02:26:47.000000000 +0100
++++ dirac-1.0.2/libdirac_decoder/picture_decompress.cpp	2019-07-13 17:10:09.057011177 +0100
+@@ -56,7 +56,7 @@
+ #include <memory>
+ 
+ using std::vector;
+-using std::auto_ptr;
++using std::unique_ptr;
+ 
+ PictureDecompressor::PictureDecompressor(DecoderParams& decp, ChromaFormat cf)
+ :
+@@ -122,7 +122,7 @@
+     }
+ 
+     PictureSort psort = m_pparams.PicSort();
+-    auto_ptr<MvData> mv_data;
++    unique_ptr<MvData> mv_data;
+ 
+     if ( psort.IsInter() )
+         //do all the MV stuff
+@@ -264,7 +264,7 @@
+     my_buffer.PushPicture(m_pparams);
+ }
+ 
+-void PictureDecompressor::DecompressMVData( std::auto_ptr<MvData>& mv_data,
++void PictureDecompressor::DecompressMVData( std::unique_ptr<MvData>& mv_data,
+                                           PictureByteIO& picture_byteio )
+ {
+     PicturePredParams& predparams = m_decparams.GetPicPredParams();
+--- dirac-1.0.2/libdirac_motionest/me_utils.cpp.orig	2008-10-21 05:55:46.000000000 +0100
++++ dirac-1.0.2/libdirac_motionest/me_utils.cpp	2019-07-13 16:54:21.820056372 +0100
+@@ -684,10 +684,10 @@
+         // We're doing bounds checking because we'll fall off the edge of the reference otherwise.
+ 
+        // weights for doing linear interpolation, calculated from the remainder values
+-        const ValueType linear_wts[4] = {  (2 - rmdr.x) * (2 - rmdr.y),    //tl
+-                                           rmdr.x * (2 - rmdr.y),          //tr
+-                                           (2 - rmdr.x) * rmdr.y,          //bl
+-                                           rmdr.x * rmdr.y };              //br
++        const ValueType linear_wts[4] = { static_cast<ValueType>( (2 - rmdr.x) * (2 - rmdr.y)),    //tl
++                                          static_cast<ValueType>( rmdr.x * (2 - rmdr.y)),          //tr
++                                          static_cast<ValueType>( (2 - rmdr.x) * rmdr.y),          //bl
++                                          static_cast<ValueType>( rmdr.x * rmdr.y ) };              //br
+ 
+         const int refXlen( m_ref_data.LengthX() );
+         const int refYlen( m_ref_data.LengthY() );
+@@ -848,10 +848,10 @@
+         // We're doing bounds checking because we'll fall off the edge of the reference otherwise.
+ 
+        // weights for doing linear interpolation, calculated from the remainder values
+-        const ValueType linear_wts[4] = {  (2 - rmdr.x) * (2 - rmdr.y),    //tl
+-                                           rmdr.x * (2 - rmdr.y),          //tr
+-                                           (2 - rmdr.x) * rmdr.y,          //bl
+-                                           rmdr.x * rmdr.y };              //br
++        const ValueType linear_wts[4] = { static_cast<ValueType>( (2 - rmdr.x) * (2 - rmdr.y)),    //tl
++                                          static_cast<ValueType>( rmdr.x * (2 - rmdr.y)),          //tr
++                                          static_cast<ValueType>( (2 - rmdr.x) * rmdr.y),          //bl
++                                          static_cast<ValueType>( rmdr.x * rmdr.y) };              //br
+ 
+         const int refXlen( m_ref_data.LengthX() );
+         const int refYlen( m_ref_data.LengthY() );
+@@ -908,10 +908,10 @@
+     const int pic_next( m_pic_data.LengthX() - dparams.Xl() );// go down a row and back up
+ 
+     //weights for doing linear interpolation, calculated from the remainder values
+-    const ValueType linear_wts[4] = {  (4 - rmdr.x) * (4 - rmdr.y),    //tl
+-                                       rmdr.x * (4 - rmdr.y),          //tr
+-                                       (4 - rmdr.x) * rmdr.y,          //bl
+-                                       rmdr.x * rmdr.y };              //br
++    const ValueType linear_wts[4] = { static_cast<ValueType>( (4 - rmdr.x) * (4 - rmdr.y)),    //tl
++                                      static_cast<ValueType>( rmdr.x * (4 - rmdr.y)),          //tr
++                                      static_cast<ValueType>( (4 - rmdr.x) * rmdr.y),          //bl
++                                      static_cast<ValueType>( rmdr.x * rmdr.y )};              //br
+ 
+     bool bounds_check( false );
+ 
+@@ -1039,10 +1039,10 @@
+     const int pic_next( m_pic_data.LengthX() - dparams.Xl() );// go down a row and back up
+ 
+     //weights for doing linear interpolation, calculated from the remainder values
+-    const ValueType linear_wts[4] = {  (4 - rmdr.x) * (4 - rmdr.y),    //tl
+-                                       rmdr.x * (4 - rmdr.y),          //tr
+-                                       (4 - rmdr.x) * rmdr.y,          //bl
+-                                       rmdr.x * rmdr.y };              //br
++    const ValueType linear_wts[4] = { static_cast<ValueType>( (4 - rmdr.x) * (4 - rmdr.y)),    //tl
++                                      static_cast<ValueType>( rmdr.x * (4 - rmdr.y)),          //tr
++                                      static_cast<ValueType>( (4 - rmdr.x) * rmdr.y),          //bl
++                                      static_cast<ValueType>( rmdr.x * rmdr.y) };              //br
+ 
+     bool bounds_check( false );
+ 
+@@ -1403,10 +1403,10 @@
+     }
+     else
+     {
+-        const ValueType linear_wts[4] = {  (2 - rmdr1.x) * (2 - rmdr1.y),    //tl
+-                                           rmdr1.x * (2 - rmdr1.y),          //tr
+-                                           (2 - rmdr1.x) * rmdr1.y,          //bl
+-                                           rmdr1.x * rmdr1.y };              //br
++        const ValueType linear_wts[4] = { static_cast<ValueType>( (2 - rmdr1.x) * (2 - rmdr1.y)),    //tl
++                                          static_cast<ValueType>( rmdr1.x * (2 - rmdr1.y)),          //tr
++                                          static_cast<ValueType>( (2 - rmdr1.x) * rmdr1.y),          //bl
++                                          static_cast<ValueType>( rmdr1.x * rmdr1.y) };              //br
+ 
+         // We're doing bounds checking because we'll fall off the edge of the reference otherwise.
+         for( int y=dparams.Yl(), ry=ref_start1.y, by=BChk(ry,m_ref_data1.LengthY()), by1=BChk(ry+1,m_ref_data1.LengthY()); 
+@@ -1513,10 +1513,10 @@
+     }
+     else
+     {
+-        const ValueType linear_wts[4] = {  (2 - rmdr2.x) * (2 - rmdr2.y),    //tl
+-                                           rmdr2.x * (2 - rmdr2.y),          //tr
+-                                           (2 - rmdr2.x) * rmdr2.y,          //bl
+-                                           rmdr2.x * rmdr2.y };              //br
++        const ValueType linear_wts[4] = { static_cast<ValueType>( (2 - rmdr2.x) * (2 - rmdr2.y)),    //tl
++                                          static_cast<ValueType>( rmdr2.x * (2 - rmdr2.y)),          //tr
++                                          static_cast<ValueType>( (2 - rmdr2.x) * rmdr2.y),          //bl
++                                          static_cast<ValueType>( rmdr2.x * rmdr2.y) };              //br
+ 
+         // We're doing bounds checking because we'll fall off the edge of the reference otherwise.
+         for( int y=dparams.Yl(), ry=ref_start2.y, by=BChk(ry,m_ref_data2.LengthY()),by1=BChk(ry+1,m_ref_data2.LengthY()); 
+@@ -1564,14 +1564,14 @@
+     const MVector rmdr2( mv2.x & 3 , mv2.y & 3 );
+ 
+     //weights for doing linear interpolation, calculated from the remainder values
+-    const ValueType linear_wts1[4] = {  (4 - rmdr1.x) * (4 - rmdr1.y),    //tl
+-                                       rmdr1.x * (4 - rmdr1.y),          //tr
+-                                       (4 - rmdr1.x) * rmdr1.y,          //bl
+-                                       rmdr1.x * rmdr1.y };              //br
+-    const ValueType linear_wts2[4] = {  (4 - rmdr2.x) * (4 - rmdr2.y),    //tl
+-                                       rmdr2.x * (4 - rmdr2.y),          //tr
+-                                       (4 - rmdr2.x) * rmdr2.y,          //bl
+-                                       rmdr2.x * rmdr2.y };              //br
++    const ValueType linear_wts1[4] = { static_cast<ValueType>( (4 - rmdr1.x) * (4 - rmdr1.y)),    //tl
++                                       static_cast<ValueType>(rmdr1.x * (4 - rmdr1.y)),          //tr
++                                       static_cast<ValueType>((4 - rmdr1.x) * rmdr1.y),          //bl
++                                       static_cast<ValueType>(rmdr1.x * rmdr1.y) };              //br
++    const ValueType linear_wts2[4] = { static_cast<ValueType>( (4 - rmdr2.x) * (4 - rmdr2.y)),    //tl
++                                       static_cast<ValueType>(rmdr2.x * (4 - rmdr2.y)),          //tr
++                                       static_cast<ValueType>((4 - rmdr2.x) * rmdr2.y),          //bl
++                                       static_cast<ValueType>(rmdr2.x * rmdr2.y) };              //br
+ 
+     //Where to start in the upconverted images
+     const ImageCoords ref_start1( ( dparams.Xp()<<1 ) + roundvec1.x ,( dparams.Yp()<<1 ) + roundvec1.y );
+--- dirac-1.0.2/libdirac_common/pic_io.cpp.orig	2008-06-19 11:17:17.000000000 +0100
++++ dirac-1.0.2/libdirac_common/pic_io.cpp	2019-07-13 16:41:57.338232241 +0100
+@@ -645,7 +645,7 @@
+ 
+     char input_name_yuv[FILENAME_MAX];
+ 
+-    strncpy(input_name_yuv, input_name, sizeof(input_name_yuv));
++    strncpy(input_name_yuv, input_name, sizeof(input_name_yuv)-1);
+     //strcat(input_name_yuv, ".yuv");
+ 
+     //picture input
+--- dirac-1.0.2/libdirac_common/mot_comp_mmx.cpp.orig	2008-01-09 10:50:23.000000000 +0000
++++ dirac-1.0.2/libdirac_common/mot_comp_mmx.cpp	2019-07-13 16:43:54.942226630 +0100
+@@ -244,10 +244,10 @@
+         // We're 2doing bounds checking because we'll fall off the edge of the reference otherwise.
+ 
+         //weights for doing linear interpolation, calculated from the remainder values
+-        const ValueType linear_wts[4] = {  (2 - rmdr.x) * (2 - rmdr.y),    //tl
+-                                           rmdr.x * (2 - rmdr.y),          //tr
+-                                           (2 - rmdr.x) * rmdr.y,          //bl
+-                                           rmdr.x * rmdr.y };              //br
++        const ValueType linear_wts[4] = { static_cast<ValueType>( (2 - rmdr.x) * (2 - rmdr.y)),    //tl
++                                          static_cast<ValueType>( rmdr.x * (2 - rmdr.y)),          //tr
++                                          static_cast<ValueType>( (2 - rmdr.x) * rmdr.y),          //bl
++                                          static_cast<ValueType>( rmdr.x * rmdr.y )};              //br
+ 
+         ValueType act_cols1[4], act_cols2[4];
+         int uX, uY, c, l;
+--- dirac-1.0.2/libdirac_common/mv_codec.cpp.orig	2008-10-01 02:26:47.000000000 +0100
++++ dirac-1.0.2/libdirac_common/mv_codec.cpp	2019-07-13 16:40:03.895237654 +0100
+@@ -159,7 +159,7 @@
+ // Main code function
+ void PredModeCodec::DoWorkCode( MvData& in_data )
+ {
+-    int step,max; 
++    int step; 
+     int split_depth;  
+ 
+     for (m_sb_yp = 0, m_sb_tlb_y = 0;  m_sb_yp < in_data.SBSplit().LengthY();  ++m_sb_yp, m_sb_tlb_y += 4)
+@@ -169,7 +169,6 @@
+             split_depth = in_data.SBSplit()[m_sb_yp][m_sb_xp]; 
+ 
+             step = 4  >>  (split_depth); 
+-            max = (1 << split_depth); 
+                         
+             //now do all the block modes and mvs in the mb            
+             for (m_b_yp = m_sb_tlb_y; m_b_yp < m_sb_tlb_y+4; m_b_yp += step)
+@@ -334,7 +333,7 @@
+ // Main code function
+ void VectorElementCodec::DoWorkCode( MvData& in_data )
+ {
+-    int step,max;
++    int step;
+     int split_depth;
+ 
+     for (m_sb_yp = 0, m_sb_tlb_y = 0;  m_sb_yp < in_data.SBSplit().LengthY();  ++m_sb_yp, m_sb_tlb_y += 4)
+@@ -344,7 +343,6 @@
+             split_depth = in_data.SBSplit()[m_sb_yp][m_sb_xp];
+ 
+             step = 4  >>  (split_depth);
+-            max = (1 << split_depth);
+                         
+             //now do all the block modes and mvs in the mb            
+             for (m_b_yp = m_sb_tlb_y; m_b_yp < m_sb_tlb_y+4; m_b_yp += step)
+@@ -500,7 +498,7 @@
+ // Main code function
+ void DCCodec::DoWorkCode( MvData& in_data )
+ {
+-    int step,max; 
++    int step; 
+     int split_depth;  
+     
+     for (m_sb_yp = 0, m_sb_tlb_y = 0;  m_sb_yp < in_data.SBSplit().LengthY();  ++m_sb_yp, m_sb_tlb_y += 4)
+@@ -510,7 +508,6 @@
+             split_depth = in_data.SBSplit()[m_sb_yp][m_sb_xp]; 
+ 
+             step = 4  >>  (split_depth); 
+-            max = (1 << split_depth); 
+                         
+             //now do all the block modes and mvs in the mb            
+             for (m_b_yp = m_sb_tlb_y; m_b_yp < m_sb_tlb_y+4; m_b_yp += step)
+--- dirac-1.0.2/libdirac_common/mot_comp.cpp.orig	2008-10-01 02:26:47.000000000 +0100
++++ dirac-1.0.2/libdirac_common/mot_comp.cpp	2019-07-13 16:37:38.695244581 +0100
+@@ -1116,10 +1116,10 @@
+     const ImageCoords ref_start( ( start_pos.x<<1 ) + roundvec.x ,( start_pos.y<<1 ) + roundvec.y );
+ 
+     //weights for doing linear interpolation, calculated from the remainder values
+-    const ValueType linear_wts[4] = {  (4 - rmdr.x) * (4 - rmdr.y),    //tl
+-                                    rmdr.x * (4 - rmdr.y),          //tr
+-                                    (4 - rmdr.x) * rmdr.y,          //bl
+-                                    rmdr.x * rmdr.y };              //br
++    const ValueType linear_wts[4] = { static_cast<ValueType>( (4 - rmdr.x) * (4 - rmdr.y)),    //tl
++                                    static_cast<ValueType>( rmdr.x * (4 - rmdr.y)),          //tr
++                                    static_cast<ValueType>( (4 - rmdr.x) * rmdr.y),          //bl
++                                    static_cast<ValueType>( rmdr.x * rmdr.y )};              //br
+ 
+     //An additional stage to make sure the block to be copied does not fall outside
+     //the reference image.
+--- dirac-1.0.2/libdirac_common/wavelet_utils.cpp.orig	2008-10-20 05:21:02.000000000 +0100
++++ dirac-1.0.2/libdirac_common/wavelet_utils.cpp	2019-07-13 16:42:47.672229839 +0100
+@@ -198,7 +198,7 @@
+     const bool field_coding = encparams.FieldCoding();
+     const ChromaFormat cformat = pparams.CFormat();
+     const float cpd = encparams.CPD()*cpd_scale_factor;
+-    const PictureSort psort = pparams.PicSort();
++    pparams.PicSort();
+ 
+     int xlen, ylen, xl, yl, xp, yp;
+     float xfreq, yfreq;
+--- dirac-1.0.2/libdirac_byteio/parseunit_byteio.cpp.orig	2008-05-02 06:57:19.000000000 +0100
++++ dirac-1.0.2/libdirac_byteio/parseunit_byteio.cpp	2019-07-13 16:32:53.262258200 +0100
+@@ -124,12 +124,9 @@
+ 
+     if(prefix==PU_PREFIX)
+     {
+-        unsigned char next_parse_code;
+-
+-        next_parse_code = InputUnByte();
++        InputUnByte();
+         // input next unit parse-offsets
+-        int next_unit_next_parse_offset;
+-        next_unit_next_parse_offset = ReadUintLit(PU_NEXT_PARSE_OFFSET_SIZE);
++        ReadUintLit(PU_NEXT_PARSE_OFFSET_SIZE);
+ 
+         int next_unit_previous_parse_offset;
+         next_unit_previous_parse_offset = ReadUintLit(PU_PREVIOUS_PARSE_OFFSET_SIZE);
+--- dirac-1.0.2/libdirac_byteio/dirac_byte_stats.h.orig	2008-05-06 10:35:51.000000000 +0100
++++ dirac-1.0.2/libdirac_byteio/dirac_byte_stats.h	2019-07-13 17:03:41.454029671 +0100
+@@ -80,6 +80,8 @@
+         */
+         DiracByteStats(const DiracByteStats& dirac_byte_stats);
+ 
++        DiracByteStats& operator=(const DiracByteStats&) = default;
++
+         /**
+         * Destructor
+         */
+--- dirac-1.0.2/libdirac_encoder/seq_compress.cpp.orig	2008-10-29 02:42:06.000000000 +0000
++++ dirac-1.0.2/libdirac_encoder/seq_compress.cpp	2019-07-13 16:56:27.755050364 +0100
+@@ -663,8 +663,6 @@
+ 
+ int FrameSequenceCompressor::CodedToDisplay( const int cnum )
+ {
+-    int div;
+-
+     if (m_L1_sep>0)
+     {
+         // We have L1 and L2 pictures
+@@ -672,7 +670,6 @@
+             return 0;
+         else if ((cnum-1)% m_L1_sep==0)
+         {//we have L1 or subsequent I pictures
+-            div=(cnum-1)/m_L1_sep;
+             return cnum+m_L1_sep-1;
+         }
+         else//we have L2 pictures
+--- dirac-1.0.2/libdirac_encoder/picture_compress.cpp.orig	2009-01-21 05:20:57.000000000 +0000
++++ dirac-1.0.2/libdirac_encoder/picture_compress.cpp	2019-07-13 16:55:19.360053627 +0100
+@@ -413,14 +413,12 @@
+ 
+         const int depth=m_encparams.TransformDepth();
+ 
+-        PicArray* comp_data[3];
+         CoeffArray* coeff_data[3];
+         OneDArray<unsigned int>* est_bits[3];
+         float lambda[3];
+ 
+         // Construction and definition of objects
+         for (int c=0;c<3;++c){
+-            comp_data[c] = &my_picture.Data((CompSort) c );
+ 	    coeff_data[c] = &my_picture.WltData((CompSort) c );
+             est_bits[c] =  new OneDArray<unsigned int>( Range( 1, 3*depth+1 ) );
+         }// c
+--- dirac-1.0.2/decoder/decmain.cpp.orig	2009-01-21 05:23:24.000000000 +0000
++++ dirac-1.0.2/decoder/decmain.cpp	2019-07-13 17:11:35.658007045 +0100
+@@ -115,9 +115,9 @@
+     char outfile_data[FILENAME_MAX];
+     dirac_decoder_state_t state = STATE_BUFFER;
+ 
+-    strncpy(infile_name, iname, sizeof(infile_name));
++    strncpy(infile_name, iname, sizeof(infile_name)-1);
+ 
+-    strncpy(outfile_data, oname, sizeof(outfile_data));
++    strncpy(outfile_data, oname, sizeof(outfile_data)-1);
+ 
+     if ((ifp = fopen (infile_name, "rb")) ==NULL)
+     {
+--- dirac-1.0.2/util/conversion/common/bitmap.cpp.orig	2004-06-30 17:44:52.000000000 +0100
++++ dirac-1.0.2/util/conversion/common/bitmap.cpp	2019-07-13 17:13:04.554002804 +0100
+@@ -142,14 +142,9 @@
+         char signature[2];
+         int fileSize;
+         int dataOffset;
+-        int size;
+         int planes;
+         int bitCount;
+         int compression;
+-        int imageSize;
+-        int xPixelsPerM, yPixelsPerM;
+-        int coloursUsed;
+-        int coloursImportant;
+         //Define buffer to read bytes into.
+         const int bufferSize = 54;
+         char buffer[bufferSize];
+@@ -175,7 +170,6 @@
+         //Reposition input buffer to skip over extra header data if necessary
+         //Should check success of operation (see The C++ Stand Lib, Josuttis, p665)
+         if (dataOffset>54) inbuf.pubseekoff(dataOffset-54, std::ios_base::cur, std::ios_base::in);
+-        size = read4bytes(buffer+14);
+         w = read4bytes(buffer+18);
+         h = read4bytes(buffer+22);
+         if ( fileSize != (dataOffset + height()*lineBufferSize()) ) input.setstate(std::ios::failbit);
+@@ -185,11 +179,6 @@
+         if ( bitCount != 24 ) input.setstate(std::ios::failbit);
+         compression = read4bytes(buffer+30);
+         if ( compression != 0 ) input.setstate(std::ios::failbit);
+-        imageSize = read4bytes(buffer+34);
+-        xPixelsPerM = read4bytes(buffer+38);
+-        yPixelsPerM = read4bytes(buffer+42);
+-        coloursUsed = read4bytes(buffer+46);
+-        coloursImportant = read4bytes(buffer+50);
+         return input; }
+ 
+ }  // end namespace dirac_vu

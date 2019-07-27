@@ -1,0 +1,58 @@
+--- FreeCAD-0.18.2/CMakeLists.txt.orig	2019-05-11 12:02:55.000000000 +0100
++++ FreeCAD-0.18.2/CMakeLists.txt	2019-07-14 20:47:19.935254496 +0100
+@@ -589,8 +589,13 @@
+     SET(_boost_TEST_VERSIONS ${Boost_ADDITIONAL_VERSIONS})
+ 
+     set (BOOST_COMPONENTS filesystem program_options regex system thread)
++    set(BUILD_SHARED_LIBS ON)
+     find_package(Boost ${BOOST_MIN_VERSION}
+         COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
++    set(BUILD_SHARED_LIBS OFF)
++    IF(Boost_FOUND)
++        set(Boost_LIBRARIES Boost::filesystem Boost::program_options Boost::regex Boost::system Boost::thread ${Boost_LIBRARIES})
++    ENDIF(Boost_FOUND)
+ 
+     if(UNIX AND NOT APPLE)
+         # Boost.Thread 1.67+ headers reference pthread_condattr_*
+--- FreeCAD-0.18.2/src/Mod/Path/libarea/CMakeLists.txt.orig	2019-05-11 12:02:55.000000000 +0100
++++ FreeCAD-0.18.2/src/Mod/Path/libarea/CMakeLists.txt	2019-07-14 20:47:19.935254496 +0100
+@@ -17,6 +17,7 @@
+         # boost-python >= 1.67 on some platforms has suffix
+         set(BOOST_PY_SUFFIX ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+ 
++        set(BUILD_SHARED_LIBS ON)
+         find_package( Boost COMPONENTS python${BOOST_PY_SUFFIX} )
+         if (NOT Boost_PYTHON${BOOST_PY_SUFFIX}_FOUND)
+             # try just the major version
+@@ -26,8 +27,10 @@
+                 find_package( Boost COMPONENTS python REQUIRED)
+             endif()
+         endif()
++        set(BUILD_SHARED_LIBS OFF)
+ 
+         if(Boost_FOUND)
++            set(Boost_LIBRARIES Boost::python ${Boost_LIBRARIES})
+             include_directories(${Boost_INCLUDE_DIRS})
+             MESSAGE(STATUS "found Boost: " ${Boost_LIB_VERSION})
+             MESSAGE(STATUS "boost-incude dirs are: " ${Boost_INCLUDE_DIRS})
+--- FreeCAD-0.18.2/src/Mod/MeshPart/App/CMakeLists.txt.orig	2019-05-11 12:02:55.000000000 +0100
++++ FreeCAD-0.18.2/src/Mod/MeshPart/App/CMakeLists.txt	2019-07-14 20:47:19.935254496 +0100
+@@ -103,6 +103,7 @@
+             # boost-python >= 1.67 on some platforms has suffix
+             set(BOOST_PY_SUFFIX ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+ 
++            set(BUILD_SHARED_LIBS ON)
+             find_package( Boost COMPONENTS python${BOOST_PY_SUFFIX} )
+             if (NOT Boost_PYTHON${BOOST_PY_SUFFIX}_FOUND)
+                 # try just the major version
+@@ -112,8 +113,10 @@
+                     find_package( Boost COMPONENTS python REQUIRED)
+                 endif()
+             endif()
++            set(BUILD_SHARED_LIBS OFF)
+ 
+             if(Boost_FOUND)
++                set(Boost_LIBRARIES Boost::python ${Boost_LIBRARIES})
+                 include_directories(${Boost_INCLUDE_DIRS})
+                 SET(FLATMESH_SRCS
+                     MeshFlattening.cpp

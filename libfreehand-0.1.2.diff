@@ -1,0 +1,21 @@
+--- libfreehand-0.1.2/src/lib/FHTransform.h.orig	2015-08-30 11:00:17.000000000 +0100
++++ libfreehand-0.1.2/src/lib/FHTransform.h	2019-07-14 10:00:23.031840353 +0100
+@@ -20,6 +20,7 @@
+   FHTransform();
+   FHTransform(double m11, double m21, double m12, double m22, double m13, double m23);
+   FHTransform(const FHTransform &trafo);
++  constexpr FHTransform& operator=(const FHTransform&) = default;
+ 
+   void applyToPoint(double &x, double &y) const;
+   void applyToArc(double &rx, double &ry, double &rotation, bool &sweep, double &endx, double &endy) const;
+--- libfreehand-0.1.2/src/lib/FHCollector.cpp.orig	2017-09-16 11:28:50.000000000 +0100
++++ libfreehand-0.1.2/src/lib/FHCollector.cpp	2019-07-14 10:01:04.469838376 +0100
+@@ -1907,7 +1907,7 @@
+   textObjectProps.insert("svg:width", width);
+   for (int i=0; i<4; ++i) // osnola: let assume that there is no padding
+   {
+-    char const *(padding[])= {"fo:padding-left","fo:padding-right","fo:padding-top","fo:padding-bottom"};
++    char const *padding[]= {"fo:padding-left","fo:padding-right","fo:padding-top","fo:padding-bottom"};
+     textObjectProps.insert(padding[i],0,librevenge::RVNG_POINT);
+   }
+   if (!FH_ALMOST_ZERO(rotation))

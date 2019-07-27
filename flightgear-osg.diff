@@ -1,0 +1,47 @@
+commit d963aef562cd115a8f845cfdab3ad2e8988d41b3
+Author: Richard Harrison <rjh@zaretto.com>
+Date:   Sun Jan 20 23:28:32 2019 +0100
+
+    OSG 3.5+ compatibility.
+    
+    Still work to do here in implementing the methods; this just lets it compile and run.
+    
+    Labelled with OSG:TODO
+
+diff --git a/src/Cockpit/NavDisplay.cxx b/src/Cockpit/NavDisplay.cxx
+index db684680d..47f51ac0c 100644
+--- a/src/Cockpit/NavDisplay.cxx
++++ b/src/Cockpit/NavDisplay.cxx
+@@ -788,9 +788,14 @@ NavDisplay::updateFont()
+         _font = font;
+         _font->setMinFilterHint(osg::Texture::NEAREST);
+         _font->setMagFilterHint(osg::Texture::NEAREST);
++
++#if OSG_VERSION_LESS_THAN(3,5,6)
+         _font->setGlyphImageMargin(0);
+         _font->setGlyphImageMarginRatio(0);
+-    }
++#else
++//OSG:TODO: need 3.5.7 version of this.
++#endif
++}
+ }
+ 
+ void NavDisplay::addSymbolToScene(SymbolInstance* sym)
+diff --git a/src/Cockpit/wxradar.cxx b/src/Cockpit/wxradar.cxx
+index daaa496ef..118c49760 100644
+--- a/src/Cockpit/wxradar.cxx
++++ b/src/Cockpit/wxradar.cxx
+@@ -1090,8 +1090,12 @@ wxRadarBg::updateFont()
+         _font = font;
+         _font->setMinFilterHint(osg::Texture::NEAREST);
+         _font->setMagFilterHint(osg::Texture::NEAREST);
++#if OSG_VERSION_LESS_THAN(3,5,6)
+         _font->setGlyphImageMargin(0);
+         _font->setGlyphImageMarginRatio(0);
++#else
++//OSG:TODO: need 3.5.7 version of this.
++#endif
+     }
+ 
+     for (int i=0;i<4;i++)

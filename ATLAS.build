@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
 VERSION=3.10.3
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://math-atlas.sourceforge.net/"
 
@@ -23,7 +23,7 @@ PKGVERSION=${VERSION}_sse2
 
 FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
-LAPACK_TAR=~/tmp/new/l/lapack-3.6.1.tgz
+LAPACK_TAR=~/tmp/new/l/lapack-3.8.0.tgz
 
 pre_unpack
 
@@ -59,6 +59,12 @@ fix_perms
 
 export BUILD_DEPRECATED=1
 
+echo set CPU performance
+for n in 0 1 2 3 4 5 6 7
+do
+  sudo cpufreq-set -g performance -u 1600000 -d 1600000 -c $n
+done
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 rm -rf build
@@ -70,7 +76,8 @@ mkdir build
 	     --libdir=/usr/lib${LIBDIRSUFFIX} \
 	     --shared \
 	     --with-netlib-lapack-tarfile=${LAPACK_TAR} \
-	     -v 10
+	     -v 10 \
+	    --cripple-atlas-performance
 
 #	     -C acg gcc -F acg '-fomit-frame-pointer -mfpmath=sse -O2 -fschedule-insns'
 )
@@ -78,12 +85,12 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-cd build
+pushd build
 make || exit
-cd lib
-#make shared ptshared || exit
-cd ..
-cd ..
+pushd lib
+make shared ptshared || exit
+popd
+popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,25 +98,25 @@ then
   exit
 fi
 
-(cd build
- make install DESTDIR=${PKG}/usr LIBINSTdir=${PKG}/usr/lib${LIBDIRSUFFIX}
+pushd build
+make install DESTDIR=${PKG}/usr LIBINSTdir=${PKG}/usr/lib${LIBDIRSUFFIX}
 
- cp lib/*.so ${PKG}/usr/lib${LIBDIRSUFFIX}
- (cd ${PKG}/usr/lib${LIBDIRSUFFIX}
-  L='*.so'
-  for f in ${L}
-  do
-    if [ "$f" == '*.so' ]
-    then
-      echo no so files
-      exit
-    fi
-    mv ${f} ${f}.${VERSION}
-    ln -s ${f}.${VERSION} ${f}.${VERSION%%.*}
-    ln -s ${f}.${VERSION} ${f}
-  done
- )
-)
+cp lib/*.so ${PKG}/usr/lib${LIBDIRSUFFIX}
+pushd ${PKG}/usr/lib${LIBDIRSUFFIX}
+L='*.so'
+for f in ${L}
+do
+  if [ "$f" == '*.so' ]
+  then
+    echo no so files
+    exit
+  fi
+  mv ${f} ${f}.${VERSION}
+  ln -s ${f}.${VERSION} ${f}.${VERSION%%.*}
+  ln -s ${f}.${VERSION} ${f}
+done
+popd
+popd
 #strip_binaries
 
 fix_links

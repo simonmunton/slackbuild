@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f/FlightGear
 #TAR_EXT=.tar.gz
-VERSION=2016.2.1
+VERSION=2018.3.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://www.flightgear.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,11 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/simgear-2016.2.1.diff
+ #patch -p1 < ${CWD}/simgear-2016.2.1.diff
+ patch -p1 < ${CWD}/simgear-2018.3.2.diff
+ patch -p1 < ${CWD}/simgear-boost-1.diff
+ patch -p1 < ${CWD}/simgear-boost-2.diff
+ patch -p1 < ${CWD}/simgear-osg.diff
 )
 fi
 
@@ -57,11 +61,11 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir build
+mkdir _BuilD_
+pushd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-pushd build
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -70,14 +74,11 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       ..
-popd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd build
 make ${NUM_JOBS} || exit
-popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -85,8 +86,8 @@ then
   exit
 fi
 
-pushd build
 make install DESTDIR=${PKG}
+
 popd
 
 strip_binaries
