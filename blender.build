@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=2.79b
+VERSION=2.80
 VERSIONEXTRA=
-BUILD=9
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -48,13 +48,13 @@ fi
 # patch -p1 < ${CWD}/blender-2.46.diff
 # patch -p1 < ${CWD}/blender-r36358.diff
 
- patch -p1 < ${CWD}/blender-0001-Fix-for-GCC9-new-OpenMP-data-sharing.patch
+# patch -p1 < ${CWD}/blender-0001-Fix-for-GCC9-new-OpenMP-data-sharing.patch
 
- patch -p1 < ${CWD}/blender-2.79b.diff
+ patch -p1 < ${CWD}/blender-2.80.diff
 
- patch -p1 < ${CWD}/blender-0009-fix_gcc-8_ftbfs.patch
+# patch -p1 < ${CWD}/blender-0009-fix_gcc-8_ftbfs.patch
 
- patch -p1 < ${CWD}/blender-PyRNA-python3.7.diff
+# patch -p1 < ${CWD}/blender-PyRNA-python3.7.diff
 
  mv user-config.py user-config.py.old
 
@@ -75,27 +75,26 @@ cd _BuilD_
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 true
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} --std=c++11" \
-      -DCMAKE_BUILD_TYPE=Release \
+cmake -DCMAKE_BUILD_TYPE=Release \
       -DWITH_INSTALL_PORTABLE=off \
       -DWITH_PYTHON_INSTALL=off \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DPYTHON_VERSION=${PYTHON_VERSION} \
-      -DWITH_FFTW3=on \
-      -DWITH_PLAYER=on \
-      -DWITH_GAMEENGINE=on \
+      -DLIB_SUFFIX=64 \
+      -DPYTHON_VERSION=3.7 \
+      -DBOOST_ROOT=/usr/lib64 \
+      -DWITH_ALEMBIC=ON \
       -DWITH_CODEC_FFMPEG=on \
       -DWITH_CODEC_SNDFILE=on \
+      -DWITH_FFTW3=on \
+      -DWITH_IMAGE_OPENEXR=ON \
       -DWITH_JACK=on \
       -DWITH_MOD_CLOTH_ELTOPO=off \
       -DWITH_MOD_OCEANSIM=on \
-      -DWITH_IMAGE_REDCODE=on \
-      -DBOOST_ROOT=/usr/lib${LIBDIRSUFFIX} \
       -DWITH_OPENCOLORIO=ON \
+      -DWITH_PYTHON_INSTALL=on \
+      -DWITH_SDL=ON \
       ..
 
 #      -DPYTHON_INCLUDE_DIR=/usr/include/python${PYTHON_VERSION}m \

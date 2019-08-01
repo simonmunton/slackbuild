@@ -1,0 +1,17 @@
+--- blender-2.80/build_files/cmake/platform/platform_unix.cmake.orig	2019-07-24 15:30:36.000000000 +0100
++++ blender-2.80/build_files/cmake/platform/platform_unix.cmake	2019-08-01 19:58:51.750561962 +0100
+@@ -298,7 +298,13 @@
+       list(APPEND __boost_packages iostreams)
+     endif()
+     list(APPEND __boost_packages system)
+-    find_package(Boost 1.48 COMPONENTS ${__boost_packages})
++    if(NOT BUILD_SHARED_LIBS)
++      set(BUILD_SHARED_LIBS ON)
++      find_package(Boost 1.48 COMPONENTS ${__boost_packages})
++      set(BUILD_SHARED_LIBS OFF)
++    else()
++      find_package(Boost 1.48 COMPONENTS ${__boost_packages})
++    endif()
+     if(NOT Boost_FOUND)
+       # try to find non-multithreaded if -mt not found, this flag
+       # doesn't matter for us, it has nothing to do with thread
