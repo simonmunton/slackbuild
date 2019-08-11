@@ -32,18 +32,19 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/boost-1_57_0.diff
+  cp bootstrap.sh bootstrap.sh.bak
 )
 fi
 
@@ -53,88 +54,123 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#PATH=`pwd`/tools/jam/src/bin.linuxx86:${PATH}
+cp bootstrap.sh.bak bootstrap.sh
 
-#PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
-
-#export PYTHON_VERSION
+PYTHON_VERSION=$(python -c 'import sys; print(sys.version[:3])')
+PYTHON3_VERSION=$(python3 -c 'import sys; print(sys.version[:3])')
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#./configure --prefix=/usr
-./bootstrap.sh --prefix=/usr
+./bootstrap.sh \
+  --prefix=/usr \
+  --with-toolset=gcc \
+  --with-icu \
+  --with-python=/usr/bin/python2 || exit 1
 fi
 
-# use LIBS="--layout=system" to make without version numbers
-#LIBS="--layout=system --build-type=minimal"
-#LIBS="--layout=system --build-type=complete"
-LIBS="--layout=system"
-OPTS="link=shared runtime-link=shared"
-
-export EXPAT_INCLUDE=/usr/include
-export EXPAT_LIBPATH=/usr/lib${LIBDIRSUFFIX}
+# use "--layout=system" to make without version numbers
+# remove link=shared to build both static and shared libs
+LINK_TYPE="link=shared"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make LIBS="$LIBS" || exit
-./bjam cxxflags="-std=c++14" link=shared runtime-link=shared --layout=system --build-dir=build-x stage
-#./bjam link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x stage
-#./bjam ${LIBS} ${OPTS} --stagedir=stage-s    --build-dir=build-s                   variant=release threading=single stage
-#./bjam ${LIBS} ${OPTS} --stagedir=stage-mt   --build-dir=build-mt   --buildid=mt   variant=release threading=multi  stage
-#./bjam ${LIBS} ${OPTS} --stagedir=stage-d    --build-dir=build-d    --buildid=d    variant=debug   threading=single stage
-#./bjam ${LIBS} ${OPTS} --stagedir=stage-mt-d --build-dir=build-mt-d --buildid=mt-d variant=debug   threading=multi  stage
+./b2 \
+  ${NUM_JOBS} \
+  --layout=system \
+  --build-dir=build-python2 \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --build-type=minimal \
+  toolset=gcc \
+  variant=release \
+  debug-symbols=off \
+  ${LINK_TYPE} \
+  threading=multi \
+  runtime-link=shared \
+  python=${PYTHON_VERSION} \
+  cflags="${SLKCFLAGS}" \
+  cxxflags="${SLKCFLAGS} ${EXTRA_CXXFLAGS}" \
+  stage || exit 1
 fi
 
-if [ ${DO_INSTALL} != "yes" ]
+if [ ${DO_INSTALL} == "yes" ]
 then
-  exit
+./b2 \
+  ${NUM_JOBS} \
+  --layout=system \
+  --build-dir=build-python2 \
+  --prefix=${PKG}/usr \
+  --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} \
+  --build-type=minimal \
+  toolset=gcc \
+  variant=release \
+  debug-symbols=off \
+  ${LINK_TYPE} \
+  threading=multi \
+  runtime-link=shared \
+  python=${PYTHON_VERSION} \
+  cflags="${SLKCFLAGS}" \
+  cxxflags="${SLKCFLAGS} ${EXTRA_CXXFLAGS}" \
+  install || exit 1
 fi
 
-#make install prefix=${PKG}/usr LIBS="$LIBS" 
-INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
-./bjam ${INSTALL_OPTS} cxxflags="-std=c++14" link=shared runtime-link=shared --layout=system --build-dir=build-x install
-#INSTALL_OPTS="--prefix=${PKG}/usr --exec-prefix=${PKG}/usr --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKG}/usr/include"
-#./bjam ${INSTALL_OPTS} link=shared runtime-link=shared --layout=tagged --build-type=complete --build-dir=build-x install
+# one more run to build libboost_python3..
+sed -e '/using python/ s@;@: /usr/include/python${PYTHON_VERSION/3*/${PYTHON_VERSION}m} ;@' \
+  -i bootstrap.sh
 
-#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-s                   variant=release threading=single install
-#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-mt   --buildid=mt   variant=release threading=multi  install
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+./bootstrap.sh \
+  --with-toolset=gcc \
+  --with-icu \
+  --with-python=/usr/bin/python3 \
+  --with-libraries=python || exit 1
+fi
 
-#INSTALL_OPTS="--prefix=${PKGDBG}/usr --exec-prefix=${PKGDBG}/usr --libdir=${PKGDBG}/usr/lib${LIBDIRSUFFIX} --includedir=${PKGDBG}/usr/include"
+if [ ${DO_MAKE} == "yes" ]
+then
+./b2 \
+  ${NUM_JOBS} \
+  --layout=system \
+  --build-dir=build-python3 \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --build-type=minimal \
+  toolset=gcc \
+  variant=release \
+  debug-symbols=off \
+  ${LINK_TYPE} \
+  threading=multi \
+  runtime-link=shared \
+  python=${PYTHON3_VERSION} \
+  cflags="${SLKCFLAGS}" \
+  cxxflags="${SLKCFLAGS} ${EXTRA_CXXFLAGS}" \
+  stage || exit 1
+fi
 
-#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-d    --buildid=d    variant=debug   threading=single install
-#./bjam ${LIBS} ${OPTS} ${INSTALL_OPTS} --build-dir=build-mt-d --buildid=mt-d variant=debug   threading=multi  install
+if [ ${DO_INSTALL} == "yes" ]
+then
+./b2 \
+  ${NUM_JOBS} \
+  --layout=system \
+  --build-dir=build-python3 \
+  --prefix=${PKG}/usr \
+  --libdir=${PKG}/usr/lib${LIBDIRSUFFIX} \
+  --build-type=minimal \
+  toolset=gcc \
+  variant=release \
+  debug-symbols=off \
+  ${LINK_TYPE} \
+  threading=multi \
+  runtime-link=shared \
+  python=${PYTHON3_VERSION} \
+  cflags="${SLKCFLAGS}" \
+  cxxflags="${SLKCFLAGS} ${EXTRA_CXXFLAGS}" \
+  install || exit 1
+fi
 
-
-mkdir -p ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
-mv ${PKG}/usr/lib${LIBDIRSUFFIX}/*-d.so* ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
-
-#	    PREFIX=${PKG}/usr \
-#	    EPREFIX=${PKG}/usr \
-#	    LIBDIR=${PKG}/usr/lib \
-#	    INCLUDEDIR=${PKG}/usr/include
-
-# no static libs
-rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
-
-#(cd ${PKG}/usr/include; ln -s boost*/boost boost)
-
-(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
- for f in `ls | grep -v ${VERSION%_*}`
- do
-    inode=`ls -li "${f}" | awk '{print $1}'`
-    HLINKS=`find . \! -name "$f" -inum ${inode}`
-
-    if [ -n "${HLINKS}" ]; then
-      # We have hard-links! Remove them now.
-      for i in ${HLINKS}
-	do
-	  rm -f ${f}
-	  ln -s ${i} ${f}
-	done
-    fi
- done
-)
-
+#mkdir -p ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
+#mv ${PKG}/usr/lib${LIBDIRSUFFIX}/*-d.so* ${PKGDBG}/usr/lib${LIBDIRSUFFIX}
 
 #strip_binaries
 
@@ -146,45 +182,26 @@ compress_info
 
 cp -a \
   LICENSE* AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  index.htm boost.png *.css doc more wiki status people libs \
+  index.htm boost.png *.css  \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
-
-(cd ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs
- find . -type d -name build -exec rm -rf {} \;
- find . -type d -name src -exec rm -rf {} \;
- find . -type d -name test -exec rm -rf {} \;
- find . -type d -name xmldoc -exec rm -rf {} \;
- find . -type d -name pyste -exec rm -rf {} \;
- find . -type d -name performance -exec rm -rf {} \;
- find . -type d -name tools -exec rm -rf {} \;
- find . -type d -name "*ide" -exec rm -rf {} \;
-)
-
-if [ -e ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams ]
-then
-  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams
-  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/multiple_streams.o
-  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/single_stream
-  rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/libs/fiber/examples/cuda/single_stream.o
-fi
 
 fix_docs
 
 mkdir -p ${PKGDBG}/install
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-PKGNAME=${PKGNAME}-debug \
-make_slack_desc << EOF "Boost template library debug version"
-Debug versions of the Boost libraries.
-
-EOF
-
-mv ${PKG}/install/slack-desc ${PKGDBG}/install
+#PKGNAME=${PKGNAME}-debug \
+#make_slack_desc << EOF "Boost template library debug version"
+#Debug versions of the Boost libraries.
+#
+#EOF
+#
+#mv ${PKG}/install/slack-desc ${PKGDBG}/install
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "Boost template library"
 Boost provides free peer-reviewed portable C++ source libraries. The
-emphasis is on libraries which work well with the C++ Standard 
+emphasis is on libraries which work well with the C++ Standard
 Library, in the hopes of establishing "existing practice" for
 extensions and providing reference implementations so that the Boost
 libraries are suitable for eventual standardization. (Some of the
@@ -199,8 +216,4 @@ cd ${PKG}
 su -c "chown -R root.root ${PKG} ${PKGDBG}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-chown -R ${USERNAME}.${GROUP} ${PKG}; \
-cd ${PKGDBG}; \
-find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ${PKGDIR}${PKGNAME}-debug-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
