@@ -1,0 +1,24 @@
+--- ring-20190811.2.6131086/daemon/contrib/src/restbed/rules.mak.orig	2019-08-12 01:29:35.000000000 +0100
++++ ring-20190811.2.6131086/daemon/contrib/src/restbed/rules.mak	2019-08-14 20:16:01.060069225 +0100
+@@ -43,6 +43,7 @@
+ 
+ restbed: restbed-$(RESTBED_VERSION).tar.gz .sum-restbed
+ 	$(UNPACK)
++	$(APPLY) $(SRC)/restbed/restbed-ssl.diff
+ 	$(MOVE)
+ 
+ .restbed: restbed toolchain.cmake
+--- ring-20190811.2.6131086/daemon/contrib/src/restbed/restbed-ssl.diff.orig	2019-08-14 20:03:47.732104214 +0100
++++ ring-20190811.2.6131086/daemon/contrib/src/restbed/restbed-ssl.diff	2019-08-14 20:02:36.746107601 +0100
+@@ -0,0 +1,11 @@
++--- restbed/CMakeLists.txt.orig	2019-05-20 20:22:49.000000000 +0100
+++++ restbed/CMakeLists.txt	2019-08-12 21:45:09.127795118 +0100
++@@ -63,7 +63,7 @@
++     set_property( TARGET ${STATIC_LIBRARY_NAME} PROPERTY CXX_STANDARD_REQUIRED ON )
++     set_target_properties( ${STATIC_LIBRARY_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME} )
++     if ( BUILD_SSL )
++-        target_link_libraries( ${STATIC_LIBRARY_NAME} LINK_PRIVATE ${ssl_LIBRARY_STATIC} ${crypto_LIBRARY_STATIC} ${CMAKE_DL_LIBS})
+++        target_link_libraries( ${STATIC_LIBRARY_NAME} ${CMAKE_DL_LIBS})
++     else ( )
++         target_link_libraries( ${STATIC_LIBRARY_NAME} ${CMAKE_DL_LIBS})
++     endif ( )
