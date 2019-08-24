@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/t
 #TAR_EXT=.tar.gz
-VERSION=3.1.4
+VERSION=3.2.1
 VERSIONEXTRA=
-BUILD=7
+BUILD=1
 
-WEBPAGE="http://www.periapsis.org/tellico/"
+WEBPAGE="http://tellico-project.org/
+#""http://www.periapsis.org/tellico/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/tellico-3.2.1.diff
 )
 fi
 
@@ -57,6 +58,9 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -66,7 +70,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,6 +84,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 
