@@ -6,7 +6,7 @@ TARNAME=PyQt5_gpl
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=5.12.3
+VERSION=5.13.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,7 +46,7 @@ fi
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/PyQt5_gpl-5.6.diff
 # patch -p1 < ${CWD}/PyQt5-qt59_timeline.diff
- patch -p1 < ${CWD}/PyQt5-python2_qstring.diff
+# patch -p1 < ${CWD}/PyQt5-python2_qstring.diff
 )
 fi
 
@@ -61,12 +61,24 @@ export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-echo yes | python configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+mkdir _BuilDP2_
+cd _BuilDP2_
+echo yes | python ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+cd ..
+mkdir _BuilDP3_
+cd _BuilDP3_
+echo yes | python3 ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+cd ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+cd _BuilDP2_
 make ${NUM_JOBS} || exit
+cd ..
+cd _BuilDP3_
+make ${NUM_JOBS} || exit
+cd ..
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,7 +86,12 @@ then
   exit
 fi
 
+cd _BuilDP2_
 make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+cd ..
+cd _BuilDP3_
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+cd ..
 
 #strip_binaries
 
