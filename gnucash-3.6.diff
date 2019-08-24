@@ -1,0 +1,25 @@
+--- gnucash-3.6/CMakeLists.txt.orig	2019-06-30 00:29:04.000000000 +0100
++++ gnucash-3.6/CMakeLists.txt	2019-08-21 19:52:57.110431705 +0100
+@@ -526,9 +526,12 @@
+ if (NOT DEFINED ${BOOST_ROOT})
+   set(BOOST_ROOT $ENV{BOOST_ROOT})
+ endif()
++set(BUILD_SHARED_LIBS on)
+ find_package (Boost 1.54.0 REQUIRED COMPONENTS date_time regex locale filesystem system)
++set(BUILD_SHARED_LIBS off)
+ 
+ if (Boost_FOUND)
++  set(Boost_LIBRARIES Boost::date_time Boost::regex Boost::locale Boost::filesystem Boost::system)
+   include_directories(${Boost_INCLUDE_DIRS})
+   set(HAVE_BOOST 1)
+ else (Boost_FOUND)
+--- gnucash-3.6/gnucash/register/register-gnome/CMakeLists.txt.orig	2019-01-11 23:57:37.000000000 +0000
++++ gnucash-3.6/gnucash/register/register-gnome/CMakeLists.txt	2019-08-21 19:53:32.215430030 +0100
+@@ -1,5 +1,7 @@
+ add_subdirectory(test)
+ 
++include(CheckSymbolExists)
++
+ #GTK before 3.14 didn't have GDK_MODIFIER_INTENT_DEFAULT_MOD_MASK
+ check_symbol_exists(GDK_MODIFIER_INTENT_DEFAULT_MOD_MASK gdk/gdktypes.h have_mod_mask)
+ if (NOT have_mod_mask)
