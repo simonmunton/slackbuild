@@ -1,6 +1,6 @@
---- ./scripts/init.d/cgred.in.orig	2011-03-08 05:29:42.000000000 -0600
-+++ ./scripts/init.d/cgred.in	2013-02-23 16:15:54.054745738 -0600
-@@ -39,9 +39,8 @@
+--- ./scripts/init.d/cgred.in.orig	2014-01-13 08:05:56.000000000 -0600
++++ ./scripts/init.d/cgred.in	2017-02-28 12:41:11.307424565 -0600
+@@ -39,13 +39,12 @@
  # Sanity checks
  [ -x $CGRED_BIN ] || exit 1
  
@@ -10,7 +10,13 @@
 -. /lib/lsb/init-functions
  
  # Read in configuration options.
- if [ -f "/etc/sysconfig/cgred.conf" ] ; then
+-if [ -f "/etc/sysconfig/cgred.conf" ] ; then
+-	. /etc/sysconfig/cgred.conf
++if [ -f /etc/cgred.conf ] ; then
++       . /etc/cgred.conf
+ 	OPTIONS="$NODAEMON $LOG"
+ 	if [ -n "$LOG_FILE" ]; then
+ 		OPTIONS="$OPTIONS --logfile=$LOG_FILE"
 @@ -70,13 +69,13 @@
  {
  	echo -n $"Starting CGroup Rules Engine Daemon: "
@@ -56,8 +62,8 @@
  		fi
  		;;
  	*)
---- ./scripts/init.d/cgconfig.in.orig	2011-12-06 03:42:15.000000000 -0600
-+++ ./scripts/init.d/cgconfig.in	2013-02-23 16:23:51.530775095 -0600
+--- ./scripts/init.d/cgconfig.in.orig	2014-01-13 08:05:56.000000000 -0600
++++ ./scripts/init.d/cgconfig.in	2017-02-28 12:42:13.278423245 -0600
 @@ -36,11 +36,6 @@
  servicename=cgconfig
  lockfile=/var/lock/subsys/$servicename
@@ -71,8 +77,8 @@
  CREATE_DEFAULT=yes
  if [ -e /etc/sysconfig/cgconfig ]; then
 @@ -54,8 +49,8 @@
- 	    grep -m1 '^\*[[:space:]]\+' /etc/cgrules.conf | \
- 		    read user ctrl defaultcgroup
+ 	    read user ctrl defaultcgroup <<< \
+ 		    $(grep -m1 '^\*[[:space:]]\+' /etc/cgrules.conf)
              if [ -n "$defaultcgroup" -a "$defaultcgroup" = "*" ]; then
 -                log_warning_msg "/etc/cgrules.conf incorrect"
 -                log_warning_msg "Overriding it"
@@ -121,7 +127,7 @@
  stop() {
      echo -n "Stopping cgconfig service: "
 -    cgclear
-+    /usr/sbin/cgclear
++    /usr/sbin/cgclear -l /etc/cgconfig.conf
      rm -f "$lockfile"
 -    log_success_msg
 +    #log_success_msg
