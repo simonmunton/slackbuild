@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=5.212.0-alpha3
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://download.qt.io/community_releases/"
 
@@ -62,7 +62,10 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-PATH=/usr/lib64/qt5/bin:$PATH
+PATH=/usr/lib64/qt5/bin:${PATH}
+export OPENSOURCE_CXXFLAGS="${SLKCFLAGS} -fpermissive"
+export QTDIR="/usr/lib${LIBDIRSUFFIX}/qt5"
+export LD_LIBRARY_PATH="${QTDIR}/qtbase/lib:${QTDIR}/qttools/lib:${LD_LIBRARY_PATH}"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -84,7 +87,9 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DECM_MKSPECS_INSTALL_DIR=${QTDIR}/mkspecs/modules \
       -DPORT=Qt \
+      -DQt5_DIR=${QTDIR} \
       .
 fi
 
