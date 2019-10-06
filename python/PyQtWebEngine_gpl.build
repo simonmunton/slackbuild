@@ -1,0 +1,123 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=PyQtWebEngine_gpl
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=5.13.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://www.riverbankcomputing.com/software/pyqtwebengine/download"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=python-${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+mkdir _BuilDP2_
+cd _BuilDP2_
+echo yes | python ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+cd ..
+mkdir _BuilDP3_
+cd _BuilDP3_
+echo yes | python3 ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+cd ..
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+cd _BuilDP2_
+make ${NUM_JOBS} || exit
+cd ..
+cd _BuilDP3_
+make ${NUM_JOBS} || exit
+cd ..
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+cd _BuilDP2_
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+cd ..
+cd _BuilDP3_
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "PyQtWebEngine"
+PyQtWebEngine is a set of Python bindings for The Qt Company's Qt 
+WebEngine libraries. The bindings sit on top of PyQt5 and are 
+implemented as a set of three modules. Prior to v5.12 these bindings 
+were part of PyQt itself. 
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
