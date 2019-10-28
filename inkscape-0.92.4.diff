@@ -1,5 +1,5 @@
 --- inkscape-0.92.4/CMakeLists.txt.orig	2019-01-15 04:29:27.000000000 +0000
-+++ inkscape-0.92.4/CMakeLists.txt	2019-04-22 17:21:01.480052375 +0100
++++ inkscape-0.92.4/CMakeLists.txt	2019-07-14 22:19:33.151112336 +0100
 @@ -44,7 +44,7 @@
      SET(CMAKE_MACOSX_RPATH TRUE)
      SET(CMAKE_INSTALL_RPATH "@loader_path/../lib/inkscape")
@@ -10,7 +10,7 @@
  
  # workaround for omission in cmake 2.8.4's GNU.cmake, fixed in 2.8.5
 --- inkscape-0.92.4/src/CMakeLists.txt.orig	2019-01-15 04:29:27.000000000 +0000
-+++ inkscape-0.92.4/src/CMakeLists.txt	2019-04-22 17:21:01.481052375 +0100
++++ inkscape-0.92.4/src/CMakeLists.txt	2019-07-14 22:19:33.151112336 +0100
 @@ -576,8 +576,8 @@
      inkscape
      inkview 
@@ -23,7 +23,7 @@
    install(TARGETS
      inkscape_base
 --- inkscape-0.92.4/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2019-01-15 04:29:27.000000000 +0000
-+++ inkscape-0.92.4/src/extension/internal/pdfinput/pdf-parser.cpp	2019-04-22 17:35:02.346012255 +0100
++++ inkscape-0.92.4/src/extension/internal/pdfinput/pdf-parser.cpp	2019-10-28 21:29:38.462949497 +0000
 @@ -426,7 +426,7 @@
  	error(errInternal, -1, "Weird page contents");
      	return;
@@ -33,8 +33,42 @@
    go(topLevel);
    delete parser;
    parser = NULL;
+@@ -2414,7 +2414,11 @@
+   int wMode;
+   double riseX, riseY;
+   CharCode code;
++#if POPPLER_CHECK_VERSION(0, 82, 0)
++  const Unicode *u = NULL;
++#else
+   Unicode *u = NULL;
++#endif
+   double x, y, dx, dy, tdx, tdy;
+   double originX, originY, tOriginX, tOriginY;
+   double oldCTM[6], newCTM[6];
+--- inkscape-0.92.4/src/extension/internal/pdfinput/svg-builder.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/pdfinput/svg-builder.cpp	2019-10-28 21:30:39.985946562 +0000
+@@ -1379,7 +1379,7 @@
+ void SvgBuilder::addChar(GfxState *state, double x, double y,
+                          double dx, double dy,
+                          double originX, double originY,
+-                         CharCode /*code*/, int /*nBytes*/, Unicode *u, int uLen) {
++                         CharCode /*code*/, int /*nBytes*/, const Unicode *u, int uLen) {
+ 
+ 
+     bool is_space = ( uLen == 1 && u[0] == 32 );
+--- inkscape-0.92.4/src/extension/internal/pdfinput/svg-builder.h.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/pdfinput/svg-builder.h	2019-10-28 21:30:22.896947377 +0000
+@@ -141,7 +141,7 @@
+     void addChar(GfxState *state, double x, double y,
+                  double dx, double dy,
+                  double originX, double originY,
+-                 CharCode code, int nBytes, Unicode *u, int uLen);
++                 CharCode code, int nBytes, const Unicode *u, int uLen);
+     void beginTextObject(GfxState *state);
+     void endTextObject(GfxState *state);
+ 
 --- inkscape-0.92.4/CMakeScripts/HelperMacros.cmake.orig	2019-01-15 04:29:27.000000000 +0000
-+++ inkscape-0.92.4/CMakeScripts/HelperMacros.cmake	2019-04-22 17:21:01.481052375 +0100
++++ inkscape-0.92.4/CMakeScripts/HelperMacros.cmake	2019-07-14 22:19:33.152112336 +0100
 @@ -39,8 +39,8 @@
      # (if we ever build shared libraries those would use the RUNTIME target and we might have to revisit this)
      if(NOT WIN32)
@@ -47,7 +81,7 @@
      endif()
  
 --- inkscape-0.92.4/CMakeScripts/ConfigPaths.cmake.orig	2019-01-15 04:29:27.000000000 +0000
-+++ inkscape-0.92.4/CMakeScripts/ConfigPaths.cmake	2019-04-22 17:21:01.481052375 +0100
++++ inkscape-0.92.4/CMakeScripts/ConfigPaths.cmake	2019-07-14 22:19:33.152112336 +0100
 @@ -16,7 +16,7 @@
    
    mark_as_advanced(SHARE_INSTALL)
