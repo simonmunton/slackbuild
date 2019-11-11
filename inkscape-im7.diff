@@ -1,0 +1,90 @@
+--- inkscape-0.92.4/src/extension/internal/bitmap/opacity.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/bitmap/opacity.cpp	2019-11-11 22:04:05.265695029 +0000
+@@ -19,8 +19,13 @@
+ 	
+ void
+ Opacity::applyEffect(Magick::Image* image) {
++#if MagickLibVersion >= 0x700
++	unsigned int opacity = QuantumRange * ((100 - _opacity) / 100.0);
++	image->alpha(opacity);
++#else
+ 	Magick::Quantum opacity = Magick::Color::scaleDoubleToQuantum((100 - _opacity) / 100.0);
+ 	image->opacity(opacity);
++#endif
+ }
+ 
+ void
+--- inkscape-0.92.4/src/extension/internal/bitmap/levelChannel.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/bitmap/levelChannel.cpp	2019-11-11 21:53:57.941724006 +0000
+@@ -28,9 +28,15 @@
+ 	else if (!strcmp(_channelName, "Yellow Channel"))	channel = Magick::YellowChannel;
+ 	else if (!strcmp(_channelName, "Black Channel"))	channel = Magick::BlackChannel;
+ 	else if (!strcmp(_channelName, "Opacity Channel"))	channel = Magick::OpacityChannel;
++#if MagickLibVersion >= 0x700
++	else if (!strcmp(_channelName, "Alpha Channel"))	channel = Magick::AlphaChannel;
++	Magick::Quantum black_point = static_cast<Magick::Quantum>(_black_point / 100.0);
++	Magick::Quantum white_point = static_cast<Magick::Quantum>(_white_point / 100.0);
++#else
+ 	else if (!strcmp(_channelName, "Matte Channel"))	channel = Magick::MatteChannel;
+ 	Magick::Quantum black_point = Magick::Color::scaleDoubleToQuantum(_black_point / 100.0);
+ 	Magick::Quantum white_point = Magick::Color::scaleDoubleToQuantum(_white_point / 100.0);
++#endif
+ 	image->levelChannel(channel, black_point, white_point, _mid_point);
+ }
+ 
+@@ -60,7 +66,11 @@
+ 				"<_item value='Yellow Channel'>" N_("Yellow Channel") "</_item>\n"
+ 				"<_item value='Black Channel'>" N_("Black Channel") "</_item>\n"
+ 				"<_item value='Opacity Channel'>" N_("Opacity Channel") "</_item>\n"
++#if MagickLibVersion >= 0x700
++				"<_item value='Alpha Channel'>" N_("Alpha Channel") "</_item>\n"
++#else
+ 				"<_item value='Matte Channel'>" N_("Matte Channel") "</_item>\n"
++#endif
+ 			"</param>\n"
+ 			"<param name=\"blackPoint\" _gui-text=\"" N_("Black Point:") "\" type=\"float\" min=\"0.0\" max=\"100.0\">0.0</param>\n"			
+ 			"<param name=\"whitePoint\" _gui-text=\"" N_("White Point:") "\" type=\"float\" min=\"0.0\" max=\"100.0\">100.0</param>\n"			
+--- inkscape-0.92.4/src/extension/internal/bitmap/crop.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/bitmap/crop.cpp	2019-11-11 21:50:52.561732851 +0000
+@@ -24,7 +24,11 @@
+     int width = image->baseColumns() - (_left + _right);
+     int height = image->baseRows() - (_top + _bottom);
+     if (width > 0 and height > 0) {
++#if MagickLibVersion >= 0x700
++        image->crop(Magick::Geometry(width, height, _left, _top));
++#else
+         image->crop(Magick::Geometry(width, height, _left, _top, false, false));
++#endif
+         image->page("+0+0");
+     }
+ }
+--- inkscape-0.92.4/src/extension/internal/bitmap/channel.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/bitmap/channel.cpp	2019-11-11 21:50:04.929735123 +0000
+@@ -28,7 +28,11 @@
+ 	else if (!strcmp(_layerName, "Yellow Channel"))		layer = Magick::YellowChannel;
+ 	else if (!strcmp(_layerName, "Black Channel"))		layer = Magick::BlackChannel;
+ 	else if (!strcmp(_layerName, "Opacity Channel"))	layer = Magick::OpacityChannel;
++#if MagickLibVersion >= 0x700
++	else if (!strcmp(_layerName, "Alpha Channel"))		layer = Magick::AlphaChannel;
++#else
+ 	else if (!strcmp(_layerName, "Matte Channel"))		layer = Magick::MatteChannel;		
++#endif
+ 	
+ 	image->channel(layer);
+ }
+--- inkscape-0.92.4/src/extension/internal/bitmap/level.cpp.orig	2019-01-15 04:29:27.000000000 +0000
++++ inkscape-0.92.4/src/extension/internal/bitmap/level.cpp	2019-11-11 21:52:01.463729563 +0000
+@@ -19,8 +19,13 @@
+ 	
+ void
+ Level::applyEffect(Magick::Image* image) {
++#if MagickLibVersion >= 0x700
++	Magick::Quantum black_point = static_cast<Magick::Quantum>(_black_point / 100.0);
++	Magick::Quantum white_point = static_cast<Magick::Quantum>(_white_point / 100.0);
++#else
+ 	Magick::Quantum black_point = Magick::Color::scaleDoubleToQuantum(_black_point / 100.0);
+ 	Magick::Quantum white_point = Magick::Color::scaleDoubleToQuantum(_white_point / 100.0);
++#endif
+ 	image->level(black_point, white_point, _mid_point);
+ }
+ 
