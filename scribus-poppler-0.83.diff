@@ -1,0 +1,173 @@
+--- scribus-1.5.5/scribus/plugins/import/pdf/importpdf.cpp.orig	2019-07-30 23:34:51.000000000 +0100
++++ scribus-1.5.5/scribus/plugins/import/pdf/importpdf.cpp	2019-11-30 17:00:15.950220088 +0000
+@@ -75,7 +75,11 @@
+ QImage PdfPlug::readThumbnail(const QString& fName)
+ {
+ 	QString pdfFile = QDir::toNativeSeparators(fName);
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++	globalParams = std::make_unique<GlobalParams>();
++#else
+ 	globalParams = new GlobalParams();
++#endif
+ 	if (globalParams)
+ 	{
+ #if defined(Q_OS_WIN32) && POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 62, 0)
+@@ -90,7 +94,11 @@
+ 			if (pdfDoc->getErrorCode() == errEncrypted)
+ 			{
+ 				delete pdfDoc;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++				globalParams.reset();
++#else
+ 				delete globalParams;
++#endif
+ 				return QImage();
+ 			}
+ 			if (pdfDoc->isOk())
+@@ -134,11 +142,19 @@
+ 				image.setText("YSize", QString("%1").arg(h));
+ 				delete dev;
+ 				delete pdfDoc;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++				globalParams.reset();
++#else
+ 				delete globalParams;
++#endif
+ 				return image;
+ 			}
+ 			delete pdfDoc;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++			globalParams.reset();
++#else
+ 			delete globalParams;
++#endif
+ 		}
+ 	}
+ 	return QImage();
+@@ -387,7 +403,11 @@
+ 		qApp->processEvents();
+ 	}
+ 
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++	globalParams = std::make_unique<GlobalParams>();
++#else
+ 	globalParams = new GlobalParams();
++#endif
+ 	GooString *userPW = nullptr;
+ 	if (globalParams)
+ 	{
+@@ -429,7 +449,11 @@
+ 					if (progressDialog)
+ 						progressDialog->close();
+ 					delete pdfDoc;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++					globalParams.reset();
++#else
+ 					delete globalParams;
++#endif
+ 					return false;
+ 				}
+ 				if (progressDialog)
+@@ -474,7 +498,11 @@
+ 							progressDialog->close();
+ 						delete optImp;
+ 						delete pdfDoc;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++						globalParams.reset();
++#else
+ 						delete globalParams;
++#endif
+ 						return false;
+ 					}
+ 					pageString = optImp->getPagesString();
+@@ -908,8 +936,12 @@
+ 		}
+ 		delete pdfDoc;
+ 	}
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 83, 0)
++	globalParams.reset();
++#else
+ 	delete globalParams;
+ 	globalParams = nullptr;
++#endif
+ 
+ //	qDebug() << "converting finished";
+ //	qDebug() << "Imported" << Elements.count() << "Elements";
+--- scribus-1.5.5/scribus/plugins/import/pdf/slaoutput.cpp.orig	2019-07-30 23:34:51.000000000 +0100
++++ scribus-1.5.5/scribus/plugins/import/pdf/slaoutput.cpp	2019-11-30 16:51:43.164244555 +0000
+@@ -2784,7 +2784,7 @@
+ 	delete[] mbuffer;
+ }
+ 
+-void SlaOutputDev::drawImage(GfxState *state, Object *ref, Stream *str, int width, int height, GfxImageColorMap *colorMap, GBool interpolate, int *maskColors, GBool inlineImg)
++void SlaOutputDev::drawImage(GfxState *state, Object *ref, Stream *str, int width, int height, GfxImageColorMap *colorMap, GBool interpolate, const int *maskColors, GBool inlineImg)
+ {
+ 	ImageStream * imgStr = new ImageStream(str, width, colorMap->getNumPixelComps(), colorMap->getBits());
+ //	qDebug() << "Image Components" << colorMap->getNumPixelComps() << "Mask" << maskColors;
+@@ -3365,7 +3365,7 @@
+ 		fontsrc->unref();
+ }
+ 
+-void SlaOutputDev::drawChar(GfxState *state, double x, double y, double dx, double dy, double originX, double originY, CharCode code, int nBytes, Unicode *u, int uLen)
++void SlaOutputDev::drawChar(GfxState *state, double x, double y, double dx, double dy, double originX, double originY, CharCode code, int nBytes, const Unicode *u, int uLen)
+ {
+ 	double x1, y1, x2, y2;
+ 	int render;
+@@ -3452,7 +3452,7 @@
+ 	}
+ }
+ 
+-GBool SlaOutputDev::beginType3Char(GfxState *state, double x, double y, double dx, double dy, CharCode code, Unicode *u, int uLen)
++GBool SlaOutputDev::beginType3Char(GfxState *state, double x, double y, double dx, double dy, CharCode code, const Unicode *u, int uLen)
+ {
+ //	qDebug() << "beginType3Char";
+ 	GfxFont *gfxFont;
+@@ -3705,7 +3705,7 @@
+ 	return fNam;
+ }
+ 
+-QString SlaOutputDev::convertPath(GfxPath *path)
++QString SlaOutputDev::convertPath(const GfxPath *path)
+ {
+ 	if (! path)
+ 		return QString();
+@@ -3715,7 +3715,7 @@
+ 
+ 	for (int i = 0; i < path->getNumSubpaths(); ++i)
+ 	{
+-		GfxSubpath * subpath = path->getSubpath(i);
++		const GfxSubpath * subpath = path->getSubpath(i);
+ 		if (subpath->getNumPoints() > 0)
+ 		{
+ 			output += QString("M %1 %2").arg(subpath->getX(0)).arg(subpath->getY(0));
+--- scribus-1.5.5/scribus/plugins/import/pdf/slaoutput.h.orig	2019-07-30 23:34:51.000000000 +0100
++++ scribus-1.5.5/scribus/plugins/import/pdf/slaoutput.h	2019-11-30 16:50:41.853247480 +0000
+@@ -229,7 +229,7 @@
+ 
+ 	//----- image drawing
+ 	void drawImageMask(GfxState *state, Object *ref, Stream *str, int width, int height, GBool invert, GBool interpolate, GBool inlineImg) override;
+-	void drawImage(GfxState *state, Object *ref, Stream *str, int width, int height, GfxImageColorMap *colorMap, GBool interpolate, int *maskColors, GBool inlineImg) override;
++	void drawImage(GfxState *state, Object *ref, Stream *str, int width, int height, GfxImageColorMap *colorMap, GBool interpolate, const int *maskColors, GBool inlineImg) override;
+ 	void drawSoftMaskedImage(GfxState *state, Object *ref, Stream *str,
+ 				   int width, int height,
+ 				   GfxImageColorMap *colorMap,
+@@ -261,8 +261,8 @@
+ 	//----- text drawing
+ 	void  beginTextObject(GfxState *state) override;
+ 	void  endTextObject(GfxState *state) override;
+-	void  drawChar(GfxState *state, double /*x*/, double /*y*/, double /*dx*/, double /*dy*/, double /*originX*/, double /*originY*/, CharCode /*code*/, int /*nBytes*/, Unicode * /*u*/, int /*uLen*/) override;
+-	GBool beginType3Char(GfxState * /*state*/, double /*x*/, double /*y*/, double /*dx*/, double /*dy*/, CharCode /*code*/, Unicode * /*u*/, int /*uLen*/) override;
++	void  drawChar(GfxState *state, double /*x*/, double /*y*/, double /*dx*/, double /*dy*/, double /*originX*/, double /*originY*/, CharCode /*code*/, int /*nBytes*/, const Unicode * /*u*/, int /*uLen*/) override;
++	GBool beginType3Char(GfxState * /*state*/, double /*x*/, double /*y*/, double /*dx*/, double /*dy*/, CharCode /*code*/, const Unicode * /*u*/, int /*uLen*/) override;
+ 	void  endType3Char(GfxState * /*state*/) override;
+ 	void  type3D0(GfxState * /*state*/, double /*wx*/, double /*wy*/) override;
+ 	void  type3D1(GfxState * /*state*/, double /*wx*/, double /*wy*/, double /*llx*/, double /*lly*/, double /*urx*/, double /*ury*/) override;
+@@ -282,7 +282,7 @@
+ 	void getPenState(GfxState *state);
+ 	QString getColor(GfxColorSpace *color_space, POPPLER_CONST_070 GfxColor *color, int *shade);
+ 	QString getAnnotationColor(const AnnotColor *color);
+-	QString convertPath(GfxPath *path);
++	QString convertPath(const GfxPath *path);
+ 	int getBlendMode(GfxState *state);
+ 	void applyMask(PageItem *ite);
+ 	void pushGroup(const QString& maskName = "", GBool forSoftMask = gFalse, GBool alpha = gFalse, bool inverted = false);

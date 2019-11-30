@@ -1,5 +1,14 @@
 --- inkscape-1.0beta1/CMakeLists.txt.orig	2019-09-17 11:07:40.000000000 +0100
-+++ inkscape-1.0beta1/CMakeLists.txt	2019-11-23 12:11:58.648797090 +0000
++++ inkscape-1.0beta1/CMakeLists.txt	2019-11-28 22:18:02.653424001 +0000
+@@ -18,7 +18,7 @@
+ # -----------------------------------------------------------------------------
+ # CMake Configuration
+ # -----------------------------------------------------------------------------
+-set(CMAKE_CXX_STANDARD 11)
++set(CMAKE_CXX_STANDARD 14)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ # set(CMAKE_CXX_EXTENSIONS OFF) # enforces -std=c++11 instead of -std=gnu++11
+                                 # TODO: build currently fails with it as we actually depend on GNU compiler extensions...
 @@ -28,12 +28,12 @@
  # avoid having empty buildtype
  set(CMAKE_BUILD_TYPE_INIT "Release")
@@ -15,8 +24,31 @@
  include(CMakeScripts/ConfigPaths.cmake)
  
  set(PROJECT_NAME inkscape)
+--- inkscape-1.0beta1/src/extension/internal/pdfinput/pdf-input.cpp.orig	2019-09-17 11:07:40.000000000 +0100
++++ inkscape-1.0beta1/src/extension/internal/pdfinput/pdf-input.cpp	2019-11-28 22:30:38.943387917 +0000
+@@ -694,7 +694,11 @@
+             globalParams = new GlobalParams();
+         }
+ #else
++#if POPPLER_CHECK_VERSION(0, 83, 0)
++        globalParams = std::make_unique<GlobalParams>();
++#else
+         globalParams = new GlobalParams();
++#endif
+ #endif // ENABLE_OSX_APP_LOCATIONS
+     }
+ 
 --- inkscape-1.0beta1/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2019-09-17 11:07:40.000000000 +0100
-+++ inkscape-1.0beta1/src/extension/internal/pdfinput/pdf-parser.cpp	2019-11-23 11:38:15.362383830 +0000
++++ inkscape-1.0beta1/src/extension/internal/pdfinput/pdf-parser.cpp	2019-11-28 22:23:39.277407940 +0000
+@@ -267,7 +267,7 @@
+     ClipHistoryEntry *save();
+     ClipHistoryEntry *restore();
+     GBool hasSaves() { return saved != nullptr; }
+-    void setClip(GfxPath *newClipPath, GfxClipType newClipType = clipNormal);
++    void setClip(const GfxPath *newClipPath, GfxClipType newClipType = clipNormal);
+     GfxPath *getClipPath() { return clipPath; }
+     GfxClipType getClipType() { return clipType; }
+ 
 @@ -2405,7 +2405,11 @@
    int wMode;
    double riseX, riseY;
@@ -29,8 +61,30 @@
    double x, y, dx, dy, tdx, tdy;
    double originX, originY, tOriginX, tOriginY;
    double oldCTM[6], newCTM[6];
+@@ -3377,7 +3381,7 @@
+     }
+ }
+ 
+-void ClipHistoryEntry::setClip(GfxPath *clipPathA, GfxClipType clipTypeA) {
++void ClipHistoryEntry::setClip(const GfxPath *clipPathA, GfxClipType clipTypeA) {
+     // Free previous clip path
+     if (clipPath) {
+         delete clipPath;
 --- inkscape-1.0beta1/src/extension/internal/pdfinput/svg-builder.cpp.orig	2019-09-17 11:07:40.000000000 +0100
-+++ inkscape-1.0beta1/src/extension/internal/pdfinput/svg-builder.cpp	2019-11-23 11:41:03.292375817 +0000
++++ inkscape-1.0beta1/src/extension/internal/pdfinput/svg-builder.cpp	2019-11-28 22:25:44.237401978 +0000
+@@ -262,10 +262,10 @@
+ /**
+  * \brief Generates a SVG path string from poppler's data structure
+  */
+-static gchar *svgInterpretPath(GfxPath *path) {
++static gchar *svgInterpretPath(const GfxPath *path) {
+     Inkscape::SVG::PathString pathString;
+     for (int i = 0 ; i < path->getNumSubpaths() ; ++i ) {
+-        GfxSubpath *subpath = path->getSubpath(i);
++        const GfxSubpath *subpath = path->getSubpath(i);
+         if (subpath->getNumPoints() > 0) {
+             pathString.moveTo(subpath->getX(0), subpath->getY(0));
+             int j = 1;
 @@ -1375,7 +1375,7 @@
  void SvgBuilder::addChar(GfxState *state, double x, double y,
                           double dx, double dy,
