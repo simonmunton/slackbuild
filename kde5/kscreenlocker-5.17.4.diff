@@ -1,0 +1,21 @@
+--- kscreenlocker-5.17.4/greeter/seccomp_filter.cpp.orig	2019-12-03 12:11:00.000000000 +0000
++++ kscreenlocker-5.17.4/greeter/seccomp_filter.cpp	2019-12-27 17:17:24.801573907 +0000
+@@ -59,7 +59,7 @@
+                 // BUG: 384005
+                 writeSupported = false;
+             }
+-            else if (gl->isSoftwareEmulation() && KWindowSystem::isPlatformWayland()) {
++            else if ((gl->isSoftwareEmulation() && KWindowSystem::isPlatformWayland()) || gl->driver() == KWin::Driver_Intel) {
+                 createSupported = writeSupported = false;
+             }
+         }
+@@ -109,7 +108,9 @@
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(rmdir), 0);
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(link), 0);
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(linkat), 0);
++#if 0 // can't remove lock file without this
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unlink), 0);
++#endif
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unlinkat), 0);
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(symlink), 0);
+     seccomp_rule_add(context, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(symlinkat), 0);
