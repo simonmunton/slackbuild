@@ -3,13 +3,13 @@
 . build_funcs
 
 TARNAME=med
-TARNAMEEXTRA=-fichier
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=3.0.6
+VERSION=4.0.0
 VERSIONEXTRA=
-BUILD=3
+BUILD=2
 
 WEBPAGE="https://launchpad.net/ubuntu/+source/med-fichier/"
 #https://www.salome-platform.org/downloads/current-version
@@ -47,12 +47,12 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- patch -p1 < ${CWD}/med-ppc64el-support.patch
- patch -p1 < ${CWD}/med-hdf5_link.patch
- patch -p1 < ${CWD}/med-clang-ftbfs.diff
- patch -p1 < ${CWD}/med-hdf5-1.10-support.patch
- patch -p1 < ${CWD}/med-parallel-test-seed.patch
- patch -p1 < ${CWD}/med-tests-ignore-native-char-impl.patch
+# patch -p1 < ${CWD}/med-ppc64el-support.patch
+# patch -p1 < ${CWD}/med-hdf5_link.patch
+# patch -p1 < ${CWD}/med-clang-ftbfs.diff
+# patch -p1 < ${CWD}/med-hdf5-1.10-support.patch
+# patch -p1 < ${CWD}/med-parallel-test-seed.patch
+# patch -p1 < ${CWD}/med-tests-ignore-native-char-impl.patch
 )
 fi
 
@@ -70,13 +70,16 @@ if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
+PYTHON_VERSION=3 \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-hdf5-lib=/usr/lib${LIBDIRSUFFIX} \
-	    --with-hdf5-include=/usr/include
+	    --mandir=/usr/man 
+
+#	    --with-hdf5-lib=/usr/lib${LIBDIRSUFFIX} \
+#	    --with-hdf5-include=/usr/include \
+#	    --with-hdf5bin=/usr/bin
 
 elif [ -f ./CMakeLists.txt ]
 then

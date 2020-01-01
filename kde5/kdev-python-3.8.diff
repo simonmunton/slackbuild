@@ -1,0 +1,529 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6f9e465b..09b089dd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -31,7 +31,7 @@ add_definitions( -DTRANSLATION_DOMAIN=\"kdevpython\" )
+ 
+ # CMake looks for exactly the specified version first and ignores newer versions.
+ # To avoid that, start looking for the newest supported version and work down.
+-set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 3.4)
++set(Python_ADDITIONAL_VERSIONS 3.8 3.7 3.6 3.5 3.4)
+ foreach(_PYTHON_V ${Python_ADDITIONAL_VERSIONS})
+     find_package(PythonInterp ${_PYTHON_V})
+     if ( PYTHONINTERP_FOUND )
+@@ -49,7 +49,7 @@ if ( PYTHONINTERP_FOUND AND PYTHON_VERSION_STRING VERSION_GREATER "3.4" )
+ endif()
+ 
+ if ( NOT PYTHONLIBS_FOUND OR PYTHONLIBS_VERSION_STRING VERSION_LESS "3.4.3" )
+-    message(FATAL_ERROR "Python >= 3.4.3 but < 3.8 with --enable-shared is required to build kdev-python")
++    message(FATAL_ERROR "Python >= 3.4.3 but < 3.9 with --enable-shared is required to build kdev-python")
+ endif()
+ 
+ configure_file(kdevpythonversion.h.cmake "${CMAKE_CURRENT_BINARY_DIR}/kdevpythonversion.h" @ONLY)
+diff --git a/duchain/declarationbuilder.cpp b/duchain/declarationbuilder.cpp
+index e3cb2b9c..61e144c5 100644
+--- a/duchain/declarationbuilder.cpp
++++ b/duchain/declarationbuilder.cpp
+@@ -1354,6 +1354,14 @@ void DeclarationBuilder::visitAnnotationAssignment(AnnotationAssignmentAst* node
+     assignToUnknown(node->target, assignType);
+ }
+ 
++void DeclarationBuilder::visitAssignmentExpression(AssignmentExpressionAst* node) {
++    AstDefaultVisitor::visitAssignmentExpression(node);
++
++    ExpressionVisitor v(currentContext());
++    v.visitNode(node->value);
++    assignToUnknown(node->target, v.lastType());
++}
++
+ void DeclarationBuilder::visitClassDefinition( ClassDefinitionAst* node )
+ {
+     visitNodeList(node->decorators);
+@@ -1745,7 +1753,7 @@ void DeclarationBuilder::visitArguments( ArgumentsAst* node )
+     int parametersCount = node->arguments.length();
+     int firstDefaultParameterOffset = parametersCount - defaultParametersCount;
+     int currentIndex = 0;
+-    foreach ( ArgAst* arg, node->arguments + node->kwonlyargs ) {
++    foreach ( ArgAst* arg, node->posonlyargs + node->arguments + node->kwonlyargs ) {
+         // Iterate over all the function's arguments, create declarations, and add the arguments
+         // to the functions FunctionType.
+         currentIndex += 1;
+diff --git a/duchain/declarationbuilder.h b/duchain/declarationbuilder.h
+index adee6d6d..1992b781 100644
+--- a/duchain/declarationbuilder.h
++++ b/duchain/declarationbuilder.h
+@@ -90,6 +90,7 @@ class KDEVPYTHONDUCHAIN_EXPORT DeclarationBuilder: public DeclarationBuilderBase
+     void visitFunctionDefinition(FunctionDefinitionAst* node) override;
+     void visitAssignment(AssignmentAst* node) override;
+     void visitAnnotationAssignment(AnnotationAssignmentAst* node) override;
++    void visitAssignmentExpression(AssignmentExpressionAst* node) override;
+     void visitFor(ForAst* node) override;
+     void visitImport(ImportAst* node) override;
+     void visitImportFrom(ImportFromAst* node) override;
+diff --git a/duchain/expressionvisitor.cpp b/duchain/expressionvisitor.cpp
+index 5c5286ae..055c5b49 100644
+--- a/duchain/expressionvisitor.cpp
++++ b/duchain/expressionvisitor.cpp
+@@ -757,5 +757,9 @@ void ExpressionVisitor::visitBooleanOperation(Python::BooleanOperationAst* node)
+     encounter(result);
+ }
+ 
++void ExpressionVisitor::visitAssignmentExpression(Python::AssignmentExpressionAst* node) {
++    visitNode(node->value);
++}
++
+ }
+ 
+diff --git a/duchain/expressionvisitor.h b/duchain/expressionvisitor.h
+index 25ca2319..a56481ad 100644
+--- a/duchain/expressionvisitor.h
++++ b/duchain/expressionvisitor.h
+@@ -81,6 +81,7 @@ class KDEVPYTHONDUCHAIN_EXPORT ExpressionVisitor : public AstDefaultVisitor, pub
+     void visitSetComprehension(SetComprehensionAst* node) override;
+     void visitIfExpression(IfExpressionAst* node) override;
+     void visitNameConstant(NameConstantAst* node) override;
++    void visitAssignmentExpression(AssignmentExpressionAst* node) override;
+ 
+     /**
+      * @brief Checks for magic docstrings that override a call's return type.
+diff --git a/duchain/tests/pyduchaintest.cpp b/duchain/tests/pyduchaintest.cpp
+index 7142ed2b..17ba34e5 100644
+--- a/duchain/tests/pyduchaintest.cpp
++++ b/duchain/tests/pyduchaintest.cpp
+@@ -838,6 +838,7 @@ void PyDUChainTest::testTypes()
+     QEXPECT_FAIL("init_class_no_decl", "aliasing info lost", Continue);
+     QEXPECT_FAIL("property_wrong", "visitCall uses declaration if no type", Continue);
+     QEXPECT_FAIL("property_setter", "very basic property support", Continue);
++    QEXPECT_FAIL("assignment_expr_context", "not implemented", Continue);
+     QCOMPARE(visitor->found, true);
+ }
+ 
+@@ -1302,6 +1303,21 @@ void PyDUChainTest::testTypes_data()
+         "        def foo(self, ccc=aaa, ddd=bbb):\n" // self.bbb is visible here, Foo().aaa isn't.
+         "            return ccc, ddd\n"
+         "checkme = Foo().Bar().foo()\n" << "tuple of (str, int)";
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++    QTest::newRow("assignment_expr_while") <<
++        "file = open('foo.txt')\n"
++        "while q := file.readline():\n"
++        "    checkme = q\n" << "str";
++    QTest::newRow("assignment_expr_comprehension") <<
++        "checkme = [z for q in (1, 2, 3) if (z := q % 2)]" << "list of int";
++    QTest::newRow("assignment_expr_context") <<
++        "a = [z for q in (1, 2, 3) if (z := q % 2)]\n"
++        "checkme = z" << "int";
++    QTest::newRow("positional_params") <<
++    "def foo(a, b, /, c, d):\n"
++    "    return a, b, c, d\n"
++    "checkme = foo(10, 'x', 2.3, d='y')\n" << "tuple of (int, str, float, str)";
++#endif
+ }
+ 
+ typedef QPair<Declaration*, int> pair;
+@@ -1780,6 +1796,9 @@ void PyDUChainTest::testVariableCreation_data()
+                                                                                 << QStringList{"int", "int", "float"};
+     QTest::newRow("for_loop_tuple") << "for a in 1, 2: pass" << QStringList{"a"} << QStringList{"int"};
+     QTest::newRow("for_loop_dict") << "for a in {'foo': 1}: pass" << QStringList{"a"} << QStringList{"str"};
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++    QTest::newRow("assignment_expr") << "a = (b := 10)" << QStringList{"a", "b"} << QStringList{"int", "int"};
++#endif
+ }
+ 
+ void PyDUChainTest::testCleanupMultiplePasses()
+diff --git a/parser/ast.cpp b/parser/ast.cpp
+index 9892b184..cd570d36 100644
+--- a/parser/ast.cpp
++++ b/parser/ast.cpp
+@@ -163,6 +163,11 @@ ExpressionAst::ExpressionAst(Ast* parent, AstType type): Ast(parent, type), valu
+     
+ }
+ 
++AssignmentExpressionAst::AssignmentExpressionAst(Ast* parent): ExpressionAst(parent, Ast::AssignmentExpressionAstType), value(nullptr)
++{
++
++}
++
+ YieldFromAst::YieldFromAst(Ast* parent) : ExpressionAst(parent, Ast::YieldFromAstType)
+ {
+ 
+@@ -248,7 +253,7 @@ NameConstantAst::NameConstantAst(Ast* parent): ExpressionAst(parent, Ast::NameCo
+ 
+ }
+ 
+-NumberAst::NumberAst(Ast* parent): ExpressionAst(parent, Ast::NumberAstType), value(0)
++NumberAst::NumberAst(Ast* parent): ExpressionAst(parent, Ast::NumberAstType), value(0), isInt(false)
+ {
+     
+ }
+diff --git a/parser/ast.h b/parser/ast.h
+index 378af0bd..65fef1cd 100644
+--- a/parser/ast.h
++++ b/parser/ast.h
+@@ -131,6 +131,7 @@ class KDEVPYTHONPARSER_EXPORT Ast
+         SliceAstType,
+         EllipsisAstType,
+         IndexAstType,
++        AssignmentExpressionAstType,
+         LastExpressionType, // keep this at the end of the expr ast list
+ 
+         CodeAstType,
+@@ -457,6 +458,13 @@ class KDEVPYTHONPARSER_EXPORT ExpressionAst : public Ast {
+     ExpressionAst* value; // WARNING this is not set in most cases!
+ };
+ 
++class KDEVPYTHONPARSER_EXPORT AssignmentExpressionAst : public ExpressionAst {
++public:
++    AssignmentExpressionAst(Ast* parent);
++    ExpressionAst* target;
++    ExpressionAst* value;
++};
++
+ class KDEVPYTHONPARSER_EXPORT AwaitAst : public ExpressionAst {
+ public:
+     AwaitAst(Ast* parent);
+@@ -743,6 +751,7 @@ class KDEVPYTHONPARSER_EXPORT ArgumentsAst : public Ast {
+     ArgumentsAst(Ast* parent);
+     QList<ArgAst*> arguments;
+     QList<ArgAst*> kwonlyargs;
++    QList<ArgAst*> posonlyargs;
+     QList<ExpressionAst*> defaultValues;
+     ArgAst* vararg;
+     ArgAst* kwarg;
+diff --git a/parser/astbuilder.cpp b/parser/astbuilder.cpp
+index a1ccd68d..ad2e0dce 100644
+--- a/parser/astbuilder.cpp
++++ b/parser/astbuilder.cpp
+@@ -101,7 +101,13 @@ CodeAst::Ptr AstBuilder::parse(const QUrl& filename, QString &contents)
+     PythonInitializer pyIniter(pyInitLock);
+     PyArena* arena = pyIniter.arena;
+ 
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++    PyCompilerFlags flags;
++    flags.cf_flags = PyCF_SOURCE_IS_UTF8 | PyCF_IGNORE_COOKIE | PyCF_ONLY_AST;
++    flags.cf_feature_version = 7;
++#else
+     PyCompilerFlags flags = {PyCF_SOURCE_IS_UTF8 | PyCF_IGNORE_COOKIE};
++#endif
+ 
+     CythonSyntaxRemover cythonSyntaxRemover;
+ 
+diff --git a/parser/astdefaultvisitor.cpp b/parser/astdefaultvisitor.cpp
+index 5db1f6f1..cdd31bbf 100644
+--- a/parser/astdefaultvisitor.cpp
++++ b/parser/astdefaultvisitor.cpp
+@@ -292,6 +292,12 @@ void AstDefaultVisitor::visitAnnotationAssignment(AnnotationAssignmentAst* node)
+     visitNode(node->value);
+ }
+ 
++void AstDefaultVisitor::visitAssignmentExpression(AssignmentExpressionAst* node)
++{
++    visitNode(node->target);
++    visitNode(node->value);
++}
++
+ void AstDefaultVisitor::visitBinaryOperation(BinaryOperationAst* node)
+ {
+     visitNode(node->lhs);
+diff --git a/parser/astdefaultvisitor.h b/parser/astdefaultvisitor.h
+index e8e0d3de..aa1f540c 100644
+--- a/parser/astdefaultvisitor.h
++++ b/parser/astdefaultvisitor.h
+@@ -49,6 +49,7 @@ class KDEVPYTHONPARSER_EXPORT AstDefaultVisitor : public AstVisitor
+     void visitAssignment(AssignmentAst* node) override;
+     void visitAugmentedAssignment(AugmentedAssignmentAst* node) override;
+     void visitAnnotationAssignment(AnnotationAssignmentAst* node) override;
++    void visitAssignmentExpression(AssignmentExpressionAst* node) override;
+     void visitFor(ForAst* node) override;
+     void visitWhile(WhileAst* node) override;
+     void visitIf(IfAst* node) override;
+@@ -122,6 +123,7 @@ class KDEVPYTHONPARSER_EXPORT AstFreeVisitor : public AstDefaultVisitor {
+     void visitAssignment(AssignmentAst* node) override { AstDefaultVisitor::visitAssignment(node); delete node; }
+     void visitAugmentedAssignment(AugmentedAssignmentAst* node) override { AstDefaultVisitor::visitAugmentedAssignment(node); delete node; }
+     void visitAnnotationAssignment(AnnotationAssignmentAst* node) override { AstDefaultVisitor::visitAnnotationAssignment(node); delete node; }
++    void visitAssignmentExpression(AssignmentExpressionAst* node) override { AstDefaultVisitor::visitAssignmentExpression(node); delete node; }
+     void visitFor(ForAst* node) override { AstDefaultVisitor::visitFor(node); delete node; }
+     void visitWhile(WhileAst* node) override { AstDefaultVisitor::visitWhile(node); delete node; }
+     void visitIf(IfAst* node) override { AstDefaultVisitor::visitIf(node); delete node; }
+diff --git a/parser/astvisitor.cpp b/parser/astvisitor.cpp
+index ace7d619..51c5a1c5 100644
+--- a/parser/astvisitor.cpp
++++ b/parser/astvisitor.cpp
+@@ -47,6 +47,7 @@ void AstVisitor::visitNode(Ast* node)
+         case Ast::AssignmentAstType:                            this->visitAssignment(static_cast<AssignmentAst*>(node)); break;
+         case Ast::AugmentedAssignmentAstType:                   this->visitAugmentedAssignment(static_cast<AugmentedAssignmentAst*>(node)); break;
+         case Ast::AnnotationAssignmentAstType:                  this->visitAnnotationAssignment(static_cast<AnnotationAssignmentAst*>(node)); break;
++        case Ast::AssignmentExpressionAstType:                  this->visitAssignmentExpression(static_cast<AssignmentExpressionAst*>(node)); break;
+         case Ast::ForAstType:                                   this->visitFor(static_cast<ForAst*>(node)); break;
+         case Ast::WhileAstType:                                 this->visitWhile(static_cast<WhileAst*>(node)); break;
+         case Ast::IfAstType:                                    this->visitIf(static_cast<IfAst*>(node)); break;
+diff --git a/parser/astvisitor.h b/parser/astvisitor.h
+index 1908e9dd..51aa47b4 100644
+--- a/parser/astvisitor.h
++++ b/parser/astvisitor.h
+@@ -61,6 +61,7 @@ class KDEVPYTHONPARSER_EXPORT AstVisitor
+     virtual void visitAssignment(AssignmentAst* node) { Q_UNUSED(node); };
+     virtual void visitAugmentedAssignment(AugmentedAssignmentAst* node) { Q_UNUSED(node); };
+     virtual void visitAnnotationAssignment(AnnotationAssignmentAst* node) { Q_UNUSED(node); };
++    virtual void visitAssignmentExpression(AssignmentExpressionAst* node) { Q_UNUSED(node); };
+     virtual void visitFor(ForAst* node) { Q_UNUSED(node); };
+     virtual void visitWhile(WhileAst* node) { Q_UNUSED(node); };
+     virtual void visitIf(IfAst* node) { Q_UNUSED(node); };
+diff --git a/parser/conversionGenerator.py b/parser/conversionGenerator.py
+index 9d65cc0d..66055953 100644
+--- a/parser/conversionGenerator.py
++++ b/parser/conversionGenerator.py
+@@ -9,7 +9,7 @@
+ 
+ import sys
+ 
+-contents = open('python36.sdef').read().replace("\n", "").split(';;')
++contents = open('python38.sdef').read().replace("\n", "").split(';;')
+ 
+ func_structure = '''
+     Ast* visitNode(%{RULE_FOR}* node) {
+@@ -45,7 +45,6 @@
+ 
+ switch_line = '''        case %{KIND}: {
+ %{ACTIONS}
+-                result = v;
+                 break;
+             }'''
+ 
+@@ -139,6 +138,7 @@ def pluginAstToPythonAstType(plugintypestr):
+         results[rule_for] = list()
+     
+     current_actions = list()
++    created_v = False
+     for action in actions:
+         command = action.split('|')[0]
+         try:
+@@ -204,14 +204,17 @@ def pluginAstToPythonAstType(plugintypestr):
+         elif command == 'create':
+             astType = arguments
+             current_actions.append(create_ast_line.replace('%{AST_TYPE}', astType))
+-    
++            created_v = True
++
+     if code:
+         current_actions.append(code);
+-    
++
+     current_actions = "\n".join(current_actions)
+     if kind == 'any':
+         current_stmt = current_actions
+     else:
++        if created_v:
++            current_actions += "\n                result = v;"
+         current_stmt = switch_line.replace('%{KIND}', kind).replace('%{ACTIONS}', current_actions)
+     if before_version:
+         version_cpp_if = ("#if PYTHON_VERSION < QT_VERSION_CHECK(%d, %d, 0)\n"
+diff --git a/parser/generated.h b/parser/generated.h
+index 9061deb0..e1136f84 100644
+--- a/parser/generated.h
++++ b/parser/generated.h
+@@ -76,12 +76,23 @@ class PythonAstTransformer {
+     Ast* visitNode(_arguments* node) {
+         bool ranges_copied = false; Q_UNUSED(ranges_copied);
+         if ( ! node ) return nullptr;
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+                 ArgumentsAst* v = new  ArgumentsAst(parent());
+             nodeStack.push(v); v->vararg = static_cast<ArgAst*>(visitNode(node->vararg)); nodeStack.pop();
+             nodeStack.push(v); v->kwarg = static_cast<ArgAst*>(visitNode(node->kwarg)); nodeStack.pop();
+             nodeStack.push(v); v->arguments = visitNodeList<_arg, ArgAst>(node->args); nodeStack.pop();
+             nodeStack.push(v); v->defaultValues = visitNodeList<_expr, ExpressionAst>(node->defaults); nodeStack.pop();
+             nodeStack.push(v); v->kwonlyargs = visitNodeList<_arg, ArgAst>(node->kwonlyargs); nodeStack.pop();
++#endif
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++                ArgumentsAst* v = new  ArgumentsAst(parent());
++            nodeStack.push(v); v->vararg = static_cast<ArgAst*>(visitNode(node->vararg)); nodeStack.pop();
++            nodeStack.push(v); v->kwarg = static_cast<ArgAst*>(visitNode(node->kwarg)); nodeStack.pop();
++            nodeStack.push(v); v->arguments = visitNodeList<_arg, ArgAst>(node->args); nodeStack.pop();
++            nodeStack.push(v); v->defaultValues = visitNodeList<_expr, ExpressionAst>(node->defaults); nodeStack.pop();
++            nodeStack.push(v); v->kwonlyargs = visitNodeList<_arg, ArgAst>(node->kwonlyargs); nodeStack.pop();
++            nodeStack.push(v); v->posonlyargs = visitNodeList<_arg, ArgAst>(node->posonlyargs); nodeStack.pop();
++#endif
+         return v;
+     }
+ 
+@@ -280,18 +291,22 @@ class PythonAstTransformer {
+                 break;
+             }
+ #endif
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+         case Num_kind: {
+                 NumberAst* v = new  NumberAst(parent());
+  v->isInt = PyLong_Check(node->v.Num.n); v->value = PyLong_AsLong(node->v.Num.n);
+                 result = v;
+                 break;
+             }
++#endif
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+         case Str_kind: {
+                 StringAst* v = new  StringAst(parent());
+                 v->value = PyUnicodeObjectToQString(node->v.Str.s);
+                 result = v;
+                 break;
+             }
++#endif
+ #if PYTHON_VERSION >= QT_VERSION_CHECK(3, 6, 0)
+         case JoinedStr_kind: {
+                 JoinedStringAst* v = new  JoinedStringAst(parent());
+@@ -310,12 +325,14 @@ class PythonAstTransformer {
+                 break;
+             }
+ #endif
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+         case Bytes_kind: {
+                 BytesAst* v = new  BytesAst(parent());
+                 v->value = PyUnicodeObjectToQString(node->v.Bytes.s);
+                 result = v;
+                 break;
+             }
++#endif
+         case Attribute_kind: {
+                 AttributeAst* v = new  AttributeAst(parent());
+                 v->attribute = node->v.Attribute.attr ? new Python::Identifier(PyUnicodeObjectToQString(node->v.Attribute.attr)) : nullptr;
+@@ -374,23 +391,42 @@ class PythonAstTransformer {
+                 result = v;
+                 break;
+             }
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+         case Ellipsis_kind: {
+                 EllipsisAst* v = new  EllipsisAst(parent());
+                 result = v;
+                 break;
+             }
++#endif
++#if PYTHON_VERSION < QT_VERSION_CHECK(3, 8, 0)
+         case NameConstant_kind: {
+                 NameConstantAst* v = new  NameConstantAst(parent());
+                 v->value = node->v.NameConstant.value == Py_None ? NameConstantAst::None : node->v.NameConstant.value == Py_False ? NameConstantAst::False : NameConstantAst::True;
+                 result = v;
+                 break;
+             }
++#endif
+         case YieldFrom_kind: {
+                 YieldFromAst* v = new  YieldFromAst(parent());
+                 nodeStack.push(v); v->value = static_cast<ExpressionAst*>(visitNode(node->v.YieldFrom.value)); nodeStack.pop();
+                 result = v;
+                 break;
+             }
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++        case Constant_kind: {
++PyObject *value = node->v.Constant.value;if (value == Py_None) {    NameConstantAst* v = new NameConstantAst(parent());    v->value = NameConstantAst::None;    result = v;}else if (value == Py_True) {    NameConstantAst* v = new  NameConstantAst(parent());    v->value = NameConstantAst::True;    result = v;}else if (value == Py_False) {    NameConstantAst* v = new  NameConstantAst(parent());    v->value = NameConstantAst::False;    result = v;}else if (value->ob_type == &PyLong_Type) {    NumberAst* v = new NumberAst(parent());    v->isInt = true;    v->value = PyLong_AsLong(value);    result = v;}else if (value->ob_type == &PyFloat_Type || value->ob_type == &PyComplex_Type) {    result = new NumberAst(parent());}else if (value->ob_type == &PyUnicode_Type) {    StringAst* v = new StringAst(parent());    v->value = PyUnicodeObjectToQString(value);    result = v;}else if (value->ob_type == &PyBytes_Type) {    result = new BytesAst(parent());}else if (value->ob_type == &PyEllipsis_Type) {    result = new EllipsisAst(parent());}else {    qWarning() << "Unhandled constant type: " << value->ob_type->tp_name;    Q_ASSERT(false);};
++                break;
++            }
++#endif
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++        case NamedExpr_kind: {
++                AssignmentExpressionAst* v = new  AssignmentExpressionAst(parent());
++                nodeStack.push(v); v->target = static_cast<ExpressionAst*>(visitNode(node->v.NamedExpr.target)); nodeStack.pop();
++                nodeStack.push(v); v->value = static_cast<ExpressionAst*>(visitNode(node->v.NamedExpr.value)); nodeStack.pop();
++                result = v;
++                break;
++            }
++#endif
+         default:
+             qWarning() << "Unsupported _expr AST type: " << node->kind;
+             Q_ASSERT(false);
+diff --git a/parser/python36.sdef b/parser/python38.sdef
+similarity index 82%
+rename from parser/python36.sdef
+rename to parser/python38.sdef
+index f53ff1c7..30d9f95a 100644
+--- a/parser/python36.sdef
++++ b/parser/python38.sdef
+@@ -73,20 +73,62 @@ if (node->v.Call.kwargs) {
+     v->keywords.append(kwargs);
+     nodeStack.pop();
+ };;
+-RULE_FOR _expr;KIND Num_kind;ACTIONS create|NumberAst;CODE v->isInt = PyLong_Check(node->v.Num.n); v->value = PyLong_AsLong(node->v.Num.n);;
+-RULE_FOR _expr;KIND Str_kind;ACTIONS create|StringAst set|value$>s;;
++RULE_FOR _expr;KIND Num_kind;ACTIONS create|NumberAst;BEFORE 3.8;CODE v->isInt = PyLong_Check(node->v.Num.n); v->value = PyLong_AsLong(node->v.Num.n);;
++RULE_FOR _expr;KIND Str_kind;ACTIONS create|StringAst set|value$>s;BEFORE 3.8;;
+ RULE_FOR _expr;KIND JoinedStr_kind;ACTIONS create|JoinedStringAst set|values=>ExpressionAst,values;SINCE 3.6;;
+ RULE_FOR _expr;KIND FormattedValue_kind;ACTIONS create|FormattedValueAst set|value->ExpressionAst,value set|conversion:>conversion set|formatSpec->ExpressionAst,format_spec;SINCE 3.6;;
+-RULE_FOR _expr;KIND Bytes_kind;ACTIONS create|BytesAst set|value$>s;;
++RULE_FOR _expr;KIND Bytes_kind;ACTIONS create|BytesAst set|value$>s;BEFORE 3.8;;
+ RULE_FOR _expr;KIND Attribute_kind;ACTIONS create|AttributeAst set|attribute~>attr set|value->ExpressionAst,value set|context*>Context,ctx;;
+ RULE_FOR _expr;KIND Subscript_kind;ACTIONS create|SubscriptAst set|value->ExpressionAst,value set|slice->SliceAst,slice set|context*>Context,ctx;;
+ RULE_FOR _expr;KIND Starred_kind;ACTIONS create|StarredAst set|value->ExpressionAst,value set|context*>Context,ctx;;
+ RULE_FOR _expr;KIND Name_kind;ACTIONS create|NameAst set|identifier~>id set|context*>Context,ctx;;
+ RULE_FOR _expr;KIND List_kind;ACTIONS create|ListAst set|elements=>ExpressionAst,elts set|context*>Context,ctx;;
+ RULE_FOR _expr;KIND Tuple_kind;ACTIONS create|TupleAst set|elements=>ExpressionAst,elts set|context*>Context,ctx;;
+-RULE_FOR _expr;KIND Ellipsis_kind;ACTIONS create|EllipsisAst;;
+-RULE_FOR _expr;KIND NameConstant_kind;ACTIONS create|NameConstantAst set|value_>value;;
++RULE_FOR _expr;KIND Ellipsis_kind;ACTIONS create|EllipsisAst;BEFORE 3.8;;
++RULE_FOR _expr;KIND NameConstant_kind;ACTIONS create|NameConstantAst set|value_>value;BEFORE 3.8;;
+ RULE_FOR _expr;KIND YieldFrom_kind;ACTIONS create|YieldFromAst set|value->ExpressionAst,value;;
++RULE_FOR _expr;KIND Constant_kind;ACTIONS;SINCE 3.8;CODE
++PyObject *value = node->v.Constant.value;
++if (value == Py_None) {
++    NameConstantAst* v = new NameConstantAst(parent());
++    v->value = NameConstantAst::None;
++    result = v;
++}
++else if (value == Py_True) {
++    NameConstantAst* v = new  NameConstantAst(parent());
++    v->value = NameConstantAst::True;
++    result = v;
++}
++else if (value == Py_False) {
++    NameConstantAst* v = new  NameConstantAst(parent());
++    v->value = NameConstantAst::False;
++    result = v;
++}
++else if (value->ob_type == &PyLong_Type) {
++    NumberAst* v = new NumberAst(parent());
++    v->isInt = true;
++    v->value = PyLong_AsLong(value);
++    result = v;
++}
++else if (value->ob_type == &PyFloat_Type || value->ob_type == &PyComplex_Type) {
++    result = new NumberAst(parent());
++}
++else if (value->ob_type == &PyUnicode_Type) {
++    StringAst* v = new StringAst(parent());
++    v->value = PyUnicodeObjectToQString(value);
++    result = v;
++}
++else if (value->ob_type == &PyBytes_Type) {
++    result = new BytesAst(parent());
++}
++else if (value->ob_type == &PyEllipsis_Type) {
++    result = new EllipsisAst(parent());
++}
++else {
++    qWarning() << "Unhandled constant type: " << value->ob_type->tp_name;
++    Q_ASSERT(false);
++};;
++RULE_FOR _expr;KIND NamedExpr_kind;ACTIONS create|AssignmentExpressionAst set|target->ExpressionAst,target set|value->ExpressionAst,value;SINCE 3.8;;
+ 
+ RULE_FOR _slice;KIND Slice_kind;ACTIONS create|SliceAst set|lower->ExpressionAst,lower set|upper->ExpressionAst,upper set|step->ExpressionAst,step;;
+ RULE_FOR _slice;KIND ExtSlice_kind;ACTIONS create|ExtendedSliceAst set|dims=>SliceAst,dims;;
+@@ -95,7 +137,8 @@ RULE_FOR _slice;KIND Index_kind;ACTIONS create|IndexAst set|value->ExpressionAst
+ 
+ RULE_FOR _comprehension;KIND any;ACTIONS create|ComprehensionAst set|target->ExpressionAst,target set|iterator->ExpressionAst,iter set|conditions=>ExpressionAst,ifs;;
+ RULE_FOR _excepthandler;KIND ExceptHandler_kind;ACTIONS create|ExceptionHandlerAst set|type->ExpressionAst,type set|name~>name set|body=>Ast,body;;
+-RULE_FOR _arguments;KIND any;ACTIONS create|ArgumentsAst set|vararg->ArgAst,vararg set|kwarg->ArgAst,kwarg set|arguments=>ArgAst,args set|defaultValues=>ExpressionAst,defaults set|kwonlyargs=>ArgAst,kwonlyargs;;
++RULE_FOR _arguments;KIND any;ACTIONS create|ArgumentsAst set|vararg->ArgAst,vararg set|kwarg->ArgAst,kwarg set|arguments=>ArgAst,args set|defaultValues=>ExpressionAst,defaults set|kwonlyargs=>ArgAst,kwonlyargs;BEFORE 3.8;;
++RULE_FOR _arguments;KIND any;ACTIONS create|ArgumentsAst set|vararg->ArgAst,vararg set|kwarg->ArgAst,kwarg set|arguments=>ArgAst,args set|defaultValues=>ExpressionAst,defaults set|kwonlyargs=>ArgAst,kwonlyargs set|posonlyargs=>ArgAst,posonlyargs;SINCE 3.8;;
+ RULE_FOR _arg;KIND any;ACTIONS create|ArgAst set|argumentName~>arg set|annotation->ExpressionAst,annotation;;
+ RULE_FOR _keyword;KIND any;ACTIONS create|KeywordAst set|argumentName~>arg set|value->ExpressionAst,value;;
+ RULE_FOR _alias;KIND any;ACTIONS create|AliasAst set|name~>name set|asName~>asname;;
+diff --git a/parser/tests/pyasttest.cpp b/parser/tests/pyasttest.cpp
+index 4fd5f4eb..c28f6fce 100644
+--- a/parser/tests/pyasttest.cpp
++++ b/parser/tests/pyasttest.cpp
+@@ -238,6 +238,11 @@ void PyAstTest::testExpressions_data()
+         "       **{ext: self.res_extension for ext in self._rc_extensions + self._mc_extensions},\n"
+     "}";
+ #endif
++#if PYTHON_VERSION >= QT_VERSION_CHECK(3, 8, 0)
++    QTest::newRow("assignment_expr_1") << "a = (b := 10)";
++    QTest::newRow("assignment_expr_2") << "a = [q for z in (1, 2, 3) if (q := 2*z)]";
++    QTest::newRow("positional_params") << "def foo(a, b, /, c, d, *, e): pass";
++#endif
+ }
+ 
+ void PyAstTest::testCorrectedFuncRanges()

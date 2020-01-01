@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=6.18.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="https://www.mltframework.org/"
 
@@ -56,10 +56,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+#mkdir _BuilD_
+#cd _BuilD_
+
 #export QTCXXFLAGS="-std=c++11"
 export JAVA_INCLUDE="-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
 
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -82,6 +87,19 @@ CXXFLAGS="${SLKCFLAGS}" \
 
 echo "CXXFLAGS+=-std=c++11 -I/usr/include/lua5.2" >> config.mak
 
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
+
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -95,6 +113,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+#cd ..
 
 PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages

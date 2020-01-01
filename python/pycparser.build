@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=gmsh
+TARNAME=pycparser
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/g
+TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=4.4.0
-VERSIONEXTRA=-source
-BUILD=2
+VERSION=2.19
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://geuz.org/gmsh/"
+WEBPAGE="https://pypi.org/project/pycparser/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=python-${TARNAME}
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -59,6 +59,7 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+:
 #CFLAGS="${SLKCFLAGS}" \
 #CXXFLAGS="${SLKCFLAGS}" \
 #./configure --prefix=/usr \
@@ -67,22 +68,21 @@ then
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -I /usr/include/med" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
-(cd doc/texinfo
- make info
-)
+#make ${NUM_JOBS} || exit
+python setup.py build || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,10 +90,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} prefix=${PKG}/usr mandir=prefix=${PKG}/usr/man
-
-mkdir -p ${PKG}/usr/info
-cp doc/texinfo/gmsh.info* ${PKG}/usr/info
+#make install DESTDIR=${PKG}
+python setup.py install --root=${PKG}
+python3 setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -105,15 +104,15 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  doc/{README*,CREDITS.txt,FAQ.txt,gmsh.html,LICENSE.txt,TODO.txt,VERSIONS.txt} \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "automatic three-dimensional finite element mesh generator"
-This is Gmsh, an automatic three-dimensional finite element mesh
-generator with built-in pre- and post-processing facilities.
+make_slack_desc << EOF "C parser in Python"
+pycparser is a complete parser of the C language, written in pure.
+Python using the PLY parsing library. It parses C code into an AST.
+and can serve as a front-end for C compilers or analysis tools.
 
 EOF
 
