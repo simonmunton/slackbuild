@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
 VERSION=3.8b
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/gnucash-3.6.diff
+ patch -p1 -b -z .orig < ${CWD}/gnucash-3.8b.diff
 
  sed -i -e "s/-Werror //" CMakeLists.txt
 )
@@ -54,21 +54,24 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #	    --with-html-engine=webkit \
 
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
             --mandir=/usr/man \
             --enable-dbi
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,14 +80,14 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
 fi
 
 fi
 
 # Prevent picking up installed .la file
-mkdir lib${LIBDIRSUFFIX}
-touch lib${LIBDIRSUFFIX}/libgnc-core-utils.la
+#mkdir lib${LIBDIRSUFFIX}
+#touch lib${LIBDIRSUFFIX}/libgnc-core-utils.la
 
 if [ ${DO_MAKE} == "yes" ]
 then
@@ -97,6 +100,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 sed -i -e 's/gnucash-icon/gnucash-icon.png/' ${PKG}/usr/share/applications/gnucash.desktop
 
