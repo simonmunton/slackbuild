@@ -1,0 +1,98 @@
+--- aegisub-3.2.2/tools/Makefile.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/tools/Makefile	2020-01-18 22:47:53.833008613 +0000
+@@ -7,7 +7,7 @@
+ endif
+ 
+ repack-thes-dict_OBJ  := $(d)repack-thes-dict.o $(TOP)lib/libaegisub.a
+-repack-thes-dict_LIBS := $(LIBS_BOOST) $(LIBS_ICU)
++repack-thes-dict_LIBS := $(LIBS_BOOST) $(LIBS_ICU) -lpthread
+ repack-thes-dict_CPPFLAGS := -I$(TOP) -I$(TOP)libaegisub/include $(CFLAGS_ICU)
+ 
+ PROGRAM += $(d)repack-thes-dict
+--- aegisub-3.2.2/src/subtitles_provider_libass.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/src/subtitles_provider_libass.cpp	2020-01-18 22:42:06.441952472 +0000
+@@ -50,7 +50,7 @@
+ #include <libaegisub/util.h>
+ 
+ #include <atomic>
+-#include <boost/gil/gil_all.hpp>
++#include <boost/gil.hpp>
+ #include <memory>
+ #include <mutex>
+ 
+--- aegisub-3.2.2/src/colour_button.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/src/colour_button.cpp	2020-01-18 22:40:52.388956006 +0000
+@@ -18,7 +18,7 @@
+ 
+ #include "dialogs.h"
+ 
+-#include <boost/gil/gil_all.hpp>
++#include <boost/gil.hpp>
+ 
+ wxDEFINE_EVENT(EVT_COLOR, wxThreadEvent);
+ 
+--- aegisub-3.2.2/src/video_provider_dummy.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/src/video_provider_dummy.cpp	2020-01-18 22:43:31.711948404 +0000
+@@ -46,7 +46,7 @@
+ #include <boost/algorithm/string/split.hpp>
+ #include <boost/filesystem/path.hpp>
+ #include <libaegisub/format.h>
+-#include <boost/gil/gil_all.hpp>
++#include <boost/gil.hpp>
+ 
+ DummyVideoProvider::DummyVideoProvider(double fps, int frames, int width, int height, agi::Color colour, bool pattern)
+ : framecount(frames)
+--- aegisub-3.2.2/src/utils.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/src/utils.cpp	2020-01-18 22:44:37.813945250 +0000
+@@ -264,9 +264,9 @@
+ }
+ 
+ wxString LocalizedLanguageName(wxString const& lang) {
+-	Locale iculoc(lang.c_str());
++	icu::Locale iculoc(lang.c_str());
+ 	if (!iculoc.isBogus()) {
+-		UnicodeString ustr;
++		icu::UnicodeString ustr;
+ 		iculoc.getDisplayName(iculoc, ustr);
+ #ifdef _MSC_VER
+ 		return wxString(ustr.getBuffer());
+--- aegisub-3.2.2/src/video_frame.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/src/video_frame.cpp	2020-01-18 22:43:13.701949263 +0000
+@@ -16,7 +16,7 @@
+ 
+ #include "video_frame.h"
+ 
+-#include <boost/gil/gil_all.hpp>
++#include <boost/gil.hpp>
+ #include <wx/image.h>
+ 
+ namespace {
+--- aegisub-3.2.2/libaegisub/common/character_count.cpp.orig	2014-12-08 00:07:09.000000000 +0000
++++ aegisub-3.2.2/libaegisub/common/character_count.cpp	2020-01-18 22:33:50.383976141 +0000
+@@ -36,7 +36,7 @@
+ 	static std::once_flag token;
+ 	std::call_once(token, [&] {
+ 		UErrorCode status = U_ZERO_ERROR;
+-		bi.reset(BreakIterator::createCharacterInstance(Locale::getDefault(), status));
++		bi.reset(icu::BreakIterator::createCharacterInstance(icu::Locale::getDefault(), status));
+ 		if (U_FAILURE(status)) throw agi::InternalError("Failed to create character iterator");
+ 	});
+ 
+@@ -58,7 +58,7 @@
+ 
+ 	size_t count = 0;
+ 	auto pos = character_bi.first();
+-	for (auto end = character_bi.next(); end != BreakIterator::DONE; pos = end, end = character_bi.next()) {
++	for (auto end = character_bi.next(); end != icu::BreakIterator::DONE; pos = end, end = character_bi.next()) {
+ 		if (!mask)
+ 			++count;
+ 		else {
+@@ -143,7 +143,7 @@
+ 	auto& bi = get_break_iterator(&str[0], str.size());
+ 
+ 	for (auto pos = bi.first(), end = bi.next(); ; --n, pos = end, end = bi.next()) {
+-		if (end == BreakIterator::DONE)
++		if (end == icu::BreakIterator::DONE)
+ 			return str.size();
+ 		if (n == 0)
+ 			return pos;
