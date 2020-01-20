@@ -1,0 +1,148 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=VobSub2SRT
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/v
+#TAR_EXT=.tar.gz
+VERSION=20200119
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://github.com/ruediger/VobSub2SRT"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/VobSub2SRT-20200119.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure-x ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Converts VobSub subtitles (.idx/.srt format) into .srt subtitles"
+VobSub2SRT is a simple command line program to convert .idx / .sub 
+subtitles into .srt text subtitles by using OCR. It is based on code 
+from the MPlayer project - a really really great movie player. Some 
+minor parts are copied from ffmpeg/avutil headers. Tesseract is used 
+as OCR software.
+
+vobsub2srt is released under the GPL3+ license. The MPlayer code 
+included is GPL2+ licensed.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
