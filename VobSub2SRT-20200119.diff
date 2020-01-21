@@ -18,3 +18,32 @@
  
  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -mtune=native -march=native -DNDEBUG -fomit-frame-pointer -ffast-math") # TODO -Ofast GCC 4.6
  set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE})
+--- VobSub2SRT-20200119/src/vobsub2srt.c++.orig	2020-01-19 21:25:21.898283466 +0000
++++ VobSub2SRT-20200119/src/vobsub2srt.c++	2020-01-21 22:32:38.818218583 +0000
+@@ -265,6 +265,17 @@
+              << start_pts << ")\n";
+       }
+ 
++      // pad image
++      unsigned char *image_padded = new unsigned char[(height + 8) * stride];
++      memset(image_padded, *image, (height + 8) * stride);
++      memcpy(image_padded + 4 * stride, image, height * stride);
++      image = image_padded;
++      height += 8;
++      image_size = height * stride;
++
++      for (int i = 0; i < image_size; i++)
++        image_padded[i] = ~image_padded[i];
++
+       if(dump_images) {
+         dump_pgm(subname, sub_counter, width, height, stride, image, image_size);
+       }
+@@ -293,6 +304,8 @@
+       }
+       conv_subs.push_back(sub_text_t(start_pts, end_pts, text));
+       ++sub_counter;
++
++      delete[] image_padded;
+     }
+   }
+ 
