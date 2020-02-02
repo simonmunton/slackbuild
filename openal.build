@@ -7,7 +7,7 @@ TARNAMEEXTRA=-soft
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.19.1
+VERSION=1.20.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -59,6 +59,9 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #(cd OpenAL-Sample
@@ -79,7 +82,6 @@ then
 #	    --enable-sdl 
 ##	    --enable-debug --enable-debug-maximus
 
-pushd build
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -88,14 +90,11 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
      ..
-popd
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd build
 make ${NUM_JOBS} || exit
-popd
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -103,9 +102,9 @@ then
   exit
 fi
 
-pushd build
 make install DESTDIR=${PKG}
-popd
+
+cd ..
 
 #strip_binaries
 
