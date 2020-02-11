@@ -1,0 +1,164 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=include-what-you-use
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/i
+#TAR_EXT=.tar.gz
+VERSION=0.13
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://include-what-you-use.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -Wno-dev \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
+
+help2man --no-info --version-string "${VERSION}" -n "Analyze #includes in C and C++ source files" ${PKG}/usr/bin/include-what-you-use > include-what-you-use.1
+mkdir -p ${PKG}/usr/man/man1
+cp include-what-you-use.1 ${PKG}/usr/man/man1
+cp ${CWD}/iwyu-fix_include.1 ${PKG}/usr/man/man1/fix_include.1
+cp ${CWD}/iwyu-iwyu_tool.1 ${PKG}/usr/man/man1/iwyu_tool.1
+
+ln -s include-what-you-use ${PKG}/usr/bin/iwyu
+ln -s include-what-you-use.1 ${PKG}/usr/man/man1/iwyu.1
+
+mv ${PKG}/usr/bin/fix_includes.py ${PKG}/usr/bin/fix_includes
+mv ${PKG}/usr/bin/iwyu_tool.py ${PKG}/usr/bin/iwyu_tool
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A tool for use with clang to analyze #includes in C and C++ source files"
+"Include what you use" means this: for every symbol (type, function 
+variable, or macro) that you use in foo.cc, either foo.cc or foo.h 
+should #include a .h file that exports the declaration of that symbol.
+The include-what-you-use tool is a program that can be built with the 
+clang libraries in order to analyze #includes of source files to find 
+include-what-you-use violations, and suggest fixes for them.
+
+The main goal of include-what-you-use is to remove superfluous 
+#includes. It does this both by figuring out what #includes are not 
+actually needed for this file (for both .cc and .h files), and 
+replacing #includes with forward-declares when possible.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
