@@ -1,0 +1,165 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=guile
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/gnu/guile
+#TAR_EXT=.tar.gz
+VERSION=2.2.6
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=guile2
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --with-threads \
+	    --disable-static \
+	    --disable-rpath \
+	    --disable-error-on-warning \
+	    --program-suffix=-2.2
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
+# Move libguile*-gdb.scm to GDB's autoload directory to avoid
+# getting "not an ELF file" errors from ldconfig:
+mkdir -p ${PKG}/usr/share/gdb/auto-load/usr/lib${LIBDIRSUFFIX}
+mv ${PKG}/usr/lib${LIBDIRSUFFIX}/libguile*-gdb.scm ${PKG}/usr/share/gdb/auto-load/usr/lib${LIBDIRSUFFIX} || exit 1
+
+# Change timestamps on *.go and *.scm files, otherwise on multilib systems
+# the compiled (go) files may be detected as older than the source (scm)
+# files, causing guile to attempt to recompile itself with every use:
+find ${PKG}/usr/lib${LIBDIRSUFFIX} -name "*.go" -exec touch -r ${CWD}/guile2.build "{}" \;
+find ${PKG}/usr/share -name "*.scm" -exec touch -r ${CWD}/guile2.build "{}" \;
+
+(cd ${PKG}/usr/share/info
+for f in guile*
+do
+  mv $f ${f/guile./guile2.2.}
+done
+)
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  FAQ GUILE-VERSION HACKING LICENSE THANKS \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "GNU extension language library"
+This is Guile, Project GNU's extension language library. Guile is an
+interpreter for Scheme, packaged as a library that you can link into
+your applications to give them their own scripting language. Guile
+will eventually support other languages as well, giving users of
+Guile-based applications a choice of languages.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
