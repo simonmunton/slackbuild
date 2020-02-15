@@ -1,0 +1,168 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=ann
+TARNAMEEXTRA=
+TARSEP="_"
+TARDIR=~/tmp/new/a
+#TAR_EXT=.tar.gz
+VERSION=1.1.2
+VERSIONEXTRA=
+BUILD=1
+
+DOC_TARBALL=ANN_1.1-doc.tar.gz
+
+WEBPAGE="http://www.cs.umd.edu/~mount/ANN/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ (cd doc
+  tar xf ${TARDIR}/${DOC_TARBALL} --strip-components=1
+ )
+
+ patch -p1 < ${CWD}/ann-makefile-infloop-fix.diff
+ patch -p1 < ${CWD}/ann-doc-makefile-clean.diff
+ patch -p1 < ${CWD}/ann-autotools-files.diff
+ patch -p1 < ${CWD}/ann-consider-pts-null.diff
+ patch -p1 < ${CWD}/ann-annkFRSearch-default-argument.diff
+ patch -p1 < ${CWD}/ann-clang-ftbfs.diff
+
+ export AUTOMAKE="automake --foreign --add-missing"
+ autoreconf -i
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+
+#	    --enable-fast-install
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
+mkdir -p ${PKG}/usr/man/man1
+cp ${CWD}/{ann2fig.1,ann_sample.1,ann_test.1} ${PKG}/usr/man/man1
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ReadMe.txt Copyright.txt License.txt \
+  sample/data.pts sample/query.pts sample/sample.save doc/ANNmanual.pdf \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A Library for Approximate Nearest Neighbor Searching"
+ANN is a library written in C++, which supports data structures and 
+algorithms for both exact and approximate nearest neighbor searching 
+in arbitrarily high dimensions.
+
+In the nearest neighbor problem a set of data points in d-dimensional 
+space is given. These points are preprocessed into a data structure, 
+so that given any query point q, the nearest or generally k nearest 
+points of P to q can be reported efficiently. The distance between 
+two points can be defined in many ways. ANN assumes that distances 
+are measured using any class of distance functions called Minkowski 
+metrics. These include the well known Euclidean distance, Manhattan 
+distance, and max distance.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
