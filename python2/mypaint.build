@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=1.2.1
+VERSION=2.0.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://mypaint.intilinux.com/"
 
@@ -56,6 +56,7 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+export CFLAGS="-Ofast -ftree-vectorize -fopt-info-vec-optimized -march=native -mtune=native -funsafe-math-optimizations -funsafe-loop-optimizations"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -81,7 +82,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-scons ${NUM_JOBS} prefix=/usr || exit
+python setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,20 +91,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-scons prefix=/usr --install-sandbox=${PKG} ${PKG}
-
-if [ ${ARCH} == "x86_64" ]
-then
-  mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
-  sed -i -e "/libdir/ s@/lib@/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*.pc
-fi
-
-mv ${PKG}/usr/lib${LIBDIRSUFFIX}/mypaint/*.so ${PKG}/usr/share/mypaint/lib
-
-rm ${PKG}/usr/lib${LIBDIRSUFFIX}/{libmypaint.a,pkgconfig/libmypaint.pc}
-rmdir ${PKG}/usr/lib${LIBDIRSUFFIX}/{mypaint,pkgconfig}
-rm -rf ${PKG}/usr/include
-rm ${PKG}/usr/share/locale/*/LC_MESSAGES/libmypaint.mo
+#python setup.py install --root=${PKG}
+python setup.py managed_install --prefix=${PKG}/usr
 
 strip_binaries
 
@@ -121,9 +110,9 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "graphics application for digital painters"
-MyPaint is a fast and easy open-source graphics application for 
-digital painters. It lets you focus on the art instead of the program. 
-You work on your canvas with minimum distractions, bringing up the 
+MyPaint is a fast and easy open-source graphics application for
+digital painters. It lets you focus on the art instead of the program.
+You work on your canvas with minimum distractions, bringing up the
 interface only when you need it.
 
 EOF
