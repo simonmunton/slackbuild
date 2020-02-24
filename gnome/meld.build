@@ -6,7 +6,7 @@ TARNAME=meld
 TARNAMEEXTRA=
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=1.8.6
+VERSION=3.20.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -54,19 +54,21 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib
+:
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} prefix=/usr DESTDIR=$PKG \
-     OMF_STATE=$PKG/var/lib/scrollkeeper \
-     INST_XML=/usr/share/gnome/help/meld/C/meld.xml || exit
+python3 setup.py build || exit
+#make ${NUM_JOBS} prefix=/usr DESTDIR=$PKG \
+#     OMF_STATE=$PKG/var/lib/scrollkeeper \
+#     INST_XML=/usr/share/gnome/help/meld/C/meld.xml || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -74,9 +76,10 @@ then
   exit
 fi
 
-make install prefix=/usr DESTDIR=$PKG \
-     OMF_STATE=$PKG/var/lib/scrollkeeper \
-     INST_XML=/usr/share/gnome/help/meld/C/meld.xml
+python3 setup.py install --root=${PKG}
+#make install prefix=/usr DESTDIR=$PKG \
+#     OMF_STATE=$PKG/var/lib/scrollkeeper \
+#     INST_XML=/usr/share/gnome/help/meld/C/meld.xml
 
 #strip_binaries
 
