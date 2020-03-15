@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=docker-compose
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/d/docker
+#TAR_EXT=.tgz
+VERSION=1.25.4
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://github.com/docker/compose/releases/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+mkdir -p ${PKG}/usr/bin
+cd ${PKG}/usr/bin
+cp ${FULL_TARNAME} .
+chmod +x docker-compose*
+ln -s docker-compose* docker-compose
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Docker"
+Docker is an open platform for developing, shipping, and running 
+applications. Docker enables you to separate your applications from 
+your infrastructure so you can deliver software quickly. With Docker, 
+you can manage your infrastructure in the same ways you manage your 
+applications. By taking advantage of Dockers methodologies for 
+shipping, testing, and deploying code quickly, you can significantly 
+reduce the delay between writing code and running it in production.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=docker
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/d/docker
+#TAR_EXT=.tgz
+VERSION=19.03.8
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://docs.docker.com/install/linux/docker-ce/binaries/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=docker-ce
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+mkdir -p ${PKG}/usr/bin
+cd ${PKG}/usr/bin
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME} --strip-components=1
+
+mkdir -p ${PKG}/etc/{rc.d,default,logrotate.d}
+cp ${CWD}/docker-rc.docker ${PKG}/etc/rc.d/rc.docker.new
+cp ${CWD}/docker.default ${PKG}/etc/default/docker.new
+cp ${CWD}/docker.logrotate ${PKG}/etc/logrotate.d/docker.new
+
+doinst_same_perm etc/rc.d/rc.docker
+doinst_config etc/rc.d/rc.docker.new
+doinst_config etc/default/docker.new
+doinst_config etc/logrotate.d/docker.new
+
+doinst_systemaddgrp docker
+
+install -D -m 0644 ${CWD}/docker-bash-completion ${PKG}/usr/share/bash-completion/completions/docker
+
+# Install udev rules.
+install -D -m 0644 ${CWD}/docker-80-docker.rules \
+  ${PKG}/lib/udev/rules.d/80-docker.rules
+
+
+cat << EOF >> ${PKG}/install/doinst.sh
+
+if [ -x /sbin/udevadm ]; then
+  /sbin/udevadm control --reload-rules
+fi
+EOF
+
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Docker"
+Docker is an open platform for developing, shipping, and running 
+applications. Docker enables you to separate your applications from 
+your infrastructure so you can deliver software quickly. With Docker, 
+you can manage your infrastructure in the same ways you manage your 
+applications. By taking advantage of Dockers methodologies for 
+shipping, testing, and deploying code quickly, you can significantly 
+reduce the delay between writing code and running it in production.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

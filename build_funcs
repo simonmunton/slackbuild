@@ -934,6 +934,27 @@ EOF
 }
 
 
+doinst_systemaddgrp()
+{
+if [ "x$1" == "x" ]
+then
+  echo "*** doinst_systemaddgrp() requires group argument"
+  return
+fi
+
+cat << EOF >> ${PKG}/install/doinst.sh
+###
+# Create $1 group if doesn't exist.
+###
+group_exists=\`grep ^$1 etc/group\`
+if [[ "\${group_exists}" == "" ]]; then
+        groupadd -r $1
+fi
+
+EOF
+}
+
+
 doinst_systemaddusergrp()
 {
 if [ "x$2" == "x" ]
