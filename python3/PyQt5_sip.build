@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=PyQt5_sip
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=12.7.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="http://www.riverbankcomputing.co.uk/software/pyqt/download"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=PyQt5_sip-py3
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/PyQt5_gpl-5.6.diff
+# patch -p1 < ${CWD}/PyQt5-qt59_timeline.diff
+# patch -p1 < ${CWD}/PyQt5-python2_qstring.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+#PATH=/usr/lib/qt/bin:$PATH
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+python3 setup.py build || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+python3 setup.py install --root=${PKG}
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  GPL_EXCEPTION*.TXT LICENSE.* OPENSOURCE-NOTICE.TXT THANKS doc/* \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Sip extension module for the PyQt5 package"
+The sip extension module provides support for the PyQt5 package.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
