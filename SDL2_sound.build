@@ -2,26 +2,25 @@
 #
 . build_funcs
 
-TARNAME=chromium-bsu
+TARNAME=SDL_sound
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=0.9.16.1
+VERSION=se0_20200202
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://chromium-bsu.sf.net/"
-
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=chromium
+PKGNAME=SDL2_sound
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
+WEBPAGE="https://github.com/sezero/SDL_sound"
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -46,6 +45,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+ #./bootstrap
 )
 fi
 
@@ -55,20 +55,39 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
+
+doxygen ../docs/Doxyfile
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,6 +96,13 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+mkdir -p ${PKG}/usr/man/man3
+cp -p \
+  docs/man/man3/S*.3 \
+  ${PKG}/usr/man/man3
 
 #strip_binaries
 
@@ -88,16 +114,18 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  docs/*.txt docs/html \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "arcade game"
-You are captain of the cargo ship Chromium B.S.U., responsible for
-delivering supplies to our troops on the front line. Your ship
-has a small fleet of robotic fighters which you control from the
-relative safety of the Chromium vessel.
+make_slack_desc << EOF "SDL sound library"
+SDL_sound is a library that handles the decoding of several popular 
+sound file  formats, such as .WAV and .MP3. It is meant to make the 
+programmer's sound playback tasks simpler. The programmer gives 
+SDL_sound a filename, or feeds it data directly from one of many 
+sources, and then reads the decoded waveform data back at her leisure. 
 
 EOF
 

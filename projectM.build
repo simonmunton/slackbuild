@@ -3,13 +3,13 @@
 . build_funcs
 
 TARNAME=projectM
-TARNAMEEXTRA=-complete
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p/projectM
 #TAR_EXT=.tar.gz
-VERSION=2.1.0
-VERSIONEXTRA=-Source
-BUILD=4
+VERSION=3.1.3
+VERSIONEXTRA=
+BUILD=1
 
 WEBPAGE="http://projectm.sourceforge.net/"
 
@@ -34,19 +34,20 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/projectM-01_fix-gcc6-build.patch
- patch -p1 < ${CWD}/projectM-2.1.0.diff
+ #patch -p1 < ${CWD}/
+
+ find . -name "._*" -exec rm {} \;
 )
 fi
 
@@ -60,14 +61,17 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -75,14 +79,22 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DINCLUDE-PROJECTM-JACK=1 \
       .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +102,13 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
+
 mkdir ${PKG}/usr/share/projectM/textures
 
 strip_binaries
@@ -109,9 +127,9 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "projectM is an awesome music visualizer"
-projectM is an awesome music visualizer. There is nothing better in 
-the world of Unix. projectM\'s greatness comes from the hard work of 
-the community. Users like you can create presets that connect music 
+projectM is an awesome music visualizer. There is nothing better in
+the world of Unix. projectM\'s greatness comes from the hard work of
+the community. Users like you can create presets that connect music
 with incredible visuals.
 
 EOF

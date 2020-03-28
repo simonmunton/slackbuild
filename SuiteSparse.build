@@ -4,11 +4,14 @@
 
 TARNAME=SuiteSparse
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/s/SuiteSparse
 #TAR_EXT=.tar.gz
-VERSION=4.0.2
+VERSION=5.7.1
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="http://faculty.cse.tamu.edu/davis/suitesparse.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -31,28 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-# tar xf ~/tmp/new/m/metis-4.0.3.tar.gz
-# ln -s metis-4.0.3 metis-4.0
-
- if [ -d /usr/include/metis ]
- then
-   mkdir -p metis-4.0
-   ln -s /usr/include/metis metis-4.0/Lib
- fi
-
-# sed -i 's/^BLAS.*/BLAS = -lsatlas/; s/^LAPACK.*/LAPACK = -lsatlas/' SuiteSparse_config/SuiteSparse_config.mk
 )
 fi
 
@@ -62,19 +55,44 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  true
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd metis-4.0
-# make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
-make ${NUM_JOBS} BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" INSTALL_LIB=/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=/usr/include/suitesparse || exit
-
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -82,45 +100,14 @@ then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX} ${PKG}/usr/include/suitesparse
-make install BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" install INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse INSTALL_DOC=${PKG}/usr/doc/${TARNAME}-${VERSION}
+fi
 
-(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
- find . -type l -exec rm {} \;
- for f in libsuitesparseconfig*.a libamd*.a libcamd*.a libccolamd*.a libcolamd*.a libbtf*.a libcholmod*.a libcxsparse*.a libldl*.a libspqr*.a libumfpack*.a libklu*.a librbio*.a
- do
-  mkdir tmp 
-  cd tmp
-  ar x ../$f
-  cd ..
-  bf=${f%%.*}
-  v=${f%.a}
-  v=${v#*.}
-  extra_lib=""
-  case $bf in
-    libcholmod) extra_lib="-lamd -lcolamd -lccolamd -lcamd -lsuitesparseconfig -lmetis" ;;
-    librbio) extra_lib="-lsuitesparseconfig" ;;
-    libklu) extra_lib="-lamd -lcolamd  -lbtf -lsuitesparseconfig" ;;
-    libspqr) extra_lib="-lcholmod -lccolamd -lsuitesparseconfig" ;;
-    libumfpack) extra_lib="-lamd -lcholmod -lccolamd -lsuitesparseconfig" ;;
-    libsuitesparseconfig) extra_lib="-lrt" ;;
-    *) ;;
-  esac
-  echo "Building ${bf}.so.${v}"
-  gcc -shared -Wl,-soname=${bf}.so.${v%%.*} -Wl,--as-needed -o ${bf}.so.${v} tmp/*.o  -L. $extra_lib -lsatlas -lm -lgfortran -lc
-  ln -s ${bf}.so.${v} ${bf}.so
-  ln -s ${bf}.so.${v} ${bf}.so.${v%%.*}
-  rm -rf tmp
- done
- rm *.a
-)
-
-#( cd CHOLMOD/Doc && cp UserGuide.pdf  CHOLMOD_UserGuide.pdf && cp UserGuide.bib  CHOLMOD_UserGuide.bib )
-#( cd UMFPACK/Doc && cp UserGuide.pdf  UMFPACK_UserGuide.pdf && cp UserGuide.bib  UMFPACK_UserGuide.bib )
-#( cd UMFPACK/Doc && cp QuickStart.pdf  UMFPACK_QuickStart.pdf )
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -132,26 +119,10 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}/{AMD,BTF,CAMD,CCOLAMD,CHOLMOD,COLAMD,CSparse,CXSparse,KLU,LDL,UMFPACK,SPQR,RBio}
-cp AMD/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/AMD
-cp BTF/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/BTF
-cp CAMD/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/CAMD
-cp CCOLAMD/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CCOLAMD
-cp CHOLMOD/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CHOLMOD
-cp COLAMD/{README*,Doc/{*pdf,License,lesser.txt}}   ${PKG}/usr/doc/${TARNAME}-${VERSION}/COLAMD
-cp CSparse/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/CSparse
-cp CXSparse/{README*,Doc/{*pdf,License,lesser.txt}} ${PKG}/usr/doc/${TARNAME}-${VERSION}/CXSparse
-cp KLU/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/KLU
-cp LDL/{README*,Doc/{*pdf,License,lesser.txt}}      ${PKG}/usr/doc/${TARNAME}-${VERSION}/LDL
-cp RBio/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/RBio
-cp SPQR/{README*,Doc/{*pdf,License,lesser.txt}}     ${PKG}/usr/doc/${TARNAME}-${VERSION}/SPQR
-cp UMFPACK/{README*,Doc/{*pdf,License,lesser.txt}}  ${PKG}/usr/doc/${TARNAME}-${VERSION}/UMFPACK
-
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF ""
+make_slack_desc << EOF "suitesparse : a suite of sparse matrix software"
 Suitesparse is a collection of libraries for computations involving
 sparse matrices.  The package includes the following libraries:
  AMD       approximate minimum degree ordering

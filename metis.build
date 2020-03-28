@@ -6,7 +6,7 @@ TARNAME=metis
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=4.0.3
+VERSION=5.1.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -42,7 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/metis-5.1.0.diff
 )
 fi
 
@@ -55,28 +55,12 @@ fix_perms
 if [ ${DO_CONFIGURE} == "yes" ]
 then
   true
+  make config shared=1 prefix=/usr LIBDIRSUFFIX=${LIBDIRSUFFIX}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd Lib
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
-METIS_version=${PKGVERSION}
-
-gcc -shared -Wl,-soname,libmetis.so.${METIS_version%.*.*} -o libmetis.so.${METIS_version} -lm `ls Lib/*.o` &&
-ln -sf libmetis.so.${METIS_version} libmetis.so.${METIS_version%.*.*} &&
-ln -sf libmetis.so.${METIS_version} libmetis.so
-
-pushd Programs
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
-pushd Test
-make ${NUM_JOBS} CC=gcc OPTFLAGS="-O3" COPTIONS="-fexceptions -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -fPIC" || exit
-popd
-
+  make ${NUM_JOBS}
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -84,11 +68,13 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include/metis}
-cp -d lib* ${PKG}/usr/lib${LIBDIRSUFFIX}
-rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
-cp Lib/*.h ${PKG}/usr/include/metis
-cp graphchk kmetis mesh2dual mesh2nodal oemetis onmetis partdmesh partnmesh pmetis ${PKG}/usr/bin
+make install DESTDIR=${PKG}
+
+#mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include/metis}
+#cp -d lib* ${PKG}/usr/lib${LIBDIRSUFFIX}
+#rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
+#cp Lib/*.h ${PKG}/usr/include/metis
+#cp graphchk kmetis mesh2dual mesh2nodal oemetis onmetis partdmesh partnmesh pmetis ${PKG}/usr/bin
 
 
 
