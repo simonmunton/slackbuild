@@ -1,0 +1,61 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f1463cfe..a30813f8 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -53,7 +53,7 @@ if(MSVC)
+   # disable trigger-happy warnings from Clang/LLVM headers
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4291 /wd4800 /wd4141 /wd4146 /wd4251")
+ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-common -Woverloaded-virtual -Wcast-qual -fno-strict-aliasing -pedantic -Wno-long-long -Wall -W -Wno-unused-parameter -Wwrite-strings -fno-exceptions -fno-rtti")
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fno-common -Woverloaded-virtual -Wcast-qual -fno-strict-aliasing -pedantic -Wno-long-long -Wall -W -Wno-unused-parameter -Wwrite-strings -fno-exceptions -fno-rtti")
+ endif()
+ 
+ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-flat_namespace -Wl,-undefined -Wl,suppress")
+diff --git a/src/ClazyStandaloneMain.cpp b/src/ClazyStandaloneMain.cpp
+index aada1895..6baae329 100644
+--- a/src/ClazyStandaloneMain.cpp
++++ b/src/ClazyStandaloneMain.cpp
+@@ -93,7 +93,11 @@ class ClazyToolActionFactory
+     {
+     }
+ 
++#if LLVM_VERSION_MAJOR >= 10
++    std::unique_ptr<FrontendAction> create() override
++#else
+     FrontendAction *create() override
++#endif
+     {
+         ClazyContext::ClazyOptions options = ClazyContext::ClazyOption_None;
+ 
+@@ -116,9 +120,15 @@ class ClazyToolActionFactory
+             options |= ClazyContext::ClazyOption_IgnoreIncludedFiles;
+ 
+         // TODO: We need to agregate the fixes with previous run
++#if LLVM_VERSION_MAJOR >= 10
++        return std::make_unique<ClazyStandaloneASTAction>(s_checks.getValue(), s_headerFilter.getValue(),
++                                                          s_ignoreDirs.getValue(), s_exportFixes.getValue(),
++                                                          m_paths, options);
++#else
+         return new ClazyStandaloneASTAction(s_checks.getValue(), s_headerFilter.getValue(),
+                                             s_ignoreDirs.getValue(), s_exportFixes.getValue(),
+                                             m_paths, options);
++#endif
+     }
+     std::vector<std::string> m_paths;
+ };
+diff --git a/src/checks/level0/qstring-ref.cpp b/src/checks/level0/qstring-ref.cpp
+index d1d8a4ea..ec9e8901 100644
+--- a/src/checks/level0/qstring-ref.cpp
++++ b/src/checks/level0/qstring-ref.cpp
+@@ -117,7 +117,11 @@ static bool containsChild(Stmt *s, Stmt *target)
+         return true;
+ 
+     if (auto mte = dyn_cast<MaterializeTemporaryExpr>(s)) {
++#if LLVM_VERSION_MAJOR >= 10
++        return containsChild(mte->getSubExpr(), target);
++#else
+         return containsChild(mte->getTemporary(), target);
++#endif
+     } else if (auto ice = dyn_cast<ImplicitCastExpr>(s)) {
+         return containsChild(ice->getSubExpr(), target);
+     } else if (auto bte = dyn_cast<CXXBindTemporaryExpr>(s)) {
