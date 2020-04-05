@@ -2,26 +2,23 @@
 #
 . build_funcs
 
-TARNAME=kicad
+TARNAME=gtksourceview
 TARNAMEEXTRA=
-TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=5.1.5
+VERSION=4.6.0
 VERSIONEXTRA=
-BUILD=2
-
-WEBPAGE="http://kicad-pcb.org/"
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gtksourceview-4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -45,8 +42,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kicad-boost161.patch
- patch -p1 < ${CWD}/kicad-5.1.4.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -56,49 +52,42 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
-mkdir _BuilD_
-cd _BuilD_
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
-cmake \
-      -DCMAKE_CXX_FLAGS:STRING="-std=c++11" \
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DKICAD_REPO_NAME=stable \
-      -DKICAD_BUILD_VERSION=${VERSION} \
-      -DKICAD_SCRIPTING=ON \
-      -DKICAD_SCRIPTING_MODULES=ON \
-      -DKICAD_SCRIPTING_WXPYTHON=ON \
-      -DKICAD_SKIP_BOOST=ON \
-      ..
-
-
-#      -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -106,11 +95,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
-cd ..
-
-strip_binaries
+#strip_binaries
 
 fix_links
 
@@ -125,8 +117,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
-A Cross Platform and Open Source Electronics Design Automation Suite
+make_slack_desc << EOF "text widget that extends GtkTextView"
+GtkSourceView is a text widget that extends the standard gtk+ 2.x
+text widget GtkTextView.
+
+It improves GtkTextView by implementing syntax highlighting and other
+features typical of a source code editor.
 
 EOF
 

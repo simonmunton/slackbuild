@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=kicad
+TARNAME=gspiceui
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/k
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=5.1.5
+VERSION=v1.2.36
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
-WEBPAGE="http://kicad-pcb.org/"
+WEBPAGE="http://users.tpg.com.au/micksw012/gspiceui.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,19 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/kicad-boost161.patch
- patch -p1 < ${CWD}/kicad-5.1.4.diff
+ patch -p1 < ${CWD}/gspiceui-v1.2.36.diff
 )
 fi
 
@@ -58,47 +57,42 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir _BuilD_
-cd _BuilD_
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
-cmake \
-      -DCMAKE_CXX_FLAGS:STRING="-std=c++11" \
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DKICAD_REPO_NAME=stable \
-      -DKICAD_BUILD_VERSION=${VERSION} \
-      -DKICAD_SCRIPTING=ON \
-      -DKICAD_SCRIPTING_MODULES=ON \
-      -DKICAD_SCRIPTING_WXPYTHON=ON \
-      -DKICAD_SKIP_BOOST=ON \
-      ..
-
-
-#      -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -106,9 +100,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}/usr
+fi
 
-cd ..
+mv ${PKG}/usr/share/man ${PKG}/usr/
 
 strip_binaries
 
@@ -125,8 +124,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
-A Cross Platform and Open Source Electronics Design Automation Suite
+make_slack_desc << EOF "GNU SPICE GUI"
+gSpiceUI is intended to provide a GUI for freely available electronic 
+circuit simulation engines ie. NG-Spice and GNU-Cap. The utility 
+gnetlist is used to convert schematic files to netlist files, Gwave 
+or Gaw to display simulation results and gschem is the preferred 
+schematic capture tool.
 
 EOF
 
