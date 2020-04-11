@@ -2,23 +2,26 @@
 #
 . build_funcs
 
-TARNAME=wireshark
+TARNAME=freerdp
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/w
+TARSEP="-"
+TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=3.2.3
+VERSION=2.0.0
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="http://www.freerdp.com/"
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=freerdp2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,8 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
- sed -i "s@\(-L/usr/local/lib\)@\1${LIBDIRSUFFIX}@; s@\(-L\\\$prefix/lib\)@\1${LIBDIRSUFFIX}@" configure
+# patch -p1 < ${CWD}/FreeRDP-1.0.2.diff
 )
 fi
 
@@ -53,32 +55,21 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export CPLUS_INCLUDE_PATH=
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 mkdir _BuilD_
 cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-ssl \
-            --with-lua \
-	    --enable-warnings-as-errors=no \
-	    --with-qt=5 \
-	    --with-gtk=3
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
 
-#	    --with-libnl=1
-
-elif [ -f ../CMakeLists.txt ]
-then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -86,22 +77,26 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DWITH_PULSEAUDIO=ON \
+      -DWITH_JPEG=ON \
+      -DWITH_X264=OFF \
+      -DWITH_OPENH264=ON \
+      -DWITH_OPENCL=ON \
+      -DWITH_GSM=ON \
+      -DWITH_LAME=ON \
+      -DWITH_FAAD2=ON \
+      -DWITH_FAAC=ON \
+      -DWITH_SOXR=ON \
+      -DWITH_GSSAPI=ON \
       ..
-elif [ -f ../meson.build ]
-then
-  meson --prefix=/usr _BuilD_
-fi
+
+#      -DWITH_FFMPEG=OFF \
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ../meson.build ]
-then
-  ninja -C _BuilD_ || exit
-else
-  make ${NUM_JOBS} || exit
-fi
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -109,16 +104,14 @@ then
   exit
 fi
 
-if [ -f ../meson.build ]
-then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
-else
-  make install DESTDIR=${PKG}
-fi
+make install DESTDIR=${PKG}
 
 cd ..
 
-#strip_binaries
+mv ${PKG}/usr/bin/xfreerdp ${PKG}/usr/bin/xfreerdp2
+mv ${PKG}/usr/share/man/man1/xfreerdp.1 ${PKG}/usr/share/man/man1/xfreerdp2.1
+
+strip_binaries
 
 fix_links
 
@@ -133,10 +126,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "network traffic analyzer"
-Wireshark is a network traffic analyzer, or "sniffer", for Unix and
-Unix-like operating systems.  It uses GTK+, a graphical user interface
-library, and libpcap, a packet capture and filtering library.
+make_slack_desc << EOF "free implementation of the Remote Desktop Protocol (RDP)"
+FreeRDP is a free implementation of the Remote Desktop Protocol (RDP), 
+released under the Apache license. Enjoy the freedom of using your 
+software wherever you want, the way you want it, in a world where 
+interoperability can finally liberate your computing experience.
 
 EOF
 

@@ -2,13 +2,16 @@
 #
 . build_funcs
 
-TARNAME=wireshark
+TARNAME=openh264
 TARNAMEEXTRA=
-TARDIR=~/tmp/new/w
+TARSEP="-"
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=3.2.3
+VERSION=2.1.0
 VERSIONEXTRA=
 BUILD=1
+
+WEBPAGE="https://www.openh264.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -18,7 +21,7 @@ BUILD=1
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -31,19 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
- sed -i "s@\(-L/usr/local/lib\)@\1${LIBDIRSUFFIX}@; s@\(-L\\\$prefix/lib\)@\1${LIBDIRSUFFIX}@" configure
 )
 fi
 
@@ -53,31 +55,20 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export CPLUS_INCLUDE_PATH=
-
-mkdir _BuilD_
-cd _BuilD_
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-            --with-ssl \
-            --with-lua \
-	    --enable-warnings-as-errors=no \
-	    --with-qt=5 \
-	    --with-gtk=3
-
-#	    --with-libnl=1
-
-elif [ -f ../CMakeLists.txt ]
+	    --mandir=/usr/man
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -86,8 +77,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-elif [ -f ../meson.build ]
+      .
+elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
 fi
@@ -96,7 +87,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
@@ -109,16 +100,14 @@ then
   exit
 fi
 
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
   make install DESTDIR=${PKG}
 fi
 
-cd ..
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -133,10 +122,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "network traffic analyzer"
-Wireshark is a network traffic analyzer, or "sniffer", for Unix and
-Unix-like operating systems.  It uses GTK+, a graphical user interface
-library, and libpcap, a packet capture and filtering library.
+make_slack_desc << EOF "codec library which supports H.264"
+OpenH264 is a codec library which supports H.264 encoding and 
+decoding. It is suitable for use in real time applications such as 
+WebRTC.
 
 EOF
 
