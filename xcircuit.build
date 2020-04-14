@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/x
 #TAR_EXT=.tar.gz
-VERSION=3.10.13
+VERSION=3.10.19
 VERSIONEXTRA=
 BUILD=1
 
@@ -79,9 +79,15 @@ then
   exit
 fi
 
-make install install-man1 DESTDIR=${PKG}
+make install install-man1 DESTDIR=${PKG} \
+     install_librarydir=/usr/lib${LIBDIRSUFFIX}/${TARNAME}-${VERSION%.*} \
+     install_scriptsdir=/usr/lib${LIBDIRSUFFIX}/${TARNAME}-${VERSION%.*} \
+     appdefaultsdir=/usr/lib${LIBDIRSUFFIX}/${TARNAME}-${VERSION%.*}/app-defaults \
+     install_appdefaultsdir=/usr/lib${LIBDIRSUFFIX}/${TARNAME}-${VERSION%.*}/app-defaults \
+     install_appmandir=/usr/man
 
 rm -rf ${PKG}/usr/lib/xcircuit-*/man
+#ln -s . ${PKG}/usr/lib${LIBDIRSUFFIX}/${TARNAME}-${VERSION}/tcl
 
 #strip_binaries
 
