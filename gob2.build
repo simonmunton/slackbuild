@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avogadrolibs
+TARNAME=gob2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.93.0
+VERSION=2.0.20
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.openchemistry.org/projects/avogadro2/"
+WEBPAGE="https://www.jirka.org/gob.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/avogadrolibs-1.90.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -75,14 +75,9 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DSPGLIB_INCLUDE_DIR=/usr/include \
-      -DSPGLIB_LIBRARY=/usr/lib${LIBDIRSUFFIX}/libsymspg.so \
       .
-
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-
-
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
@@ -127,10 +122,11 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Avogadro libraries"
-Avogadro libraries provide 3D rendering, visualization, analysis and 
-data processing useful in computational chemistry, molecular 
-modeling, bioinformatics, materials science, and related areas.
+make_slack_desc << EOF "GObject Builder"
+GOB (GOB2 anyway) is a preprocessor for making GObjects with inline C 
+code so that generated files are not edited. Syntax is inspired by 
+Java and Yacc or Lex. The implementation is intentionally kept simple, 
+and no C actual code parsing is done. 
 
 EOF
 

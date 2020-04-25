@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avogadrolibs
+TARNAME=jack2
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=1.93.0
+VERSION=1.9.14
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.openchemistry.org/projects/avogadro2/"
+WEBPAGE="https://jackaudio.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/avogadrolibs-1.90.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -75,19 +75,14 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DSPGLIB_INCLUDE_DIR=/usr/include \
-      -DSPGLIB_LIBRARY=/usr/lib${LIBDIRSUFFIX}/libsymspg.so \
       .
-
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-
-
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
 fi
-
+./waf configure --prefix=/usr --dbus --autostart=dbus --libdir=/usr/lib${LIBDIRSUFFIX}
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -96,7 +91,8 @@ if [ -f ./meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
-  make ${NUM_JOBS} || exit
+#  make ${NUM_JOBS} || exit
+  ./waf ${NUM_JOBS} || exit
 fi
 fi
 
@@ -109,7 +105,8 @@ if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
-  make install DESTDIR=${PKG}
+#  make install DESTDIR=${PKG}
+  ./waf install --destdir=${PKG}
 fi
 
 strip_binaries
@@ -127,10 +124,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Avogadro libraries"
-Avogadro libraries provide 3D rendering, visualization, analysis and 
-data processing useful in computational chemistry, molecular 
-modeling, bioinformatics, materials science, and related areas.
+make_slack_desc << EOF "JACK low-latency audio server"
+JACK2 aka jackdmp is a C++ version of the JACK low-latency audio 
+server for multi-processor machines. It is a new implementation of 
+the JACK server core features that aims at removing some limitations 
+of the JACK1 design. The activation system has been changed for a data 
+flow model and lock-free programming techniques for graph access have 
+been used to have a more dynamic and robust system.
 
 EOF
 

@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/n
 #TAR_EXT=.tar.gz
-VERSION=0.9.10
+VERSION=2020413
 VERSIONEXTRA=
 BUILD=1
 
 WEBPAGE="http://ngplant.sourceforge.net"
+#https://github.com/stager13/ngplant.git
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/ngplant-2020413.diff
 )
 fi
 
@@ -81,7 +82,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} PREFIX=/usr LIBS=-lGL || exit
+scons ${NUM_JOBS}  || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +90,15 @@ then
   exit
 fi
 
-scons install DESTDIR=${PKG}
+#scons install DESTDIR=${PKG}
+mkdir -p  ${PKG}/usr/{bin,share/ngplant/{textures,plugins,shaders}}
+install ngplant/ngplant ${PKG}/usr/bin
+install ngpshot/ngpshot ${PKG}/usr/bin
+install ngpview/ngpview ${PKG}/usr/bin
+install -m644 plugins/* ${PKG}/usr/share/ngplant/plugins
+install -m644 samples/textures/* ${PKG}/usr/share/ngplant/textures
+install -m644 shaders/* ${PKG}/usr/share/ngplant/shaders
+
 
 strip_binaries
 
@@ -101,6 +110,7 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  samples \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs

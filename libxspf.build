@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avogadrolibs
+TARNAME=libxspf
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.93.0
+VERSION=1.2.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.openchemistry.org/projects/avogadro2/"
+WEBPAGE="http://libspiff.sourceforge.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/avogadrolibs-1.90.0.diff
+ patch -p1 < ${CWD}/libxspf-1.2.0.diff
 )
 fi
 
@@ -67,7 +67,8 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+	    --mandir=/usr/man \
+	    --disable-test
 elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -75,14 +76,9 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DSPGLIB_INCLUDE_DIR=/usr/include \
-      -DSPGLIB_LIBRARY=/usr/lib${LIBDIRSUFFIX}/libsymspg.so \
       .
-
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-
-
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
@@ -127,10 +123,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Avogadro libraries"
-Avogadro libraries provide 3D rendering, visualization, analysis and 
-data processing useful in computational chemistry, molecular 
-modeling, bioinformatics, materials science, and related areas.
+make_slack_desc << EOF "XSPF playlist library"
+libxspf (formerly called libSpiff) brings XSPF playlist reading and 
+writing support to your C++ application. Both version 0 and 1 are 
+supported. libxspf uses Expat for XML parsing, CppTest for unit 
+testing and uriparser for handling URIs. libxspf is the official 
+reference implementation for XSPF of the Xiph.Org Foundation. 
 
 EOF
 

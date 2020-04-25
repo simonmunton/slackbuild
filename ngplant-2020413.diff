@@ -1,0 +1,181 @@
+--- ngplant-2020413/extern/SConscript.orig	2020-04-13 08:28:03.590081947 +0100
++++ ngplant-2020413/extern/SConscript	2020-04-13 10:49:55.084816801 +0100
+@@ -11,8 +11,8 @@
+ lstrlib.c loadlib.c linit.c
+ """)
+ 
+-EXTLUACORE_SRC = map(lambda a : 'lua/src/' + a,EXTLUACORE_SRC)
+-EXTLUALIB_SRC = map(lambda a : 'lua/src/' + a,EXTLUALIB_SRC)
++EXTLUACORE_SRC = list(map(lambda a : 'lua/src/' + a,EXTLUACORE_SRC))
++EXTLUALIB_SRC = list(map(lambda a : 'lua/src/' + a,EXTLUALIB_SRC))
+ 
+ Import('*')
+ 
+--- ngplant-2020413/sctool/SConcheck.py.orig	2020-04-13 08:28:03.626081946 +0100
++++ ngplant-2020413/sctool/SConcheck.py	2020-04-13 16:30:54.913249010 +0100
+@@ -342,10 +342,10 @@
+             else:
+                 Context.env.ParseConfig('pkg-config libpng --cflags --libs')
+ 
+-            LIBPNG_INC = SubtractLists(GetEnvKeyList(Context.env,'CPPPATH'),lastCPPPATH)
+-            LIBPNG_CPPDEFS = SubtractLists(GetEnvKeyList(Context.env,'CPPDEFINES'),lastCPPDEFINES)
+-            LIBPNG_LIBS = SubtractLists(GetEnvKeyList(Context.env,'LIBS'),lastLIBS)
+-            LIBPNG_LIBPATH = SubtractLists(GetEnvKeyList(Context.env,'LIBPATH'),lastLIBPATH)
++            LIBPNG_INC = list(SubtractLists(GetEnvKeyList(Context.env,'CPPPATH'),lastCPPPATH))
++            LIBPNG_CPPDEFS = list(SubtractLists(GetEnvKeyList(Context.env,'CPPDEFINES'),lastCPPDEFINES))
++            LIBPNG_LIBS = list(SubtractLists(GetEnvKeyList(Context.env,'LIBS'),lastLIBS))
++            LIBPNG_LIBPATH = list(SubtractLists(GetEnvKeyList(Context.env,'LIBPATH'),lastLIBPATH))
+         except:
+             LIBPNG_INC     = []
+             LIBPNG_CPPDEFS = []
+@@ -376,10 +376,10 @@
+ 
+ def AppendLibPngConf(Env):
+     if Env['WITH_LIBPNG']:
+-        Env.Append(CPPPATH=Env['LIBPNG_CPPPATH'])
+-        Env.Append(CPPDEFINES=Env['LIBPNG_CPPDEFINES'])
+-        Env.Append(LIBS=Env['LIBPNG_LIBS'])
+-        Env.Append(LIBPATH=Env['LIBPNG_LIBPATH'])
++        Env.Append(CPPPATH=list(Env['LIBPNG_CPPPATH']))
++        Env.Append(CPPDEFINES=list(Env['LIBPNG_CPPDEFINES']))
++        Env.Append(LIBS=list(Env['LIBPNG_LIBS']))
++        Env.Append(LIBPATH=list(Env['LIBPNG_LIBPATH']))
+         Env.Append(CPPDEFINES=[('WITH_LIBPNG',1)])
+ 
+ #FIXME: Very similar to libpng's one - need to investigate further and create
+@@ -427,10 +427,10 @@
+             else:
+                 Context.env.ParseConfig('pkg-config libjpeg --cflags --libs 2>/dev/null')
+ 
+-            LIBJPEG_INC = SubtractLists(GetEnvKeyList(Context.env,'CPPPATH'),lastCPPPATH)
+-            LIBJPEG_CPPDEFS = SubtractLists(GetEnvKeyList(Context.env,'CPPDEFINES'),lastCPPDEFINES)
+-            LIBJPEG_LIBS = SubtractLists(GetEnvKeyList(Context.env,'LIBS'),lastLIBS)
+-            LIBJPEG_LIBPATH = SubtractLists(GetEnvKeyList(Context.env,'LIBPATH'),lastLIBPATH)
++            LIBJPEG_INC = list(SubtractLists(GetEnvKeyList(Context.env,'CPPPATH'),lastCPPPATH))
++            LIBJPEG_CPPDEFS = list(SubtractLists(GetEnvKeyList(Context.env,'CPPDEFINES'),lastCPPDEFINES))
++            LIBJPEG_LIBS = list(SubtractLists(GetEnvKeyList(Context.env,'LIBS'),lastLIBS))
++            LIBJPEG_LIBPATH = list(SubtractLists(GetEnvKeyList(Context.env,'LIBPATH'),lastLIBPATH))
+         except:
+             LIBJPEG_INC     = []
+             LIBJPEG_CPPDEFS = []
+@@ -473,9 +473,9 @@
+ 
+ def AppendLibJpegConf(Env):
+     if Env['WITH_LIBJPEG']:
+-        Env.Append(CPPPATH=Env['LIBJPEG_CPPPATH'])
+-        Env.Append(CPPDEFINES=Env['LIBJPEG_CPPDEFINES'])
+-        Env.Append(LIBS=Env['LIBJPEG_LIBS'])
+-        Env.Append(LIBPATH=Env['LIBJPEG_LIBPATH'])
++        Env.Append(CPPPATH=list(Env['LIBJPEG_CPPPATH']))
++        Env.Append(CPPDEFINES=list(Env['LIBJPEG_CPPDEFINES']))
++        Env.Append(LIBS=list(Env['LIBJPEG_LIBS']))
++        Env.Append(LIBPATH=list(Env['LIBJPEG_LIBPATH']))
+         Env.Append(CPPDEFINES=[('WITH_LIBJPEG',1)])
+ 
+--- ngplant-2020413/ngplant/SConscript.orig	2020-04-13 08:28:03.603081947 +0100
++++ ngplant-2020413/ngplant/SConscript	2020-04-13 08:33:12.867067191 +0100
+@@ -100,7 +100,7 @@
+ 
+     try:
+         NGPlantEnv.ParseConfig(NGPlantEnv['WX_CONFIG'] + ' --cxxflags --libs --gl-libs')
+-    except OSError,e:
++    except OSError as e:
+         sys.stderr.write('error: wxWidgets configuration tool can not be run' +
+                          '(%s),\nplease make sure that you have wxWidgets development package(s) installed\n' % (e))
+         sys.exit(1)
+--- ngplant-2020413/SConstruct.orig	2020-04-13 08:28:03.589081947 +0100
++++ ngplant-2020413/SConstruct	2020-04-13 10:50:07.636816202 +0100
+@@ -113,7 +113,7 @@
+                 'ConfigureLibJpeg' : ConfigureLibJpeg})
+ 
+ if BaseConf.CheckCXXPresence() is None:
+-    print 'error: c++ compiler not found.'
++    print ('error: c++ compiler not found.')
+     sys.exit(1)
+ 
+ if BaseConf.CheckGXXSupportArgAttrUnused():
+@@ -146,7 +146,7 @@
+             del BaseConf.env['CPPPATH']
+ 
+     if not HavePythonDev:
+-        print 'Python.h not found... _ngp (Python bindings) will not be built'
++        print ('Python.h not found... _ngp (Python bindings) will not be built')
+ 
+     Endianess = BaseConf.CheckEndianess()
+ 
+@@ -180,7 +180,7 @@
+ if BaseConf.CheckCXXHeader('GL/glut.h'):
+     HaveGLUTDev = True
+ else:
+-    print 'glut library not found - ngpview application will not be built'
++    print ('glut library not found - ngpview application will not be built')
+ 
+ GLEWInternal = BaseEnv['GLEW_INTERNAL']
+ 
+@@ -191,7 +191,7 @@
+         BaseEnv.Append(GLEXT_LIBS=BaseEnv['GLEW_LIBS'])
+     else:
+         GLEWInternal = True
+-        print 'No installed glew library found - using internal GLEW sources...'
++        print ('No installed glew library found - using internal GLEW sources...')
+ 
+ if GLEWInternal:
+     BaseEnv.Append(GLEXT_INC=['#/extern/glew/include'])
+@@ -235,11 +235,11 @@
+             del LuaConfEnv
+ 
+             if not BaseConf.CheckLuaFunc('luaL_newmetatable'):
+-                print 'Lua installation seems to be broken. Using internal Lua sources...'
++                print ('Lua installation seems to be broken. Using internal Lua sources...')
+                 LuaInternal = True
+         else:
+             # Fall to internal Lua
+-            print 'No installed Lua libraries found. Using internal Lua sources...'
++            print ('No installed Lua libraries found. Using internal Lua sources...')
+             LuaInternal = True
+ 
+     if LuaInternal:
+--- ngplant-2020413/pywrapper/SConscript.orig	2020-04-13 08:28:03.611081946 +0100
++++ ngplant-2020413/pywrapper/SConscript	2020-04-13 16:07:01.454317405 +0100
+@@ -1,17 +1,17 @@
+ def PyDistUtilSetupCreate(target,source,env):
+-    DistUtilSetupFile = file(str(target[0]),'wt')
++    DistUtilSetupFile = open(str(target[0]),'wt')
+     DistUtilSetupFile.write('from distutils.core import setup,Extension\n\n')
+ 
+     if env.get('PYEXT_NAME',None) is not None:
+         DistUtilSetupFile.write('ExtName = "%s"\n' % (env['PYEXT_NAME']))
+     else:
+-        print 'warning: PYEXT_NAME is not set - using default (pyext)'
++        print ('warning: PYEXT_NAME is not set - using default (pyext)')
+         DistUtilSetupFile.write('ExtName = pyext\n')
+ 
+     if env.get('PYEXT_VERSION',None) is not None:
+         DistUtilSetupFile.write('ExtVersion = "%s"\n' % (env['PYEXT_VERSION']))
+     else:
+-        print 'warning: PYEXT_VERSION is not set - using default ("1.0")'
++        print ('warning: PYEXT_VERSION is not set - using default ("1.0")')
+         DistUtilSetupFile.write('ExtVersion = "1.0"\n')
+ 
+     DistUtilSetupFile.write('ExtSrc = []\n')
+--- ngplant-2020413/ngput/SConscript.orig	2020-04-13 08:28:03.610081946 +0100
++++ ngplant-2020413/ngput/SConscript	2020-04-13 15:56:43.834346873 +0100
+@@ -27,14 +27,14 @@
+ NGPUtEnv.Append(CPPPATH=NGPUtEnv['GLEXT_INC'])
+ 
+ if NGPUtEnv['WITH_LIBPNG']:
+-    NGPUtEnv.Append(CPPPATH=NGPUtEnv['LIBPNG_CPPPATH'])
+-    NGPUtEnv.Append(CPPDEFINES=NGPUtEnv['LIBPNG_CPPDEFINES'])
++    NGPUtEnv.Append(CPPPATH=list(NGPUtEnv['LIBPNG_CPPPATH']))
++    NGPUtEnv.Append(CPPDEFINES=list(NGPUtEnv['LIBPNG_CPPDEFINES']))
+ 
+     NGPUTIMG_SRC.append('p3dimagepng.cpp')
+ 
+ if NGPUtEnv['WITH_LIBJPEG']:
+-    NGPUtEnv.Append(CPPPATH=NGPUtEnv['LIBJPEG_CPPPATH'])
+-    NGPUtEnv.Append(CPPDEFINES=NGPUtEnv['LIBJPEG_CPPDEFINES'])
++    NGPUtEnv.Append(CPPPATH=list(NGPUtEnv['LIBJPEG_CPPPATH']))
++    NGPUtEnv.Append(CPPDEFINES=list(NGPUtEnv['LIBJPEG_CPPDEFINES']))
+ 
+     NGPUTIMG_SRC.append('p3dimagejpg.cpp')
+ 

@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=avogadrolibs
+TARNAME=gmpc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/a
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.93.0
+VERSION=11.8.16
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.openchemistry.org/projects/avogadro2/"
+WEBPAGE="https://gmpclient.org/home"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/avogadrolibs-1.90.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -75,14 +75,9 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DSPGLIB_INCLUDE_DIR=/usr/include \
-      -DSPGLIB_LIBRARY=/usr/lib${LIBDIRSUFFIX}/libsymspg.so \
       .
-
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-
-
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
@@ -127,10 +122,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Avogadro libraries"
-Avogadro libraries provide 3D rendering, visualization, analysis and 
-data processing useful in computational chemistry, molecular 
-modeling, bioinformatics, materials science, and related areas.
+make_slack_desc << EOF "Gnome Music Player Client"
+GMPC is a GTK2 frontend for Music Player Daemon. It is released under 
+the GNU General Public License and is free software. It is designed 
+to be lightweight and easy to use, while providing full access to all 
+of MPD's features. Users are presented with several different methods 
+to browse through their music. It can be extended by plugins, of which 
+many are available. GMPC is the oldest maintained Graphical client for 
+MPD. The project was started in 2003 and been under constant 
+development ever since.
 
 EOF
 

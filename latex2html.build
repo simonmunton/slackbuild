@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2008
+VERSION=2020
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://www.latex2html.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/latex2html-2008.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,7 +55,13 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+export GS_LIB=/usr/share/ghostscript/9.52/Resource/Init:/usr/share/ghostscript/9.52/Resource/Font
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -66,11 +72,32 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --mandir=/usr/man \
 	    --libdir=/usr/share/latex2html \
             --shlibdir=/usr/share/latex2html
+
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,18 +105,19 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  mkdir -p ${PKG}/usr/share/texmf-local/tex/latex/html
+  make install DESTDIR=${PKG}
+fi
 
 mkdir -p ${PKG}/usr/man/man1
 
 for f in ${PKG}/usr/bin/{latex2html,pstoimg}
 do
   pod2man ${f} > ${PKG}/usr/man/man1/`basename ${f}`.1
-done
-
-for f in cweb2html/cweb2html cweb2html/makemake.pl makeseg/makeseg # makemap
-do
-  perl -pi -e "s,/usr/local/bin/perl,/usr/bin/perl," ${PKG}/usr/share/latex2html/${f}
 done
 
 cat >> ${PKG}/install/doinst.sh << EOF
@@ -101,8 +129,7 @@ fi
 
 EOF
 
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -117,10 +144,19 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "LaTeX to HTML convertor"
-LATEX2HTML is a convertor written in Perl that converts LATEX 
-documents to HTML. This way e.g. scientific papers - primarily typeset 
-for printing - can be put on the Web for online viewing.
+make_slack_desc << EOF "Converts LaTeX documents to HTML"
+LaTeX2HTML is a utility that converts LaTeX documents to web pages in 
+HTML.
+LaTeX2HTML replicates the basic structure of a LaTeX document as a set 
+of interconnected HTML files which can be explored using automatically 
+generated navigation panels. The cross-references, citations, 
+footnotes, the table of contents and the lists of figures and tables, 
+are also translated into hypertext links. Formatting information which 
+has equivalent tags in HTML (lists, quotes, paragraph breaks, type 
+styles, etc.) is also converted appropriately. The remaining heavily 
+formatted items such as mathematical equations, pictures or tables 
+are converted to images which are placed automatically at the correct 
+positions in the final HTML document.
 
 EOF
 

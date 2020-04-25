@@ -1,0 +1,22 @@
+--- vlc-3.0.9.2/configure.ac.orig	2020-04-09 11:38:08.000000000 +0100
++++ vlc-3.0.9.2/configure.ac	2020-04-22 19:48:39.342488620 +0100
+@@ -1619,6 +1619,11 @@
+     [disable LUA scripting support (default enabled)])])
+ if test "${enable_lua}" != "no"
+ then
++  PKG_CHECK_MODULES(LUA, lua5.3,
++    [ have_lua=yes ],
++    [
++    AC_MSG_WARN([${LUA_PKG_ERRORS}, trying lua 5.2 instead])
++
+   PKG_CHECK_MODULES(LUA, lua5.2,
+     [ have_lua=yes ],
+     [
+@@ -1650,6 +1655,7 @@
+         ])
+       ])
+     ])
++    ])
+   if test "x${have_lua}" != "xyes" ;  then
+       AC_MSG_ERROR([Could not find lua. Lua is needed for some interfaces (rc, telnet, http) as well as many other custom scripts. Use --disable-lua to ignore this error.])
+   fi
