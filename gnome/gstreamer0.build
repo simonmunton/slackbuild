@@ -2,23 +2,24 @@
 #
 . build_funcs
 
-TARNAME=gst-ffmpeg
+TARNAME=gstreamer
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.10.12
+VERSION=0.10.36
 VERSIONEXTRA=
 BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gstreamer0
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -42,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gst-ffmpeg-0.10.12.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -54,22 +55,13 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS} -I/usr/include/gsm" \
+CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --with-ffmpeg-extra-configure="--enable-gpl \
-            --enable-postproc \
-            --enable-avfilter \
-            --enable-avfilter-lavf \
-            --enable-swscale \
-            --enable-nonfree"
-
-#            --enable-shared \
-
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -99,9 +91,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "GStreamer plugin for FFmpeg"
-This package contains a GStreamer plugin for FFmpeg, as well as an 
-internal copy of the FFmpeg source code.
+make_slack_desc << EOF "GStreamer streaming media framework runtime"
+GStreamer is a streaming media framework, based on graphs of filters
+which operate on media data. Applications using this library can do
+anything from real-time sound processing to playing videos, and just
+about anything else media-related. Its plugin-based architecture
+means that new data types or processing capabilities can be added
+simply by installing new plugins.
 
 EOF
 

@@ -2,18 +2,18 @@
 #
 . build_funcs
 
-TARNAME=gst-plugins-bad
+TARNAME=gst-plugins-base
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=0.10.23
+VERSION=0.10.36
 VERSIONEXTRA=
-BUILD=14
+BUILD=3
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gst-plugins-base0
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -43,8 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gst-plugins-bad-0.10.23.diff
- sed -i -e 's/-lfaad -lm/-lfaad -lmpeg4ip_faad -lm/' configure
+ patch -p1 < ${CWD}/gst-plugins-base-timestamp.patch
 )
 fi
 
@@ -62,8 +61,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-apexsink
+	    --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -93,16 +91,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "bad quality GStreamer Plugins"
-GStreamer is a streaming media framework, based on graphs of filters
-which operate on media data. Applications using this library can do
-anything from real-time sound processing to playing videos, and just
-about anything else media-related.  Its plugin-based architecture
-means that new data types or processing capabilities can be added
-simply by installing new plug-ins.
-
-This package contains GStreamer Plugins that are considered to be of
-bad quality, even though they might work.
+make_slack_desc << EOF "GStreamer streaming media framework plug-ins"
+A well-groomed and well-maintained collection of GStreamer plug-ins
+and elements, spanning the range of possible types of elements one
+would want to write for GStreamer.
 
 EOF
 
