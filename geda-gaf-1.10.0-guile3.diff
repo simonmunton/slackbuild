@@ -1,0 +1,483 @@
+--- geda-gaf-1.10.0-guile3/gnetlist-legacy/examples/vams/gschemrc.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gnetlist-legacy/examples/vams/gschemrc	2019-10-08 15:54:21.000000000 +0100
+@@ -1,49 +1,25 @@
+ (load "./commonrc")
++(load (string-append examples-path "/../../../gschem/scheme/generate_netlist.scm"))
+ 
+-(define-module (ice-9 ls) :use-module (ice-9 common-list)
+-			  :use-module (ice-9 string-fun))
++(define-action (&generate-netlist
++                #:name       "Generate Netlist"
++                #:label      "Generate Netlist"
++                #:menu-label "Generate _Netlist")
++  (generate-netlist))
++
++(define-action (&generate-entity
++                #:name       "Generate Entity"
++                #:label      "Generate Entity"
++                #:menu-label "Generate Entit_y")
++  (generate-entity))
++
++(set! tools-menu
++      (append! tools-menu
++               `((,&generate-netlist
++                  ,&generate-entity))))
+ 
+-; All keys in the global-keymap *must* be unique
+-(define global-keymap
+-  '(("Escape" . cancel)
+-    ("a" . add-keymap)
+-    ("b" . add-box-hotkey)
+-    ("c" . edit-copy-hotkey)
+-    ("d" . edit-delete)
+-    ("e" . edit-keymap)
+-    ("f" . file-keymap)
+-    ("g" . gnetlist-keymap)
+-    ("h" . help-keymap)
+-    ("i" . add-component)
+-    ("j" . no-action)
+-    ("k" . no-action)
+-    ("l" . add-line-hotkey)
+-    ("m" . edit-move-hotkey)
+-    ("n" . add-net-hotkey)
+-    ("o" . options-keymap)
+-    ("p" . page-keymap)
+-    ("q" . no-action)
+-    ("r" . view-redraw)
+-    ("s" . edit-select)
+-    ("t" . attributes-keymap)
+-    ("u" . add-bus-hotkey)
+-    ("v" . view-keymap)
+-    ("w" . view-zoom-box-hotkey)
+-    ("x" . view-pan-hotkey)
+-    ("y" . buffer-keymap)
+-    ("z" . view-zoom-in-hotkey)
+-    ("period" . repeat-last-command)
+-    ("comma" . misc-misc)
+-    ("equal" . misc-misc2)
+-    ("Shift plus" . misc-misc3)
+-    ("Delete" . edit-delete)
+-    ("Shift greater" . page-next)
+-    ("Shift less" . page-prev)
+-    ("Alt q" . file-quit)
+-    ("Shift H" . hierarchy-keymap)
+-    ("Shift U" . edit-undo)
+-    ("Shift R" . edit-redo)
+-    ("Shift Z" . view-zoom-out-hotkey)))
++(global-set-key "G N" &generate-netlist)
++(global-set-key "G E" &generate-entity)
+ 
+ (attribute-promotion "enabled")
+ (promote-invisible "enabled")
+@@ -56,12 +32,6 @@
+ (attribute-name "entity")
+ (attribute-name "architecture")
+ 
+-(define gnetlist-keymap
+-  '(("n" . generate-netlist)
+-   ("e" . generate-entity)))
+-
+-(load (string-append examples-path "/../gschem/scheme/generate_netlist.scm"))
+-
+ (define vhdl-path (string-append examples-path "/vhdl/new-vhdl"))
+ 
+ (display "loaded local gschemrc\n")
+--- geda-gaf-1.10.0-guile3/gschem/lib/system-gschemrc.scm.orig	2020-01-29 20:43:19.585887410 +0000
++++ geda-gaf-1.10.0-guile3/gschem/lib/system-gschemrc.scm	2020-01-30 18:22:39.217256014 +0000
+@@ -1187,7 +1187,7 @@
+ ;;              ,&do-something-else)
+ ;;             (,&help-about)))
+ ;;
+-;;   (assoc-set! menubar (_ "_Help") my-help-menu)
++;;   (assoc-set! menubar (G_ "_Help") my-help-menu)
+ ;;
+ ;; * Replacing the context menu
+ ;;
+@@ -1331,15 +1331,15 @@
+            ,&help-about)))
+ 
+ (define menubar
+-        `((,(_ "_File")    . ,file-menu)
+-          (,(_ "_Edit")    . ,edit-menu)
+-          (,(_ "_Add")     . ,add-menu)
+-          (,(_ "O_bject")  . ,object-menu)
+-          (,(_ "_View")    . ,view-menu)
+-          (,(_ "_Pages")   . ,pages-menu)
+-          (,(_ "_Tools")   . ,tools-menu)
+-          (,(_ "_Options") . ,options-menu)
+-          (,(_ "_Help")    . ,help-menu)))
++        `((,(G_ "_File")    . ,file-menu)
++          (,(G_ "_Edit")    . ,edit-menu)
++          (,(G_ "_Add")     . ,add-menu)
++          (,(G_ "O_bject")  . ,object-menu)
++          (,(G_ "_View")    . ,view-menu)
++          (,(G_ "_Pages")   . ,pages-menu)
++          (,(G_ "_Tools")   . ,tools-menu)
++          (,(G_ "_Options") . ,options-menu)
++          (,(G_ "_Help")    . ,help-menu)))
+ 
+ (define context-menu
+         `((,&edit-select
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/builtins.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/builtins.scm	2020-01-30 18:19:23.284265363 +0000
+@@ -27,7 +27,7 @@
+ 
+ (define-syntax define-action-public
+   (syntax-rules ()
+-    ((_ (name . args) . forms)
++    ((G_ (name . args) . forms)
+      (begin
+        (define-action (name . args) . forms)
+        (export name)))))
+@@ -35,37 +35,37 @@
+ (define-action-public
+     (&help-manual
+      #:icon       "help-browser"
+-     #:name       (_ "gEDA Manuals")
+-     #:label      (_ "gEDA Documentation...")
+-     #:menu-label (_ "gEDA Docu_mentation...")
+-     #:tooltip    (_ "View the front page of the gEDA documentation in a browser"))
++     #:name       (G_ "gEDA Manuals")
++     #:label      (G_ "gEDA Documentation...")
++     #:menu-label (G_ "gEDA Docu_mentation...")
++     #:tooltip    (G_ "View the front page of the gEDA documentation in a browser"))
+   (show-wiki "geda:documentation"))
+ 
+ (define-action-public
+     (&help-guide
+      #:icon       "gtk-help"
+-     #:name       (_ "gschem User Guide")
+-     #:label      (_ "gschem User Guide...")
+-     #:menu-label (_ "gschem User _Guide...")
+-     #:tooltip    (_ "View the gschem User Guide in a browser"))
++     #:name       (G_ "gschem User Guide")
++     #:label      (G_ "gschem User Guide...")
++     #:menu-label (G_ "gschem User _Guide...")
++     #:tooltip    (G_ "View the gschem User Guide in a browser"))
+   (show-wiki "geda:gschem_ug"))
+ 
+ (define-action-public
+     (&help-faq
+      #:icon       "help-faq"
+-     #:name       (_ "gschem FAQ")
+-     #:label      (_ "gschem FAQ...")
+-     #:menu-label (_ "gschem _FAQ...")
+-     #:tooltip    (_ "Frequently Asked Questions about using gschem"))
++     #:name       (G_ "gschem FAQ")
++     #:label      (G_ "gschem FAQ...")
++     #:menu-label (G_ "gschem _FAQ...")
++     #:tooltip    (G_ "Frequently Asked Questions about using gschem"))
+   (show-wiki "geda:faq-gschem"))
+ 
+ (define-action-public
+     (&help-wiki
+      #:icon       "web-browser"
+-     #:name       (_ "gEDA Wiki")
+-     #:label      (_ "gEDA Wiki...")
+-     #:menu-label (_ "gEDA _Wiki...")
+-     #:tooltip    (_ "View the front page of the gEDA wiki in a browser"))
++     #:name       (G_ "gEDA Wiki")
++     #:label      (G_ "gEDA Wiki...")
++     #:menu-label (G_ "gEDA _Wiki...")
++     #:tooltip    (G_ "View the front page of the gEDA wiki in a browser"))
+   (show-wiki))
+ 
+ ;; Local Variables:
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/gschemdoc.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/gschemdoc.scm	2020-01-30 18:20:18.353262735 +0000
+@@ -236,7 +236,7 @@
+          (directory-doc-search (sys-doc-dir) name ".pdf"))))
+ 
+      ;; 4) Fail miserably
+-     (error (_ "No documentation found")))))
++     (error (G_ "No documentation found")))))
+ 
+ (define-public (show-component-documentation-or-error-msg obj)
+   "show-component-documentation-or-error-msg COMPONENT
+@@ -253,5 +253,5 @@
+    (lambda (key subr msg args . rest)
+      ((module-ref (interaction-environment) 'gschem-msg)
+       (string-append
+-       (_ "Could not show documentation for selected component:\n\n")
++       (G_ "Could not show documentation for selected component:\n\n")
+        (apply format #f msg args))))))
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/core/gettext.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/core/gettext.scm	2020-01-30 18:18:50.202266941 +0000
+@@ -24,4 +24,4 @@
+ (define-module (gschem core gettext))
+ 
+ (define %gschem-gettext-domain "geda-gschem")
+-(define-public (_ msg) (gettext msg %gschem-gettext-domain))
++(define-public (G_ msg) (gettext msg %gschem-gettext-domain))
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/action.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/action.scm	2020-01-30 18:19:09.168266036 +0000
+@@ -36,7 +36,7 @@
+       (begin
+         (action) ;; Actually execute the action
+         #t)
+-      (error (_ "~S is not a valid gschem action.") action)))
++      (error (G_ "~S is not a valid gschem action.") action)))
+ 
+ ;; Evaluate an action at a particular point on the schematic plane.
+ ;; If the point is omitted, the action is evaluated at the current
+@@ -61,7 +61,7 @@
+ 
+ (define-syntax define-action
+   (syntax-rules ()
+-    ((_ (name . args) . forms)
++    ((G_ (name . args) . forms)
+      (define name (make-action (lambda () . forms) . args)))))
+ 
+ (define-public (make-action thunk . props)
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/deprecated.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/deprecated.scm	2020-01-30 18:19:31.547264969 +0000
+@@ -99,7 +99,7 @@
+                  ("Upper Right" . upper-right))
+                alignment)
+               (and (string=? "" alignment) (text-align attrib))
+-              (error (_ "Invalid text alignment ~A.") alignment))
++              (error (G_ "Invalid text alignment ~A.") alignment))
+              ;; angle
+              (if (= rotation -1) (text-angle attrib) rotation)
+              ;; string
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem/keymap.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem/keymap.scm	2020-01-30 18:20:29.454262206 +0000
+@@ -36,7 +36,7 @@
+ (define-public (string->key str)
+   (or (%string->key str)
+       (scm-error 'key-format #f
+-                 (_ "~S is not a valid key combination.")
++                 (G_ "~S is not a valid key combination.")
+                  (list str) #f)))
+ 
+ ;; -------------------- Key sequences --------------------
+@@ -157,7 +157,7 @@
+            ((keymap? binding) (lookup binding keys (1+ ofs)))
+ 
+            ;; Otherwise, generate an error.
+-           (else (error (_ "~S is not a prefix key sequence.")
++           (else (error (G_ "~S is not a prefix key sequence.")
+                         (keys->display-string (prefix-keys keys))))))))
+ 
+   (lookup keymap keys 0))
+--- geda-gaf-1.10.0-guile3/gschem/scheme/gschem-deprecated-config.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/gschem-deprecated-config.scm	2020-01-30 18:21:36.314259016 +0000
+@@ -65,7 +65,7 @@
+ ;; and KEY.
+ (define-syntax define-rc-deprecated-config
+   (syntax-rules ()
+-    ((_ old-id group key value-transformer)
++    ((G_ old-id group key value-transformer)
+      (define old-id (rc-deprecated-config (quote old-id) group key
+                                            value-transformer)))))
+ 
+--- geda-gaf-1.10.0-guile3/gschem/scheme/pcb.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/gschem/scheme/pcb.scm	2020-01-30 18:15:31.901276403 +0000
+@@ -212,9 +212,9 @@
+ ;;
+ ;;
+ (define-action (&pcb-about
+-                #:name       (_ "About PCB Major Mode")
+-                #:label      (_ "About PCB Major Mode...")
+-                #:menu-label (_ "About..."))
++                #:name       (G_ "About PCB Major Mode")
++                #:label      (G_ "About PCB Major Mode...")
++                #:menu-label (G_ "About..."))
+   (gschem-msg (string-append
+ 	       "This is the pcb major mode for gschem\n"
+ 	       "pcb.scm version $Id$\n"
+@@ -228,9 +228,9 @@
+   )
+ 
+ (define-action (&pcb-launch
+-                #:name       (_ "Launch PCB")
+-                #:label      (_ "Launch PCB...")
+-                #:menu-label (_ "Launch PCB..."))
++                #:name       (G_ "Launch PCB")
++                #:label      (G_ "Launch PCB...")
++                #:menu-label (G_ "Launch PCB..."))
+   ;; We don't want to crash on a SIGPIPE if the user
+   ;; exits from PCB
+   (if pcb:pipe 
+@@ -260,27 +260,27 @@
+   )
+ 
+ (define-action (&pcb-run-gsch2pcb
+-                #:name       (_ "Run gsch2pcb")
+-                #:label      (_ "Run gsch2pcb...")
+-                #:menu-label (_ "Run gsch2pcb..."))
++                #:name       (G_ "Run gsch2pcb")
++                #:label      (G_ "Run gsch2pcb...")
++                #:menu-label (G_ "Run gsch2pcb..."))
+   (gschem-log "Running gsch2pcb")
+   (system pcb:gsch2pcb-cmd)
+ )
+ 
+ (define-action (&pcb-run-editor
+                 #:icon       "accessories-text-editor"
+-                #:name       (_ "Edit gsch2pcb Project")
+-                #:label      (_ "Edit gsch2pcb Project...")
+-                #:menu-label (_ "Edit gsch2pcb Project..."))
++                #:name       (G_ "Edit gsch2pcb Project")
++                #:label      (G_ "Edit gsch2pcb Project...")
++                #:menu-label (G_ "Edit gsch2pcb Project..."))
+   (system pcb:editor-cmd)
+ )
+ 
+ (define-action (&pcb-load-project
+                 #:icon       "gtk-open"
+-                #:name       (_ "Load gsch2pcb Project")
+-                #:label      (_ "Load gsch2pcb Project...")
+-                #:menu-label (_ "Load gsch2pcb Project...")
+-                #:tooltip    (_ "Not implemented yet"))
++                #:name       (G_ "Load gsch2pcb Project")
++                #:label      (G_ "Load gsch2pcb Project...")
++                #:menu-label (G_ "Load gsch2pcb Project...")
++                #:tooltip    (G_ "Not implemented yet"))
+   (let ((f nil))
+     (gschem-msg "This menu choice does not really do anything yet other than select a file\n")
+ 
+@@ -291,10 +291,10 @@
+ 
+ (define-action (&pcb-save-project
+                 #:icon       "gtk-save"
+-                #:name       (_ "Save gsch2pcb Project")
+-                #:label      (_ "Save gsch2pcb Project...")
+-                #:menu-label (_ "Save gsch2pcb Project...")
+-                #:tooltip    (_ "Not implemented yet"))
++                #:name       (G_ "Save gsch2pcb Project")
++                #:label      (G_ "Save gsch2pcb Project...")
++                #:menu-label (G_ "Save gsch2pcb Project...")
++                #:tooltip    (G_ "Not implemented yet"))
+   (let ((f nil))
+     (gschem-msg "This menu choice does not really do anything yet other than select a file\n")
+ 
+@@ -320,4 +320,4 @@
+ 
+ ;; Insert as second-to-last item in the menubar (last one is "Help")
+ (let ((x (list-tail menubar (- (length menubar) 2))))
+-  (set-cdr! x (cons (cons (_ "PCB") pcb-menu) (cdr x))))
++  (set-cdr! x (cons (cons (G_ "PCB") pcb-menu) (cdr x))))
+--- geda-gaf-1.10.0-guile3/m4/geda-guile.m4.orig	2020-01-29 22:30:58.389533120 +0000
++++ geda-gaf-1.10.0-guile3/m4/geda-guile.m4	2020-01-29 22:22:15.954558046 +0000
+@@ -35,8 +35,14 @@
+   GUILE_MIN_TEENY=`echo ${GUILE_MIN_VER} | sed -e 's;.*\.;;'`
+ 
+   _found_pkg_config_guile=yes
++
++  PKG_CHECK_MODULES(GUILE, [guile-3.0 >= $GUILE_MIN_VER],
++                           [GUILE_PKG_NAME=guile-3.0], [_found_pkg_config_guile=no])
++
++  if test "${_found_pkg_config_guile}" = "no" ; then
+   PKG_CHECK_MODULES(GUILE, [guile-2.2 >= $GUILE_MIN_VER],
+                            [GUILE_PKG_NAME=guile-2.2], [_found_pkg_config_guile=no])
++  fi
+ 
+   if test "${_found_pkg_config_guile}" = "no" ; then
+    PKG_CHECK_MODULES(GUILE, [guile-2.0 >= $GUILE_MIN_VER],
+--- geda-gaf-1.10.0-guile3/xorn/configure.ac.orig	2019-10-08 19:16:33.000000000 +0100
++++ geda-gaf-1.10.0-guile3/xorn/configure.ac	2020-01-29 22:35:37.022519825 +0000
+@@ -30,7 +30,15 @@
+ 
+ AM_PATH_PYTHON([2.7])
+ PKG_CHECK_MODULES([PYTHON], [python2 >= 2.7])
++PKG_CHECK_MODULES([GUILE], [guile-3.0 >= 3.0.0])
+ PKG_CHECK_MODULES([GUILE], [guile-2.0 >= 2.0.10])
++PKG_CHECK_MODULES(GUILE, [guile-3.0 >= 3.0.0],
++                         [GUILE_PKG_NAME=guile-3.0], [_found_pkg_config_guile=no])
++
++if test "${_found_pkg_config_guile}" = "no" ; then
++PKG_CHECK_MODULES(GUILE, [guile-2.2 >= 2.0.10],
++                         [GUILE_PKG_NAME=guile-2.2], [_found_pkg_config_guile=no])
++fi
+ 
+ AM_GNU_GETTEXT([external])
+ AM_GNU_GETTEXT_VERSION([0.18.2])
+--- geda-gaf-1.10.0-guile3/libgeda/src/edascmhookproxy.c.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/src/edascmhookproxy.c	2020-01-29 22:28:30.287540186 +0000
+@@ -19,6 +19,8 @@
+ 
+ #include <config.h>
+ 
++#include <libguile/hooks.h>
++
+ #include "libgeda_priv.h"
+ #include "libgedaguile_priv.h"
+ 
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/geda/core/gettext.scm.in.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/geda/core/gettext.scm.in	2020-01-30 18:24:49.745249786 +0000
+@@ -24,4 +24,4 @@
+ (define-module (geda core gettext))
+ 
+ (define %libgeda-gettext-domain "@LIBGEDA_GETTEXT_DOMAIN@")
+-(define-public (_ msg) (gettext msg %libgeda-gettext-domain))
++(define-public (G_ msg) (gettext msg %libgeda-gettext-domain))
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/geda/attrib.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/geda/attrib.scm	2020-01-30 18:25:07.092248959 +0000
+@@ -56,7 +56,7 @@
+ (define-public (promote-attribs! object)
+   (let ((p (or (object-page object)
+                (scm-error 'object-state #f
+-                          (_ "Object ~A is not part of a page")
++                          (G_ "Object ~A is not part of a page")
+                           (list object) #f))))
+     (if (component? object)
+         (map (lambda (x)
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/geda-deprecated-config.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/geda-deprecated-config.scm	2020-01-30 18:26:04.371246226 +0000
+@@ -54,7 +54,7 @@
+ ;; Creates a dead rc configuration function called OLD-ID.
+ (define-syntax define-rc-dead-config
+   (syntax-rules ()
+-    ((_ old-id)
++    ((G_ old-id)
+      (define old-id (rc-dead-config (quote old-id))))))
+ 
+ ;; ===================================================================
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/unit-test.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/unit-test.scm	2020-01-30 18:26:16.649245640 +0000
+@@ -106,19 +106,19 @@
+ 
+ (define-syntax begin-test
+     (syntax-rules ()
+-      ((_ name . test-forms)
++      ((G_ name . test-forms)
+        (%begin-test name (lambda () . test-forms)))))
+ 
+ (define-syntax skip-test
+   (syntax-rules ()
+-    ((_ name . test-forms)
++    ((G_ name . test-forms)
+      (begin
+        (format #t "SKIP: ~A\n" name)
+        (set! *skipped-tests* (cons name *skipped-tests*))))))
+ 
+ (define-syntax assert-thrown
+     (syntax-rules ()
+-      ((_ key . test-forms)
++      ((G_ key . test-forms)
+        (%assert-thrown key (lambda () . test-forms)))))
+ 
+ (define (tests-passed?) (null? *failed-tests*))
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/unit-tests/t0201-page-dirty.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/unit-tests/t0201-page-dirty.scm	2020-01-30 18:26:41.357244461 +0000
+@@ -10,7 +10,7 @@
+ ;; Utility macro to avoid boilerplate
+ (define-syntax assert-dirties
+   (syntax-rules ()
+-    ((_ P . test-forms)
++    ((G_ P . test-forms)
+      (begin (begin . test-forms)
+             (assert-true (page-dirty? P))
+             (set-page-dirty! P #f)))))
+--- geda-gaf-1.10.0-guile3/libgeda/scheme/unit-tests/t0402-config.scm.orig	2019-10-08 15:54:21.000000000 +0100
++++ geda-gaf-1.10.0-guile3/libgeda/scheme/unit-tests/t0402-config.scm	2020-01-30 18:26:53.361243888 +0000
+@@ -28,7 +28,7 @@
+ 
+ (define-syntax begin-config-test
+   (syntax-rules ()
+-    ((_ name . test-forms)
++    ((G_ name . test-forms)
+      (begin-test name
+        (dynamic-wind
+          config-test-setup

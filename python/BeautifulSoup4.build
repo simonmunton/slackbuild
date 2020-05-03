@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mock
+TARNAME=beautifulsoup4
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/m
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=1.0.1
+VERSION=4.9.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.python.org/pypi/mock"
+WEBPAGE="https://pypi.python.org/pypi/beautifulsoup4/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -84,13 +84,23 @@ then
 python setup.py build || exit
 fi
 
+if [ ${DO_INSTALL} == "yes" ]
+then
+  python setup.py install --root=${PKG}
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+  rm -rf build
+  python3 setup.py build || exit
+fi
+
 if [ ${DO_INSTALL} != "yes" ]
 then
   exit
 fi
 
-#make install DESTDIR=${PKG}
-python setup.py install --root=${PKG}
+python3 setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -107,13 +117,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Python Mocking and Patching Library for Testing"
-mock is a library for testing in Python. It allows you to replace 
-parts of your system under test with mock objects and make assertions 
-about how they have been used.
-
-mock is now part of the Python standard library, available as 
-unittest.mock in Python 3.3 onwards.
+make_slack_desc << EOF "HTML/XML parser for quick-turnaround applications like screen-scraping."
+Beautiful Soup parses arbitrarily invalid SGML and provides a variety 
+of methods and Pythonic idioms for iterating and searching the parse 
+tree.
 
 EOF
 

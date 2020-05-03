@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=ConfigArgParse
+TARNAME=youtube-dl
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/y
 #TAR_EXT=.tar.gz
-VERSION=0.13.0
+VERSION=2020.03.24
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.org/project/ConfigArgParse/"
+WEBPAGE="http://rg3.github.io/youtube-dl/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -81,7 +81,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python setup.py build || exit
+python3 setup.py build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +90,12 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python setup.py install --root=${PKG}
+python3 setup.py install --root=${PKG}
+
+mv ${PKG}/usr/etc ${PKG}
+
+rm ${PKG}/usr/share/doc/youtube_dl/README.txt
+rmdir -p ${PKG}/usr/share/doc/youtube_dl
 
 strip_binaries
 
@@ -107,9 +112,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Python argparse"
-A drop-in replacement for argparse that allows options to also be set 
-via config files and/or environment variables.
+make_slack_desc << EOF "Download videos from YouTube (and more sites)"
+youtube-dl is a command-line program to download videos from 
+YouTube.com and a few more sites. It requires the Python interpreter 
+(2.6, 2.7, or 3.2+), and it is not platform specific. We also provide 
+a Windows executable that includes Python. youtube-dl should work in 
+your Unix box, in Windows or in Mac OS X. It is released to the 
+public domain, which means you can modify it, redistribute it or use 
+it however you like.
 
 EOF
 
