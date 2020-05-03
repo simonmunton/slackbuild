@@ -1,0 +1,134 @@
+--- gwave-20190116-guile3/src/wavewin.c.orig	2018-02-05 04:59:11.000000000 +0000
++++ gwave-20190116-guile3/src/wavewin.c	2020-02-09 16:27:00.713551315 +0000
+@@ -166,6 +166,11 @@
+ 	WaveTable *wt = (WaveTable *)d;
+ 	int pwidth, boxwidth;
+ 
++	if(wt->npanels == 0 || wt->panels == NULL) {
++		printf("No panel\n");
++		return;
++	}
++
+ 	pwidth = wt->panels[0]->drawing->allocation.width;
+ 	boxwidth = wt->bot_vbox->requisition.width;
+ 
+--- gwave-20190116-guile3/src/scwm_guile.c.orig	2019-01-16 02:54:08.000000000 +0000
++++ gwave-20190116-guile3/src/scwm_guile.c	2020-02-09 20:53:31.699831563 +0000
+@@ -102,13 +102,18 @@
+ 
+   apply_data.proc = proc;
+   apply_data.args = args;
+-
++printf("SM1\n");
+   // TODO rewrite this to get stack so we can print a backtrace
+-  rc = scm_internal_cwdr(scwm_body_apply,
++  rc = scm_spawn_thread(scwm_body_apply,
+ 			   &apply_data,
+-			   scwm_handle_error, prog_name,
++			   scwm_handle_error, /*prog_name,*/
+ 			   &stack_place);
++
++printf("SM1 s\n");
++
++//  rc = scm_join_thread(rc);
+   // my_display("scwm_safe_apply retval", rc);
++printf("SM1 x\n");
+   return rc;
+ }
+ 
+@@ -116,13 +121,18 @@
+ scwm_safe_apply_message_only (SCM proc, SCM args)
+ {
+   struct scwm_body_apply_data apply_data;
++  SCM rc;
+ 
+   apply_data.proc = proc;
+   apply_data.args = args;
+ 
+-  return scm_internal_cwdr(scwm_body_apply, &apply_data,
+-			   scm_handle_by_message_noexit, prog_name,
++printf("SM2\n");
++  rc = scm_spawn_thread(scwm_body_apply, &apply_data,
++			   scm_handle_by_message_noexit, /* prog_name,*/
+ 			   NULL);
++
++//  rc = scm_join_thread(rc);
++  return rc;
+ }
+ 
+ 
+@@ -365,10 +375,14 @@
+ #define FUNC_NAME s_safe_load
+ {
+   SCM_STACKITEM stack_item;
++  SCM rc;
+   VALIDATE_ARG_STR(1,fname);
+-  return scm_internal_cwdr(scwm_body_load, &fname,
+-				     scm_handle_by_message_noexit, prog_name, 
++printf("SM3\n");
++  rc = scm_spawn_thread(scwm_body_load, &fname,
++				     scm_handle_by_message_noexit, /* prog_name, */
+ 				     &stack_item);
++//  rc = scm_join_thread(rc);
++  return rc;
+ }
+ #undef FUNC_NAME
+ 
+@@ -380,9 +394,13 @@
+ SCM scwm_safe_eval_str (char *string)
+ {
+   SCM_STACKITEM stack_item;
+-  return scm_internal_cwdr(scwm_body_eval_str, string,
+-				     scm_handle_by_message_noexit, prog_name, 
++  SCM rc;
++printf("SM4\n");
++  rc = scm_spawn_thread(scwm_body_eval_str, string,
++				     scm_handle_by_message_noexit, /* prog_name, */
+ 				     &stack_item);
++//  rc = scm_join_thread(rc);
++  return rc;
+ }
+ 
+ void init_scwm_guile()
+--- gwave-20190116-guile3/src/wavelist.c.orig	2019-01-16 03:51:45.000000000 +0000
++++ gwave-20190116-guile3/src/wavelist.c	2020-02-05 20:18:13.825395558 +0000
+@@ -756,7 +756,7 @@
+                 v = SCM_CAR(l);
+ 		VALIDATE_ARG_VisibleWaveOrWaveVar_COPY(1,v,wv);
+ 		if(!wv) {
+-			scm_misc_error(FUNC_NAME, "invalid WaveVar ~s", SCM_LIST1(v));
++			scm_misc_error(FUNC_NAME, "invalid WaveVar ~s", scm_list_1(v));
+ 		}
+ 		if(iv == NULL)
+ 			iv = wv->wv_iv;
+--- gwave-20190116-guile3/scheme/gwave-startup.scm.orig	2019-01-11 01:19:22.000000000 +0000
++++ gwave-20190116-guile3/scheme/gwave-startup.scm	2020-02-08 17:03:49.901816102 +0000
+@@ -14,6 +14,9 @@
+ ; loading of specific gwave core modules.
+ ;
+ 
++(display "sm0a\n")
++(dbprint "sm0a\n")
++
+ (use-modules 
+  (app gwave cmds)
+ )
+@@ -38,6 +41,7 @@
+ ; That requires figuring out how to make the stuff in system.gwaverc more
+ ; flexibile though.
+ ;
++(display "sm1\n")
+ (let ((home-gwaverc (string-append (getenv "HOME") "/.gwaverc"))
+       (system-gwaverc (string-append gwave-datadir
+ 				     "/guile/app/gwave/system.gwaverc")))
+--- gwave-20190116-guile3/configure.orig	2020-02-05 20:07:16.537426920 +0000
++++ gwave-20190116-guile3/configure	2020-02-05 20:06:43.393428501 +0000
+@@ -6278,7 +6278,7 @@
+ 		PKG_CONFIG=""
+ 	fi
+ fi
+-  _guile_versions_to_search="2.2 2.0"
++  _guile_versions_to_search="3.0 2.2 2.0"
+   if test -n "$GUILE_EFFECTIVE_VERSION"; then
+     _guile_tmp=""
+     for v in $_guile_versions_to_search; do
