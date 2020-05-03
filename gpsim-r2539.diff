@@ -1,0 +1,108 @@
+--- gpsim-r2539/gui/gui_breadboard.cc.orig	2020-04-25 10:06:06.000000000 +0100
++++ gpsim-r2539/gui/gui_breadboard.cc	2020-05-02 21:59:40.657596216 +0100
+@@ -998,12 +998,24 @@
+ }
+ 
+ 
+-static void treeselect_cb(GtkTreeSelection *selection, gpointer)
++static void treeselect_cb(GtkTreeSelection *selection, gpointer p)
+ {
+   GtkTreeModel *model;
+   GtkTreeIter iter;
++  Breadboard_Window *bbw = (Breadboard_Window *)p;
++  gboolean selected =
+   gtk_tree_selection_get_selected(selection, &model, &iter);
+ 
++  if (!selected) {
++      gtk_widget_hide(bbw->node_frame);
++      gtk_widget_hide(bbw->stimulus_frame);
++      gtk_widget_hide(bbw->module_frame);
++      bbw->selected_pin = nullptr;
++      bbw->selected_node = nullptr;
++      bbw->selected_module = nullptr;
++      return;
++  }
++
+   if (!iter.stamp) {
+     return;
+   }
+@@ -1023,7 +1035,7 @@
+     }
+ 
+   } else {
+-    if (strlen(spath) > 1) {
++    if (strchr(spath, ':')) {
+       GuiPin *gp;
+       gtk_tree_model_get(model, &iter, 1, &gp, -1);
+       treeselect_stimulus(gp);
+@@ -1173,6 +1185,21 @@
+     gtk_widget_show(p->bbw()->module_frame);
+     UpdateModuleFrame(p, p->bbw());
+     p->bbw()->selected_module = p;
++
++    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(p->bbw()->tree));
++    GtkTreeIter iter;
++    gtk_tree_model_get_iter_first(model, &iter);
++
++    do {
++      GuiModule *q;
++      gtk_tree_model_get (model, &iter, 1, &q);
++      if (q == p) {
++        GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
++        gtk_tree_view_set_cursor(GTK_TREE_VIEW(p->bbw()->tree), path, NULL, false);
++        gtk_tree_path_free (path);
++        break;
++      }
++    } while (gtk_tree_model_iter_next(model, &iter));
+   }
+ }
+ 
+@@ -1875,14 +1902,15 @@
+   GtkTreeSelection *selection;
+   gui_node *gn;
+   selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->tree);
+-  gtk_tree_selection_get_selected(selection, &model, &iter);
+-  gtk_tree_model_get(model, &iter, 1, &gn, -1);
+-  gtk_tree_store_remove((GtkTreeStore*) model, &iter);
+-  g_object_set_data(G_OBJECT(bbw->tree), gn->node->name().c_str(), nullptr);
+-  delete gn;
+-  gtk_widget_hide(bbw->node_frame);
+-  gtk_widget_hide(bbw->stimulus_frame);
+-  gtk_widget_hide(bbw->module_frame);
++  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
++    gtk_tree_model_get(model, &iter, 1, &gn, -1);
++    gtk_tree_store_remove((GtkTreeStore*) model, &iter);
++    g_object_set_data(G_OBJECT(bbw->tree), gn->node->name().c_str(), nullptr);
++    delete gn;
++    gtk_widget_hide(bbw->node_frame);
++    gtk_widget_hide(bbw->stimulus_frame);
++    gtk_widget_hide(bbw->module_frame);
++  }
+ }
+ 
+ 
+@@ -1893,10 +1921,11 @@
+   GtkTreeModel *model;
+   GtkTreeIter iter;
+   selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->node_clist);
+-  gtk_tree_selection_get_selected(selection, &model, &iter);
+-  gtk_tree_model_get(model, &iter, 1, &s, -1);
+-  bbw->selected_node->node->detach_stimulus(s);
+-  gtk_list_store_remove((GtkListStore*) model, &iter);
++  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
++    gtk_tree_model_get(model, &iter, 1, &s, -1);
++    bbw->selected_node->node->detach_stimulus(s);
++    gtk_list_store_remove((GtkListStore*) model, &iter);
++  }
+ }
+ 
+ 
+@@ -3055,7 +3084,7 @@
+                nullptr);
+   g_signal_connect(gtk_tree_view_get_selection((GtkTreeView*) tree1),
+                    "changed", (GCallback) treeselect_cb,
+-                   nullptr);
++                   this);
+   gtk_widget_show(tree1);
+   gtk_container_add(GTK_CONTAINER(scrolledwindow4), tree1);
+   hbox12 = bb_hbox();
