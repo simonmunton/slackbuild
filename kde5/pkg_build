@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ -z "$4" ]
+then
+  echo not enough args
+  exit 1
+fi
+
+fn=$1
+bv=$2
+ov=$3
+nv=$4
+
+for f in `cat $fn`; do if grep $bv $f.build; then sed -i -e "s/$ov/$nv/" $f.build; fi; done
+for f in `cat $fn`; do grep -H patch $f.build | grep -v '#'; done
+for f in `cat $fn`; do ../build_reset $f.build; done
+for f in `cat $fn`; do grep ^VERSION $f.build; done | sort -u
