@@ -1,6 +1,14 @@
 --- gpsim-r2539/gui/gui_breadboard.cc.orig	2020-04-25 10:06:06.000000000 +0100
-+++ gpsim-r2539/gui/gui_breadboard.cc	2020-05-02 21:59:40.657596216 +0100
-@@ -998,12 +998,24 @@
++++ gpsim-r2539/gui/gui_breadboard.cc	2020-05-09 17:53:42.542823858 +0100
+@@ -953,6 +953,7 @@
+ 
+ static const char * stim_full_name(stimulus *stimulus)
+ {
++  full_name = "";
+   stim = stimulus;
+   globalSymbolTable().SymbolTable::ForEachModule(scanModules);
+   return full_name.c_str();
+@@ -998,12 +999,24 @@
  }
  
  
@@ -26,7 +34,7 @@
    if (!iter.stamp) {
      return;
    }
-@@ -1023,7 +1035,7 @@
+@@ -1023,7 +1036,7 @@
      }
  
    } else {
@@ -35,7 +43,7 @@
        GuiPin *gp;
        gtk_tree_model_get(model, &iter, 1, &gp, -1);
        treeselect_stimulus(gp);
-@@ -1173,6 +1185,21 @@
+@@ -1173,6 +1186,21 @@
      gtk_widget_show(p->bbw()->module_frame);
      UpdateModuleFrame(p, p->bbw());
      p->bbw()->selected_module = p;
@@ -57,7 +65,60 @@
    }
  }
  
-@@ -1875,14 +1902,15 @@
+@@ -1824,10 +1852,11 @@
+ 
+ void Breadboard_Window::remove_module(GtkWidget *, Breadboard_Window *bbw)
+ {
+-  delete bbw->selected_module->module();
++  GuiModule *selected_module = bbw->selected_module;
++  delete selected_module->module();
+   // FIXME the rest should be as callback from src
+   // Remove pins
+-  std::vector<GuiPin *> *e = bbw->selected_module->pins();
++  std::vector<GuiPin *> *e = selected_module->pins();
+   std::vector<GuiPin *>::iterator pin_iter = e->begin();
+ 
+   for (; pin_iter != e->end(); ++pin_iter) {
+@@ -1836,16 +1865,16 @@
+   }
+ 
+   // Remove widget
+-  if (bbw->selected_module->module_widget())
++  if (selected_module->module_widget())
+     gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                         bbw->selected_module->module_widget());
++                         selected_module->module_widget());
+ 
+-  if (bbw->selected_module->pinLabel_widget())
++  if (selected_module->pinLabel_widget())
+     gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                         bbw->selected_module->pinLabel_widget());
++                         selected_module->pinLabel_widget());
+ 
+   gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                       bbw->selected_module->name_widget());
++                       selected_module->name_widget());
+   // Remove module from tree
+   GtkTreeModel *model;
+   GtkTreeSelection *selection;
+@@ -1856,14 +1885,14 @@
+   gtk_tree_store_remove((GtkTreeStore*) model, &iter);
+   // Remove from local list of modules
+   std::vector<GuiModule *>::iterator mi =
+-    std::find(bbw->modules.begin(), bbw->modules.end(), bbw->selected_module);
++    std::find(bbw->modules.begin(), bbw->modules.end(), selected_module);
+ 
+   if (mi != bbw->modules.end()) {
+     bbw->modules.erase(mi);
+   }
+ 
+   gtk_widget_hide(bbw->module_frame);
+-  delete bbw->selected_module;
++  delete selected_module;
+   bbw->selected_module = nullptr;
+ }
+ 
+@@ -1875,14 +1904,15 @@
    GtkTreeSelection *selection;
    gui_node *gn;
    selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->tree);
@@ -81,7 +142,7 @@
  }
  
  
-@@ -1893,10 +1921,11 @@
+@@ -1893,10 +1923,11 @@
    GtkTreeModel *model;
    GtkTreeIter iter;
    selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->node_clist);
@@ -97,7 +158,75 @@
  }
  
  
-@@ -3055,7 +3084,7 @@
+@@ -1961,17 +1992,32 @@
+ {
+   Module *m;
+   char *filename = gui_get_filename(stc_file);
++  int fd;
++  char name_template[] = "stcXXXXXX";
+ 
+   if (!filename) {
+     return;
+   }
+ 
+-  if ((fo = fopen(filename, "w")) == nullptr) {
+-    perror(filename);
+-    g_free(filename);
+-    return;
++  fd = mkstemp(name_template);
++  if (fd < 0) {
++      perror("mkstemp");
++      g_free(filename);
++      return;
++  }
++
++  if ((fo = fdopen(fd, "w")) == nullptr) {
++      perror("fdopen");
++      g_free(filename);
++      return;
+   }
+ 
++//   if ((fo = fopen(filename, "w")) == nullptr) {
++//     perror(filename);
++//     g_free(filename);
++//     return;
++//   }
++
+   stc_file = filename;
+   fprintf(fo, "\n# This file was written by gpsim.\n");
+   fprintf(fo, "\n# You can use this file for example like this:");
+@@ -2047,10 +2093,17 @@
+     fprintf(fo, "node %s\n", node->name().c_str());
+ 
+     if (node->stimuli != 0) {
+-      fprintf(fo, "attach %s", node->name().c_str());
++      bool done_attach = false;
+ 
+       for (stimulus = node->stimuli; stimulus; stimulus = stimulus->next) {
+-        fprintf(fo, " %s", stim_full_name(stimulus));
++        const char *name = stim_full_name(stimulus);
++        if (name[0] != '\0') {
++          if (!done_attach) {
++            done_attach = true;
++            fprintf(fo, "attach %s", node->name().c_str());
++          }
++          fprintf(fo, " %s", name);
++        }
+       }
+     }
+ 
+@@ -2060,6 +2113,10 @@
+   fprintf(fo, "\n\n# End.\n");
+   fclose(fo);
+   fo = nullptr;
++
++  rename(name_template, filename);
++
++  g_free(filename);
+   //text_dialog(filename);
+ }
+ 
+@@ -3055,7 +3112,7 @@
                 nullptr);
    g_signal_connect(gtk_tree_view_get_selection((GtkTreeView*) tree1),
                     "changed", (GCallback) treeselect_cb,
