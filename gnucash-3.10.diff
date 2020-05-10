@@ -1,0 +1,226 @@
+--- gnucash-3.10/CMakeLists.txt.orig	2020-04-11 17:29:32.000000000 +0100
++++ gnucash-3.10/CMakeLists.txt	2020-04-12 17:36:56.412254304 +0100
+@@ -321,6 +321,23 @@
+ # Look for guile versions in this order: 2.2 > 2.0
+ 
+ # guile library and include dir
++pkg_check_modules (GUILE3 guile-3.0 QUIET)
++if (GUILE3_FOUND) # found guile-3.0
++
++  add_definitions (-DHAVE_GUILE22)
++  set(HAVE_GUILE2 TRUE)
++  set(GUILE_EFFECTIVE_VERSION 3.0)
++  set(GUILE_INCLUDE_DIRS ${GUILE3_INCLUDE_DIRS})
++  set(GUILE_LDFLAGS ${GUILE3_LDFLAGS})
++
++  find_program (GUILD_EXECUTABLE NAMES guild3.0 guild)
++  if (NOT GUILD_EXECUTABLE)
++    message (SEND_ERROR "The guild executable was not found, but is required. Please set GUILD_EXECUTABLE.")
++  endif (NOT GUILD_EXECUTABLE)
++  message(STATUS "Using guile-3.0.x")
++  find_program (GUILE_EXECUTABLE NAMES guile3.0 guile)
++
++else(GUILE3_FOUND)
+ pkg_check_modules (GUILE22 guile-2.2 QUIET)
+ if (GUILE22_FOUND) # found guile-2.2
+   add_definitions (-DHAVE_GUILE22)
+@@ -354,6 +371,7 @@
+     message (FATAL_ERROR "Neither guile 2.2 nor guile 2.0 were found GnuCash can't run without one of them. Ensure that one is installed and can be found with pkg-config.")
+   endif()
+ endif()
++endif()
+ 
+ if (NOT GUILE_EXECUTABLE)
+   message (SEND_ERROR "The guile executable was not found, but is required. Please set GUILE_EXECUTABLE.")
+@@ -552,9 +570,12 @@
+ if (NOT DEFINED ${BOOST_ROOT})
+   set(BOOST_ROOT $ENV{BOOST_ROOT})
+ endif()
++set(BUILD_SHARED_LIBS on)
+ find_package (Boost 1.54.0 REQUIRED COMPONENTS date_time regex locale filesystem system)
++set(BUILD_SHARED_LIBS off)
+ 
+ if (Boost_FOUND)
++  set(Boost_LIBRARIES Boost::date_time Boost::regex Boost::locale Boost::filesystem Boost::system)
+   include_directories(${Boost_INCLUDE_DIRS})
+   set(HAVE_BOOST 1)
+ else()
+@@ -589,14 +610,14 @@
+ 
+ 
+ if (UNIX)
+-  set( CMAKE_C_FLAGS "-Werror -Wdeclaration-after-statement -Wno-pointer-sign -Wall -Wmissing-prototypes -Wmissing-declarations -Wno-unused ${CMAKE_C_FLAGS}")
++  set( CMAKE_C_FLAGS "-Wdeclaration-after-statement -Wno-pointer-sign -Wall -Wmissing-prototypes -Wmissing-declarations -Wno-unused ${CMAKE_C_FLAGS}")
+   set( CMAKE_C_FLAGS "-Wno-error=deprecated-declarations -std=gnu11 -Wno-error=parentheses ${CMAKE_C_FLAGS}")
+-  set( CMAKE_CXX_FLAGS "-Werror -Wall -Wmissing-declarations -Wno-unused -Wno-error=parentheses ${CMAKE_CXX_FLAGS}")
++  set( CMAKE_CXX_FLAGS "-Wall -Wmissing-declarations -Wno-unused -Wno-error=parentheses ${CMAKE_CXX_FLAGS}")
+   set( CMAKE_CXX_FLAGS "-Wno-error=deprecated-declarations ${REGISTER_CXXFLAG} ${CMAKE_CXX_FLAGS}")
+   set( CMAKE_C_FLAGS_RELEASE "-O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 ${CMAKE_C_FLAGS}")
+ endif()
+ if (MINGW)
+-  set( CMAKE_C_FLAGS "-Werror -Wdeclaration-after-statement -Wno-pointer-sign -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations  -Wno-unused -Wno-error=deprecated-declarations -std=gnu11 ${CMAKE_C_FLAGS}")
++  set( CMAKE_C_FLAGS "-Wdeclaration-after-statement -Wno-pointer-sign -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations  -Wno-unused -Wno-error=deprecated-declarations -std=gnu11 ${CMAKE_C_FLAGS}")
+   set( CMAKE_CXX_FLAGS "-DWINVER=0x0500 -D_EMULATE_GLIBC=0 ${CMAKE_CXX_FLAGS}") # Workaround for bug in gtest on mingw, see https://github.com/google/googletest/issues/893 and https://github.com/google/googletest/issues/920
+ endif()
+ 
+--- gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv-price.cpp.orig	2020-03-15 19:41:11.000000000 +0000
++++ gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv-price.cpp	2020-05-10 10:54:58.293394741 +0100
+@@ -29,6 +29,7 @@
+ #include "gnc-imp-settings-csv.hpp"
+ #include "gnc-imp-settings-csv-price.hpp"
+ #include <sstream>
++#include <algorithm>
+ 
+ extern "C"
+ {
+--- gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv-tx.cpp.orig	2019-09-14 19:56:03.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv-tx.cpp	2020-05-10 10:56:18.895390895 +0100
+@@ -29,6 +29,7 @@
+ #include "gnc-imp-settings-csv.hpp"
+ #include "gnc-imp-settings-csv-tx.hpp"
+ #include <sstream>
++#include <algorithm>
+ 
+ extern "C"
+ {
+--- gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv.cpp.orig	2019-09-14 19:56:03.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/csv-imp/gnc-imp-settings-csv.cpp	2020-05-10 10:54:17.158396704 +0100
+@@ -28,6 +28,7 @@
+ 
+ #include "gnc-imp-settings-csv.hpp"
+ #include <sstream>
++#include <algorithm>
+ 
+ extern "C"
+ {
+--- gnucash-3.10/gnucash/import-export/csv-imp/assistant-csv-price-import.cpp.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/csv-imp/assistant-csv-price-import.cpp	2020-05-10 10:52:55.319400608 +0100
+@@ -29,6 +29,8 @@
+ 
+ #include <guid.hpp>
+ 
++#include <algorithm>
++
+ extern "C"
+ {
+ #include "config.h"
+--- gnucash-3.10/gnucash/import-export/qif-imp/qif-dialog-utils.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/qif-imp/qif-dialog-utils.scm	2020-04-12 17:36:56.405254304 +0100
+@@ -25,6 +25,7 @@
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (use-modules (gnucash import-export string))
++(use-modules (gnucash gettext))
+ 
+ (define (default-stock-acct brokerage security)
+   (string-append brokerage (gnc-get-account-separator-string) security))
+--- gnucash-3.10/gnucash/import-export/qif-imp/qif-merge-groups.scm.orig	2020-03-29 19:50:03.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/qif-imp/qif-merge-groups.scm	2020-04-12 17:36:56.405254304 +0100
+@@ -23,6 +23,7 @@
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;  gnc:account-tree-find-duplicates
+--- gnucash-3.10/gnucash/import-export/qif-imp/qif-parse.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/qif-imp/qif-parse.scm	2020-04-12 17:36:56.405254304 +0100
+@@ -24,6 +24,7 @@
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (use-modules (gnucash import-export string))
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-13))
+ 
+ (define regexp-enabled?
+--- gnucash-3.10/gnucash/import-export/qif-imp/qif-file.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/qif-imp/qif-file.scm	2020-04-12 17:36:56.406254304 +0100
+@@ -27,6 +27,7 @@
+ 
+ (use-modules (gnucash core-utils))
+ (use-modules (gnucash import-export string))
++(use-modules (gnucash gettext))
+ (use-modules (ice-9 regex))
+ (use-modules (srfi srfi-13))
+ (use-modules (ice-9 rdelim))
+--- gnucash-3.10/gnucash/import-export/qif-imp/qif-to-gnc.scm.orig	2020-04-11 17:28:50.000000000 +0100
++++ gnucash-3.10/gnucash/import-export/qif-imp/qif-to-gnc.scm	2020-04-12 17:36:56.406254304 +0100
+@@ -28,6 +28,7 @@
+ (use-modules (srfi srfi-13))
+ (use-modules (ice-9 match))
+ (use-modules (gnucash import-export string))
++(use-modules (gnucash gettext))
+ 
+ (define (n- n) (gnc-numeric-neg n))
+ (define (nsub a b) (gnc-numeric-sub a b 0 GNC-DENOM-LCD))
+--- gnucash-3.10/gnucash/report/report-gnome/dialog-report-column-view.c.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/report/report-gnome/dialog-report-column-view.c	2020-04-12 17:36:56.407254304 +0100
+@@ -490,7 +490,7 @@
+                 oldlist = SCM_CDR(oldlist);
+             }
+             newlist = scm_append
+-                      (scm_list_n (scm_reverse(scm_cons(SCM_LIST4(new_report,
++                      (scm_list_n (scm_reverse(scm_cons(scm_list_4(new_report,
+                                                scm_from_int (1),
+                                                scm_from_int (1),
+                                                SCM_BOOL_F),
+@@ -502,7 +502,7 @@
+         {
+             newlist = scm_append
+                       (scm_list_n (oldlist,
+-                                   SCM_LIST1(SCM_LIST4(new_report,
++                                   scm_list_1(scm_list_4(new_report,
+                                              scm_from_int (1),
+                                              scm_from_int (1),
+                                              SCM_BOOL_F)),
+@@ -680,7 +680,7 @@
+ 
+         if (dlg_ret == GTK_RESPONSE_OK)
+         {
+-            current = SCM_LIST4(SCM_CAR(current),
++            current = scm_list_4(SCM_CAR(current),
+                                 scm_from_int (gtk_spin_button_get_value_as_int
+                                               (GTK_SPIN_BUTTON(colspin))),
+                                 scm_from_int (gtk_spin_button_get_value_as_int
+--- gnucash-3.10/gnucash/report/report-system/report-utilities.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/report/report-system/report-utilities.scm	2020-04-12 17:36:56.407254304 +0100
+@@ -17,6 +17,7 @@
+ ;; 51 Franklin Street, Fifth Floor    Fax:    +1-617-542-2652
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ 
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-13))
+ (use-modules (ice-9 format))
+ (use-modules (ice-9 match))
+--- gnucash-3.10/gnucash/report/report-system/html-acct-table.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/report/report-system/html-acct-table.scm	2020-04-12 17:36:56.407254304 +0100
+@@ -495,6 +495,7 @@
+ ;; user.  This class simply maps its contents to the html-table.
+ ;; 
+ 
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-2))
+ (use-modules (srfi srfi-9))
+ 
+--- gnucash-3.10/gnucash/report/report-system/html-utilities.scm.orig	2020-04-11 17:28:19.000000000 +0100
++++ gnucash-3.10/gnucash/report/report-system/html-utilities.scm	2020-04-12 17:36:56.408254304 +0100
+@@ -23,6 +23,7 @@
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (use-modules (gnucash utilities))
++(use-modules (gnucash gettext))
+ 
+ ;; returns a list with n #f (empty cell) values 
+ (define (gnc:html-make-empty-cell) #f)
+--- gnucash-3.10/libgnucash/app-utils/c-interface.scm.orig	2020-03-29 19:50:03.000000000 +0100
++++ gnucash-3.10/libgnucash/app-utils/c-interface.scm	2020-04-12 17:36:56.408254304 +0100
+@@ -15,6 +15,8 @@
+ ;; 51 Franklin Street, Fifth Floor    Fax:    +1-617-542-2652
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ 
++(use-modules (gnucash gettext))
++
+ (define (gnc:call-with-error-handling cmd args)
+   (let ((captured-stack #f)
+         (captured-error #f)
