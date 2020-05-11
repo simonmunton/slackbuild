@@ -1,0 +1,43 @@
+From 6ea414ec5c47863d7f2237fbfe4af9173a88bbf2 Mon Sep 17 00:00:00 2001
+From: Simon Munton <simon.j.munton@gmail.com>
+Date: Mon, 11 May 2020 20:15:04 +0100
+Subject: [PATCH 4/4] Fix getting address to set breakpoint at
+
+---
+ gui/gui_src_opcode.cc | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gui/gui_src_opcode.cc b/gui/gui_src_opcode.cc
+index 29eb8c3..820b81f 100644
+--- a/gui/gui_src_opcode.cc
++++ b/gui/gui_src_opcode.cc
+@@ -187,7 +187,7 @@ SourceBrowserOpcode_Window::popup_activated(GtkWidget *widget,
+         gint break_row;
+         gtk_tree_model_get(model, &iter, gint(ADDRESS_COLUMN), &break_row, -1);
+ 
+-        unsigned address = sbow->gp->cpu->map_pm_index2address(break_row);
++        unsigned address = break_row; //sbow->gp->cpu->map_pm_index2address(break_row);
+         sbow->gp->cpu->pma->clear_break_at_address(address,
+             instruction::BREAKPOINT_INSTRUCTION);
+       }
+@@ -199,7 +199,7 @@ SourceBrowserOpcode_Window::popup_activated(GtkWidget *widget,
+         gint break_row;
+         gtk_tree_model_get(model, &iter, gint(ADDRESS_COLUMN), &break_row, -1);
+ 
+-        unsigned address = sbow->gp->cpu->map_pm_index2address(break_row);
++        unsigned address = break_row; //sbow->gp->cpu->map_pm_index2address(break_row);
+         if (!sbow->gp->cpu->pma->address_has_break(address))
+           sbow->gp->cpu->pma->set_break_at_address(address);
+       }
+@@ -311,7 +311,7 @@ void SourceBrowserOpcode_Window::row_selected(GtkTreeView *tree_view,
+     gint break_row;
+     gtk_tree_model_get(model, &iter, gint(ADDRESS_COLUMN), &break_row, -1);
+ 
+-    unsigned address = sbow->gp->cpu->map_pm_index2address(break_row);
++    unsigned address = break_row; // sbow->gp->cpu->map_pm_index2address(break_row);
+     sbow->gp->cpu->pma->toggle_break_at_address(address);
+   }
+ }
+-- 
+2.26.2
+

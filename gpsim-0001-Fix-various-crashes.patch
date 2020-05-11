@@ -1,0 +1,166 @@
+From c42bfdd23f8cfb5e58d49c65ea29147da59db6fa Mon Sep 17 00:00:00 2001
+From: Simon Munton <simon.j.munton@gmail.com>
+Date: Mon, 11 May 2020 20:13:01 +0100
+Subject: [PATCH 1/4] Fix various crashes
+
+---
+ gui/gui_breadboard.cc | 76 ++++++++++++++++++++++++++++++-------------
+ 1 file changed, 53 insertions(+), 23 deletions(-)
+
+diff --git a/gui/gui_breadboard.cc b/gui/gui_breadboard.cc
+index 38e26e4..fa6ea61 100644
+--- a/gui/gui_breadboard.cc
++++ b/gui/gui_breadboard.cc
+@@ -998,12 +998,24 @@ static void treeselect_node(gui_node *gui_node)
+ }
+ 
+ 
+-static void treeselect_cb(GtkTreeSelection *selection, gpointer)
++static void treeselect_cb(GtkTreeSelection *selection, gpointer p)
+ {
+   GtkTreeModel *model;
+   GtkTreeIter iter;
++  Breadboard_Window *bbw = (Breadboard_Window *)p;
++  gboolean selected =
+   gtk_tree_selection_get_selected(selection, &model, &iter);
+ 
++  if (!selected) {
++      gtk_widget_hide(bbw->node_frame);
++      gtk_widget_hide(bbw->stimulus_frame);
++      gtk_widget_hide(bbw->module_frame);
++      bbw->selected_pin = nullptr;
++      bbw->selected_node = nullptr;
++      bbw->selected_module = nullptr;
++      return;
++  }
++
+   if (!iter.stamp) {
+     return;
+   }
+@@ -1173,6 +1185,21 @@ static void treeselect_module(GuiModule *p)
+     gtk_widget_show(p->bbw()->module_frame);
+     UpdateModuleFrame(p, p->bbw());
+     p->bbw()->selected_module = p;
++
++    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(p->bbw()->tree));
++    GtkTreeIter iter;
++    gtk_tree_model_get_iter_first(model, &iter);
++
++    do {
++      GuiModule *q;
++      gtk_tree_model_get(model, &iter, 1, &q, -1);
++      if (q == p) {
++        GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
++        gtk_tree_view_set_cursor(GTK_TREE_VIEW(p->bbw()->tree), path, NULL, false);
++        gtk_tree_path_free (path);
++        break;
++      }
++    } while (gtk_tree_model_iter_next(model, &iter));
+   }
+ }
+ 
+@@ -1824,10 +1851,11 @@ static void add_module(GtkWidget *, Breadboard_Window *bbw)
+ 
+ void Breadboard_Window::remove_module(GtkWidget *, Breadboard_Window *bbw)
+ {
+-  delete bbw->selected_module->module();
++  GuiModule *selected_module = bbw->selected_module;
++  delete selected_module->module();
+   // FIXME the rest should be as callback from src
+   // Remove pins
+-  std::vector<GuiPin *> *e = bbw->selected_module->pins();
++  std::vector<GuiPin *> *e = selected_module->pins();
+   std::vector<GuiPin *>::iterator pin_iter = e->begin();
+ 
+   for (; pin_iter != e->end(); ++pin_iter) {
+@@ -1836,16 +1864,16 @@ void Breadboard_Window::remove_module(GtkWidget *, Breadboard_Window *bbw)
+   }
+ 
+   // Remove widget
+-  if (bbw->selected_module->module_widget())
++  if (selected_module->module_widget())
+     gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                         bbw->selected_module->module_widget());
++                         selected_module->module_widget());
+ 
+-  if (bbw->selected_module->pinLabel_widget())
++  if (selected_module->pinLabel_widget())
+     gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                         bbw->selected_module->pinLabel_widget());
++                         selected_module->pinLabel_widget());
+ 
+   gtk_container_remove(GTK_CONTAINER(bbw->layout),
+-                       bbw->selected_module->name_widget());
++                       selected_module->name_widget());
+   // Remove module from tree
+   GtkTreeModel *model;
+   GtkTreeSelection *selection;
+@@ -1856,14 +1884,14 @@ void Breadboard_Window::remove_module(GtkWidget *, Breadboard_Window *bbw)
+   gtk_tree_store_remove((GtkTreeStore*) model, &iter);
+   // Remove from local list of modules
+   std::vector<GuiModule *>::iterator mi =
+-    std::find(bbw->modules.begin(), bbw->modules.end(), bbw->selected_module);
++    std::find(bbw->modules.begin(), bbw->modules.end(), selected_module);
+ 
+   if (mi != bbw->modules.end()) {
+     bbw->modules.erase(mi);
+   }
+ 
+   gtk_widget_hide(bbw->module_frame);
+-  delete bbw->selected_module;
++  delete selected_module;
+   bbw->selected_module = nullptr;
+ }
+ 
+@@ -1875,14 +1903,15 @@ static void remove_node(GtkWidget *, Breadboard_Window *bbw)
+   GtkTreeSelection *selection;
+   gui_node *gn;
+   selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->tree);
+-  gtk_tree_selection_get_selected(selection, &model, &iter);
+-  gtk_tree_model_get(model, &iter, 1, &gn, -1);
+-  gtk_tree_store_remove((GtkTreeStore*) model, &iter);
+-  g_object_set_data(G_OBJECT(bbw->tree), gn->node->name().c_str(), nullptr);
+-  delete gn;
+-  gtk_widget_hide(bbw->node_frame);
+-  gtk_widget_hide(bbw->stimulus_frame);
+-  gtk_widget_hide(bbw->module_frame);
++  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
++    gtk_tree_model_get(model, &iter, 1, &gn, -1);
++    gtk_tree_store_remove((GtkTreeStore*) model, &iter);
++    g_object_set_data(G_OBJECT(bbw->tree), gn->node->name().c_str(), nullptr);
++    delete gn;
++    gtk_widget_hide(bbw->node_frame);
++    gtk_widget_hide(bbw->stimulus_frame);
++    gtk_widget_hide(bbw->module_frame);
++  }
+ }
+ 
+ 
+@@ -1893,10 +1922,11 @@ static void remove_node_stimulus(GtkWidget *, Breadboard_Window *bbw)
+   GtkTreeModel *model;
+   GtkTreeIter iter;
+   selection = gtk_tree_view_get_selection((GtkTreeView*) bbw->node_clist);
+-  gtk_tree_selection_get_selected(selection, &model, &iter);
+-  gtk_tree_model_get(model, &iter, 1, &s, -1);
+-  bbw->selected_node->node->detach_stimulus(s);
+-  gtk_list_store_remove((GtkListStore*) model, &iter);
++  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
++    gtk_tree_model_get(model, &iter, 1, &s, -1);
++    bbw->selected_node->node->detach_stimulus(s);
++    gtk_list_store_remove((GtkListStore*) model, &iter);
++  }
+ }
+ 
+ 
+@@ -3055,7 +3085,7 @@ void Breadboard_Window::Build()
+                nullptr);
+   g_signal_connect(gtk_tree_view_get_selection((GtkTreeView*) tree1),
+                    "changed", (GCallback) treeselect_cb,
+-                   nullptr);
++                   this);
+   gtk_widget_show(tree1);
+   gtk_container_add(GTK_CONTAINER(scrolledwindow4), tree1);
+   hbox12 = bb_hbox();
+-- 
+2.26.2
+

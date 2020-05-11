@@ -1,0 +1,39 @@
+From 55e12ccfd823ef01a5b6c2ed16ddc4aea1e6454f Mon Sep 17 00:00:00 2001
+From: Simon Munton <simon.j.munton@gmail.com>
+Date: Mon, 11 May 2020 22:16:12 +0100
+Subject: [PATCH 5/5] Limit closest distance picking
+
+---
+ gui/gui_breadboard.cc | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/gui/gui_breadboard.cc b/gui/gui_breadboard.cc
+index eea7a65..7ff217e 100644
+--- a/gui/gui_breadboard.cc
++++ b/gui/gui_breadboard.cc
+@@ -1271,6 +1271,13 @@ double GuiModule::Distance(int px, int py)
+ {
+   double distance;
+   double min_distance = 100000000.0;
++
++  // Check if inside
++  if (m_x <= px && px <= (m_x + m_width) &&
++      m_y <= py && py <= (m_y + m_height)) {
++      return 0.0;
++  }
++
+   // Upper left
+   distance = sqrt((double)abs(m_x - px) * abs(m_x - px) +
+                   abs(m_y - py) * abs(m_y - py));
+@@ -1323,7 +1330,7 @@ static GuiModule *find_closest_module(Breadboard_Window *bbw, int x, int y)
+     }
+   }
+ 
+-  return closest;
++  return min_distance < 10.0 ? closest : nullptr;
+ }
+ 
+ 
+-- 
+2.26.2
+

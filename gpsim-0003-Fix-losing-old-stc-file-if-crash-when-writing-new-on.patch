@@ -1,0 +1,92 @@
+From 82019530a5c8c5a2cfba82421d968ba261a4954a Mon Sep 17 00:00:00 2001
+From: Simon Munton <simon.j.munton@gmail.com>
+Date: Mon, 11 May 2020 20:14:34 +0100
+Subject: [PATCH 3/4] Fix losing old stc file if crash when writing new one
+
+---
+ gui/gui_breadboard.cc | 39 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 6 deletions(-)
+
+diff --git a/gui/gui_breadboard.cc b/gui/gui_breadboard.cc
+index e1cf42b..eea7a65 100644
+--- a/gui/gui_breadboard.cc
++++ b/gui/gui_breadboard.cc
+@@ -953,6 +953,7 @@ static void scanModules(const SymbolTableEntry_t &st)
+ 
+ static const char * stim_full_name(stimulus *stimulus)
+ {
++  full_name = "";
+   stim = stimulus;
+   globalSymbolTable().SymbolTable::ForEachModule(scanModules);
+   return full_name.c_str();
+@@ -1991,17 +1992,32 @@ static void save_stc(GtkWidget *, Breadboard_Window *bbw)
+ {
+   Module *m;
+   char *filename = gui_get_filename(stc_file);
++  int fd;
++  char name_template[] = "stcXXXXXX";
+ 
+   if (!filename) {
+     return;
+   }
+ 
+-  if ((fo = fopen(filename, "w")) == nullptr) {
+-    perror(filename);
+-    g_free(filename);
+-    return;
++  fd = mkstemp(name_template);
++  if (fd < 0) {
++      perror("mkstemp");
++      g_free(filename);
++      return;
++  }
++
++  if ((fo = fdopen(fd, "w")) == nullptr) {
++      perror("fdopen");
++      g_free(filename);
++      return;
+   }
+ 
++//   if ((fo = fopen(filename, "w")) == nullptr) {
++//     perror(filename);
++//     g_free(filename);
++//     return;
++//   }
++
+   stc_file = filename;
+   fprintf(fo, "\n# This file was written by gpsim.\n");
+   fprintf(fo, "\n# You can use this file for example like this:");
+@@ -2077,10 +2093,17 @@ static void save_stc(GtkWidget *, Breadboard_Window *bbw)
+     fprintf(fo, "node %s\n", node->name().c_str());
+ 
+     if (node->stimuli != 0) {
+-      fprintf(fo, "attach %s", node->name().c_str());
++      bool done_attach = false;
+ 
+       for (stimulus = node->stimuli; stimulus; stimulus = stimulus->next) {
+-        fprintf(fo, " %s", stim_full_name(stimulus));
++        const char *name = stim_full_name(stimulus);
++        if (name[0] != '\0') {
++          if (!done_attach) {
++            done_attach = true;
++            fprintf(fo, "attach %s", node->name().c_str());
++          }
++          fprintf(fo, " %s", name);
++        }
+       }
+     }
+ 
+@@ -2090,6 +2113,10 @@ static void save_stc(GtkWidget *, Breadboard_Window *bbw)
+   fprintf(fo, "\n\n# End.\n");
+   fclose(fo);
+   fo = nullptr;
++
++  rename(name_template, filename);
++
++  g_free(filename);
+   //text_dialog(filename);
+ }
+ 
+-- 
+2.26.2
+
