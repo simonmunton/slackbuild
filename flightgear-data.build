@@ -2,13 +2,13 @@
 #
 . build_funcs
 
-TARNAME=flightgear
+TARNAME=FlightGear
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f/FlightGear
 #TAR_EXT=.tar.gz
 VERSION=2020.1.1
-VERSIONEXTRA=
+VERSIONEXTRA=-data
 BUILD=1
 
 WEBPAGE="http://www.flightgear.org"
@@ -17,7 +17,7 @@ DATA=FlightGear-2020.1.1-data.tar.bz2
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=FlightGear
+PKGNAME=FlightGear-data
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -35,74 +35,13 @@ then
   exit
 fi
 
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mkdir -p ${PKG}/usr/share/
 
-if [ ! -d ${TARNAME}-${VERSION} ]
-then 
-  echo "${TARNAME}-${VERSION} directory not found"
-  exit
-fi
-
-(cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/flightgear-3.2.0.diff
-# patch -p1 < ${CWD}/flightgear-osg.diff
-
- mv version version.flightgear
- sed -i -e 's/READ version /READ version.flightgear /' CMakeLists.txt
+(
+ cd ${PKG}/usr/share/
+ tar xf ${TARDIR}/${DATA}
+ mv fgdata FlightGear
 )
-fi
-
-pre_configure
-
-cd ${TARNAME}-${VERSION}
-
-fix_perms
-
-mkdir _BuilD_
-
-if [ ${DO_CONFIGURE} == "yes" ]
-then
-pushd _BuilD_
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      -DFG_DATA_DIR=/usr/share/FlightGear \
-      ..
-popd
-fi
-
-if [ ${DO_MAKE} == "yes" ]
-then
-pushd _BuilD_
-make ${NUM_JOBS} || exit
-popd
-fi
-
-if [ ${DO_INSTALL} != "yes" ]
-then
-  exit
-fi
-
-pushd _BuilD_
-make install DESTDIR=${PKG}
-popd
-
-mkdir -p ${PKG}/usr/share/FlightGear
-
-#mkdir -p ${PKG}/usr/share/
-
-#(
-# cd ${PKG}/usr/share/
-# tar xf ${TARDIR}/${DATA}
-# mv fgdata FlightGear
-#)
 
 #strip_binaries
 
@@ -111,10 +50,6 @@ fix_links
 compress_manpages
 
 compress_info
-
-cp -a \
-  AUTHORS COPYING INSTALL NEWS README* Thanks docs-mini \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
