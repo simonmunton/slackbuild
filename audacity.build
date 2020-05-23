@@ -7,7 +7,7 @@ TARNAME=audacity-minsrc
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=2.3.3
+VERSION=2.4.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/audacity-minsrc-2.1.0.diff
+ patch -p1 -b -z .orig < ${CWD}/audacity-minsrc-2.4.1.diff
 )
 fi
 
@@ -56,13 +56,18 @@ export WX_CONFIG="/usr/bin/wx-config --version=3.0"
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 #CFLAGS="${SLKCFLAGS} -ggdb" \
 #CXXFLAGS="${SLKCFLAGS} -ggdb" \
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -70,8 +75,18 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
             --with-libsamplerate=system \
             --with-libsndfile=system \
-	    --with-sbsms=local \
-
+	    --with-sbsms=local
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+fi
 fi
 
 if [ ${DO_MAKE} == "yes" ]
