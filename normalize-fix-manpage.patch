@@ -1,0 +1,210 @@
+Author: Joachim Reichel <reichel@debian.org>
+Description: Replace invalid groff input character by corresponding escape sequence.
+Use \- instead of - to represent minus signs.
+--- a/doc/normalize-mp3.1
++++ b/doc/normalize-mp3.1
+@@ -33,7 +33,7 @@
+ The following four options may be used to set the encoder and decoder
+ commands for mp3 and ogg vorbis.  %m is expanded to the name of the
+ mp3 or vorbis file, %w expands to the name of the temporary WAV file,
+-and %b expands to the bitrate, as specified by the --bitrate option.
++and %b expands to the bitrate, as specified by the \-\-bitrate option.
+ Run \fBnormalize-mp3\fR with no arguments to see the default values.
+ .TP
+ \fB--mp3encode=\fIX\fR
+@@ -80,4 +80,4 @@
+ .B normalize-audio(1)
+ Man page
+ .SH "NOTES"
+-This page was provided by Eduardo Maçan <macan@debian.org>
++This page was provided by Eduardo Ma\[,c]an <macan@debian.org>
+--- a/doc/normalize.1
++++ b/doc/normalize.1
+@@ -3,126 +3,126 @@
+ .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
+ .\" Please send any bug reports, improvements, comments, patches, 
+ .\" etc. to Steve Cheng <steve@ggi-project.org>.
+-.TH "NORMALIZE-AUDIO" "1" "14 September 2005" "" ""
++.TH "NORMALIZE\-AUDIO" "1" "14 September 2005" "" ""
+ 
+ .SH NAME
+-normalize-audio \- adjusts volume levels of audio files.
++normalize\-audio \- adjusts volume levels of audio files.
+ .SH SYNOPSIS
+ 
+-\fBnormalize-audio\fR [ \fB\fIoptions\fB\fR ] [ \fB--\fR ] \fB\fIfile\fB\fR\fI ...\fR
++\fBnormalize\-audio\fR [ \fB\fIoptions\fB\fR ] [ \fB\-\-\fR ] \fB\fIfile\fB\fR\fI ...\fR
+ 
+ .SH "DESCRIPTION"
+ .PP
+-\fBnormalize-audio\fR is used to adjust the volume of wav audio
++\fBnormalize\-audio\fR is used to adjust the volume of wav audio
+ files to a standard volume level.  This is useful for things like
+ creating mp3 mixes, where different recording levels on different
+ albums can cause the volume to vary greatly from song to song.
+ .PP
+-\fBnormalize-audio\fR operates in two phases.  In the first phase, it
++\fBnormalize\-audio\fR operates in two phases.  In the first phase, it
+ analyzes the specified files as wav audio files, and computes the
+ volume of each file.  In the second phase, it applies a volume
+ adjustment to each file to set each file's volume to a standard level.
+ .SH "OPTIONS"
+ .TP
+-\fB-a, --amplitude=\fIAMPLITUDE\fB\fR
++\fB\-a, \-\-amplitude=\fIAMPLITUDE\fB\fR
+ Adjust the RMS volume to the target amplitude AMPLITUDE; must be
+ between 0.0 and 1.0.  If a number suffixed by "dB" or "dBFS" is
+ specified, the amplitude is assumed to be in decibels from full scale.
+-The default is -12dBFS.
++The default is \-12dBFS.
+ .TP
+-\fB-b, --batch\fR
++\fB\-b, \-\-batch\fR
+ Enable batch mode: see BATCH MODE, below.
+ .TP
+-\fB-c, --compression\fR
++\fB\-c, \-\-compression\fR
+ \fBDeprecated\fR\&.  In previous versions, this enabled
+ the limiter, but now the limiter is enabled by default.
+ .TP
+-\fB--clipping\fR
++\fB\-\-clipping\fR
+ Disable the limiter, and just clip any samples that are too large.
+-Same effect as -l 0dBFS.
++Same effect as \-l 0dBFS.
+ .TP
+-\fB--fractions\fR
++\fB\-\-fractions\fR
+ Display all values as decimal fractions instead of in decibels.  By
+ default, volume adjustments are shown in decibels, and volume levels
+ in dBFS, where 0 dBFS is the level of a square wave of maximum
+ amplitude.
+ .TP
+-\fB-g, --gain=\fIGAIN\fB\fR
++\fB\-g, \-\-gain=\fIGAIN\fB\fR
+ Skip the volume computation phase: don't compute the volume adjustment
+ from the current volumes of the files.  Instead, just apply the given
+ gain as a volume adjustment to all files.  As a plain number this is
+ just a multiplier applied to all samples, If a number suffixed by "dB"
+ is specified, all volumes are adjusted by that many decibels.
+ .TP
+-\fB--id3-compat\fR
++\fB\-\-id3\-compat\fR
+ Use this option when adjusting MPEG audio files if your MP3 player
+ does not recognize ID3v2.4 tags.  See MPEG
+ AUDIO ADJUSTMENT, below, for details.
+ .TP
+-\fB--id3-unsync\fR
++\fB\-\-id3\-unsync\fR
+ Use this option when adjusting MPEG audio files if your MP3 player
+ does not recognize ID3v2 tags and has trouble playing some ID3v2
+ tagged MP3 files.  See MPEG AUDIO
+ ADJUSTMENT, below, for details.
+ .TP
+-\fB-l, --limiter=\fILEVEL\fB\fR
++\fB\-l, \-\-limiter=\fILEVEL\fB\fR
+ This controls the behavior of the limiter.  By default, all samples
+-above -6dBFS (0.5) are limited, but this option sets the limiting
++above \-6dBFS (0.5) are limited, but this option sets the limiting
+ level to \fILEVEL\fR\&. Setting
+ \fILEVEL\fR to 1 (or 0dBFS) does no limiting
+ (clipping is done instead); setting \fILEVEL\fR
+ to 0 does limiting on all samples.  The default value is recommended
+ unless you know what you're doing.
+ .TP
+-\fB-m, --mix\fR
++\fB\-m, \-\-mix\fR
+ Enable mix mode: see MIX MODE, below.
+ Batch mode and mix mode are mutually exclusive.
+ .TP
+-\fB-n, --no-adjust\fR
++\fB\-n, \-\-no\-adjust\fR
+ Compute and output the volume adjustment that would set the volume to
+ the target, but don't apply it to any of the files (i.e. skip the
+ second phase).  If you use this option, your files will not be altered
+ in any way.
+ .TP
+-\fB--no-progress\fR
++\fB\-\-no\-progress\fR
+ Don't print any progress information.  All other messages are printed
+ as normal according to the verbosity level.
+ .TP
+-\fB--peak\fR
++\fB\-\-peak\fR
+ Adjust using peak levels instead of RMS levels.  Each file will be
+ adjusted so that its maximum sample is at full scale.  This just gives
+ a file the maximum volume possible without clipping; no normalization
+ is done.
+ .TP
+-\fB-q, --quiet\fR
++\fB\-q, \-\-quiet\fR
+ Don't output progress information.  Only error messages are printed.
+ .TP
+-\fB-t, --average-threshold=\fITHRESHOLD\fB\fR
++\fB\-t, \-\-average\-threshold=\fITHRESHOLD\fB\fR
+ When averaging volume levels for batch mode or mix mode, throw out any
+ volumes that are more than \fITHRESHOLD\fR
+ decibels from the average.  A high value here (say, 50) will make sure
+ that the volumes of all files are considered in the average.
+ .TP
+-\fB-T, --adjust-threshold=\fITHRESHOLD\fB\fR
++\fB\-T, \-\-adjust\-threshold=\fITHRESHOLD\fB\fR
+ If an adjustment to be made to a file is smaller than
+ \fITHRESHOLD\fR decibels, consider the file
+ already normalized and don't do the adjustment.  This is 0.125 by
+-default, or 0 if the \fB-g\fR option is given.
++default, or 0 if the \fB\-g\fR option is given.
+ .TP
+-\fB-v, --verbose\fR
++\fB\-v, \-\-verbose\fR
+ Increase verbosity.  This option can be repeated for more messages.
+ .TP
+-\fB-w, --output-bitwidth\fR
++\fB\-w, \-\-output\-bitwidth\fR
+ Force output files to have samples that are W bits wide.  This option
+ is ignored when adjusting MP3 files.
+ .TP
+-\fB-h, --help\fR
++\fB\-h, \-\-help\fR
+ Display usage information and exit.
+ .TP
+-\fB-V, --version\fR
++\fB\-V, \-\-version\fR
+ Print version information and exit.
+ .TP
+-\fB--\fR
++\fB\-\-\fR
+ Terminate option list.
+ .SH "MIX MODE"
+ .PP
+@@ -167,18 +167,18 @@
+ tag with the same format as an RVA2 tag.  This isn't a native frame,
+ but since it starts with an "X", it's considered experimental and
+ therefore legal, according to the ID3 spec.  The
+-\fB--id3-compat\fR option turns on this behavior.
++\fB\-\-id3\-compat\fR option turns on this behavior.
+ The disadvantage of the first method is that your MP3 player may no
+ longer read the ID3 tags on your files.  Bug the author of your
+ favorite MP3 player to support ID3v2.4 tags!
+ .PP
+ The disadvantage of the second method is that the XRVA frame is only
+-recognized by the xmms-rva plugin that is packaged with normalize.  On
++recognized by the xmms\-rva plugin that is packaged with normalize.  On
+ the other hand, I don't know of any MP3 players that recognize the
+ RVA2 frame, either, so it may not make any difference.
+ .PP
+ The other option related to ID3 tags,
+-\fB--id3-unsync\fR, is only necessary for
++\fB\-\-id3\-unsync\fR, is only necessary for
+ compatibility with old MP3 players that don't recognize ID3v2 tags at
+ all.  If your MP3 player complains of garbage at the start of tagged
+ files, or is unable to play the files at all, turn this option on.
+@@ -186,7 +186,7 @@
+ ID3v2 tags, you don't need it.
+ .SH "CAVEATS"
+ .PP
+-Note that your version of \fBnormalize-audio\fR must be
++Note that your version of \fBnormalize\-audio\fR must be
+ compiled with MAD library support to analyze MP3 file volume levels.
+ .SH "AUTHOR"
+ .PP
