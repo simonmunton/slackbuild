@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/u
 #TAR_EXT=.tar.gz
-VERSION=5.9.2
+VERSION=5.9.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -85,6 +85,17 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 make lib || exit
+fi
+
+mkdir -p ${PKG}/usr/{bin,lib}
+
+if [ ${DO_INSTALL} == "yes" ]
+then
+  make install-lib DESTDIR=${PKG}/usr
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
 make || exit
 fi
 
@@ -93,9 +104,7 @@ then
   exit
 fi
 
-mkdir -p ${PKG}/usr/{bin,lib}
-make install install-lib DESTDIR=${PKG}/usr
-
+make install DESTDIR=${PKG}/usr
 
 if [ -n "${LIBDIRSUFFIX}" ]
 then
