@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
 VERSION=1.2.1
 VERSIONEXTRA=
-BUILD=5
+BUILD=6
 
 WEBPAGE="https://github.com/ConsoleKit2/ConsoleKit2"
 #WEBPAGE="http://www.freedesktop.org/wiki/Software/ConsoleKit"
@@ -57,6 +57,9 @@ fi
  patch -p1 < ${CWD}/ConsoleKit2-fix-is-local.diff
  patch -p1 < ${CWD}/ConsoleKit2-crash_fix.diff
 
+ # Apply a reasonable maximum size for the user's XDG_RUNTIME_DIR:
+ sed -i "s/mode=0700,uid=%d/mode=0700,$XDG_RUNTIME_QUOTA,uid=%d/g" src/ck-sysdeps-linux.c
+
  if [ ! -e ./configure ]
  then
   ./autogen.sh
@@ -70,6 +73,15 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# Choose correct options depending on whether PAM is installed:
+if [ -L /lib${LIBDIRSUFFIX}/libpam.so.? ]; then
+  PAM_OPTIONS="--enable-pam-module=yes --with-pam-module-dir=/lib${LIBDIRSUFFIX}/security --disable-libcgmanager"
+  unset SHADOW_OPTIONS
+else
+  unset PAM_OPTIONS
+  SHADOW_OPTIONS="--enable-pam-module=no"
+fi
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS} -g" \
@@ -81,14 +93,18 @@ LDFLAGS="-g" \
             --localstatedir=/var \
 	    --mandir=/usr/man \
 	    --docdir=/usr/doc/${TARNAME}-${VERSION} \
+	    --with-rundir=/var/run \
 	    --with-pid-file=/var/run/ConsoleKit/pid \
 	    --enable-docbook-docs \
 	    --disable-static \
-	    --enable-pam-module \
 	    --enable-udev-acl \
-	    --with-pam-module-dir=/lib${LIBDIRSUFFIX}/security \
 	    --enable-debug=minimum \
-	    --enable-tests
+	    --enable-tests \
+	    $PAM_OPTIONS \
+	    $SHADOW_OPTIONS \
+	    --enable-polkit \
+	    --disable-static
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
