@@ -123,31 +123,6 @@ cp ${CWD}/elogind-rc.elogind ${PKG}/etc/rc.d/rc.elogind.new
 doinst_same_perm etc/rc.d/rc.elogind
 doinst_config etc/rc.d/rc.elogind.new
 
-cat >> ${PKG}/install/doinst.sh << EOF
-if [ ! -e etc/rc.d/rc.local ]; then
-        echo "#!/bin/sh" > etc/rc.d/rc.local
-        chmod 755 etc/rc.d/rc.local
-fi
-if [ ! -e etc/rc.d/rc.local_shutdown ]; then
-        echo "#!/bin/sh" > etc/rc.d/rc.local_shutdown
-        chmod 755 etc/rc.d/rc.local_shutdown
-fi
-run=\`grep "/etc/rc.d/rc.elogind" etc/rc.d/rc.local\`
-if [[ "\${run}" == "" ]]; then
-        echo "" >> etc/rc.d/rc.local
-        echo "# start elogind" >> etc/rc.d/rc.local
-        echo "if [ -x /etc/rc.d/rc.elogind ]; then" >> etc/rc.d/rc.local
-        echo "  /etc/rc.d/rc.elogind start" >> etc/rc.d/rc.local
-        echo "fi" >> etc/rc.d/rc.local
-  
-        echo "" >> etc/rc.d/rc.local_shutdown
-        echo "# stop elogind" >> etc/rc.d/rc.local_shutdown
-        echo "if [ -x /etc/rc.d/rc.elogind ]; then" >> etc/rc.d/rc.local_shutdown
-        echo "  /etc/rc.d/rc.elogind stop" >> etc/rc.d/rc.local_shutdown
-        echo "fi" >> etc/rc.d/rc.local_shutdown
-fi
-EOF
-
 #strip_binaries
 
 fix_links
