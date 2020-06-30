@@ -1,0 +1,202 @@
+--- gnucash-4.0/CMakeLists.txt.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/CMakeLists.txt	2020-06-29 22:25:31.466371187 +0100
+@@ -278,6 +278,23 @@
+ # Look for guile versions in this order: 2.2 > 2.0
+ 
+ # guile library and include dir
++pkg_check_modules (GUILE3 guile-3.0 QUIET)
++if (GUILE3_FOUND) # found guile-3.0
++
++  add_definitions (-DHAVE_GUILE22)
++  set(HAVE_GUILE2 TRUE)
++  set(GUILE_EFFECTIVE_VERSION 3.0)
++  set(GUILE_INCLUDE_DIRS ${GUILE3_INCLUDE_DIRS})
++  set(GUILE_LDFLAGS ${GUILE3_LDFLAGS})
++
++  find_program (GUILD_EXECUTABLE NAMES guild3.0 guild)
++  if (NOT GUILD_EXECUTABLE)
++    message (SEND_ERROR "The guild executable was not found, but is required. Please set GUILD_EXECUTABLE.")
++  endif (NOT GUILD_EXECUTABLE)
++  message(STATUS "Using guile-3.0.x")
++  find_program (GUILE_EXECUTABLE NAMES guile3.0 guile)
++
++else(GUILE3_FOUND)
+ pkg_check_modules (GUILE22 guile-2.2 QUIET)
+ if (GUILE22_FOUND) # found guile-2.2
+   add_definitions (-DHAVE_GUILE22)
+@@ -311,6 +328,7 @@
+     message (FATAL_ERROR "Neither guile 2.2 nor guile 2.0 were found GnuCash can't run without one of them. Ensure that one is installed and can be found with pkg-config.")
+   endif()
+ endif()
++endif()
+ 
+ if (NOT GUILE_EXECUTABLE)
+   message (SEND_ERROR "The guile executable was not found, but is required. Please set GUILE_EXECUTABLE.")
+--- gnucash-4.0/gnucash/gnome/dialog-report-column-view.c.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/gnome/dialog-report-column-view.c	2020-06-29 22:28:53.134361565 +0100
+@@ -490,7 +490,7 @@
+                 oldlist = SCM_CDR(oldlist);
+             }
+             newlist = scm_append
+-                      (scm_list_n (scm_reverse(scm_cons(SCM_LIST4(new_report,
++                      (scm_list_n (scm_reverse(scm_cons(scm_list_4(new_report,
+                                                scm_from_int (1),
+                                                scm_from_int (1),
+                                                SCM_BOOL_F),
+@@ -502,7 +502,7 @@
+         {
+             newlist = scm_append
+                       (scm_list_n (oldlist,
+-                                   SCM_LIST1(SCM_LIST4(new_report,
++                                   scm_list_1(scm_list_4(new_report,
+                                              scm_from_int (1),
+                                              scm_from_int (1),
+                                              SCM_BOOL_F)),
+@@ -680,7 +680,7 @@
+ 
+         if (dlg_ret == GTK_RESPONSE_OK)
+         {
+-            current = SCM_LIST4(SCM_CAR(current),
++            current = scm_list_4(SCM_CAR(current),
+                                 scm_from_int (gtk_spin_button_get_value_as_int
+                                               (GTK_SPIN_BUTTON(colspin))),
+                                 scm_from_int (gtk_spin_button_get_value_as_int
+--- gnucash-4.0/gnucash/import-export/qif-imp/assistant-qif-import.c.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/import-export/qif-imp/assistant-qif-import.c	2020-06-29 22:37:15.310337605 +0100
+@@ -1422,7 +1422,7 @@
+ SCM
+ gnc_ui_qif_import_assistant_get_mappings (QIFImportWindow * w)
+ {
+-    return SCM_LIST3(w->acct_map_info,
++    return scm_list_3(w->acct_map_info,
+                      w->cat_map_info,
+                      w->memo_map_info);
+ }
+@@ -3038,14 +3038,15 @@
+     /* This step will fill 70% of the bar. */
+     gnc_progress_dialog_push (wind->convert_progress, 0.7);
+     retval = scm_apply (qif_to_gnc,
+-                       SCM_LIST8(wind->imported_files,
++                       scm_list_n(wind->imported_files,
+                                  wind->acct_map_info,
+                                  wind->cat_map_info,
+                                  wind->memo_map_info,
+                                  wind->security_hash,
+                                  scm_from_utf8_string (currname ? currname : ""),
+                                  wind->transaction_status,
+-                                 progress),
++                                 progress,
++                                 SCM_UNDEFINED),
+                        SCM_EOL);
+     gnc_progress_dialog_pop (wind->convert_progress);
+ 
+@@ -3403,7 +3404,7 @@
+ 
+     /* Save the user's mapping preferences. */
+     scm_result = scm_apply (save_map_prefs,
+-                            SCM_LIST5 (wind->acct_map_info, wind->cat_map_info,
++                            scm_list_5 (wind->acct_map_info, wind->cat_map_info,
+                                       wind->memo_map_info, wind->security_hash,
+                                       wind->security_prefs),
+                             SCM_EOL);
+--- gnucash-4.0/gnucash/import-export/qif-imp/qif-dialog-utils.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/import-export/qif-imp/qif-dialog-utils.scm	2020-06-29 22:25:31.467371187 +0100
+@@ -24,6 +24,7 @@
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
+ (use-modules (gnucash string))
+ 
+ (define (default-stock-acct brokerage security)
+--- gnucash-4.0/gnucash/import-export/qif-imp/qif-merge-groups.scm.orig	2020-06-07 17:56:25.000000000 +0100
++++ gnucash-4.0/gnucash/import-export/qif-imp/qif-merge-groups.scm	2020-06-29 22:25:31.467371187 +0100
+@@ -42,6 +42,8 @@
+ ;;  and change #f to #t where duplication is found.
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
++
+ (define (gnc:account-tree-find-duplicates old-root new-root progress-dialog)
+   (define old-accounts (gnc-account-get-descendants-sorted old-root))
+   (define (progress v)
+--- gnucash-4.0/gnucash/import-export/qif-imp/qif-parse.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/import-export/qif-imp/qif-parse.scm	2020-06-29 22:25:31.467371187 +0100
+@@ -23,6 +23,7 @@
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
+ (use-modules (gnucash string))
+ (use-modules (srfi srfi-13))
+ 
+--- gnucash-4.0/gnucash/import-export/qif-imp/qif-to-gnc.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/import-export/qif-imp/qif-to-gnc.scm	2020-06-29 22:25:31.467371187 +0100
+@@ -25,6 +25,7 @@
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ 
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-13))
+ (use-modules (ice-9 match))
+ (use-modules (gnucash string))
+--- gnucash-4.0/gnucash/report/report-utilities.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/report/report-utilities.scm	2020-06-29 22:25:31.467371187 +0100
+@@ -17,6 +17,7 @@
+ ;; 51 Franklin Street, Fifth Floor    Fax:    +1-617-542-2652
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ 
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-13))
+ (use-modules (ice-9 format))
+ (use-modules (ice-9 match))
+--- gnucash-4.0/gnucash/report/eguile.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/report/eguile.scm	2020-06-29 22:25:31.468371187 +0100
+@@ -83,6 +83,7 @@
+ 
+ (define-module (gnucash eguile))
+ 
++(use-modules (gnucash gettext))
+ (use-modules (ice-9 regex))       ; for regular expressions
+ (use-modules (ice-9 rdelim))      ; for read-line
+ (use-modules (ice-9 local-eval))  ; for the-environment
+--- gnucash-4.0/gnucash/report/html-acct-table.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/report/html-acct-table.scm	2020-06-29 22:25:31.468371187 +0100
+@@ -495,6 +495,7 @@
+ ;; user.  This class simply maps its contents to the html-table.
+ ;; 
+ 
++(use-modules (gnucash gettext))
+ (use-modules (srfi srfi-2))
+ (use-modules (srfi srfi-9))
+ 
+--- gnucash-4.0/gnucash/report/html-chart.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/report/html-chart.scm	2020-06-29 22:25:31.468371187 +0100
+@@ -24,6 +24,7 @@
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
+ (use-modules (gnucash json builder))            ;for building JSON options
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+--- gnucash-4.0/gnucash/report/html-utilities.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/gnucash/report/html-utilities.scm	2020-06-29 22:25:31.468371187 +0100
+@@ -22,6 +22,7 @@
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
++(use-modules (gnucash gettext))
+ (use-modules (gnucash engine))
+ (use-modules (gnucash utilities))
+ (use-modules (ice-9 match))
+--- gnucash-4.0/libgnucash/app-utils/c-interface.scm.orig	2020-06-27 23:33:56.000000000 +0100
++++ gnucash-4.0/libgnucash/app-utils/c-interface.scm	2020-06-29 22:25:31.468371187 +0100
+@@ -15,6 +15,7 @@
+ ;; 51 Franklin Street, Fifth Floor    Fax:    +1-617-542-2652
+ ;; Boston, MA  02110-1301,  USA       gnu@gnu.org
+ 
++(use-modules (gnucash gettext))
+ (use-modules (ice-9 match))
+ 
+ (define (gnc:call-with-error-handling cmd args)
