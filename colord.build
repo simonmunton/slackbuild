@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=1.2.12
+VERSION=1.4.4
 VERSIONEXTRA=
-BUILD=3
+BUILD=2
 
 WEBPAGE="http://www.freedesktop.org/software/colord/index.html"
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/colord-1.1.7-old-udev.diff
+ patch -p1 < ${CWD}/colord-1.4.4.diff
 )
 fi
 
@@ -59,33 +59,51 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+if [ -f ./configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
-	    --mandir=/usr/man \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
 	    --enable-reverse \
 	    --enable-sane \
 	    --enable-libcolordcompat \
 	    --disable-systemd-login \
 	    --enable-print-profiles
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+elif [ -f ./CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_ \
+    -Dsystemd=false \
+    -Dlibcolordcompat=true \
+    -Dreverse=false \
+    -Dsane=true \
+    -Dprint_profiles=true \
+    -Dman=false
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -93,7 +111,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
