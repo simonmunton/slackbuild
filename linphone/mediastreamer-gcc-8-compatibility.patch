@@ -1,0 +1,171 @@
+From: Ronan Abhamon <ronan.abhamon@belledonne-communications.com>
+Subject: fix(mediastreamer2): disable new gcc 8 -Wcast-function-type
+  warnings (FIXME in the future)
+Origin: https://github.com/BelledonneCommunications/mediastreamer2/commit/6f5ab27483e1ef9548df8f764791a53eb5b39ea1
+
+This patch needed to be trimmed badly because it contained a lot of
+unrelated whitespace cleanups not fully present in the released source.
+
+diff --git a/src/voip/audiostream.c b/src/voip/audiostream.c
+index 90924d8c6..1291e197d 100644
+--- a/src/voip/audiostream.c
++++ b/src/voip/audiostream.c
+@@ -813,9 +813,20 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
+ 		stream->dtmfgen=ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
+ 	else
+ 		stream->dtmfgen=NULL;
++
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
+ 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,stream);
+ 
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
+ 	if (stream->ms.state==MSStreamPreparing){
+ 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
+ 		_audio_stream_unprepare_sound(stream, io->input.type == MSResourceSoundcard);
+@@ -1783,10 +1794,23 @@ void audio_stream_stop(AudioStream * stream){
+ 		}
+ 	}
+ 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
++
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
+ 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed);
+-	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
+-	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
++
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
++	// Before destroying the filters, pump the event queue so that pending events have a chance
++	// to reach their listeners. When the filter are destroyed, all their pending events in the
++	// event queue will be cancelled.
+ 	evq = ms_factory_get_event_queue(stream->ms.factory);
+ 	if (evq) ms_event_queue_pump(evq);
+ 	ms_factory_log_statistics(stream->ms.factory);
+diff --git a/src/voip/ice.c b/src/voip/ice.c
+index cdf3b3ccf..28067ef1c 100644
+--- a/src/voip/ice.c
++++ b/src/voip/ice.c
+@@ -3962,7 +3962,18 @@ static int ice_find_gathering_stun_server_request(const IceStunServerRequest *re
+ static void ice_remove_gathering_stun_server_requests(IceCheckList *cl) {
+ 	bctbx_list_t *elem = cl->stun_server_requests;
+ 	while (elem != NULL) {
++		/* FIXME: Temporary workaround for -Wcast-function-type. */
++		#if __GNUC__ >= 8
++			_Pragma("GCC diagnostic push")
++			_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++		#endif // if __GNUC__ >= 8
++
+ 		elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_gathering_stun_server_request, NULL);
++
++		#if __GNUC__ >= 8
++			_Pragma("GCC diagnostic pop")
++		#endif // if __GNUC__ >= 8
++
+ 		if (elem != NULL) {
+ 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
+ 			ice_stun_server_request_free(request);
+@@ -4082,8 +4093,19 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
+ 
+ 	/* Send STUN/TURN server requests (to gather candidates, create/refresh TURN permissions, refresh TURN allocations or bind TURN channels). */
+ 	bctbx_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_send_stun_server_requests, cl);
++
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	cl->stun_server_requests = bctbx_list_remove_custom(cl->stun_server_requests, (bctbx_compare_func)ice_compare_stun_server_requests_to_remove, NULL);
+ 
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
+ 	/* Send event if needed. */
+ 	if ((cl->session->send_event == TRUE) && (ice_compare_time(curtime, cl->session->event_time) >= 0)) {
+ 		OrtpEvent *ev;
+diff --git a/src/voip/mediastream.c b/src/voip/mediastream.c
+index d7fb82e56..d12b739aa 100644
+--- a/src/voip/mediastream.c
++++ b/src/voip/mediastream.c
+@@ -137,8 +137,20 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
+ 	rtp_session_enable_adaptive_jitter_compensation(rtpr, TRUE);
+ 	rtp_session_set_symmetric_rtp(rtpr, TRUE);
+ 	rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
++
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync, NULL);
+ 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)rtp_session_resync, NULL);
++
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
+ 	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
+ 	rtp_session_set_multicast_loopback(rtpr,TRUE); /*very useful, specially for testing purposes*/
+diff --git a/src/voip/videostream.c b/src/voip/videostream.c
+index fca7adc38..41a41a312 100644
+--- a/src/voip/videostream.c
++++ b/src/voip/videostream.c
+@@ -922,9 +922,19 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
+ 		rtp_session_set_jitter_compensation(rtps, jitt_comp);
+ 	}
+ 
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
+ 			(RtpCallback)video_stream_payload_type_changed,&stream->ms);
+ 
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
+ 	jbp.max_packets=1000;//needed for high resolution video
+ 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
+@@ -1460,8 +1470,19 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
+ 		}
+ 	}
+ 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
++
++	/* FIXME: Temporary workaround for -Wcast-function-type. */
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic push")
++		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
++	#endif // if __GNUC__ >= 8
++
+ 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)video_stream_payload_type_changed);
+ 
++	#if __GNUC__ >= 8
++		_Pragma("GCC diagnostic pop")
++	#endif // if __GNUC__ >= 8
++
+ 	/*Automatically the video recorder if it was opened previously*/
+ 	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)){
+ 		MSRecorderState state = MSRecorderClosed;

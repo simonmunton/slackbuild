@@ -1,0 +1,34 @@
+From: Francois Grisez <francois.grisez@belledonne-communications.com>
+Subject: Fix tools/bench.c to build with GCC-8
+Origin: https://github.com/BelledonneCommunications/mediastreamer2/commit/e5d028414898e5d8ee1106824cdc44ca3287462c
+
+This upstream commit also needed to be trimmed because it contained an
+unrelated include cleanup in a file not contained in the released
+version.
+
+diff --git a/tools/bench.c b/tools/bench.c
+index 2c29aa010..110fd82b8 100644
+--- a/tools/bench.c
++++ b/tools/bench.c
+@@ -92,6 +92,10 @@ struct bench_config cfg[] = {
+ 	{	0,0,0,"",0,0,0,0,NULL,NULL,NULL,NULL	},
+ };
+ 
++static void _rtp_session_resync_cb(RtpSession *s, void *arg1, void *arg2, void *arg3) {
++	rtp_session_resync(s);
++}
++
+ static RtpSession *create_duplex_rtpsession(int locport){
+ 	RtpSession *rtpr;
+ 	rtpr=rtp_session_new(RTP_SESSION_SENDRECV);
+@@ -101,8 +105,8 @@ static RtpSession *create_duplex_rtpsession(int locport){
+ 	rtp_session_enable_adaptive_jitter_compensation(rtpr,FALSE);
+ 	rtp_session_set_symmetric_rtp(rtpr,TRUE);
+ 	rtp_session_set_local_addr(rtpr,"0.0.0.0",locport,locport+1);
+-	rtp_session_signal_connect(rtpr,"timestamp_jump",(RtpCallback)rtp_session_resync,NULL);
+-	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,NULL);
++	rtp_session_signal_connect(rtpr,"timestamp_jump",_rtp_session_resync_cb,NULL);
++	rtp_session_signal_connect(rtpr,"ssrc_changed",_rtp_session_resync_cb,NULL);
+ 	return rtpr;
+ }
+ 

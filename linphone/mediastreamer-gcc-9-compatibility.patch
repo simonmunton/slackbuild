@@ -1,0 +1,97 @@
+Description: fix wrong uses of strncpy with off-by-one errors
+ gcc 9 detects wrong uses of strncpy that may result in strings that are not
+ null terminated.  Fix afew invocations of strncpy that have this problem.
+ (If null-termination was not desired, this should be using memcpy instead.)
+Author: Steve Langasek <steve.langasek@ubuntu.com>
+Last-Modified: 2019-08-08
+Bug-Debian: https://bugs.debian.org/925775
+
+Index: mediastreamer2-2.16.1/src/audiofilters/tonedetector.c
+===================================================================
+--- mediastreamer2-2.16.1.orig/src/audiofilters/tonedetector.c
++++ mediastreamer2-2.16.1/src/audiofilters/tonedetector.c
+@@ -173,7 +173,8 @@
+ 						if (gs->dur>=tone_def->min_duration && !gs->event_sent){
+ 							MSToneDetectorEvent event;
+ 						
+-							strncpy(event.tone_name,tone_def->tone_name,sizeof(event.tone_name));
++							strncpy(event.tone_name,tone_def->tone_name,sizeof(event.tone_name)-1);
++							event.tone_name[7] = '\0';
+ 							event.tone_start_time=gs->starttime;
+ 							ms_filter_notify(f,MS_TONE_DETECTOR_EVENT,&event);
+ 							gs->event_sent=TRUE;
+Index: mediastreamer2-2.16.1/src/audiofilters/pulseaudio.c
+===================================================================
+--- mediastreamer2-2.16.1.orig/src/audiofilters/pulseaudio.c
++++ mediastreamer2-2.16.1/src/audiofilters/pulseaudio.c
+@@ -235,7 +235,7 @@
+ 	if (sourceCard!= NULL) {
+ 		pa_device_t *sourceCard_data = (pa_device_t *)sourceCard->data;
+ 		pa_device->bidirectionnal = 1;
+-		strncpy(pa_device->source_name,sourceCard_data->name, PA_STRING_SIZE -1);
++		strncpy(pa_device->source_name,sourceCard_data->name, PA_STRING_SIZE);
+ 		*pa_source_list = bctbx_list_remove(*pa_source_list, sourceCard->data);
+ 		ms_free(sourceCard_data);
+ 	}
+Index: mediastreamer2-2.16.1/src/voip/ice.c
+===================================================================
+--- mediastreamer2-2.16.1.orig/src/voip/ice.c
++++ mediastreamer2-2.16.1/src/voip/ice.c
+@@ -2748,7 +2748,8 @@
+ 	}
+ 
+ 	candidate = ms_new0(IceCandidate, 1);
+-	strncpy(candidate->taddr.ip, ip, sizeof(candidate->taddr.ip));
++	strncpy(candidate->taddr.ip, ip, sizeof(candidate->taddr.ip) - 1);
++	candidate->taddr.ip[sizeof(candidate->taddr.ip)-1] = '\0';
+ 	candidate->taddr.port = port;
+ 	candidate->taddr.family = family;
+ 	candidate->type = candidate_type;
+@@ -3033,7 +3034,7 @@
+ 		/* We found a candidate that should have the same foundation, so copy it from this candidate. */
+ 		IceCandidate *other_candidate = (IceCandidate *)l->data;
+ 		if (strlen(other_candidate->foundation) > 0) {
+-			strncpy(candidate->foundation, other_candidate->foundation, sizeof(candidate->foundation) - 1);
++			strncpy(candidate->foundation, other_candidate->foundation, sizeof(candidate->foundation));
+ 			return;
+ 		}
+ 		/* If the foundation of the other candidate is empty we need to assign a new one, so continue. */
+@@ -3314,8 +3315,8 @@
+ 	bctbx_list_t *elem;
+ 
+ 	memset(&foundation, 0, sizeof(foundation));
+-	strncpy(foundation.local, pair->local->foundation, sizeof(foundation.local) - 1);
+-	strncpy(foundation.remote, pair->remote->foundation, sizeof(foundation.remote) - 1);
++	strncpy(foundation.local, pair->local->foundation, sizeof(foundation.local));
++	strncpy(foundation.remote, pair->remote->foundation, sizeof(foundation.remote));
+ 
+ 	elem = bctbx_list_find_custom(*list, (bctbx_compare_func)ice_find_pair_foundation, &foundation);
+ 	if (elem == NULL) {
+Index: mediastreamer2-2.16.1/tools/mediastream.c
+===================================================================
+--- mediastreamer2-2.16.1.orig/tools/mediastream.c
++++ mediastreamer2-2.16.1/tools/mediastream.c
+@@ -1295,6 +1295,7 @@
+ 			return FALSE;
+ 		}
+ 		strncpy(ip,localhost, MIN(len, strlen(localhost)));
++		ip[len-1] = '\0';
+ 		return TRUE;
+ 	}
+ 	iplen=semicolon-addr;
+@@ -1308,13 +1309,11 @@
+ static bool_t parse_ice_addr(char *addr, char *type, size_t type_len, char *ip, size_t ip_len, int *port)
+ {
+ 	char *semicolon=NULL;
+-	size_t slen;
+ 
+ 	semicolon=strrchr(addr,':');
+ 	if (semicolon==NULL) return FALSE;
+-	slen=MIN(strlen(semicolon+1),type_len);
+-	strncpy(type,semicolon+1,slen);
+-	type[slen]='\0';
++	strncpy(type,semicolon+1,type_len);
++	type[type_len-1]='\0';
+ 	*semicolon='\0';
+ 	return parse_addr(addr,ip,ip_len,port);
+ }

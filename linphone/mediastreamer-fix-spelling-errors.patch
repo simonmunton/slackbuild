@@ -1,0 +1,334 @@
+Description: Fix spelling errors in binary
+Author: Felix Lechner <felix.lechner@gmail.com>
+Forwarded: no
+Last-Update: 2015-05-28
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/videofilters/vp8.c
++++ b/src/videofilters/vp8.c
+@@ -389,7 +389,7 @@
+ 				/*force an independant alt ref frame to force picture to be refreshed completely, otherwise
+ 				 * pixel color saturation appears due to accumulation of small predictive errors*/
+ 				*flags |= VP8_EFLAG_NO_REF_LAST | VP8_EFLAG_NO_REF_GF;
+-				ms_message("Forcing independant altref frame.");
++				ms_message("Forcing independent altref frame.");
+ 			}
+ 		}
+ 		if (!(*flags & VPX_EFLAG_FORCE_KF)){
+@@ -1046,7 +1046,7 @@
+ 
+ static int dec_reset(MSFilter *f, void *data) {
+ 	DecState *s = (DecState *)f->data;
+-	ms_message("Reseting VP8 decoder");
++	ms_message("Resetting VP8 decoder");
+ 	ms_filter_lock(f);
+ 	vpx_codec_destroy(&s->codec);
+ 	if (dec_initialize_impl(f) != 0){
+--- a/src/crypto/ms_srtp.c
++++ b/src/crypto/ms_srtp.c
+@@ -571,6 +571,6 @@
+ 	case MSSRTP_RTCP_STREAM: return "MSSRTP_RTCP_STREAM";
+ 	case MSSRTP_ALL_STREAMS: return "MSSRTP_ALL_STREAMS";
+ 	}
+-	return "Unkown srtp tream type";
++	return "Unknown srtp tream type";
+ }
+ 
+--- a/src/audiofilters/genericplc.h
++++ b/src/audiofilters/genericplc.h
+@@ -26,7 +26,7 @@
+ /* 2/<min frequency we want to be able to reproduce> gives then length in seconds */
+ #define PLC_BUFFER_LEN	2/40
+ 
+-/* define in ms the maximum duration of PLC(after wich the output will be 0), and after how long we start decreasing the output volume to reach 0 at MAX_PLC_LEN */
++/* define in ms the maximum duration of PLC(after which the output will be 0), and after how long we start decreasing the output volume to reach 0 at MAX_PLC_LEN */
+ #define PLC_DECREASE_START 100
+ #define MAX_PLC_LEN 150
+ 
+--- a/src/crypto/dtls_srtp.c
++++ b/src/crypto/dtls_srtp.c
+@@ -232,7 +232,7 @@
+ }
+ /**
+  * Check if the incoming message is a DTLS packet.
+- * If it is, store it in the context incoming buffer and call the polarssl function wich will process it.
++ * If it is, store it in the context incoming buffer and call the polarssl function which will process it.
+  * This function also manages the client retransmission timer
+  *
+  * @param[in] 		msg	the incoming message
+@@ -533,7 +533,7 @@
+ 			}
+ 
+ 			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
+-				/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );*/
++				/*FireFox version 43 requires DTLS channel to be kept opened, probably a bug in FireFox ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );*/
+ 				
+ 			}
+ 
+@@ -614,7 +614,7 @@
+ 			}
+ 
+ 			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
+-			/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox  ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );*/
++			/*FireFox version 43 requires DTLS channel to be kept opened, probably a bug in FireFox  ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );*/
+ 			}
+ 		}
+ 
+@@ -734,7 +734,7 @@
+ 		size_t peer_fingerprint_length = strlen(peer_fingerprint)+1; // include the null termination
+ 		if (peer_fingerprint_length>sizeof(context->peer_fingerprint)) {
+ 			memcpy(context->peer_fingerprint, peer_fingerprint, sizeof(context->peer_fingerprint));
+-			ms_error("DTLS-SRTP received from SDP INVITE a peer fingerprint %d bytes length wich is longer than maximum storage %d bytes", (int)peer_fingerprint_length, (int)sizeof(context->peer_fingerprint));
++			ms_error("DTLS-SRTP received from SDP INVITE a peer fingerprint %d bytes length which is longer than maximum storage %d bytes", (int)peer_fingerprint_length, (int)sizeof(context->peer_fingerprint));
+ 		} else {
+ 			memcpy(context->peer_fingerprint, peer_fingerprint, peer_fingerprint_length);
+ 		}
+--- a/src/filter-template.c
++++ b/src/filter-template.c
+@@ -28,7 +28,7 @@
+  * filters.                                                                   *
+  * The procedure to follow to create a new filter is to:                      *
+  *  1. Copy this file to the file that will be your new filter                *
+- *  2. Replace any "MyFilter" and "my_filter" occurences to the name that     *
++ *  2. Replace any "MyFilter" and "my_filter" occurrences to the name that    *
+  *     suits your new filter                                                  *
+  *  3. Fill in the blanks where are located comments beginning with           *
+  *     FILTER_TODO                                                            *
+--- a/src/otherfilters/msrtp.c
++++ b/src/otherfilters/msrtp.c
+@@ -700,7 +700,7 @@
+ 		return;
+ 	
+ 	if (d->reset_jb){
+-		ms_message("Reseting jitter buffer");
++		ms_message("Resetting jitter buffer");
+ 		rtp_session_resync(d->session);
+ 		d->reset_jb=FALSE;
+ 	}
+--- a/src/utils/audiodiff.c
++++ b/src/utils/audiodiff.c
+@@ -284,7 +284,7 @@
+ 	*ret = cum_res / (double)tot_energy;
+ 	ms_message("Similarity factor weighted with most significant chunks is [%g]", *ret);
+ 	*ret = *ret * (1-variance);
+-	ms_message("After integrating max position variance accross chunks, it is [%g]", *ret);
++	ms_message("After integrating max position variance across chunks, it is [%g]", *ret);
+ 	ms_free(chunk_energies);
+ 	ms_free(max_pos_table);
+ 	return maxpos;
+--- a/src/videofilters/bb10_capture.cpp
++++ b/src/videofilters/bb10_capture.cpp
+@@ -93,7 +93,7 @@
+ 	bool_t is_front_cam;
+ 	const char *window_group;
+ 	const char *window_id;
+-	bool_t camera_openned;
++	bool_t camera_opened;
+ 	bool_t capture_started;
+ 	MSAverageFPS avgfps;
+ 	MSYuvBufAllocator *yba;
+@@ -125,8 +125,8 @@
+ static void bb10capture_open_camera(BB10Capture *d) {
+ 	camera_error_t error;
+ 	
+-	if (d->camera_openned) {
+-		ms_warning("[bb10_capture] camera already openned, skipping...");
++	if (d->camera_opened) {
++		ms_warning("[bb10_capture] camera already opened, skipping...");
+ 		return;
+ 	}
+ 	
+@@ -150,15 +150,15 @@
+ 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
+ 		ms_debug("[bb10_capture] camera capture rotation: %i", rotation);
+ 	
+-		d->camera_openned = TRUE;
++		d->camera_opened = TRUE;
+ 	} else {
+ 		ms_error("[bb10_capture] openning %i camera failed: %s", d->camera, error_to_string(error));
+ 	}
+ }
+ 
+ static void bb10capture_start_capture(BB10Capture *d) {
+-	if (!d->camera_openned) {
+-		ms_error("[bb10_capture] camera not openned, skipping...");
++	if (!d->camera_opened) {
++		ms_error("[bb10_capture] camera not opened, skipping...");
+ 		return;
+ 	}
+ 	if (d->capture_started) {
+@@ -186,13 +186,13 @@
+ }
+ 
+ static void bb10capture_close_camera(BB10Capture *d) {
+-	if (!d->camera_openned) {
+-		ms_warning("[bb10_capture] camera not openned, skipping...");
++	if (!d->camera_opened) {
++		ms_warning("[bb10_capture] camera not opened, skipping...");
+ 		return;
+ 	}
+ 	
+ 	camera_close(d->cam_handle);
+-	d->camera_openned = FALSE;
++	d->camera_opened = FALSE;
+ 	d->cam_handle = 0;
+ 	ms_debug("[bb10_capture] camera closed");
+ }
+@@ -202,7 +202,7 @@
+ 	MSVideoSize def_size;
+ 	
+ 	d->rotation = 0;
+-	d->camera_openned = FALSE;
++	d->camera_opened = FALSE;
+ 	d->capture_started = FALSE;
+ 	d->is_front_cam = TRUE;
+ 	def_size.width = MS_VIDEO_SIZE_QVGA_W;
+@@ -234,7 +234,7 @@
+ static void bb10capture_preprocess(MSFilter *f) {
+ 	BB10Capture *d = (BB10Capture*) f->data;
+ 	
+-	if (!d->camera_openned) {
++	if (!d->camera_opened) {
+ 		bb10capture_open_camera(d);
+ 	}
+ 	
+@@ -282,11 +282,11 @@
+ 	
+ 	ms_filter_lock(f);
+ 	
+-	if (!d->camera_openned) {
++	if (!d->camera_opened) {
+ 		bb10capture_open_camera(d);
+ 	}
+ 	
+-	if (d->camera_openned) {
++	if (d->camera_opened) {
+ 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
+ 		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
+ 		if (ms_video_size_equal(d->vsize, newSize)) {
+@@ -318,7 +318,7 @@
+ 	ms_filter_lock(f);
+ 	d->framerate = *(float*)arg;
+ 	
+-	if (d->camera_openned) {
++	if (d->camera_opened) {
+ 		if (d->framerate > 0) {
+ 			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
+ 			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+@@ -379,7 +379,7 @@
+ 		rotation = 360 - d->rotation;
+ 	}
+ 	
+-	if (d->camera_openned) {
++	if (d->camera_opened) {
+ 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
+ 	}
+ 	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
+--- a/src/videofilters/msv4l2.c
++++ b/src/videofilters/msv4l2.c
+@@ -666,7 +666,7 @@
+ 	ms_message("msv4l2_thread starting");
+ 	if (s->fd==-1){
+ 		if( msv4l2_open(s)!=0){
+-			ms_warning("msv4l2 could not be openned");
++			ms_warning("msv4l2 could not be opened");
+ 			goto close;
+ 		}
+ 	}
+--- a/src/voip/audiostream.c
++++ b/src/voip/audiostream.c
+@@ -901,7 +901,7 @@
+ 	}
+ 
+ 	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
+-	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
++	/* be able to use the echo canceller which may be limited (webrtc aecm max frequency is 16000 Hz) */
+ 	// First check if we need to use the echo canceller
+ 	// Overide feature if not requested or done at sound card level
+ 	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec )
+--- a/src/voip/msvideo.c
++++ b/src/voip/msvideo.c
+@@ -873,7 +873,7 @@
+ 	afps->mean_inter_frame = 0;
+ 	afps->context = ctx;
+ 	if (!ctx || strstr(ctx, "%f") == 0) {
+-		ms_error("Invalid MSAverageFPS context given '%s' (must be not null and must contain one occurence of '%%f'", ctx);
++		ms_error("Invalid MSAverageFPS context given '%s' (must be not null and must contain one occurrence of '%%f'", ctx);
+ 	}
+ }
+ 
+--- a/include/mediastreamer2/msfileplayer.h
++++ b/include/mediastreamer2/msfileplayer.h
+@@ -30,7 +30,7 @@
+ /* set loop mode: 
+ 	-1: no looping, 
+ 	0: loop at end of file, 
+-	x>0, loop after x miliseconds after eof
++	x>0, loop after x milliseconds after eof
+ */
+ #define MS_FILE_PLAYER_LOOP	MS_FILTER_METHOD(MS_FILE_PLAYER_ID,4,int)
+ #define MS_FILE_PLAYER_DONE	MS_FILTER_METHOD(MS_FILE_PLAYER_ID,5,int)
+--- a/include/mediastreamer2/msticker.h
++++ b/include/mediastreamer2/msticker.h
+@@ -39,7 +39,7 @@
+ 
+ 
+ /**
+- * Function pointer for method getting time in miliseconds from an external source.
++ * Function pointer for method getting time in milliseconds from an external source.
+  * @var MSTickerTimeFunc
+  */
+ typedef uint64_t (*MSTickerTimeFunc)(void *);
+@@ -77,7 +77,7 @@
+ 	MSList *execution_list;     /* the list of source filters to be executed.*/
+ 	MSList *task_list; /* list of tasks (see ms_filter_postpone_task())*/
+ 	ms_thread_t thread;   /* the thread ressource*/
+-	int interval; /* in miliseconds*/
++	int interval; /* in milliseconds*/
+ 	int exec_id;
+ 	uint32_t ticks;
+ 	uint64_t time;	/* a time since the start of the ticker expressed in milisec*/
+--- a/src/base/msticker.c
++++ b/src/base/msticker.c
+@@ -445,7 +445,7 @@
+ 		s->time+=s->interval;
+ 		late=s->wait_next_tick(s->wait_next_tick_data,s->time);
+ 		if (late>s->interval*5 && late>lastlate){
+-			ms_warning("%s: We are late of %d miliseconds.",s->name,late);
++			ms_warning("%s: We are late of %d milliseconds.",s->name,late);
+ 			late_tick_time=ms_get_cur_time_ms();
+ 		}
+ 		lastlate=late;
+--- a/src/utils/mkv_reader.h
++++ b/src/utils/mkv_reader.h
+@@ -131,7 +131,7 @@
+ /**
+  * @brief Set the reading head of each assocated track reader at a specific position
+  * @param reader MKVReader
+- * @param pos_ms Position of the head in miliseconds
++ * @param pos_ms Position of the head in milliseconds
+  * @return The effective position of the head after the operation
+  */
+ int mkv_reader_seek(MKVReader *reader, int pos_ms);
+--- a/tools/mediastream.c
++++ b/tools/mediastream.c
+@@ -210,7 +210,7 @@
+ 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
+ 								"[ --infile <input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
+ 								"[ --interactive (run in interactive mode) ]\n"
+-								"[ --jitter <miliseconds> ]\n"
++								"[ --jitter <milliseconds> ]\n"
+ 								"[ --log <file> ]\n"
+ 								"[ --mtu <mtu> (specify MTU)]\n"
+ 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit) ]\n"
+--- a/src/crypto/zrtp.c
++++ b/src/crypto/zrtp.c
+@@ -633,7 +633,7 @@
+ 	int retval;
+ 	MSZrtpContext *userData;
+ 	if ((retval = bzrtp_addChannel(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc)) != 0) {
+-		ms_warning("ZRTP could't add stream, returns %x", retval);
++		ms_warning("ZRTP couldn't add stream, returns %x", retval);
+ 	}
+ 
+ 	ms_message("Initializing multistream ZRTP context on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
