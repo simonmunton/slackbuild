@@ -2,21 +2,20 @@
 #
 . build_funcs
 
-TARNAME=calibre
+TARNAME=stdlib-list
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/c
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=5.1.0
+VERSION=0.7.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://calibre-ebook.com/"
-#http://sourceforge.net/projects/calibre/
+WEBPAGE="https://pypi.org/project/stdlib-list/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=stdlib-list-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -47,11 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- if [ $ARCH = "x86_64" ]
- then
-   patch -p1 -b -z .orig < ${CWD}/calibre-3.1.1-x86_64.diff
- fi
 )
 fi
 
@@ -84,8 +78,6 @@ then
 
 fi
 
-export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
@@ -98,10 +90,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-mkdir -p ${PKG}`python3 -c "import distutils.sysconfig as s; print(s.get_python_lib())"`
-python3 setup.py install --prefix=/usr --libdir=/usr/lib${LIBDIRSUFFIX} --root=${PKG}/usr --staging-libdir=${PKG}/usr/lib${LIBDIRSUFFIX}
-
-rm ${PKG}/usr/bin/calibre-uninstall
+python3 setup.py install --root=${PKG}
 
 strip_binaries
 
@@ -118,18 +107,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "calibre - Ebook management"
-calibre is a free and open source e-book library management 
-application developed by users of e-books for users of e-books. It has 
-a cornucopia of features divided into the following main categories:
-
-    Library Management
-    E-book conversion
-    Syncing to e-book reader devices
-    Downloading news from the web and converting it into e-book form
-    Comprehensive e-book viewer
-    Content server for online access to your book collection
-    E-book editor for the major e-book formats
+make_slack_desc << EOF "A list of Python Standard Libraries (2.6-7, 3.2-8)"
+This package includes lists of all of the standard libraries for 
+Python 2.6, 2.7, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, and 3.9 along 
+with the code for scraping the official Python docs to get said lists.
 
 EOF
 
