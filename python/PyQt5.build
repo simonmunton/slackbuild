@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=5.15.1
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://www.riverbankcomputing.co.uk/software/pyqt/download"
 
@@ -59,15 +59,18 @@ fix_perms
 export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
 #PATH=/usr/lib/qt/bin:$PATH
 
+PY2_SITE=`python -c 'import site; print(site.getsitepackages()[0])'`
+PY3_SITE=`python3 -c 'import site; print(site.getsitepackages()[0])'`
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 mkdir _BuilDP2_
 cd _BuilDP2_
-echo yes | python ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+echo yes | python ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake --sipdir=${PY2_SITE}/PyQt5/bindings --sip=/usr/bin/sip
 cd ..
 mkdir _BuilDP3_
 cd _BuilDP3_
-echo yes | python3 ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake
+echo yes | python3 ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake --sipdir=${PY3_SITE}/PyQt5/bindings 
 cd ..
 fi
 
@@ -92,6 +95,9 @@ cd ..
 cd _BuilDP3_
 make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 cd ..
+
+mkdir -p ${PKG}/usr/share/sip/PyQt5
+cp -pr ${PKG}/${PY3_SITE}/PyQt5/bindings/* ${PKG}/usr/share/sip/PyQt5
 
 #strip_binaries
 
@@ -122,3 +128,5 @@ su -c "chown -R root.root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}.${GROUP} ${PKG}"
+
+echo -e "\n\nDoes PyQtWebEngine need updating too?"
