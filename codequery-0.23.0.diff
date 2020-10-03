@@ -1,0 +1,58 @@
+--- codequery-0.23.0/CMakeLists.txt.orig	2020-04-15 13:41:29.000000000 +0100
++++ codequery-0.23.0/CMakeLists.txt	2020-10-02 20:04:37.588773219 +0100
+@@ -27,9 +27,9 @@
+ IF(MSVC)
+ ADD_DEFINITIONS(/D _CRT_SECURE_NO_WARNINGS)
+ ELSE(MSVC)
+-SET( CMAKE_CXX_FLAGS  "-O2 -Wno-unused-result" )
+-SET( CMAKE_CXX_FLAGS_DEBUG  "-O2 -Wno-unused-result" )
+-SET( CMAKE_CXX_FLAGS_RELEASE  "-O2 -Wno-unused-result" )
++SET( CMAKE_CXX_FLAGS  "-O2 -Wno-unused-result ${CMAKE_CXX_FLAGS}" )
++SET( CMAKE_CXX_FLAGS_DEBUG  "-O2 -Wno-unused-result ${CMAKE_CXX_FLAGS_DEBUG}" )
++SET( CMAKE_CXX_FLAGS_RELEASE  "-O2 -Wno-unused-result ${CMAKE_CXX_FLAGS_RELEASE}" )
+ ENDIF(MSVC)
+ 
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmakefind/")
+--- codequery-0.23.0/gui/mainwindow.h.orig	2020-04-15 13:41:29.000000000 +0100
++++ codequery-0.23.0/gui/mainwindow.h	2020-10-02 20:17:19.641736859 +0100
+@@ -42,6 +42,7 @@
+ void retranslateUi(void);
+ void writeSettings();
+ void readSettings();
++void closeEvent(QCloseEvent *event);
+ 
+ public slots:
+ void AboutQtTriggered(bool checked);
+--- codequery-0.23.0/gui/mainwindow.cpp.orig	2020-04-15 13:41:29.000000000 +0100
++++ codequery-0.23.0/gui/mainwindow.cpp	2020-10-02 20:17:26.497736532 +0100
+@@ -21,6 +21,7 @@
+ 
+ #include <QInputDialog>
+ #include <QMessageBox>
++#include <QCloseEvent>
+ 
+ mainwindow::mainwindow(QMainWindow *parent, QApplication *app)
+ :QMainWindow(parent)
+@@ -100,8 +101,8 @@
+ 	connect(ui->actionFileViewSettings, SIGNAL(triggered(bool)),
+ 			m_fileviewer, SLOT(fileViewSettings_Triggered(bool)));
+ 	m_app->setQuitOnLastWindowClosed(false);
+-	connect(m_app, SIGNAL(lastWindowClosed()),
+-			this, SLOT(prepareToExit()));
++//	connect(m_app, SIGNAL(lastWindowClosed()),
++//			this, SLOT(prepareToExit()));
+ 	readSettings();
+ }
+ 
+@@ -206,6 +207,11 @@
+ 	cqdg.exec();
+ }
+ 
++void mainwindow::closeEvent(QCloseEvent *event)
++{
++	prepareToExit();
++}
++
+ void mainwindow::prepareToExit()
+ {
+ 	writeSettings();
