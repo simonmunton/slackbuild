@@ -1,0 +1,269 @@
+--- clazy-1.7/src/checks/manuallevel/qt-keywords.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/qt-keywords.cpp	2020-10-14 22:20:58.265776459 +0100
+@@ -59,12 +59,12 @@
+     }
+ 
+     static const vector<StringRef> keywords = { "foreach", "signals", "slots", "emit" };
+-    std::string name = ii->getName();
++    std::string name = ii->getName().str();
+     if (!clazy::contains(keywords, name))
+         return;
+ 
+     // Make sure the macro is Qt's. It must be defined in Qt's headers, not 3rdparty
+-    std::string qtheader = sm().getFilename(sm().getSpellingLoc(minfo->getDefinitionLoc()));
++    std::string qtheader = sm().getFilename(sm().getSpellingLoc(minfo->getDefinitionLoc())).str();
+     if (!clazy::endsWith(qtheader, "qglobal.h") && !clazy::endsWith(qtheader, "qobjectdefs.h"))
+         return;
+ 
+--- clazy-1.7/src/checks/manuallevel/qrequiredresult-candidates.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/qrequiredresult-candidates.cpp	2020-10-14 22:18:41.061783006 +0100
+@@ -65,7 +65,7 @@
+ 
+ 
+     if (returnClass == classDecl) {
+-        const std::string methodName = clazy::name(method);
++        const std::string methodName = clazy::name(method).str();
+         if (methodName.empty()) // fixes assert
+             return;
+ 
+--- clazy-1.7/src/checks/manuallevel/ifndef-define-typo.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/ifndef-define-typo.cpp	2020-10-14 19:50:06.061636940 +0100
+@@ -44,7 +44,7 @@
+ {
+     if (!m_lastIfndef.empty()) {
+         if (IdentifierInfo *ii = macroNameTok.getIdentifierInfo()) {
+-            maybeWarn(ii->getName(), macroNameTok.getLocation());
++            maybeWarn(ii->getName().str(), macroNameTok.getLocation());
+         }
+     }
+ }
+@@ -53,7 +53,7 @@
+ {
+     if (!m_lastIfndef.empty()) {
+         if (IdentifierInfo *ii = macroNameTok.getIdentifierInfo()) {
+-            maybeWarn(ii->getName(), macroNameTok.getLocation());
++            maybeWarn(ii->getName().str(), macroNameTok.getLocation());
+         }
+     }
+ }
+@@ -66,7 +66,7 @@
+ void IfndefDefineTypo::VisitIfndef(SourceLocation, const Token &macroNameTok)
+ {
+     if (IdentifierInfo *ii = macroNameTok.getIdentifierInfo())
+-        m_lastIfndef = ii->getName();
++        m_lastIfndef = ii->getName().str();
+ }
+ 
+ void IfndefDefineTypo::VisitIf(SourceLocation, SourceRange, PPCallbacks::ConditionValueKind)
+--- clazy-1.7/src/checks/manuallevel/jnisignatures.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/jnisignatures.cpp	2020-10-14 19:51:46.459632150 +0100
+@@ -103,7 +103,7 @@
+         return;
+     }
+ 
+-    const std::string name = clazy::name(funDecl);
++    const std::string name = clazy::name(funDecl).str();
+ 
+     if (name == "callObjectMethod" || name == "callMethod") {
+         checkArgAt(callExpr, 0, methodNameRegex, "Invalid method name");
+--- clazy-1.7/src/checks/manuallevel/reserve-candidates.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/reserve-candidates.cpp	2020-10-14 22:24:31.931766265 +0100
+@@ -78,7 +78,7 @@
+     if (!classDecl)
+         return false;
+ 
+-    if (!clazy::equalsAny(clazy::name(methodDecl), { "append", "push_back", "push", "operator<<", "operator+=" }))
++    if (!clazy::equalsAny(clazy::name(methodDecl).str(), { "append", "push_back", "push", "operator<<", "operator+=" }))
+         return false;
+ 
+     if (!clazy::isAReserveClass(classDecl))
+--- clazy-1.7/src/checks/manuallevel/qproperty-type-mismatch.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/manuallevel/qproperty-type-mismatch.cpp	2020-10-14 19:52:51.663629039 +0100
+@@ -237,7 +237,7 @@
+ 
+     CharSourceRange crange = Lexer::getAsCharRange(range, sm(), lo());
+ 
+-    string text = Lexer::getSourceText(crange, sm(), lo());
++    string text = Lexer::getSourceText(crange, sm(), lo()).str();
+     if (!text.empty() && text.back() == ')')
+         text.pop_back();
+ 
+--- clazy-1.7/src/checks/level1/non-pod-global-static.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level1/non-pod-global-static.cpp	2020-10-14 22:29:56.781750765 +0100
+@@ -75,7 +75,7 @@
+ 
+     if (declStart.isMacroID()) {
+         auto macroName = Lexer::getImmediateMacroName(declStart, sm(), lo());
+-        if (clazy::startsWithAny(macroName, { "Q_IMPORT_PLUGIN", "Q_CONSTRUCTOR_FUNCTION", "Q_DESTRUCTOR_FUNCTION"})) // Don't warn on these
++        if (clazy::startsWithAny(macroName.str(), { "Q_IMPORT_PLUGIN", "Q_CONSTRUCTOR_FUNCTION", "Q_DESTRUCTOR_FUNCTION"})) // Don't warn on these
+             return;
+     }
+ 
+--- clazy-1.7/src/checks/level1/qproperty-without-notify.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level1/qproperty-without-notify.cpp	2020-10-14 22:31:04.460747536 +0100
+@@ -69,7 +69,7 @@
+         return;
+     CharSourceRange crange = Lexer::getAsCharRange(range, sm(), lo());
+ 
+-    string text = Lexer::getSourceText(crange, sm(), lo());
++    string text = Lexer::getSourceText(crange, sm(), lo()).str();
+     if (text.back() == ')')
+         text.pop_back();
+ 
+--- clazy-1.7/src/checks/level1/detaching-temporary.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level1/detaching-temporary.cpp	2020-10-14 22:30:29.602749199 +0100
+@@ -140,7 +140,7 @@
+     StringRef className = clazy::name(classDecl);
+ 
+     const std::unordered_map<string, std::vector<StringRef>> &methodsByType = clazy::detachingMethods();
+-    auto it = methodsByType.find(className);
++    auto it = methodsByType.find(className.str());
+     auto it2 = m_writeMethodsByType.find(className);
+ 
+     std::vector<StringRef> allowedFunctions;
+--- clazy-1.7/src/checks/level2/missing-typeinfo.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level2/missing-typeinfo.cpp	2020-10-14 22:31:54.825745133 +0100
+@@ -74,7 +74,7 @@
+         if (sm().isInSystemHeader(clazy::getLocStart(record)))
+             return;
+ 
+-        std::string typeName = clazy::name(record);
++        std::string typeName = clazy::name(record).str();
+         if (typeName == "QPair") // QPair doesn't use Q_DECLARE_TYPEINFO, but rather a explicit QTypeInfo.
+             return;
+ 
+--- clazy-1.7/src/checks/level2/rule-of-three.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level2/rule-of-three.cpp	2020-10-14 22:32:22.657743805 +0100
+@@ -140,7 +140,7 @@
+ 
+     const string className = record->getNameAsString();
+     const string classQualifiedName = record->getQualifiedNameAsString();
+-    const string filename = sm().getFilename(recordStart);
++    const string filename = sm().getFilename(recordStart).str();
+     if (clazy::endsWith(className, "Private") && clazy::endsWithAny(filename, { ".cpp", ".cxx", "_p.h" }))
+         return; // Lots of RAII classes fall into this category. And even Private (d-pointer) classes, warning in that case would just be noise
+ 
+--- clazy-1.7/src/checks/level2/old-style-connect.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level2/old-style-connect.cpp	2020-10-14 22:33:14.393741337 +0100
+@@ -272,7 +272,7 @@
+         return;
+ 
+     auto charRange = Lexer::getAsCharRange(range, sm(), lo());
+-    const string text = Lexer::getSourceText(charRange, sm(), lo());
++    const string text = Lexer::getSourceText(charRange, sm(), lo()).str();
+ 
+     static regex rx(R"(Q_PRIVATE_SLOT\s*\((.*)\s*,\s*.*\s+(.*)\(.*)");
+     smatch match;
+@@ -291,7 +291,7 @@
+     CharSourceRange expansionRange = clazy::getImmediateExpansionRange(macroLoc, sm());
+     SourceRange range = SourceRange(expansionRange.getBegin(), expansionRange.getEnd());
+     auto charRange = Lexer::getAsCharRange(range, sm(), lo());
+-    const string text = Lexer::getSourceText(charRange, sm(), lo());
++    const string text = Lexer::getSourceText(charRange, sm(), lo()).str();
+ 
+     static regex rx(R"(\s*(SIGNAL|SLOT)\s*\(\s*(.+)\s*\(.*)");
+ 
+@@ -313,7 +313,7 @@
+     if (!loc.isMacroID() || loc.isInvalid())
+         return false;
+ 
+-    macroName = Lexer::getImmediateMacroName(loc, sm(), lo());
++    macroName = Lexer::getImmediateMacroName(loc, sm(), lo()).str();
+     return macroName == "SIGNAL" || macroName == "SLOT";
+ }
+ 
+--- clazy-1.7/src/checks/detachingbase.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/detachingbase.cpp	2020-10-14 19:47:40.194122915 +0100
+@@ -57,7 +57,7 @@
+ 
+     const std::unordered_map<string, std::vector<StringRef>> &methodsByType = detachingMethodType == DetachingMethod ? clazy::detachingMethods()
+                                                                                                                      : clazy::detachingMethodsWithConstCounterParts();
+-    auto it = methodsByType.find(className);
++    auto it = methodsByType.find(className.str());
+     if (it != methodsByType.cend()) {
+         const auto &methods = it->second;
+         if (clazy::contains(methods, clazy::name(method)))
+--- clazy-1.7/src/checks/level0/qenums.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level0/qenums.cpp	2020-10-14 22:27:16.315758422 +0100
+@@ -59,7 +59,7 @@
+         // We simply check if :: is present because it's very cumbersome to to check for different classes when dealing with the pre-processor
+ 
+         CharSourceRange crange = Lexer::getAsCharRange(range, sm(), lo());
+-        string text = Lexer::getSourceText(crange, sm(), lo());
++        string text = Lexer::getSourceText(crange, sm(), lo()).str();
+         if (clazy::contains(text, "::"))
+             return;
+     }
+--- clazy-1.7/src/checks/level0/unused-non-trivial-variable.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level0/unused-non-trivial-variable.cpp	2020-10-14 22:29:23.151752370 +0100
+@@ -91,7 +91,7 @@
+     static const vector<StringRef> blacklistedTemplates = { "QScopedPointer", "QSetValueOnDestroy", "QScopedValueRollback" };
+     StringRef className = clazy::name(record);
+     for (StringRef templateName : blacklistedTemplates) {
+-        if (clazy::startsWith(className, templateName))
++        if (clazy::startsWith(className.str(), templateName.str()))
+             return true;
+     }
+ 
+--- clazy-1.7/src/checks/level0/qt-macros.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checks/level0/qt-macros.cpp	2020-10-14 22:29:03.008753331 +0100
+@@ -44,7 +44,7 @@
+         return;
+ 
+     IdentifierInfo *ii = MacroNameTok.getIdentifierInfo();
+-    if (ii && clazy::startsWith(ii->getName(), "Q_OS_"))
++    if (ii && clazy::startsWith(ii->getName().str(), "Q_OS_"))
+         m_OSMacroExists = true;
+ }
+ 
+@@ -58,7 +58,7 @@
+     if (preProcessorVisitor && preProcessorVisitor->qtVersion() < 51204 && ii->getName() == "Q_OS_WINDOWS") {
+         // Q_OS_WINDOWS was introduced in 5.12.4
+         emitWarning(Loc, "Q_OS_WINDOWS was only introduced in Qt 5.12.4, use Q_OS_WIN instead");
+-    } else if (!m_OSMacroExists && clazy::startsWith(ii->getName(), "Q_OS_")) {
++    } else if (!m_OSMacroExists && clazy::startsWith(ii->getName().str(), "Q_OS_")) {
+         emitWarning(Loc, "Include qglobal.h before testing Q_OS_ macros");
+     }
+ }
+--- clazy-1.7/src/FixItExporter.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/FixItExporter.cpp	2020-10-14 22:34:36.023737442 +0100
+@@ -68,7 +68,7 @@
+ 
+     const auto id = SourceMgr.getMainFileID();
+     const auto entry = SourceMgr.getFileEntryForID(id);
+-    getTuDiag().MainSourceFile = entry->getName();
++    getTuDiag().MainSourceFile = entry->getName().str();
+ }
+ 
+ bool FixItExporter::IncludeInDiagnosticCounts() const
+@@ -89,7 +89,7 @@
+     // TODO: This returns an empty string: DiagEngine->getDiagnosticIDs()->getWarningOptionForDiag(Info.getID());
+     // HACK: capture it at the end of the message: Message text [check-name]
+ 
+-    std::string checkName = DiagEngine.getDiagnosticIDs()->getWarningOptionForDiag(Info.getID());
++    std::string checkName = DiagEngine.getDiagnosticIDs()->getWarningOptionForDiag(Info.getID()).str();
+     std::string messageText;
+ 
+     if (checkName.empty()) {
+--- clazy-1.7/src/Utils.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/Utils.cpp	2020-10-14 22:35:02.095736198 +0100
+@@ -922,7 +922,7 @@
+     if (loc.isMacroID())
+         loc = sm.getExpansionLoc(loc);
+ 
+-    const string filename = sm.getFilename(loc);
++    const string filename = sm.getFilename(loc).str();
+     auto splitted = clazy::splitString(filename, '/');
+     if (splitted.empty())
+         return {};
+--- clazy-1.7/src/checkbase.cpp.orig	2020-06-29 00:30:42.000000000 +0100
++++ clazy-1.7/src/checkbase.cpp	2020-10-14 22:33:50.806739599 +0100
+@@ -188,7 +188,7 @@
+     if (!loc.isValid())
+         return true;
+ 
+-    string filename = sm().getFilename(loc);
++    string filename = sm().getFilename(loc).str();
+ 
+     return clazy::any_of(m_filesToIgnore, [filename](const std::string &ignored) {
+         return clazy::contains(filename, ignored);
