@@ -1,5 +1,5 @@
 --- seexpr-3.4.4.0/CMakeLists.txt.orig	2020-09-28 14:04:00.000000000 +0100
-+++ seexpr-3.4.4.0/CMakeLists.txt	2020-10-01 22:06:13.944060053 +0100
++++ seexpr-3.4.4.0/CMakeLists.txt	2020-10-17 15:29:36.456249722 +0100
 @@ -81,14 +81,15 @@
  # TODO: find boost and python the proper ways
  set(BOOST_DIR /usr CACHE PATH "where boost is located")
@@ -29,7 +29,7 @@
  
          if (LLVM_VERSION VERSION_LESS 3.8.0)
 --- seexpr-3.4.4.0/src/py/CMakeLists.txt.orig	2020-09-28 14:04:00.000000000 +0100
-+++ seexpr-3.4.4.0/src/py/CMakeLists.txt	2020-10-01 22:12:07.993043160 +0100
++++ seexpr-3.4.4.0/src/py/CMakeLists.txt	2020-10-17 15:29:36.456249722 +0100
 @@ -22,51 +22,53 @@
              set(CMAKE_LINK_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_PYTHON_FRAMEWORK}")
          #endif()
@@ -130,8 +130,89 @@
      target_link_libraries(core ${BOOST_PYTHON_LIBNAME})
      set_target_properties(core PROPERTIES PREFIX "")
      # Python modules require a ".so" suffix on macOS
+--- seexpr-3.4.4.0/src/SeExpr2/ExprLLVMCodeGeneration.cpp.orig	2020-09-28 14:04:00.000000000 +0100
++++ seexpr-3.4.4.0/src/SeExpr2/ExprLLVMCodeGeneration.cpp	2020-10-17 15:31:04.180245536 +0100
+@@ -168,7 +168,7 @@
+     return createVecVal(Builder, vals);
+ }
+ 
+-LLVM_VALUE getFirstElement(LLVM_VALUE V, IRBuilder<> Builder) {
++LLVM_VALUE getFirstElement(LLVM_VALUE V, IRBuilder<> &Builder) {
+     Type *VTy = V->getType();
+     if (VTy->isDoubleTy()) return V;
+ 
+@@ -184,7 +184,7 @@
+ 
+     if (destTy->isDoubleTy()) return val;
+ 
+-    return createVecVal(Builder, val, destTy->getVectorNumElements());
++    return createVecVal(Builder, val, llvm::cast<llvm::VectorType>(destTy)->getNumElements());
+ }
+ 
+ AllocaInst *createAllocaInst(LLVM_BUILDER Builder, Type *ty, unsigned arraySize = 1, const std::string &varName = "") {
+@@ -235,7 +235,7 @@
+ 
+     assert(target->getType()->isVectorTy());
+ 
+-    unsigned dim = target->getType()->getVectorNumElements();
++    unsigned dim = llvm::cast<llvm::VectorType>(target->getType())->getNumElements();
+     LLVM_VALUE vecVal = createVecVal(Builder, toPromote, dim);
+ 
+     if (op1Ty->isVectorTy())
+@@ -258,7 +258,7 @@
+ AllocaInst *storeVectorToDoublePtr(LLVM_BUILDER Builder, LLVM_VALUE vecVal) {
+     LLVMContext &llvmContext = Builder.getContext();
+     AllocaInst *doublePtr =
+-        createAllocaInst(Builder, Type::getDoubleTy(llvmContext), vecVal->getType()->getVectorNumElements());
++        createAllocaInst(Builder, Type::getDoubleTy(llvmContext), llvm::cast<llvm::VectorType>(vecVal->getType())->getNumElements());
+     for (unsigned i = 0; i < 3; ++i) {
+         LLVM_VALUE idx = ConstantInt::get(Type::getInt32Ty(llvmContext), i);
+         LLVM_VALUE val = Builder.CreateExtractElement(vecVal, idx);
+@@ -350,13 +350,13 @@
+ 
+     if (isVarArg(seFuncType)) args = convertArgsToPointerAndLength(Builder, args, seFuncType);
+ 
+-    if (isReturnVector(seFuncType) == false) return Builder.CreateCall(addrVal, args);
++    if (isReturnVector(seFuncType) == false) return Builder.CreateCall(cast<FunctionType>(addrVal->getType()->getPointerElementType()), addrVal, args);
+ 
+     // TODO: assume standard function all use vector of length 3 as parameter
+     //       or return type.
+     AllocaInst *retPtr = createAllocaInst(Builder, Type::getDoubleTy(llvmContext), 3);
+     args.insert(args.begin(), retPtr);
+-    Builder.CreateCall(addrVal, replaceVecArgWithDoublePointer(Builder, args));
++    Builder.CreateCall(cast<FunctionType>(addrVal->getType()->getPointerElementType()), addrVal, replaceVecArgWithDoublePointer(Builder, args));
+     return createVecValFromAlloca(Builder, retPtr, 3);
+ }
+ 
+@@ -380,7 +380,7 @@
+         LLVM_VALUE arg = seFunc->child(i)->codegen(Builder);
+         if (arg->getType()->isVectorTy()) {
+             AllocaInst *vecArray = storeVectorToDoublePtr(Builder, arg);
+-            for (unsigned i = 0; i < arg->getType()->getVectorNumElements(); ++i) {
++            for (unsigned i = 0; i < llvm::cast<llvm::VectorType>(arg->getType())->getNumElements(); ++i) {
+                 LLVM_VALUE elemPtr = Builder.CreateConstGEP1_32(vecArray, i);
+                 args.push_back(Builder.CreateLoad(elemPtr));
+             }
+@@ -876,7 +876,7 @@
+     assert(maxVectorArgType->isVectorTy());
+ 
+     std::vector<LLVM_VALUE> ret;
+-    for (unsigned vecComponent = 0; vecComponent < maxVectorArgType->getVectorNumElements(); ++vecComponent) {
++    for (unsigned vecComponent = 0; vecComponent < llvm::cast<llvm::VectorType>(maxVectorArgType)->getNumElements(); ++vecComponent) {
+         LLVM_VALUE idx = ConstantInt::get(Type::getInt32Ty(llvmContext), vecComponent);
+         std::vector<LLVM_VALUE> realArgs;
+         // Break the function into multiple calls per component of the output
+@@ -975,7 +975,7 @@
+     Builder.SetInsertPoint(BB);
+     Function::arg_iterator AI = F->arg_begin();
+     for (int i = 0, e = F->arg_size(); i != e; ++i, ++AI) {
+-        AllocaInst *Alloca = createAllocaInst(Builder, AI->getType(), 1, AI->getName());
++        AllocaInst *Alloca = createAllocaInst(Builder, AI->getType(), 1, AI->getName().str());
+         Alloca->takeName(&*AI);
+         Builder.CreateStore(&*AI, Alloca);
+     }
 --- seexpr-3.4.4.0/src/SeExpr2/UI/CMakeLists.txt.orig	2020-09-28 14:04:00.000000000 +0100
-+++ seexpr-3.4.4.0/src/SeExpr2/UI/CMakeLists.txt	2020-10-01 22:06:13.945060053 +0100
++++ seexpr-3.4.4.0/src/SeExpr2/UI/CMakeLists.txt	2020-10-17 15:29:36.456249722 +0100
 @@ -225,12 +225,13 @@
          find_program(SIP_EXEC sip)
  
@@ -172,7 +253,7 @@
          if (ENABLE_QT5)
              target_link_libraries(expreditor2 SeExpr2Editor
 --- seexpr-3.4.4.0/src/build/build-info.orig	2020-09-28 14:04:00.000000000 +0100
-+++ seexpr-3.4.4.0/src/build/build-info	2020-10-01 22:06:13.945060053 +0100
++++ seexpr-3.4.4.0/src/build/build-info	2020-10-17 15:29:36.456249722 +0100
 @@ -21,6 +21,7 @@
          ('python-site', python_site),
          ('python-inc', python_inc),
