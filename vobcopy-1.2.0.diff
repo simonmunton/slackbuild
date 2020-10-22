@@ -1,0 +1,1170 @@
+Description: <short summary of the patch>
+ TODO: Put a short summary on the line above and replace this paragraph
+ with a longer explanation of this change. Complete the meta-information
+ with other relevant fields (see below for details). To make it easier, the
+ information below has been extracted from the changelog. Adjust it or drop
+ it.
+ .
+ vobcopy (1.2.0-8) unstable; urgency=medium
+ .
+   * Move quilt patchs out of debian/patches/ and onto master branch
+   * Trim trailing whitespace.
+   * Bump debhelper from old 11 to 12.
+   * Set debhelper-compat version in Build-Depends.
+   * Fix day-of-week for changelog entries 1.0.2-1, 0.5.7-1.
+   * Bump policy version
+Author: Barak A. Pearlmutter <bap@debian.org>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: https://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: 2020-02-17
+
+--- /dev/null
++++ vobcopy-1.2.0/ChangeLog
+@@ -0,0 +1,6 @@
++2012-01-26  gettextize  <bug-gnu-gettext@gnu.org>
++
++	* Makefile.am (SUBDIRS): New variable.
++	(ACLOCAL_AMFLAGS): New variable.
++	(EXTRA_DIST): Add config.rpath, m4/ChangeLog.
++	* configure.ac (AC_CONFIG_FILES): Add po/Makefile.in.
+--- /dev/null
++++ vobcopy-1.2.0/Makefile.am
+@@ -0,0 +1,24 @@
++ACLOCAL_AMFLAGS = -I m4
++SUBDIRS = po
++
++bin_PROGRAMS = vobcopy
++
++vobcopy_SOURCES = dvd.c vobcopy.c dvd.h vobcopy.h
++
++dist_man_MANS = vobcopy.1
++man1dedir = $(mandir)/de/man1
++man1de_DATA = intl/de/vobcopy.1
++
++EXTRA_DIST = m4/ChangeLog vobcopy.mo vobcopy.pot vobcopy.spec vobcopy.1.de
++
++dist_doc_DATA = alternative_programs.txt Changelog README Release-Notes TODO COPYING
++
++intl/de/vobcopy.1: vobcopy.1.de
++	$(MKDIR_P) intl/de
++	ln $< $@
++
++MOSTLYCLEANFILES = intl/de/vobcopy.1
++
++mostlyclean-local:
++	-rmdir intl/de
++	-rmdir intl
+--- /dev/null
++++ vobcopy-1.2.0/configure.ac
+@@ -0,0 +1,44 @@
++# Process this file with autoconf to produce a configure script.
++
++# header
++AC_PREREQ([2.69])
++AC_INIT([vobcopy],[1.2.0],[Robos <robos@muon.de>],[vobcopy],[http://vobcopy.org])
++AC_CONFIG_SRCDIR([vobcopy.c])
++AC_CONFIG_MACRO_DIR([m4])
++AC_CONFIG_HEADERS([config.h])
++
++# Enable automake
++AM_INIT_AUTOMAKE([foreign -Wall])
++
++# Internationalization support
++AM_GNU_GETTEXT([external])
++AM_GNU_GETTEXT_VERSION([0.18])
++
++# Checks for programs.
++AC_PROG_CC
++AX_CFLAGS_WARN_ALL
++AC_PROG_LN_S
++AC_PROG_MKDIR_P
++
++# Checks for libraries.
++AC_SEARCH_LIBS([DVDOpen], [dvdread],,[AC_MSG_ERROR([libdvdread not found])])
++
++# Checks for header files.
++AC_CHECK_HEADERS([fcntl.h libintl.h features.h locale.h mntent.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/param.h sys/statfs.h sys/statvfs.h sys/vfs.h termios.h unistd.h getopt.h sys/mnttab.h assert.h dirent.h])
++
++# Checks for typedefs, structures, and compiler characteristics.
++AC_HEADER_STDBOOL
++AC_TYPE_OFF_T
++AC_TYPE_SIZE_T
++AC_TYPE_SSIZE_T
++
++# Checks for library functions.
++AC_FUNC_FSEEKO
++AC_SYS_LARGEFILE
++AC_FUNC_GETMNTENT
++AC_FUNC_MALLOC
++AC_CHECK_FUNCS([alarm fdatasync getcwd getmntent getmntinfo memset mkdir setlocale strcasecmp strerror strpbrk strstr getopt_long])
++
++# trailer
++AC_CONFIG_FILES([Makefile po/Makefile.in])
++AC_OUTPUT
+--- vobcopy-1.2.0.orig/dvd.c
++++ vobcopy-1.2.0/dvd.c
+@@ -109,6 +109,7 @@ int get_device( char *path, char *device
+ 
+ #if ( !defined( __sun ) )
+   FILE	*tmp_streamin;
++  FILE	*tmp_streamin_fuseiso;
+   char	tmp_bufferin[ MAX_STRING ];
+   char  tmp_path[ 256 ];
+   int   l = 0;
+@@ -117,6 +118,8 @@ int get_device( char *path, char *device
+ 
+ #if (defined(__linux__))
+   struct mntent* lmount_entry;
++  struct mntent* lmount_entry_fuseiso;
++
+ #endif
+ 
+ #if ( defined( __sun ) )
+@@ -257,6 +260,30 @@ this is the code for the other-OSs, not
+ 	    }
+ 	}
+ 	endmntent(tmp_streamin);
++        
++        if (strcmp(lmount_entry->mnt_fsname, "fuseiso") == 0) {
++          fprintf ( stderr, "[Info] Fuseiso detected. I'm looking for the iso file\n");
++          // The directory is mounted by fuseiso. Here we try get the name & path of the ISO
++          char *homedir;
++          if ((homedir = getenv("HOME")) == NULL) {
++              // TODO
++              //homedir = getpwuid(getuid())->pw_dir;
++          }
++          
++          if ((tmp_streamin_fuseiso = setmntent(strcat(homedir,"/.mtab.fuseiso"), "r"))){
++            while ((lmount_entry_fuseiso = getmntent(tmp_streamin_fuseiso))){
++              if (strcmp(lmount_entry_fuseiso->mnt_dir, path) == 0){
++                /* Found the mount point */
++                fprintf ( stderr, "[Info] Device %s mounted on %s\n", lmount_entry_fuseiso->mnt_fsname, lmount_entry_fuseiso->mnt_dir);
++                strcpy(device, lmount_entry_fuseiso->mnt_fsname);
++                mounted = TRUE;
++                break; 
++              }
++            }
++            endmntent(tmp_streamin_fuseiso);
++          }
++        }
++
+ 	if (mounted) 
+             {
+ 		/* device was set from /etc/mtab, no need to further check
+--- /dev/null
++++ vobcopy-1.2.0/m4/ChangeLog
+@@ -0,0 +1,10 @@
++2012-01-26  gettextize  <bug-gnu-gettext@gnu.org>
++
++	* gettext.m4: New file, from gettext-0.18.1.
++	* iconv.m4: New file, from gettext-0.18.1.
++	* lib-ld.m4: New file, from gettext-0.18.1.
++	* lib-link.m4: New file, from gettext-0.18.1.
++	* lib-prefix.m4: New file, from gettext-0.18.1.
++	* nls.m4: New file, from gettext-0.18.1.
++	* po.m4: New file, from gettext-0.18.1.
++	* progtest.m4: New file, from gettext-0.18.1.
+--- /dev/null
++++ vobcopy-1.2.0/po/Makevars
+@@ -0,0 +1,41 @@
++# Makefile variables for PO directory in any package using GNU gettext.
++
++# Usually the message domain is the same as the package name.
++DOMAIN = $(PACKAGE)
++
++# These two variables depend on the location of this directory.
++subdir = po
++top_builddir = ..
++
++# These options get passed to xgettext.
++XGETTEXT_OPTIONS = --keyword=_ --keyword=N_
++
++# This is the copyright holder that gets inserted into the header of the
++# $(DOMAIN).pot file.  Set this to the copyright holder of the surrounding
++# package.  (Note that the msgstr strings, extracted from the package's
++# sources, belong to the copyright holder of the package.)  Translators are
++# expected to transfer the copyright for their translations to this person
++# or entity, or to disclaim their copyright.  The empty string stands for
++# the public domain; in this case the translators are expected to disclaim
++# their copyright.
++COPYRIGHT_HOLDER = Free Software Foundation, Inc.
++
++# This is the email address or URL to which the translators shall report
++# bugs in the untranslated strings:
++# - Strings which are not entire sentences, see the maintainer guidelines
++#   in the GNU gettext documentation, section 'Preparing Strings'.
++# - Strings which use unclear terms or require additional context to be
++#   understood.
++# - Strings which make invalid assumptions about notation of date, time or
++#   money.
++# - Pluralisation problems.
++# - Incorrect English spelling.
++# - Incorrect formatting.
++# It can be your email address, or a mailing list address where translators
++# can write to without being subscribed, or the URL of a web page through
++# which the translators can contact you.
++MSGID_BUGS_ADDRESS =
++
++# This is the list of locale categories, beyond LC_MESSAGES, for which the
++# message catalogs shall be used.  It is usually empty.
++EXTRA_LOCALE_CATEGORIES =
+--- /dev/null
++++ vobcopy-1.2.0/po/POTFILES.in
+@@ -0,0 +1,3 @@
++# List of source files which contain translatable strings.
++dvd.c
++vobcopy.c
+--- vobcopy-1.2.0.orig/vobcopy.1
++++ vobcopy-1.2.0/vobcopy.1
+@@ -5,31 +5,31 @@
+ .SH NAME
+ vobcopy \- copy (rip) files from a dvd to the harddisk
+ .SH SYNOPSIS
+-.B vobcopy [-b
++.B vobcopy [\-b
+ .I size[bkmg]
+-.B ] [-e
++.B ] [\-e
+ .I size[bkmg]
+-.B ] [-f] [-F
++.B ] [\-f] [\-F
+ .I fast_factor
+-.B ] [-h] [-i
++.B ] [\-h] [\-i
+ .I input-dir
+-.B ] [-l] [-m] [-M][-n
++.B ] [\-l] [\-m] [\-M][\-n
+ .I title-number
+-.B ] [-o
++.B ] [\-o
+ .I output-dir
+-.B ] [-q] [-O
++.B ] [\-q] [\-O
+ .I single_file(s)_to_rip
+-.B ] [-t
++.B ] [\-t
+ .I name
+-.B ] [-v [-v]] [-x] [-I] [-V] [-L
++.B ] [\-v [\-v]] [\-x] [\-I] [\-V] [\-L
+ .I logfile-path
+-.B ] [-1
++.B ] [\-1
+ .I aux_output_dir1
+-.B ] [-2
++.B ] [\-2
+ .I aux_output_dir2
+-.B ] [-3
++.B ] [\-3
+ .I aux_output_dir3
+-.B ] [-4
++.B ] [\-4
+ .I aux_output_dir4
+ .B ]
+ .SH DESCRIPTION
+@@ -56,54 +56,54 @@ backups of all your DVDs...
+ without any options will copy the title with the most chapters into files of 
+ 2GB size into the current working directory.
+ .SH OPTIONS
+-.IP "-b, --begin SIZE[bkmg]"
+-begins to copy from the specified offset-size. Modifiers like b for 512-bytes, k for kilo-bytes, m for mega- and g for giga-bytes can be appended to the number. Example: vobcopy -b 500m will start to copy from 500MB onward till the end.
+-.IP "-e, --end SIZE[bkmg]"
+-similar to -b, this options lets you specify some size to stop before the end.
+-.IP "-f, --force"
++.IP "\-b, \-\-begin SIZE[bkmg]"
++begins to copy from the specified offset-size. Modifiers like b for 512-bytes, k for kilo-bytes, m for mega- and g for giga-bytes can be appended to the number. Example: vobcopy \-b 500m will start to copy from 500MB onward till the end.
++.IP "\-e, \-\-end SIZE[bkmg]"
++similar to \-b, this options lets you specify some size to stop before the end.
++.IP "\-f, \-\-force"
+ force the output to the specified directory even if vobcopy thinks there is not
+ enough free space
+-.IP "-F, --fast fast_factor"
++.IP "\-F, \-\-fast fast_factor"
+ speed up the copying (experimental). fast_factor is in the range 1 to 64
+-.IP "-h, --help"
++.IP "\-h, \-\-help"
+ print the command line options available
+-.IP "-i, --input-dir INPUT-DIR"
++.IP "\-i, \-\-input\-dir INPUT-DIR"
+ provide vobcopy with the path to the mounted dvd drive
+-.IP "-l, --large-file"
++.IP "\-l, \-\-large\-file"
+ write data into one file (needs large file support (LFS))
+-.IP "-M, --longest"
++.IP "\-M, \-\-longest"
+ choose the title with the longest playing time. With some DVDs this gets the main title better than the most chapter method, with others it's worse.
+-.IP "-m, --mirror"
++.IP "\-m, \-\-mirror"
+ mirrors the whole dvd to harddisk. It will create a directory named after the dvd and copy the ifo, bup and vob files there. The title-vobs are decrypted during this. 
+-.IP "-n, --title-number TITLE-NUMBER"
++.IP "\-n, \-\-title\-number TITLE-NUMBER"
+ specify which title vobcopy shall copy (default is title with most chapters). On the dvd, vts_01_x.vob specify the first title (mostly this is the main feature).
+-.IP "-o, --output-dir OUTPUT-DIR"
+-specify the output-directory of the data. "stdout" or "-" redirect to stdout. Useful for pipeing it to /dev/null ;-) If you forget to pipe it to some place, your terminal will get garbled, so remember that typing "reset" and then Enter will rescue you.
+-.IP "-q, --quiet"
++.IP "\-o, \-\-output\-dir OUTPUT-DIR"
++specify the output-directory of the data. "stdout" or "\-" redirect to stdout. Useful for pipeing it to /dev/null ;-) If you forget to pipe it to some place, your terminal will get garbled, so remember that typing "reset" and then Enter will rescue you.
++.IP "\-q, \-\-quiet"
+ all info- and error-messages of vobcopy will end up in the current directory in vobcopy.bla instead of stderr
+-.IP "-O, --onefile single_file(s)_to_rip"
++.IP "\-O, \-\-onefile single_file(s)_to_rip"
+ specify which single file(s) to rip. Parts of names can be given and all 
+ files which include the part will be copied. Files can be listed with comma 
+-separation. Example: -O video_ts.vob,bup will copy the single file video_ts.vob and all files containing bup
+-.IP "-t, --name NAME"
+-you can give the file a name if you don't like the one from dvd. -t hallo will result in hallo.vob. (stdout or "-" are deprecated now)
++separation. Example: \-O video_ts.vob,bup will copy the single file video_ts.vob and all files containing bup
++.IP "\-t, \-\-name NAME"
++you can give the file a name if you don't like the one from dvd. \-t hallo will result in hallo.vob. (stdout or "\-" are deprecated now)
+ If you want to give it names like "Huh I like this movie", do it in quotation marks.
+-.IP "-v, --verbose"
++.IP "\-v, \-\-verbose"
+ prints more information about whats going on (more verbose).
+-.IP "-v -v"
++.IP "\-v \-v"
+ prints the information given on command line into a log-file in the current directory for 
+ inclusion into a bugreport.
+-.IP "-x"
++.IP "\-x"
+ overwrite all existing files without further questions.
+-.IP "-L LOGFILE-PATH"
++.IP "\-L LOGFILE-PATH"
+ tells vobcopy where to put the logfile instead of the default.
+-.IP "-I, --info"
++.IP "\-I, \-\-info"
+ prints information about the titles, chapters and angles on the dvd.
+-.IP "-V, --version"
++.IP "\-V, \-\-version"
+ prints version number.
+-.IP "-1, --1st_alt_output_dir AUXILIARY-OUTPUT-DIR1"
+-if the data doesn't fit on the first output-directory (specified behind -o)
+-writing will continue here (and after -2 there and -3 and -4) -> the files will be split according to the remaining free space (try specifying the path _directly_ behind -1, _no_ space in between if you have troubles, this might be even necessary at -o...)
++.IP "\-1, \-\-1st_alt_output_dir AUXILIARY-OUTPUT-DIR1"
++if the data doesn't fit on the first output-directory (specified behind \-o)
++writing will continue here (and after \-2 there and \-3 and \-4) -> the files will be split according to the remaining free space (try specifying the path _directly_ behind \-1, _no_ space in between if you have troubles, this might be even necessary at \-o...)
+ .SH BUGS
+ Vobcopy is still under development. So expect some.
+ There *might* be problems for users who's system is not large-file ready. If so, please get back to me.
+--- vobcopy-1.2.0.orig/vobcopy.1.de
++++ vobcopy-1.2.0/vobcopy.1.de
+@@ -6,31 +6,31 @@
+ .SH NAME
+ vobcopy \- kopiert (rippt) Dateien von einer (Video-) DVD auf die Festplatte
+ .SH SYNTAX
+-.B vobcopy [-b
++.B vobcopy [\-b
+ .I Größe[bkmg]
+-.B ] [-e
++.B ] [\-e
+ .I Größe[bkmg]
+-.B ] [-f] [-F
++.B ] [\-f] [\-F
+ .I Beschleunigungsfaktor
+-.B ] [-h] [-i
++.B ] [\-h] [\-i
+ .I Eingabeverzeichnis
+-.B ] [-l] [-m] [-m][-n
++.B ] [\-l] [\-m] [\-m][\-n
+ .I Titel-Nummer
+-.B ] [-o
++.B ] [\-o
+ .I Ausgabeverzeichnis
+-.B ] [-q] [-O
++.B ] [\-q] [\-O
+ .I einzelne zu kopierende Datei 
+-.B ] [-t
++.B ] [\-t
+ .I Name
+-.B ] [-v [-v]] [-x] [-I] [-V] [-L
++.B ] [\-v [\-v]] [\-x] [\-I] [\-V] [\-L
+ .I Logdatei-Pfad
+-.B ] [-1
++.B ] [\-1
+ .I zusätzliches Ausgabeverzeichnis 1
+-.B ] [-2
++.B ] [\-2
+ .I zusätzliches Ausgabeverzeichnis 2
+-.B ] [-3
++.B ] [\-3
+ .I zusätzliches Ausgabeverzeichnis 3
+-.B ] [-4
++.B ] [\-4
+ .I zusätzliches Ausgabeverzeichnis 4
+ .B ]
+ .SH Beschreibung
+@@ -53,76 +53,76 @@ Routinen ist als Erweiterung zu libdvdre
+ Beim Aufruf ohne jegliche Optionen wird der Titel mit den meisten Kapiteln in Dateien 
+ von 2GB Größe in das aktuelle Verzeichnis kopiert.
+ .SH OPTIONEN
+-.IP "-b, --begin GRÖSSE[bkmg]"
++.IP "\-b, \-\-begin GRÖSSE[bkmg]"
+ beginnt den Kopiervorgang erst ab der angegebenen Adresse. Die Größe 
+ der Adresse kann mit den Abkürzungen b für 512-Byte-Blöcke, k für Kilobytes, 
+ m für Mega- und g für Gigabytes angegeben werden. 
+-Beispiel: vobcopy -b 500m beginnt bei 500MB nach dem Anfang der Datei 
++Beispiel: vobcopy \-b 500m beginnt bei 500MB nach dem Anfang der Datei
+ bis zum Ende zu kopieren.
+-.IP "-e, --end GRÖSSE[bkmg]"
+-ähnlich wie -b gibt diese Option eine Größe vor dem Ende der Datei an, 
++.IP "\-e, \-\-end GRÖSSE[bkmg]"
++ähnlich wie \-b gibt diese Option eine Größe vor dem Ende der Datei an,
+ an der der Kopiervorgang stoppt.
+-.IP "-f, --force"
++.IP "\-f, \-\-force"
+ erzwingt die Ausgabe in das angegebene Verzeichnis, auch wenn vobcopy denkt, 
+ dass dort ist nicht genügend freier Platz vorhanden ist.
+-.IP "-F, --fast Beschleunigungsfaktor"
++.IP "\-F, \-\-fast Beschleunigungsfaktor"
+ beschleunigt das Kopieren um einen Faktor (experimentell).
+ Der Beschleunigungsfaktor kann 1 bis 64 betragen
+-.IP "-h, --help"
++.IP "\-h, \-\-help"
+ Gibt die verfügbaren Optionen aus
+-.IP "-i, --input-dir EINGABE-VERZEICHNIS"
++.IP "\-i, \-\-input\-dir EINGABE-VERZEICHNIS"
+ gibt das Eingabeverzeichnis an (das Verzeichnis, auf das die DVD
+ gemountet ist).
+-.IP "-l, --large-file"
++.IP "\-l, \-\-large\-file"
+ schreibt alle Daten in eine große Datei ( > 2GB, benötigt Unterstützung für große Dateien (LFS))
+-.IP "-M, --longest"
++.IP "\-M, \-\-longest"
+ wählt den Titel mit der längsten Spielzeit. Bei manchen DVDs wird der Hauptfilm besser gefunden als mit der Methode der meisten Kapitel, bei manchen schlechter.
+-.IP "-m, --mirror"
++.IP "\-m, \-\-mirror"
+ Spiegelt die gesamte DVD auf die Festplatte. Es wird ein Unterverzeichnis mit dem 
+ DVD-Namen erzeugt und die gesamte Dateistruktur des Videoteils wird darunter 
+ kopiert. 
+-.IP "-n, --title-number TITEL-NUMMER"
++.IP "\-n, \-\-title\-number TITEL-NUMMER"
+ gibt an, welcher Titel kopiert werden soll. Auf der 
+ DVD heißt der erste Titel vts_01_x.vob (meist der Hauptfilm).
+-.IP "-o, --output-dir AUSGABE-VERZEICHNIS"
+-gibt das Ausgabeverzeichnis für die Kopien an. Der Wert "stdout" oder "-" 
++.IP "\-o, \-\-output\-dir AUSGABE-VERZEICHNIS"
++gibt das Ausgabeverzeichnis für die Kopien an. Der Wert "stdout" oder "\-"
+ gibt auf der Standardausgabe aus. Nützlich für die Ausgabe nach /dev/null ;-) 
+ Tipp: Wenn du vergisst umzuleiten, wird dein Terminal überflutet werden, 
+ in diesem Fall tippe "reset" und Enter, um das Terminal zu retten.
+-.IP "-q, --quiet"
++.IP "\-q, \-\-quiet"
+ alle Informations- und Fehlerausschriften von vobcopy werden in die Datei 
+ vobcopy.bla im aktuellen Verzeichnis anstatt in die Standardfehlerausgabe geschrieben
+-.IP "-O, --onefile single_file(s)_to_rip"
++.IP "\-O, \-\-onefile single_file(s)_to_rip"
+ gibt (eine) einzelne Datei(en) für das Kopieren an. Teile von Namen können 
+ angegeben werden und alle Dateien, die die Namensteile enthalten, werden 
+ kopiert. Dateinamen können als mit Komma getrennte Liste angegeben werden.
+-Beispiel: -O video_ts.vob,bup kopiert die Datei video_ts.vob und alle Dateien,
++Beispiel: \-O video_ts.vob,bup kopiert die Datei video_ts.vob und alle Dateien,
+ deren Namen bup enthält.
+-.IP "-t, --name NAME"
++.IP "\-t, \-\-name NAME"
+ Damit kann man der Ausgabedatei einen eigenen Namen geben, wenn einem der von 
+-der DVD nicht gefällt. -t hallo erzeugt also ein hallo.vob. (stdout oder "-" sind nun 
++der DVD nicht gefällt. \-t hallo erzeugt also ein hallo.vob. (stdout oder "\-" sind nun
+ nicht mehr unterstützt) Wenn du Namen mit Leerzeichen wie "Huh ich mag den Film" 
+ angeben willst, schließe den Namen in Anführungszeichen ein.
+-.IP "-v, --verbose"
++.IP "\-v, \-\-verbose"
+ schreibt noch mehr Informationen aus.
+-.IP "-v -v"
++.IP "\-v \-v"
+ schreibt die Ausschriften in eine Logdatei im aktuellen Verzeichis um einen Fehlerreport 
+ zu erzeugen.
+-.IP "-x"
++.IP "\-x"
+ überschreibt alle existierenden Dateien ohne weitere Rückfragen.
+-.IP "-L LOGDATEI-PFAD"
++.IP "\-L LOGDATEI-PFAD"
+ weist vobcopy an die Logdatei statt in den Standardpfad in den LOGDATEI-PFAD zu legen.
+-.IP "-I, --info"
++.IP "\-I, \-\-info"
+ gibt Informationen über die Titel, Kapitel und Teile der DVD aus.
+-.IP "-V, --version"
++.IP "\-V, \-\-version"
+ gibt die Versionsnummer von vobcopy aus.
+-.IP "-1, --1st_alt_output_dir AUXILIARY-OUTPUT-DIR1"
++.IP "\-1, \-\-1st_alt_output_dir AUXILIARY-OUTPUT-DIR1"
+ Wenn die DVD einfach nicht in das erste Ausgabeverzeichnis passen will 
+-(mit -o angegeben), geht die Ausgabe in das hier angegebene Verzeichnis 
++(mit \-o angegeben), geht die Ausgabe in das hier angegebene Verzeichnis
+ (und die folgenden 2ten, 3ten und 4ten) weiter -> die Dateien werden geteilt, 
+ je nachdem wie viel Platz in jedem der Verzeichnisse noch blieb.
+-Gib den Pfad _direkt_ hinter "-1" an, _kein_ Leerzeichen dazwischen lassen, 
+-wenn Probleme auftreten, möglicherweise ist das auch bei -o nötig...)
++Gib den Pfad _direkt_ hinter "\-1" an, _kein_ Leerzeichen dazwischen lassen,
++wenn Probleme auftreten, möglicherweise ist das auch bei \-o nötig...)
+ .SH FEHLER
+ Vobcopy ist weiterhin unter Entwicklung, also können noch einige Neuerungen 
+ erwarten werden.
+--- vobcopy-1.2.0.orig/vobcopy.c
++++ vobcopy-1.2.0/vobcopy.c
+@@ -237,9 +237,7 @@ and potentially fatal."  - Thanks Leigh!
+               break;
+             }
+           /* 	  sscanf( optarg, "%lli", &temp_var ); */
+-          seek_start = abs( temp_var / 2048 );
+-          if( seek_start < 0 )
+-            seek_start = 0;
++          seek_start = temp_var / 2048;
+           cut_flag = TRUE;
+           break;
+ 
+@@ -290,9 +288,7 @@ and potentially fatal."  - Thanks Leigh!
+               break;
+             }
+ 
+-          stop_before_end = abs( temp_var / 2048 );
+-          if( stop_before_end < 0 )
+-            stop_before_end = 0;
++          stop_before_end = temp_var / 2048;
+           cut_flag = TRUE;
+           break;
+ 
+@@ -322,13 +318,11 @@ and potentially fatal."  - Thanks Leigh!
+           provided_input_dir_flag = TRUE;
+           break;
+ 
+-#if defined( HAS_LARGEFILE ) || defined( MAC_LARGEFILE )
+         case'l': /*large file output*/
+           max_filesize_in_blocks = 8388608; /*16 GB /2048 (block) */
+           /* 2^63 / 2048 (not exactly) */
+           large_file_flag = TRUE;
+           break;
+-#endif
+ 
+         case'm':/*mirrors the dvd to harddrive completly*/
+           mirror_flag = TRUE;
+@@ -488,7 +482,7 @@ and potentially fatal."  - Thanks Leigh!
+           i = 0;
+           break;
+         case'V': /*version number output */
+-          printf( "Vobcopy "VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n" );
++          printf( "Vobcopy "PACKAGE_VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n" );
+           exit( 0 );
+           break;
+ 
+@@ -513,7 +507,7 @@ and potentially fatal."  - Thanks Leigh!
+         }
+     }
+ 
+-  fprintf( stderr, _("Vobcopy "VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n") );
++  fprintf( stderr, _("Vobcopy "PACKAGE_VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n") );
+   fprintf( stderr, _("[Hint] All lines starting with \"libdvdread:\" are not from vobcopy but from the libdvdread-library\n") );
+ 
+   /*get the current working directory*/
+@@ -600,8 +594,8 @@ and potentially fatal."  - Thanks Leigh!
+ 
+       if( strlen( logfile_path ) < 3 )
+ 	strcpy( logfile_path, pwd );
+-      strcpy( logfile_name, "vobcopy_" );
+-      strcat( logfile_name, VERSION );
++      strcpy( logfile_name, PACKAGE_TARNAME"_" );
++      strcat( logfile_name, PACKAGE_VERSION );
+       strcat( logfile_name, ".log" );
+       strcat( logfile_path, logfile_name );
+       if ( ( temp = open ( logfile_path , O_RDWR | O_CREAT | O_EXCL, 0666 ) ) == -1 )
+@@ -773,7 +767,7 @@ and potentially fatal."  - Thanks Leigh!
+ 
+   if( longest_title_flag ) /*no title specified (-n ) */
+     {
+-      titleid = get_longest_title( &dvd );
++      titleid = get_longest_title( dvd );
+       fprintf( stderr, _("[Info] longest title %d.\n"), titleid );
+     }
+ 
+@@ -1032,10 +1026,16 @@ next: /*for the goto - ugly, I know... *
+                 }
+               else
+                 {
+-                  if( strstr( d_name, ";?" ) )
+-                    {
+-                      fprintf( stderr, _("\n[Hint] File on dvd ends in \";?\" (%s)\n"), d_name );
+-                      strncat( output_file, d_name, strlen( d_name ) - 2 );
++                  if( strstr( d_name, ";" ) )
++                  {
++                      char * pch;
++                      int position_from_end;
++                      pch = strrchr(d_name, ';');
++                      position_from_end = strlen( d_name ) - (pch - d_name);
++                      if ( position_from_end < 4 ) {
++                        fprintf( stderr, _("\n[Hint] File on dvd ends in \";?\" (%s)\n"), d_name );
++                        strncat( output_file, d_name, strlen( d_name ) - position_from_end );
++                      }
+                     }
+                   else
+                     {
+@@ -1198,8 +1198,9 @@ next: /*for the goto - ugly, I know... *
+                         }
+                       /* progress indicator */
+                       tmp_i = i;
+-                      fprintf( stderr, _("%4.0fkB of %4.0fkB written\r"),
++                      fprintf( stderr, _("%4.0fkB of %4.0fkB written"),
+                                ( tmp_i+1 )*( DVD_VIDEO_LB_LEN/1024 ), tmp_file_size/1024 );
++                      fprintf( stderr, "\r" );
+                     }
+                   fprintf( stderr, _("\n"));
+                   if( !stdout_flag )
+@@ -1233,8 +1234,9 @@ next: /*for the goto - ugly, I know... *
+                         }
+                       /* progress indicator */
+                       tmp_i = i;
+-                      fprintf( stderr, _("%4.0fkB of %4.0fkB written\r"),
++                      fprintf( stderr, _("%4.0fkB of %4.0fkB written"),
+                                ( tmp_i+1 )*( DVD_VIDEO_LB_LEN/1024 ), tmp_file_size/1024 );
++                      fprintf( stderr, "\r");
+                     }
+                   fprintf( stderr, _("\n"));
+                   if( !stdout_flag )
+@@ -1278,8 +1280,15 @@ next: /*for the goto - ugly, I know... *
+ 
+                       for( a = 1; a < subvob; a++ )
+                         {
+-                          if( strstr( input_file, ";?" ) )
+-                            input_file[ strlen( input_file ) - 7 ] = ( a + 48 );
++                          if( strstr( input_file, ";" ) )
++                            {
++                              char * pch;
++                              int position_from_end;
++                              pch = strrchr( input_file, ';' );
++                              position_from_end = strlen( input_file ) - ( pch - input_file );
++                              if ( position_from_end < 4 )
++                                input_file[ strlen( input_file ) - 5 - position_from_end ] = ( a + 48 );
++                            } 
+                           else
+                             input_file[ strlen( input_file ) - 5 ] = ( a + 48 );
+ 
+@@ -1292,7 +1301,9 @@ next: /*for the goto - ugly, I know... *
+ 
+                           culm_single_vob_size += buf.st_size;
+                           if( verbosity_level > 1 )
+-                            fprintf( stderr, _("[Info] Vob %d %d (%s) has a size of %lli\n"), title_nr, subvob, input_file, buf.st_size );
++                            fprintf( stderr,
++				     _("[Info] Vob %d %d (%s) has a size of %llu\n"),
++				     title_nr, subvob, input_file, (long long unsigned)buf.st_size );
+                         }
+ 
+                       start = ( culm_single_vob_size / DVD_VIDEO_LB_LEN ); 
+@@ -1309,13 +1320,13 @@ next: /*for the goto - ugly, I know... *
+                     fprintf( stderr, _("[Info] Start of %s at %d blocks \n"), output_file, start );
+                   file_block_count = block_count;
+ 		  starttime = time(NULL);
+-                  for( i = start; ( i - start ) * DVD_VIDEO_LB_LEN < file_size; i += file_block_count)
++                  for( i = start + seek_start*2048/DVD_VIDEO_LB_LEN; ( i - start ) * DVD_VIDEO_LB_LEN < file_size - stop_before_end*2048 ; i += file_block_count)
+                     {
+ 		      int tries = 0, skipped_blocks = 0; 
+                       /* Only read and write as many blocks as there are left in the file */
+-                      if ( ( i - start + file_block_count ) * DVD_VIDEO_LB_LEN > file_size )
++                      if ( ( i - start + file_block_count ) * DVD_VIDEO_LB_LEN > file_size - stop_before_end*2048 )
+                         {
+-                          file_block_count = ( file_size / DVD_VIDEO_LB_LEN ) - ( i - start );
++                          file_block_count = ( (file_size - stop_before_end*2048 )/ DVD_VIDEO_LB_LEN ) - ( i - start );
+                         }
+ 
+                       /*		      DVDReadBlocks( dvd_file, i, 1, bufferin );this has to be wrong with the 1 there...*/
+@@ -1356,7 +1367,8 @@ next: /*for the goto - ugly, I know... *
+                           tmp_i = ( i-start );
+ 
+                           percent = ( ( ( ( tmp_i+1 )*DVD_VIDEO_LB_LEN )*100 )/tmp_file_size );
+-                          fprintf( stderr, _("\r%4.0fMB of %4.0fMB written "),
++                          fprintf( stderr, "\r");
++                          fprintf( stderr, _("%4.0fMB of %4.0fMB written "),
+                                    ( ( tmp_i+1 )*DVD_VIDEO_LB_LEN )/( 1024*1024 ),
+                                    ( tmp_file_size+2048 )/( 1024*1024 ) );
+                           fprintf( stderr, _("( %3.1f %% ) "), percent );
+@@ -1365,7 +1377,8 @@ next: /*for the goto - ugly, I know... *
+                     }
+ /*this is just so that at the end it actually says 100.0% all the time... */
+ /*TODO: if it is correct to always assume it's 100% is a good question.... */
+-/*                  fprintf( stderr, _("\r%4.0fMB of %4.0fMB written "),
++/*                  fprintf( stderr, "\r");
++                  fprintf( stderr, _("%4.0fMB of %4.0fMB written "),
+                            ( ( tmp_i+1 )*DVD_VIDEO_LB_LEN )/( 1024*1024 ),
+                            ( tmp_file_size+2048 )/( 1024*1024 ) );
+                   fprintf( stderr, _("( 100.0%% ) ") );
+@@ -1692,11 +1705,7 @@ The man replies, "I was talking to the s
+ 
+           strcat( name, ".partial" );
+ 
+-#if defined( HAS_LARGEFILE )
+-          if( open( name, O_RDONLY|O_LARGEFILE ) >= 0 )
+-#else
+           if( open( name, O_RDONLY ) >= 0 )
+-#endif
+             {
+               if ( get_free_space( name, verbosity_level ) < 2097152 )
+                 /* it might come here when the platter is full after a -f */
+@@ -1719,11 +1728,7 @@ The man replies, "I was talking to the s
+ 		    }
+                   if( op == 'o' || op == 'x' )
+                     {
+-#if defined( HAS_LARGEFILE )
+-                      if( ( streamout = open( name, O_WRONLY | O_TRUNC | O_LARGEFILE ) ) < 0 )
+-#else
+                       if( ( streamout = open( name, O_WRONLY | O_TRUNC ) ) < 0 )
+-#endif
+                         {
+                           fprintf( stderr, _("\n[Error] Error opening file %s\n"), name );
+                           exit ( 1 );
+@@ -1739,11 +1744,7 @@ The man replies, "I was talking to the s
+                     }
+                   else if( op == 'a' )
+                     {
+-#if defined( HAS_LARGEFILE )
+-                      if( ( streamout = open( name, O_WRONLY | O_APPEND | O_LARGEFILE ) ) < 0 )
+-#else
+                       if( ( streamout = open( name, O_WRONLY | O_APPEND ) ) < 0 )
+-#endif
+                         {
+                           fprintf( stderr, _("\n[Error] Error opening file %s\n"), name );
+                           exit ( 1 );
+@@ -1769,11 +1770,7 @@ The man replies, "I was talking to the s
+           else
+             {
+               /*assign the stream */
+-#if defined( HAS_LARGEFILE )
+-              if( ( streamout = open( name, O_WRONLY | O_CREAT | O_LARGEFILE, 0644 ) ) < 0 )
+-#else
+               if( ( streamout = open( name, O_WRONLY | O_CREAT, 0644 ) ) < 0 )
+-#endif
+                 {
+                   fprintf( stderr, _("\n[Error] Error opening file %s\n"), name );
+                   exit ( 1 );
+@@ -1825,7 +1822,10 @@ The man replies, "I was talking to the s
+ 	    }
+ 	  
+ 	  if( verbosity_level >= 1 && skipped_blocks > 0 )
+-	    fprintf( stderr, _("[Warn] Had to skip (couldn't read) %d blocks (before block %d)! \n "), skipped_blocks, offset );
++	    fprintf( stderr,
++		     _("[Warn] Had to skip (couldn't read) %d blocks (before block %llu)! \n "),
++		     skipped_blocks,
++		     (long long unsigned)offset );
+ 
+ /*TODO: this skipping here writes too few bytes to the output */
+ 
+@@ -2072,7 +2072,7 @@ int make_output_path( char *pwd,char *na
+ 
+ void usage( char *program_name )
+ {
+-  fprintf( stderr, _("Vobcopy "VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n") );
++  fprintf( stderr, _("Vobcopy "PACKAGE_VERSION" - GPL Copyright (c) 2001 - 2009 robos@muon.de\n") );
+   fprintf( stderr, _("\nUsage: %s \n"), program_name );
+   fprintf( stderr, _("if you want the main feature (title with most chapters) you don't need _any_ options!\n") );
+   fprintf( stderr, _("Options:\n") );
+@@ -2096,10 +2096,7 @@ void usage( char *program_name )
+   fprintf( stderr, _("[-w <watchdog-minutes>]\n" ) );
+   fprintf( stderr, _("[-x (overwrite all)]\n" ) );
+   fprintf( stderr, _("[-F <fast-factor:1..64>]\n") );
+-
+-#if defined( HAS_LARGEFILE ) || defined ( MAC_LARGEFILE )
+   fprintf( stderr, _("[-l (large-file support for files > 2GB)] \n") );
+-#endif
+   exit( 1 );
+ }
+ 
+@@ -2218,22 +2215,34 @@ int makedir( char *name )
+ }
+ 
+ /*
++ * Get the width in characters of the terminal window, or defaults to 80.
++ */
++int get_term_width() {
++   struct winsize ws;
++   if (ioctl(1, TIOCGWINSZ, &ws) >= 0)
++      return ws.ws_col;
++   else
++      return 80;
++}
++
++
++/*
+ * Check the time determine whether a new progress line should be output (once per second)
+ */
+ 
+ int progressUpdate(int starttime, int cur, int tot, int force)
+ {
+   static int progress_time = 0;
++  if (tot < 1)
++      return 0;
+ 
+   if (progress_time == 0 || progress_time != time(NULL) || force)
+   {
+-	  int barLen, barChar, numChars, timeSoFar, minsLeft, secsLeft, ctr, cols;
++	  int barLen, numChars, timeSoFar, minsLeft, secsLeft, ctr, cols;
+ 	  float percentComplete, percentLeft, timePerPercent;
+ 	  int curtime, timeLeft;
+-	  struct winsize ws; 
+ 
+-	  ioctl(0, TIOCGWINSZ, &ws);
+-	  cols = ws.ws_col - 1;
++	  cols = get_term_width();
+ 
+ 	  progress_time = time(NULL);
+ 	  curtime = time(NULL);
+@@ -2242,10 +2251,9 @@ int progressUpdate(int starttime, int cu
+ /* 	   calc it this way so it's easy to change later */
+ /* 	   2 for brackets, 1 for space, 5 for percent complete, 1 for space, 6 for time left, 1 for space */
+ 	  barLen = cols - 2 - 1 - 5 - 1 - 6 - 1;
+-	  barChar = tot / barLen;
+ 	  percentComplete = (float)((float)cur / (float)tot * 100.0);
+ 	  percentLeft = 100 - percentComplete;
+-	  numChars = cur / barChar;
++	  numChars = cur * barLen / tot;
+ 
+ /* 	   guess remaining time */
+ 	  timeSoFar = curtime - starttime;
+@@ -2258,15 +2266,17 @@ int progressUpdate(int starttime, int cu
+ 	  minsLeft = (int)(timeLeft / 60);
+ 	  secsLeft = (int)(timeLeft % 60);
+ 
+-	  printf("[");
+-	  for (ctr = 0; ctr < numChars-1; ctr++) {
+-		  printf("=");
++	  if (barLen > 0) {
++	      printf("[");
++	      for (ctr = 0; ctr < numChars-1; ctr++) {
++	          printf("=");
++	      }
++	      printf("|");
++	      for (ctr = numChars + (numChars < 1); ctr < barLen; ctr++) {
++	          printf(" ");
++	      }
++	      printf("] ");
+ 	  }
+-	  printf("|");
+-	  for (ctr = numChars; ctr < barLen; ctr++) {
+-		  printf(" ");
+-	  }
+-	  printf("] ");
+ 	  printf("%5.1f%% %02d:%02d ", percentComplete, minsLeft, secsLeft);
+ 	  fflush(stdout);
+   }
+@@ -2308,13 +2318,6 @@ char *safestrncpy(char *dest, const char
+   return strncpy(dest, src, n-1);
+ }
+ 
+-#if defined(__APPLE__) && defined(__GNUC__) || defined(OpenBSD)
+-int fdatasync( int value )
+-{
+-  return 0;
+-}
+-#endif
+-
+ 
+ /*
+ * Check the time determine whether a new progress line should be output (once per second)
+--- vobcopy-1.2.0.orig/vobcopy.h
++++ vobcopy-1.2.0/vobcopy.h
+@@ -1,11 +1,5 @@
+-#define VERSION "1.2.0"
+-
+-#if defined( __gettext__ )
+-#include <locale.h>
+-#include <libintl.h>
+-#define _(Text) gettext(Text)
+-#else
+-#define _(Text) Text
++#ifdef HAVE_CONFIG_H
++#include "config.h"
+ #endif
+ 
+ #define DVDCSS_VERBOSE 1
+@@ -13,200 +7,136 @@
+ #define MAX_STRING  81
+ #define MAX_DIFFER  2000
+ 
++#ifdef ENABLE_NLS
++#define _(Text) gettext(Text)
++#else
++#define _(Text) Text
++#endif
++
++#ifdef HAVE_LOCALE_H
++#include <locale.h>
++#endif
++
++#ifdef HAVE_LIBINTL_H
++#include <libintl.h>
++#endif
++
++#ifdef HAVE_FEATURES_H
++#include <features.h>
++#endif
++
+ #include <stdio.h>
++
++#ifdef HAVE_STDLIB_H
+ #include <stdlib.h>
++#endif
++
++#ifdef HAVE_STRINGS_H
++#include <strings.h>
++#endif
++
+ #include <string.h>
+ #include <ctype.h>
++
++#ifdef HAVE_SYS_TYPES_H
+ #include <sys/types.h>
++#endif
++
++#ifdef HAVE_SYS_IOCTL_H
+ #include <sys/ioctl.h>
++#endif
++
++#ifdef HAVE_SYS_STAT_H
+ #include <sys/stat.h>
++#endif
++
+ #include <fcntl.h>
++
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
++
+ #include <dirent.h> /*for readdir*/
+ #include <errno.h>
+ #include <signal.h>
+ #include <time.h>
+-#include <sys/ioctl.h>
++
++#ifdef HAVE_TERMIOS_H
+ #include <termios.h>
++#endif
+ 
+-#if ( defined( __unix__ ) || defined( unix )) && !defined( USG )
++#ifdef HAVE_SYS_PARAM_H
+ #include <sys/param.h>
+ #endif
+ 
+-#if defined( __GNUC__ ) && \
+-    !( defined( sun ) )
++#ifdef HAVE_GETOPT_H
+ #include <getopt.h>
+ #endif
+ 
+-/* FreeBSD 4.10 and OpenBSD 3.2 has not <stdint.h> */
+-/* by some bugreport:*/
+-#if !( defined( BSD ) && ( BSD >= 199306 ) ) && !defined( sun ) || defined(OpenBSD)
++#ifdef HAVE_STDINT_H
+ #include <stdint.h>
+ #endif
+ 
+-/* I'm trying to have all supported OSes definitions clearly separated here */
+-/* The appearance could probably be made more readable -- lb                */
+-
+-/* ////////// Solaris ////////// */
+-#if defined( __sun )
+-
++#ifdef HAVE_STDLIB_H
+ #include <stdlib.h>
+-#include <sys/mnttab.h>
+-#include <sys/statvfs.h>
+-
+-typedef enum  { FALSE=0, TRUE=1 }  bool;
+-
+-#  if ( _FILE_OFFSET_BITS == 64 )
+-#define HAS_LARGEFILE 1
+-#  endif
+-
+-#define off_t off64_t      
+-
+-#else /* Solaris */
+-
+-/*#define off_t __off64_t  THIS HERE BREAKS OSX 10.5 */
+-
+-/* //////////  *BSD //////////  */
+-#if ( defined( BSD ) && ( BSD >= 199306 ) )
+-
+-#if !defined( __NetBSD__ ) || \
+-       ( defined( __NetBSD__) && ( __NetBSD_Version__ < 200040000 ) )
+-#include <sys/mount.h>
+-#define USE_STATFS 1
+ #endif
+ 
+-#if defined(__FreeBSD__)
+-#define USE_STATFS_FOR_DEV
+-#include <sys/statvfs.h>
+-#else
+-#include <sys/statvfs.h>
++#ifdef HAVE_SYS_MOUNT_H
++#include <sys/mount.h>
+ #endif
+ 
+-#  if defined(NetBSD) || defined (OpenBSD)
+-
+-#include <sys/param.h>
+-
++#ifdef HAVE_GETMNTINFO
+ #define USE_GETMNTINFO
+-
+-#    if ( __NetBSD_Version__ < 200040000 )
+-
+-#include <sys/mount.h>
+-#define USE_STATFS_FOR_DEV
+-#define GETMNTINFO_USES_STATFS
+-
+-#    else
+-#include <sys/statvfs.h>
+-#define USE_STATVFS_FOR_DEV
+-#define GETMNTINFO_USES_STATVFS
+-
+-#    endif
+ #endif
+ 
+-#if defined(__FreeBSD__)
+-#define USE_STATFS_FOR_DEV
+-#include <sys/statvfs.h>
++#ifndef HAVE_STDBOOL_H
++typedef enum  { FALSE=0, TRUE=1 }  bool;
+ #else
+-#include <sys/vfs.h>
++#include <stdbool.h>
++#define TRUE true
++#define FALSE false
+ #endif
+ 
+-# if !defined(OpenBSD)
+-#define HAS_LARGEFILE 1
++#ifdef HAVE_SYS_MNTTAB_H
++#include <sys/mnttab.h>
+ #endif
+ 
+-typedef enum  { FALSE=0, TRUE=1 }  bool;
+-
+-#else /* *BSD */
+-
+-/* ////////// Darwin / OS X ////////// */
+-#if defined ( __APPLE__ ) 
+-
+-/* ////////// Darwin ////////// */
+-#  if defined( __GNUC__ )
+-
+-#include <sys/param.h> 
+-#include <sys/mount.h> 
+-
+-#include <sys/statvfs.h>
+-/*can't be both! Should be STATVFS IMHO */
+-/*#define USE_STATFS     1 
+-#define USE_STATVFS     1 
+-#define HAS_LARGEFILE  1 */
+-#define GETMNTINFO_USES_STATFS 1
+-#define USE_GETMNTINFO 1
+-
+-#define FALSE 0
+-#define TRUE 1
+-typedef int bool;
+-
+-#  endif
+-
+-/* ////////// OS X ////////// */
+-#  if defined( __MACH__ )
+-/* mac osx 10.5 does not seem to like this one here */
+-/*#include <unistd.h>  
+-#include <sys/vfs.h> 
+-#include <sys/statvfs.h> */
+-#define MAC_LARGEFILE 1
+-
+-#  endif
+-
+-#else  /* Darwin / OS X */
+-
+-/* ////////// GNU/Linux ////////// */
+-#if ( defined( __linux__ ) )
+-
+-#include <mntent.h>
+-#include <sys/vfs.h>
++#ifdef HAVE_SYS_STATFS_H
+ #include <sys/statfs.h>
++#endif
+ 
+-#define USE_STATFS       1
+-#define HAVE_GETOPT_LONG 1
+-#define HAS_LARGEFILE    1
+-
+-  typedef enum  { FALSE=0, TRUE=1 }  bool;
+-
+-#elif defined( __GLIBC__ )
+-
+-#include <mntent.h>
++#ifdef HAVE_SYS_VFS_H
+ #include <sys/vfs.h>
+-#include <sys/statvfs.h>
+-
+-#define HAVE_GETOPT_LONG 1
+-#define HAS_LARGEFILE    1
+-
+-  typedef enum  { FALSE=0, TRUE=1 }  bool;
+-
+-#else
+-
+-/* ////////// For other cases ////////// */
+-
+-typedef enum  { FALSE=0, TRUE=1 }  bool;
+-
+-#if defined( __USE_FILE_OFFSET64 )
+-#  define HAS_LARGEFILE 1
++#define USE_STATFS
++/* #define USE_STATFS_FOR_DEV */
+ #endif
++
++#ifdef HAVE_SYS_STATVFS_H
++#include <sys/statvfs.h>
++#ifndef USE_STATFS
++#define USE_STATVFS
++#ifndef USE_STATFS_FOR_DEV
++#define USE_STATVFS_FOR_DEV
+ #endif
+ #endif
+ #endif
+-#endif 
+-
+-
+-/* OS/2 */
+-#if defined(__EMX__)                                                                                                                                                                              
+-#define __off64_t __int64_t 
+-#include <sys/vfs.h>
+-#include <sys/statfs.h>
+-#define USE_STATFS 1
+-#endif          
+-
+ 
++#ifdef HAVE_MNTENT_H
++#include <mntent.h>
++#endif
+ 
++#ifdef HAVE_GETMNTINFO
++#define USE_GETMNTINFO
++#define GETMNTINFO_USES_STATFS
++#endif
+ 
+ #include <dvdread/dvd_reader.h>
+ 
+ /*for/from play_title.c*/
++#ifdef HAVE_ASSERT_H
+ #include <assert.h>
+-/* #include "config.h" */
++#endif
++
+ #include <dvdread/ifo_types.h>
+ #include <dvdread/ifo_read.h>
+ /* #include <dvdread/dvd_udf.h> */
+@@ -232,6 +162,6 @@ char *safestrncpy(char *dest, const char
+ int check_progress( void ); /* this can be removed because the one below supersedes it */
+ int progressUpdate( int starttime, int cur, int tot, int force );
+ 
+-#if defined(__APPLE__) && defined(__GNUC__)
+-int fdatasync( int value );
++#ifndef HAVE_FDATASYNC
++#define fdatasync(fd) 0
+ #endif

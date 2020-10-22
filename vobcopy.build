@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
 VERSION=1.2.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://vobcopy.org/projects/c/c.shtml"
 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 -b -z .orig < ${CWD}/vobcopy-1.2.0.diff
+ autogen.sh
 )
 fi
 
@@ -59,7 +60,11 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure.sh --prefix=/usr
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+            --mandir=/usr/man
 fi
 
 if [ ${DO_MAKE} == "yes" ]
