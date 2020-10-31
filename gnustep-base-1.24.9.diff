@@ -1,0 +1,117 @@
+--- gnustep-base-1.24.9/Source/NSRegularExpression.m.orig	2015-09-01 12:31:16.000000000 +0100
++++ gnustep-base-1.24.9/Source/NSRegularExpression.m	2020-10-31 15:40:56.590385117 +0000
+@@ -144,7 +144,7 @@
+       return nil;
+     }
+   str = [GSUTextString new];
+-  utext_clone(&str->txt, t, FALSE, TRUE, &s);
++  utext_clone(&str->txt, t, false, true, &s);
+   utext_close(t);
+   return [str autorelease];
+ }
+@@ -200,7 +200,7 @@
+ 
+   if (NULL == context)
+     {
+-      return FALSE;
++      return false;
+     }
+   CALL_BLOCK(block, nil, NSMatchingProgress, &stop);
+   return stop;
+@@ -235,11 +235,11 @@
+   uregex_setRegion(r, range.location, range.location+range.length, &s);
+   if (options & NSMatchingWithoutAnchoringBounds)
+     {
+-      uregex_useAnchoringBounds(r, FALSE, &s);
++      uregex_useAnchoringBounds(r, false, &s);
+     }
+   if (options & NSMatchingWithTransparentBounds)
+     {
+-      uregex_useTransparentBounds(r, TRUE, &s);
++      uregex_useTransparentBounds(r, true, &s);
+     }
+   if (U_FAILURE(s))
+     {
+@@ -270,11 +270,11 @@
+   uregex_setRegion(r, range.location, range.location+range.length, &s);
+   if (options & NSMatchingWithoutAnchoringBounds)
+     {
+-      uregex_useAnchoringBounds(r, FALSE, &s);
++      uregex_useAnchoringBounds(r, false, &s);
+     }
+   if (options & NSMatchingWithTransparentBounds)
+     {
+-      uregex_useTransparentBounds(r, TRUE, &s);
++      uregex_useTransparentBounds(r, true, &s);
+     }
+   if (U_FAILURE(s))
+     {
+@@ -699,7 +699,7 @@
+   UTextInitWithNSString(&replacement, template);
+ 
+   output = uregex_replaceAllUText(r, &replacement, NULL, &s);
+-  utext_clone(&ret->txt, output, TRUE, TRUE, &s);
++  utext_clone(&ret->txt, output, true, true, &s);
+   [string setString: ret];
+   [ret release];
+   uregex_close(r);
+@@ -725,7 +725,7 @@
+   UTextInitWithNSString(&replacement, template);
+ 
+   output = uregex_replaceAllUText(r, &replacement, NULL, &s);
+-  utext_clone(&ret->txt, output, TRUE, TRUE, &s);
++  utext_clone(&ret->txt, output, true, true, &s);
+   uregex_close(r);
+ 
+   utext_close(&txt);
+@@ -755,7 +755,7 @@
+   UTextInitWithNSString(&replacement, template);
+ 
+   output = uregex_replaceFirstUText(r, &replacement, NULL, &s);
+-  utext_clone(&ret->txt, output, TRUE, TRUE, &s);
++  utext_clone(&ret->txt, output, true, true, &s);
+   uregex_close(r);
+ 
+   utext_close(&txt);
+--- gnustep-base-1.24.9/Source/GSICUString.m.orig	2011-02-11 14:31:25.000000000 +0000
++++ gnustep-base-1.24.9/Source/GSICUString.m	2020-10-31 15:19:23.668274090 +0000
+@@ -57,7 +57,7 @@
+ 
+   if (nativeIndex >= length)
+     {
+-      return FALSE;
++      return false;
+     }
+ 
+   /* Special case if the chunk already contains this index
+@@ -66,10 +66,10 @@
+     && nativeIndex < (ut->chunkNativeStart + ut->chunkLength))
+     {
+       ut->chunkOffset = nativeIndex - ut->chunkNativeStart;
+-      return TRUE;
++      return true;
+     }
+   r = NSMakeRange(nativeIndex, chunkSize);
+-  forward = TRUE;
++  forward = true;
+   if (forward)
+     {
+       if (nativeIndex + chunkSize > length)
+@@ -95,7 +95,7 @@
+   ut->chunkNativeLimit = r.location + r.length;
+   ut->chunkLength = r.length;
+   ut->chunkOffset = 0;
+-  return TRUE;
++  return true;
+ }
+ 
+ /**
+@@ -129,7 +129,7 @@
+   // Setting the chunk length to 0 here forces UTextNSStringAccess to fetch
+   // the data from the string object.
+   ut->chunkLength = 0;
+-  UTextNSStringAccess(ut, r.location + [replacement length] + 1, TRUE);
++  UTextNSStringAccess(ut, r.location + [replacement length] + 1, true);
+   ut->chunkOffset++;
+   
+   [replacement release];

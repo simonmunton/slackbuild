@@ -1,0 +1,944 @@
+--- PyICU-2.5/test/test_DateTimeParserGenerator.py.orig	2019-11-16 02:56:26.000000000 +0000
++++ PyICU-2.5/test/test_DateTimeParserGenerator.py	2020-10-31 20:15:10.871774213 +0000
+@@ -47,14 +47,23 @@
+ 
+         sdf = SimpleDateFormat(dtpg.getBestPattern('MMMMddHmm'), locale)
+         sdf.setTimeZone(self.tz)
+-        self.assertEqual(sdf.format(self.date), u'09 mai à 17:30')
+-        self.assertEqual(sdf.toPattern(), u"dd MMMM 'à' HH:mm")
++        if ICU_VERSION < '68.0':
++            self.assertEqual(sdf.format(self.date), u'09 mai à 17:30')
++            self.assertEqual(sdf.toPattern(), u"dd MMMM 'à' HH:mm")
++        else:
++            self.assertEqual(sdf.format(self.date), u'09 mai, 17:30')
++            self.assertEqual(sdf.toPattern(), u"dd MMMM, HH:mm")
+ 
+         dtpg.addPattern("dd'. von' MMMM", True)
+         sdf.applyPattern(dtpg.getBestPattern('MMMMddHmm'))
+         sdf.setTimeZone(self.tz)
+-        self.assertEqual(sdf.format(self.date), u'09. von mai à 17:30')
+-        self.assertEqual(sdf.toPattern(), u"dd'. von' MMMM 'à' HH:mm")
++        if ICU_VERSION < '68.0':
++            self.assertEqual(sdf.format(self.date), u'09. von mai à 17:30')
++            self.assertEqual(sdf.toPattern(), u"dd'. von' MMMM 'à' HH:mm")
++        else:
++            self.assertEqual(sdf.format(self.date), u'09. von mai, 17:30')
++            self.assertEqual(sdf.toPattern(), u"dd'. von' MMMM, HH:mm")
++            
+ 
+     def testGetBestPattern(self):
+         """Test a few different languages and common patterns."""
+--- PyICU-2.5/test/test_NumberFormatter.py.orig	2020-05-25 18:17:06.000000000 +0100
++++ PyICU-2.5/test/test_NumberFormatter.py	2020-10-31 20:15:10.876774214 +0000
+@@ -100,13 +100,25 @@
+ 
+     def testFromDecimalFormat(self):
+ 
+-        if ICU_VERSION >= '64.0':
++        if ICU_VERSION >= '68.0':
+             text = NumberFormat.createScientificInstance(Locale("de", "at")) \
+                 .toNumberFormatter() \
+                 .formatInt(1234)
+             self.assertEqual(text, u'1,234E3')
+ 
+ 
++    def testUsage(self):
++
++        if ICU_VERSION >= '68.0':
++            formatter = NumberFormatter.with_().usage("person-height").unit(MeasureUnit.createMeter()).locale(Locale("en-US"))
++            
++            self.assertEqual(formatter.formatDouble(0.25), '9.8 in')
++            self.assertEqual(formatter.formatDouble(1.5), '4 ft, 11 in')
++            unit = formatter.formatDoubleToValue(1.5).getOutputUnit()
++            self.assertEqual(unit.getComplexity(), UMeasureUnitComplexity.MIXED)
++            self.assertEqual(unit.getIdentifier(), "foot-and-inch")
++
++
+ class TestNumberRangeFormatter(TestCase):
+ 
+     def setUp(self):
+@@ -151,6 +163,8 @@
+ 
+             self.assertEqual(value.getFirstDecimal(), u'3.33E-1')
+             self.assertEqual(value.getSecondDecimal(), u'2.5E-1')
++            if ICU_VERSION >= '68.0':
++                self.assertEqual(value.getDecimalNumbers(), (b'0.333', b'0.25'))
+ 
+             self.assertEqual([(x.getStart(), x.getLimit()) for x in value],
+                              [(0, 1), (1, 2), (2, 5), (6, 7), (7, 8), (8, 10)])
+--- PyICU-2.5/test/test_LocaleData.py.orig	2018-01-04 15:26:18.000000000 +0000
++++ PyICU-2.5/test/test_LocaleData.py	2020-10-31 20:15:10.871774213 +0000
+@@ -67,10 +67,12 @@
+             country = Locale(locale).getCountry()
+ 
+             # 0 means SI, 1 means US, 2 mean UK
+-            if (country in ['LR', 'MM', 'US']):
++            if (country in ['LR', 'US']):
+                 self.assertTrue(measurementSystem == 1)
+             elif country in ['GB']:
+                 self.assertTrue(measurementSystem in [0, 2])
++            elif country in ['MM']:
++                self.assertTrue(measurementSystem in [1, 2])
+             elif country:
+                 self.assertTrue(measurementSystem == 0)
+ 
+--- PyICU-2.5/setup.py.orig	2020-05-26 23:08:37.000000000 +0100
++++ PyICU-2.5/setup.py	2020-10-31 20:15:10.871774213 +0000
+@@ -9,7 +9,7 @@
+ from distutils.spawn import find_executable
+ 
+ VERSION = '2.5'
+-ICU_MAX_MAJOR_VERSION = '67'  # max supported major version of ICU
++ICU_MAX_MAJOR_VERSION = '68'  # max supported major version of ICU
+ 
+ try:
+     from subprocess import check_output as subprocess_check_output
+--- PyICU-2.5/numberformat.cpp.orig	2020-05-25 23:10:31.000000000 +0100
++++ PyICU-2.5/numberformat.cpp	2020-10-31 20:15:10.876774214 +0000
+@@ -578,14 +578,16 @@
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(64, 0, 0)
+ 
+ /* FormattedNumber */
++/* t_formattednumber declared in numberformat.h */
+ 
+-class t_formattednumber : public _wrapper {
+-public:
+-    FormattedNumber *object;
+-    ConstrainedFieldPosition cfp;  // for iterator on t_formattedvalue
+-};
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_formattednumber_getOutputUnit(t_formattednumber *self);
++#endif
+ 
+ static PyMethodDef t_formattednumber_methods[] = {
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_formattednumber, getOutputUnit, METH_NOARGS),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -593,24 +595,26 @@
+                       FormattedNumber, abstract_init)
+ 
+ /* FormattedNumberRange */
+-
+-class t_formattednumberrange : public _wrapper {
+-public:
+-    FormattedNumberRange *object;
+-    ConstrainedFieldPosition cfp;  // for iterator on t_formattedvalue
+-};
++/* t_formattednumberrange declared in numberformat.h */
+ 
+ static PyObject *t_formattednumberrange_getFirstDecimal(
+-    t_formattednumberrange *self, PyObject *arg);
++    t_formattednumberrange *self);
+ static PyObject *t_formattednumberrange_getSecondDecimal(
+-    t_formattednumberrange *self, PyObject *arg);
++    t_formattednumberrange *self);
+ static PyObject *t_formattednumberrange_getIdentityResult(
+-    t_formattednumberrange *self, PyObject *arg);
++    t_formattednumberrange *self);
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_formattednumberrange_getDecimalNumbers(
++    t_formattednumberrange *self);
++#endif
+ 
+ static PyMethodDef t_formattednumberrange_methods[] = {
+     DECLARE_METHOD(t_formattednumberrange, getFirstDecimal, METH_NOARGS),
+     DECLARE_METHOD(t_formattednumberrange, getSecondDecimal, METH_NOARGS),
+     DECLARE_METHOD(t_formattednumberrange, getIdentityResult, METH_NOARGS),
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_formattednumberrange, getDecimalNumbers, METH_NOARGS),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -695,6 +699,11 @@
+ static PyObject *t_unlocalizednumberformatter_locale(
+     t_unlocalizednumberformatter *self, PyObject *arg);
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_unlocalizednumberformatter_usage(
++    t_unlocalizednumberformatter *self, PyObject *arg);
++#endif
++
+ static PyMethodDef t_unlocalizednumberformatter_methods[] = {
+     DECLARE_METHOD(t_unlocalizednumberformatter, unit, METH_O),
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(61, 0, 0)
+@@ -719,6 +728,9 @@
+     DECLARE_METHOD(t_unlocalizednumberformatter, unitWidth, METH_O),
+     DECLARE_METHOD(t_unlocalizednumberformatter, integerWidth, METH_O),
+     DECLARE_METHOD(t_unlocalizednumberformatter, locale, METH_O),
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_unlocalizednumberformatter, usage, METH_O),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -790,6 +802,11 @@
+     t_localizednumberformatter *self, PyObject *arg);
+ #endif
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_localizednumberformatter_usage(
++    t_localizednumberformatter *self, PyObject *arg);
++#endif
++
+ static PyMethodDef t_localizednumberformatter_methods[] = {
+     DECLARE_METHOD(t_localizednumberformatter, unit, METH_O),
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(61, 0, 0)
+@@ -821,6 +838,9 @@
+     DECLARE_METHOD(t_localizednumberformatter, formatDoubleToValue, METH_O),
+     DECLARE_METHOD(t_localizednumberformatter, formatDecimalToValue, METH_O),
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_localizednumberformatter, usage, METH_O),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -3722,6 +3742,24 @@
+     return PyErr_SetArgsError((PyObject *) self, "locale", arg);
+ }
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_unlocalizednumberformatter_usage(
++    t_unlocalizednumberformatter *self, PyObject *arg)
++{
++    charsArg usage;
++
++    if (!parseArg(arg, "n", &usage))
++    {
++        return wrap_UnlocalizedNumberFormatter(self->object->usage(
++            usage.c_str()));
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "usage", arg);
++}
++
++#endif  // ICU >= 68
++
+ 
+ /* LocalizedNumberFormatter */
+ 
+@@ -4129,6 +4167,24 @@
+ 
+ #endif  // ICU >= 64
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_localizednumberformatter_usage(
++    t_localizednumberformatter *self, PyObject *arg)
++{
++    charsArg usage;
++
++    if (!parseArg(arg, "n", &usage))
++    {
++        return wrap_LocalizedNumberFormatter(self->object->usage(
++            usage.c_str()));
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "usage", arg);
++}
++
++#endif  // ICU >= 68
++
+ /* Notation */
+ 
+ static PyObject *t_notation_scientific(PyTypeObject *type, PyObject *args)
+@@ -5132,12 +5188,28 @@
+ #endif  // ICU >= 63
+ 
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++/* FormattedNumber */
++
++static PyObject *t_formattednumber_getOutputUnit(t_formattednumber *self)
++{
++    MeasureUnit mu;
++
++    STATUS_CALL(mu = self->object->getOutputUnit(status));
++
++    return wrap_MeasureUnit((MeasureUnit *) mu.clone(), T_OWNED);
++}
++
++#endif
++
++
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(64, 0, 0)
+ 
+ /* FormattedNumberRange */
+ 
+ static PyObject *t_formattednumberrange_getFirstDecimal(
+-    t_formattednumberrange *self, PyObject *arg)
++    t_formattednumberrange *self)
+ {
+     UnicodeString u;
+ 
+@@ -5147,7 +5219,7 @@
+ }
+ 
+ static PyObject *t_formattednumberrange_getSecondDecimal(
+-    t_formattednumberrange *self, PyObject *arg)
++    t_formattednumberrange *self)
+ {
+     UnicodeString u;
+ 
+@@ -5157,7 +5229,7 @@
+ }
+ 
+ static PyObject *t_formattednumberrange_getIdentityResult(
+-    t_formattednumberrange *self, PyObject *arg)
++    t_formattednumberrange *self)
+ {
+     UNumberRangeIdentityResult result;
+ 
+@@ -5166,6 +5238,47 @@
+     return PyInt_FromLong(result);
+ }
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_formattednumberrange_getDecimalNumbers(
++    t_formattednumberrange *self)
++{
++    struct sink {
++        sink() : bytes(Py_None) { Py_INCREF(Py_None); }
++        sink(const struct sink &other)
++        {
++            bytes = other.bytes;
++            Py_XINCREF(bytes);
++        }
++        ~sink() {
++            Py_XDECREF(bytes);
++            bytes = nullptr;
++        }
++
++        PyObject *bytes;
++
++        void append(const char *data, int32_t n)
++        {
++            if (bytes == Py_None)
++            {
++                Py_DECREF(bytes);
++                bytes = PyBytes_FromStringAndSize(data, n);
++            }
++            else
++            {
++                PyBytes_ConcatAndDel(
++                    &bytes, PyBytes_FromStringAndSize(data, n));
++            }
++        }
++    };
++
++    STATUS_RESULT_CALL(
++        auto pb = self->object->getDecimalNumbers<struct sink>(status),
++        return Py_BuildValue("(OO)", pb.first.bytes, pb.second.bytes));
++}
++
++#endif
++
+ #endif  // ICU >= 64
+ 
+ void _init_numberformat(PyObject *m)
+@@ -5391,6 +5504,10 @@
+     INSTALL_ENUM(UNumberUnitWidth, "FULL_NAME", UNUM_UNIT_WIDTH_FULL_NAME);
+     INSTALL_ENUM(UNumberUnitWidth, "ISO_CODE", UNUM_UNIT_WIDTH_ISO_CODE);
+     INSTALL_ENUM(UNumberUnitWidth, "HIDDEN", UNUM_UNIT_WIDTH_HIDDEN);
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    INSTALL_ENUM(UNumberUnitWidth, "FORMAL", UNUM_UNIT_WIDTH_FORMAL);
++    INSTALL_ENUM(UNumberUnitWidth, "VARIANT", UNUM_UNIT_WIDTH_VARIANT);
++#endif
+ #endif
+ 
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(61, 0, 0)
+--- PyICU-2.5/dateformat.cpp.orig	2020-05-25 20:39:24.000000000 +0100
++++ PyICU-2.5/dateformat.cpp	2020-10-31 20:15:10.873774213 +0000
+@@ -377,6 +377,12 @@
+ static PyObject *t_dateintervalformat_formatToValue(t_dateintervalformat *self,
+                                                      PyObject *args);
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_dateintervalformat_setContext(
++    t_dateintervalformat *self, PyObject *arg);
++static PyObject *t_dateintervalformat_getContext(
++    t_dateintervalformat *self, PyObject *arg);
++#endif
+ 
+ static PyMethodDef t_dateintervalformat_methods[] = {
+     DECLARE_METHOD(t_dateintervalformat, format, METH_VARARGS),
+@@ -388,6 +394,10 @@
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(64, 0, 0)
+     DECLARE_METHOD(t_dateintervalformat, formatToValue, METH_VARARGS),
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_dateintervalformat, setContext, METH_O),
++    DECLARE_METHOD(t_dateintervalformat, getContext, METH_O),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -1981,6 +1991,41 @@
+ 
+ #endif  // ICU >= 64
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_dateintervalformat_setContext(t_dateintervalformat *self,
++                                                 PyObject *arg)
++{
++    int context;
++
++    if (!parseArg(arg, "i", &context))
++    {
++        STATUS_CALL(self->object->setContext(
++                        (UDisplayContext) context, status));
++        Py_RETURN_NONE;
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "setContext", arg);
++}
++
++static PyObject *t_dateintervalformat_getContext(t_dateintervalformat *self,
++                                                 PyObject *arg)
++{
++    int context, type;
++
++    if (!parseArg(arg, "i", &type))
++    {
++        STATUS_CALL(context = self->object->getContext(
++                        (UDisplayContextType) type, status));
++
++        return PyInt_FromLong(context);
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "getContext", arg);
++}
++
++#endif  // ICU >= 68
++
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(53, 0, 0)
+ 
+ /* RelativeDateTimeFormatter */
+--- PyICU-2.5/measureunit.cpp.orig	2020-03-21 19:35:34.000000000 +0000
++++ PyICU-2.5/measureunit.cpp	2020-10-31 20:15:10.875774213 +0000
+@@ -32,6 +32,10 @@
+ DECLARE_CONSTANTS_TYPE(UTimeUnitFields)
+ #endif
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++DECLARE_CONSTANTS_TYPE(UMeasureUnitComplexity)
++#endif
++
+ /* MeasureUnit */
+ 
+ class t_measureunit : public _wrapper {
+@@ -44,6 +48,13 @@
+ static PyObject *t_measureunit_getSubtype(t_measureunit *self);
+ static PyObject *t_measureunit_getAvailable(PyTypeObject *type, PyObject *arg);
+ static PyObject *t_measureunit_getAvailableTypes(PyTypeObject *type);
++#endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++static PyObject *t_measureunit_getIdentifier(t_measureunit *self);
++static PyObject *t_measureunit_getComplexity(t_measureunit *self);
++#endif
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(53, 0, 0)
+ static PyObject *t_measureunit_createAcre(PyTypeObject *type);
+ static PyObject *t_measureunit_createArcMinute(PyTypeObject *type);
+ static PyObject *t_measureunit_createArcSecond(PyTypeObject *type);
+@@ -231,6 +242,20 @@
+ static PyObject *t_measureunit_createPixelPerInch(PyTypeObject *type);
+ static PyObject *t_measureunit_createThermUs(PyTypeObject *type);
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_measureunit_createCandela(PyTypeObject *type);
++static PyObject *t_measureunit_createDessertSpoon(PyTypeObject *type);
++static PyObject *t_measureunit_createDessertSpoonImperial(PyTypeObject *type);
++static PyObject *t_measureunit_createDot(PyTypeObject *type);
++static PyObject *t_measureunit_createDram(PyTypeObject *type);
++static PyObject *t_measureunit_createDrop(PyTypeObject *type);
++static PyObject *t_measureunit_createEarthRadius(PyTypeObject *type);
++static PyObject *t_measureunit_createGrain(PyTypeObject *type);
++static PyObject *t_measureunit_createJigger(PyTypeObject *type);
++static PyObject *t_measureunit_createLumen(PyTypeObject *type);
++static PyObject *t_measureunit_createPinch(PyTypeObject *type);
++static PyObject *t_measureunit_createQuartImperial(PyTypeObject *type);
++#endif
+ 
+ static PyMethodDef t_measureunit_methods[] = {
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(53, 0, 0)
+@@ -238,6 +263,13 @@
+     DECLARE_METHOD(t_measureunit, getSubtype, METH_NOARGS),
+     DECLARE_METHOD(t_measureunit, getAvailable, METH_O | METH_CLASS),
+     DECLARE_METHOD(t_measureunit, getAvailableTypes, METH_NOARGS | METH_CLASS),
++#endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    DECLARE_METHOD(t_measureunit, getIdentifier, METH_NOARGS),
++    DECLARE_METHOD(t_measureunit, getComplexity, METH_NOARGS),
++#endif
++    
++#if U_ICU_VERSION_HEX >= VERSION_HEX(53, 0, 0)
+     DECLARE_METHOD(t_measureunit, createAcre, METH_NOARGS | METH_CLASS),
+     DECLARE_METHOD(t_measureunit, createArcMinute, METH_NOARGS | METH_CLASS),
+     DECLARE_METHOD(t_measureunit, createArcSecond, METH_NOARGS | METH_CLASS),
+@@ -425,6 +457,20 @@
+     DECLARE_METHOD(t_measureunit, createPixelPerInch, METH_NOARGS | METH_CLASS),
+     DECLARE_METHOD(t_measureunit, createThermUs, METH_NOARGS | METH_CLASS),
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_measureunit, createCandela, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createDessertSpoon, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createDessertSpoonImperial, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createDot, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createDram, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createDrop, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createEarthRadius, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createGrain, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createJigger, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createLumen, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createPinch, METH_NOARGS | METH_CLASS),
++    DECLARE_METHOD(t_measureunit, createQuartImperial, METH_NOARGS | METH_CLASS),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -461,9 +507,15 @@
+ 
+ /* NoUnit */
+ 
++#if U_ICU_VERSION_HEX < VERSION_HEX(68, 0, 0)
++using NoUnit_ = NoUnit;
++#else
++using NoUnit_ = MeasureUnit;
++#endif
++
+ class t_nounit : public _wrapper {
+ public:
+-    NoUnit *object;
++    NoUnit_ *object;
+ };
+ 
+ static PyObject *t_nounit_base(PyTypeObject *type);
+@@ -477,7 +529,7 @@
+     { NULL, NULL, 0, NULL }
+ };
+ 
+-DECLARE_TYPE(NoUnit, t_nounit, MeasureUnit, NoUnit,
++DECLARE_TYPE(NoUnit, t_nounit, MeasureUnit, NoUnit_,
+              abstract_init, NULL)
+ 
+ #endif
+@@ -580,7 +632,11 @@
+ 
+ static PyObject *t_measureunit_str(t_measureunit *self)
+ {
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    return PyString_FromString(self->object->getIdentifier());
++#else
+     return PyString_FromString(self->object->getSubtype());
++#endif
+ }
+ 
+ static PyObject *t_measureunit_getType(t_measureunit *self)
+@@ -641,6 +697,28 @@
+     return wrap_StringEnumeration(e, T_OWNED);
+ }
+ 
++#endif
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++
++static PyObject *t_measureunit_getIdentifier(t_measureunit *self)
++{
++    const char *id = self->object->getIdentifier();
++    return PyString_FromString(id);                
++}
++
++static PyObject *t_measureunit_getComplexity(t_measureunit *self)
++{
++    UMeasureUnitComplexity complexity;
++    STATUS_CALL(complexity = self->object->getComplexity(status));
++    return PyInt_FromLong(complexity);                
++}
++
++#endif
++
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(53, 0, 0)
++
+ #define createMU(unit) \
+     static PyObject *t_measureunit_create ## unit(PyTypeObject *type) \
+     {                                                                 \
+@@ -844,6 +922,21 @@
+ createMU(ThermUs)
+ #endif
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++createMU(Candela)
++createMU(DessertSpoon)
++createMU(DessertSpoonImperial)
++createMU(Dot)
++createMU(Dram)
++createMU(Drop)
++createMU(EarthRadius)
++createMU(Grain)
++createMU(Jigger)
++createMU(Lumen)
++createMU(Pinch)
++createMU(QuartImperial)
++#endif
++
+ /* Measure */
+ 
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(53, 1, 0)
+@@ -953,17 +1046,17 @@
+ 
+ static PyObject *t_nounit_base(PyTypeObject *type)
+ {
+-  return wrap_NoUnit((NoUnit *) NoUnit::base().clone(), T_OWNED);
++  return wrap_NoUnit((NoUnit_ *) NoUnit::base().clone(), T_OWNED);
+ }
+ 
+ static PyObject *t_nounit_percent(PyTypeObject *type)
+ {
+-    return wrap_NoUnit((NoUnit *) NoUnit::percent().clone(), T_OWNED);
++    return wrap_NoUnit((NoUnit_ *) NoUnit::percent().clone(), T_OWNED);
+ }
+ 
+ static PyObject *t_nounit_permille(PyTypeObject *type)
+ {
+-    return wrap_NoUnit((NoUnit *) NoUnit::permille().clone(), T_OWNED);
++    return wrap_NoUnit((NoUnit_ *) NoUnit::permille().clone(), T_OWNED);
+ }
+ 
+ #endif
+@@ -1186,11 +1279,18 @@
+ #if U_ICU_VERSION_HEX >= 0x04020000
+     INSTALL_CONSTANTS_TYPE(UTimeUnitFields, m);
+ #endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    INSTALL_CONSTANTS_TYPE(UMeasureUnitComplexity, m);
++#endif
+ 
+     INSTALL_TYPE(MeasureUnit, m);
+     INSTALL_TYPE(Measure, m);
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(60, 0, 0)
++#if U_ICU_VERSION_HEX < VERSION_HEX(68, 0, 0)
+     REGISTER_TYPE(NoUnit, m);
++#else
++    INSTALL_STRUCT(NoUnit, m);
++#endif
+ #endif
+     REGISTER_TYPE(CurrencyUnit, m);
+     REGISTER_TYPE(CurrencyAmount, m);
+@@ -1208,4 +1308,10 @@
+     INSTALL_ENUM(UTimeUnitFields, "MINUTE", TimeUnit::UTIMEUNIT_MINUTE);
+     INSTALL_ENUM(UTimeUnitFields, "SECOND", TimeUnit::UTIMEUNIT_SECOND);
+ #endif
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    INSTALL_ENUM(UMeasureUnitComplexity, "SINGLE", UMEASURE_UNIT_SINGLE);
++    INSTALL_ENUM(UMeasureUnitComplexity, "COMPOUND", UMEASURE_UNIT_COMPOUND);
++    INSTALL_ENUM(UMeasureUnitComplexity, "MIXED", UMEASURE_UNIT_MIXED);
++#endif    
+ }
+--- PyICU-2.5/format.cpp.orig	2020-05-25 22:45:21.000000000 +0100
++++ PyICU-2.5/format.cpp	2020-10-31 20:15:10.873774213 +0000
+@@ -1485,11 +1485,26 @@
+     UnicodeString u;
+     int32_t n;
+     double d;
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    PyObject *formatted;
++#endif
+ 
+     if (!parseArg(arg, "i", &n))
+         u = self->object->select(n);
+     else if (!parseArg(arg, "d", &d))
+         u = self->object->select(d);
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    else if (!parseArg(arg, "O", &FormattedNumberType_, &formatted))
++    {
++        STATUS_CALL(u = self->object->select(
++            *((t_formattednumber *) formatted)->object, status));
++    }
++    else if (!parseArg(arg, "O", &FormattedNumberRangeType_, &formatted))
++    {
++        STATUS_CALL(u = self->object->select(
++            *((t_formattednumberrange *) formatted)->object, status));
++    }
++#endif
+     else
+         return PyErr_SetArgsError((PyObject *) self, "select", arg);
+ 
+--- PyICU-2.5/common.cpp.orig	2019-10-01 22:52:42.000000000 +0100
++++ PyICU-2.5/common.cpp	2020-10-31 20:15:10.877774214 +0000
+@@ -23,6 +23,7 @@
+ 
+ #include "common.h"
+ #include <stdarg.h>
++#include <stdlib.h>
+ #include <string.h>
+ #include <datetime.h>
+ 
+@@ -341,13 +342,15 @@
+         if (sizeof(Py_UNICODE) == sizeof(UChar))
+             string.setTo((const UChar *) PyUnicode_AS_UNICODE(object),
+                          (int32_t) PyUnicode_GET_SIZE(object));
+-        else
++        else if (sizeof(Py_UNICODE) == sizeof(UChar32))
+         {
+             int32_t len = (int32_t) PyUnicode_GET_SIZE(object);
+             Py_UNICODE *pchars = PyUnicode_AS_UNICODE(object);
+ 
+             string = UnicodeString::fromUTF32((const UChar32 *) pchars, len);
+         }
++        else
++            abort();  // we should not get here
+ #else
+         PyUnicode_READY(object);
+ 
+--- PyICU-2.5/measureunit.h.orig	2018-01-21 19:05:56.000000000 +0000
++++ PyICU-2.5/measureunit.h	2020-10-31 20:15:10.875774213 +0000
+@@ -28,6 +28,7 @@
+ extern PyTypeObject CurrencyUnitType_;
+ extern PyTypeObject MeasureType_;
+ 
++PyObject *wrap_MeasureUnit(MeasureUnit *mu, int flags);
+ void _init_measureunit(PyObject *m);
+ 
+ #endif /* _measureunit_h */
+--- PyICU-2.5/locale.cpp.orig	2020-05-26 00:58:39.000000000 +0100
++++ PyICU-2.5/locale.cpp	2020-10-31 20:15:10.874774213 +0000
+@@ -55,6 +55,10 @@
+ DECLARE_CONSTANTS_TYPE(ULocMatchDemotion)
+ #endif
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++DECLARE_CONSTANTS_TYPE(ULocMatchDirection)
++#endif
++
+ 
+ /* Locale */
+ 
+@@ -434,6 +438,13 @@
+ static PyObject *t_localematcherbuilder_setFavorSubtag(t_localematcherbuilder *self, PyObject *arg);
+ static PyObject *t_localematcherbuilder_setDemotionPerDesiredLocale(t_localematcherbuilder *self, PyObject *arg);
+ static PyObject *t_localematcherbuilder_build(t_localematcherbuilder *self);
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++static PyObject *t_localematcherbuilder_setDirection(t_localematcherbuilder *self, PyObject *arg);
++#endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_localematcherbuilder_setMaxDistance(t_localematcherbuilder *self, PyObject *args);
++static PyObject *t_localematcherbuilder_setNoDefaultLocale(t_localematcherbuilder *self);
++#endif
+ 
+ static PyMethodDef t_localematcherbuilder_methods[] = {
+     DECLARE_METHOD(t_localematcherbuilder, setSupportedLocalesFromListString, METH_O),
+@@ -443,6 +454,13 @@
+     DECLARE_METHOD(t_localematcherbuilder, setFavorSubtag, METH_O),
+     DECLARE_METHOD(t_localematcherbuilder, setDemotionPerDesiredLocale, METH_O),
+     DECLARE_METHOD(t_localematcherbuilder, build, METH_NOARGS),
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    DECLARE_METHOD(t_localematcherbuilder, setDirection, METH_O),
++#endif
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_localematcherbuilder, setMaxDistance, METH_O),
++    DECLARE_METHOD(t_localematcherbuilder, setNoDefaultLocale, METH_NOARGS),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -485,10 +503,17 @@
+ static PyObject *t_localematcher_getBestMatchForListString(t_localematcher *self, PyObject *arg);
+ static PyObject *t_localematcher_getBestMatchResult(t_localematcher *self, PyObject *arg);
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++static PyObject *t_localematcher_isMatch(t_localematcher *self, PyObject *args);
++#endif
++
+ static PyMethodDef t_localematcher_methods[] = {
+     DECLARE_METHOD(t_localematcher, getBestMatch, METH_O),
+     DECLARE_METHOD(t_localematcher, getBestMatchForListString, METH_O),
+     DECLARE_METHOD(t_localematcher, getBestMatchResult, METH_O),
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    DECLARE_METHOD(t_localematcher, isMatch, METH_VARARGS),
++#endif
+     { NULL, NULL, 0, NULL }
+ };
+ 
+@@ -2212,7 +2237,7 @@
+ {
+     int option;
+ 
+-    if (!parseArg(arg, "n", &option))
++    if (!parseArg(arg, "i", &option))
+     {
+         self->object->setFavorSubtag((ULocMatchFavorSubtag) option);
+         Py_RETURN_SELF();
+@@ -2226,7 +2251,7 @@
+ {
+     int option;
+ 
+-    if (!parseArg(arg, "n", &option))
++    if (!parseArg(arg, "i", &option))
+     {
+         self->object->setDemotionPerDesiredLocale((ULocMatchDemotion) option);
+         Py_RETURN_SELF();
+@@ -2236,6 +2261,54 @@
+                               "setDemotionPerDesiredLocale", arg);
+ }
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++
++static PyObject *t_localematcherbuilder_setDirection(
++    t_localematcherbuilder *self, PyObject *arg)
++{
++    int option;
++
++    if (!parseArg(arg, "i", &option))
++    {
++        self->object->setDirection((ULocMatchDirection) option);
++        Py_RETURN_SELF();
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "setDirection", arg);
++}
++
++#endif
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_localematcherbuilder_setMaxDistance(
++    t_localematcherbuilder *self, PyObject *args)
++{
++    Locale *desired, *supported;
++
++    switch (PyTuple_Size(args)) {
++      case 2:
++        if (!parseArgs(args, "PP", TYPE_CLASSID(Locale), TYPE_CLASSID(Locale),
++                       &desired, &supported))
++        {
++            self->object->setMaxDistance(*desired, *supported);
++            Py_RETURN_SELF();
++        }
++        break;
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "setMaxDistance", args);
++}
++
++static PyObject *t_localematcherbuilder_setNoDefaultLocale(
++    t_localematcherbuilder *self)
++{
++    self->object->setNoDefaultLocale();
++    Py_RETURN_SELF();
++}
++
++#endif
++
+ static PyObject *t_localematcherbuilder_build(t_localematcherbuilder *self)
+ {
+     STATUS_RESULT_CALL(LocaleMatcher matcher = self->object->build(status),
+@@ -2365,8 +2438,34 @@
+     return PyErr_SetArgsError((PyObject *) self, "getBestMatchResult", arg);
+ }
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++
++static PyObject *t_localematcher_isMatch(t_localematcher *self, PyObject *args)
++{
++    Locale *desired, *supported;
++
++    switch (PyTuple_Size(args)) {
++      case 2:
++        if (!parseArgs(args, "PP", TYPE_CLASSID(Locale), TYPE_CLASSID(Locale),
++                       &desired, &supported))
++        {
++            UBool result;
++            STATUS_CALL(result = self->object->isMatch(
++                *desired, *supported, status));
++
++            Py_RETURN_BOOL(result);
++        }
++        break;
++    }
++
++    return PyErr_SetArgsError((PyObject *) self, "isMatch", args);
++}
++
++#endif  // ICU >= 68
++
+ #endif  // ICU >= 65
+ 
++
+ void _init_locale(PyObject *m)
+ {
+     LocaleType_.tp_str = (reprfunc) t_locale_str;
+@@ -2407,6 +2506,10 @@
+                          (PyObject *) &LocaleMatcherResultType_);
+ #endif
+ 
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    INSTALL_CONSTANTS_TYPE(ULocMatchDirection, m);
++#endif
++
+     INSTALL_ENUM(ULocDataLocaleType, "ACTUAL_LOCALE", ULOC_ACTUAL_LOCALE);
+     INSTALL_ENUM(ULocDataLocaleType, "VALID_LOCALE", ULOC_VALID_LOCALE);
+ 
+@@ -2463,4 +2566,10 @@
+     INSTALL_ENUM(ULocMatchDemotion, "NONE", ULOCMATCH_DEMOTION_NONE);
+     INSTALL_ENUM(ULocMatchDemotion, "REGION", ULOCMATCH_DEMOTION_REGION);
+ #endif
++
++#if U_ICU_VERSION_HEX >= VERSION_HEX(67, 0, 0)
++    INSTALL_ENUM(ULocMatchDirection, "WITH_ONE_WAY", ULOCMATCH_DIRECTION_WITH_ONE_WAY);
++    INSTALL_ENUM(ULocMatchDirection, "ONLY_TWO_WAY", ULOCMATCH_DIRECTION_ONLY_TWO_WAY);
++#endif
++
+ }
+--- PyICU-2.5/numberformat.h.orig	2020-05-25 17:07:58.000000000 +0100
++++ PyICU-2.5/numberformat.h	2020-10-31 20:15:10.876774214 +0000
+@@ -32,9 +32,26 @@
+ PyObject *wrap_ChoiceFormat(ChoiceFormat *, int);
+ 
+ #if U_ICU_VERSION_HEX >= VERSION_HEX(64, 0, 0)
++
++class t_formattednumber : public _wrapper {
++public:
++    icu::number::FormattedNumber *object;
++    ConstrainedFieldPosition cfp;  // for iterator on t_formattedvalue
++};
++
++class t_formattednumberrange : public _wrapper {
++public:
++    icu::number::FormattedNumberRange *object;
++    ConstrainedFieldPosition cfp;  // for iterator on t_formattedvalue
++};
++
++extern PyTypeObject FormattedNumberType_;
++extern PyTypeObject FormattedNumberRangeType_;
++
+ PyObject *wrap_FormattedNumber(icu::number::FormattedNumber *value, int flag);
+ PyObject *wrap_FormattedNumberRange(
+     icu::number::FormattedNumberRange *value, int flag);
++
+ #endif
+ 
+ void _init_numberformat(PyObject *m);
+--- PyICU-2.5/errors.cpp.orig	2019-03-28 09:11:32.000000000 +0000
++++ PyICU-2.5/errors.cpp	2020-10-31 20:15:10.870774213 +0000
+@@ -77,6 +77,10 @@
+     _setMsg(messages, U_INVALID_STATE_ERROR, "Requested operation can not be completed with ICU in its current state");
+     _setMsg(messages, U_COLLATOR_VERSION_MISMATCH, "Collator version is not compatible with the base version");
+     _setMsg(messages, U_USELESS_COLLATOR_ERROR, "Collator is options only and no base is specified");
++    _setMsg(messages, U_NO_WRITE_PERMISSION, "Attempt to modify read-only or constant data");
++#if U_ICU_VERSION_HEX >= VERSION_HEX(68, 0, 0)
++    _setMsg(messages, U_INPUT_TOO_LONG_ERROR, "The input is impractically long for an operation");
++#endif
+     _setMsg(messages, U_BAD_VARIABLE_DEFINITION, "Missing '$' or duplicate variable name");
+     _setMsg(messages, U_PARSE_ERROR_START, "Start of Transliterator errors");
+     _setMsg(messages, U_MALFORMED_RULE, "Elements of a rule are misplaced");
