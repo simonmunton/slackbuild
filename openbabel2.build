@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=xmlcopyeditor
+TARNAME=openbabel
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/x
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.3.0.0
+VERSION=2.4.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://xml-copy-editor.sourceforge.io/"
+WEBPAGE="http://openbabel.org/wiki/Main_Page"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=openbabel2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+# patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,21 +55,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man \
+#	    --enable-inchi
+
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
@@ -78,21 +74,11 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
-elif [ -f ./meson.build ]
-then
-  meson --prefix=/usr _BuilD_
-fi
-
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
-then
-  ninja -C _BuilD_ || exit
-else
-  make ${NUM_JOBS} || exit
-fi
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -100,14 +86,13 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
-then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
-else
-  make install DESTDIR=${PKG}
-fi
+make install DESTDIR=${PKG}
 
-strip_binaries
+rm ${PKG}/usr/bin/* ${PKG}/usr/share/man/man1/* ${PKG}/usr/include/inchi/inchi_api.h   ${PKG}/usr/lib64/libinchi.* ${PKG}/usr/lib64/libopenbabel.so
+rmdir -p ${PKG}/usr/bin ${PKG}/usr/share/man/man1 ${PKG}/usr/include/inchi
+
+
+#strip_binaries
 
 fix_links
 
@@ -122,8 +107,18 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "XML Copy Editor is a fast, free, validating XML editor"
-XML Copy Editor is a fast, free, validating XML editor.
+make_slack_desc << EOF "chemical toolbox"
+Open Babel is a chemical toolbox designed to speak the many languages
+of chemical data. It's an open, collaborative project allowing anyone
+to search, convert, analyze, or store data from molecular modeling,
+chemistry, solid-state materials, biochemistry, or related areas.
+
+* Ready-to-use programs, and complete programmer's toolkit
+* Read, write and convert over 70 chemical file formats
+* Filter and search molecular files using SMARTS and other methods
+* Supports molecular modeling, cheminformatics, bioinformatics,
+  organic chemistry, inorganic chemistry, solid-state materials,
+  nuclear chemistry...
 
 EOF
 
