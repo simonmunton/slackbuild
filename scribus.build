@@ -6,9 +6,9 @@ TARNAME=scribus
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.5.5
+VERSION=1.5.6
 VERSIONEXTRA=
-BUILD=18
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -44,8 +44,8 @@ fi
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/scribus-poppler.diff
 # patch -p1 < ${CWD}/scribus-poppler-const.diff
- patch -p1 -b -z .orig < ${CWD}/scribus-poppler-0.87.diff
- patch -p1 -b -z .orig < ${CWD}/scribus-qt5.15.diff
+# patch -p1 -b -z .orig < ${CWD}/scribus-poppler-0.87.diff
+# patch -p1 -b -z .orig < ${CWD}/scribus-qt5.15.diff
 )
 fi
 
@@ -57,18 +57,18 @@ fix_perms
 
 #export QTDIR=/opt/kde3/lib/qt3
 #PATH=/opt/kde3/lib/qt3/bin:${PATH}
-#mkdir _BuilD_
-#cd _BuilD_
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CC=clang \
-CXX=clang++ \
+#CC=clang \
+#CXX=clang++ \
+
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
       -DWANT_CAIRO=1 \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DWANT_CPP14=on \
-      .
+      ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -83,7 +83,7 @@ fi
 
 make install DESTDIR=${PKG}
 
-#cd ..
+cd ..
 
 mkdir -p ${PKG}/usr/share/applications ${PKG}/usr/share/pixmaps
 cp ${CWD}/scribus.desktop ${PKG}/usr/share/applications
