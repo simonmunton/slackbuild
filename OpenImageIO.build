@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=1.8.17
+VERSION=2.2.8.0
 VERSIONEXTRA=
-BUILD=9
+BUILD=1
 
-WEBPAGE="https://sites.google.com/site/openimageio/"
+WEBPAGE="https://github.com/OpenImageIO/oiio"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/OpenImageIO-1.8.17.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,40 +55,47 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-if [ $ARCH != "x86_64" ]
-then
-  ARCH=i686
-  SLKCFLAGS="-m32 -O2 -march=i686 ${CPUOPT}=i686"
-fi
+mkdir _BuilD_
+cd _BuilD_
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var/lib \
-#	    --mandir=/usr/man
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS} -D__STDC_CONSTANT_MACROS" \
-CXXFLAGS="${SLKCFLAGS} -D__STDC_CONSTANT_MACROS" \
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -96,20 +103,14 @@ then
   exit
 fi
 
-#CFLAGS="${SLKCFLAGS}" \
-#CXXFLAGS="${SLKCFLAGS}" \
-#make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include}
-
-cp dist/linux${LIBDIRSUFFIX}/bin/* ${PKG}/usr/bin
-mv ${PKG}/usr/bin/iv ${PKG}/usr/bin/iv-oiio
-cp -Pr dist/linux${LIBDIRSUFFIX}/lib${LIBDIRSUFFIX}/* ${PKG}/usr/lib${LIBDIRSUFFIX}
-cp -pr dist/linux${LIBDIRSUFFIX}/include/* ${PKG}/usr/include
-
-#PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
-#mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
-#cp -p dist/linux${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages/* ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
+cd ..
 
 strip_binaries
 
@@ -120,16 +121,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO dist/linux${LIBDIRSUFFIX}/doc/* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "OpenImageIO image library"
-OpenImageIO is a library for reading and writing images, and a bunch 
+OpenImageIO is a library for reading and writing images, and a bunch
 of related classes, utilities, and applications.
-
 EOF
 
 post_install
