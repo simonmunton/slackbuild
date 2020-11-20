@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/meshroom-2020.1.1.diff
 )
 fi
 
@@ -127,7 +127,10 @@ else
   cat << EOF > ${PKG}/usr/bin/meshroom
 #! /bin/bash
 
-python3 -m meshroom.ui.__main__ "$@"
+export QML2_IMPORT_PATH=/usr/lib${LIBDIRSUFFIX}/meshroom/qml:\$QML2_IMPORT_PATH
+export QT_PLUGIN_PATH=/usr/lib${LIBDIRSUFFIX}/meshroom:\$QT_PLUGIN_PATH
+
+python3 -m meshroom.ui "\$@"
 
 EOF
   chmod +x ${PKG}/usr/bin/meshroom
