@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=video
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/o/octave-forge
+#TAR_EXT=.tar.gz
+VERSION=2.0.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=octave-${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+OCTAVE_VER=`octave -q --eval "version" | cut -d ' ' -f3`
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+:
+#make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mpath=`octave -q --eval "pkg -global prefix" | grep "Installation prefix:" | gawk "{print \\$NF}"`
+bpath=`octave -q --eval "pkg -global prefix" | grep "Architecture dependent prefix:" | gawk "{print \\$NF}"`
+
+mkdir -p ${PKG}/${mpath} ${PKG}/${bpath}
+
+export LDFLAGS=-Wl,--as-needed
+export OCTAVE_HISTFILE=/dev/null
+
+[ -e PKG_ADD ] && mv PKG_ADD PKG_ADD.bak
+octave --eval                                           \
+    "pkg ('prefix', '${PKG}/${mpath}',         \
+	  '${PKG}/${bpath}');                 \
+     pkg ('local_list', [pwd(),'/local-list']);         \
+     pkg ('global_list', [pwd(),'/global-list']);       \
+     if (exist ('PKG_ADD.bak') == 2),                   \
+	 movefile ('PKG_ADD.bak', 'PKG_ADD');           \
+     endif;                                             \
+     pkg -verbose -nodeps install ." \
+ || exit
+
+#make install DESTDIR=${PKG}
+
+cat > ${PKG}/install/doinst.sh << EOF
+octave --silent --no-history --no-init-file --eval "pkg ('rebuild');"
+EOF
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n -p ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
