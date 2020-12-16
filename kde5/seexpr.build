@@ -1,17 +1,17 @@
 #!/bin/bash
 #
-. build_funcs
+. ../build_funcs
 
-TARNAME=wesnoth
+TARNAME=seexpr
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/w
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=1.14.7
+VERSION=3.4.4.0
 VERSIONEXTRA=
-BUILD=11
+BUILD=5
 
-WEBPAGE="http://www.wesnoth.org/"
+WEBPAGE="https://invent.kde.org/graphics/kseexpr"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/wesnoth-1.14.7.diff
+ patch -p1 -b -z .orig < ${CWD}/seexpr-3.4.4.0.diff
 )
 fi
 
@@ -55,35 +55,31 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-#./configure --prefix=/usr \
-#            --sysconfdir=/etc \
-#            --libdir=/usr/lib${LIBDIRSUFFIX} \
-#            --localstatedir=/var \
-#	    --mandir=/usr/man \
-#            --enable-server \
-#            --enable-campaign-server \
-#            --enable-editor \
-#            --enable-tools \
-#            --with-kde \
-#            --with-gnome \
-#            --with-server-uid=simon \
-#            --with-server-gid=users
-
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DENABLE_CAMPAIGN_SERVER=ON \
-      -DENABLE_STRICT_COMPILATION=false \
-      -DSERVER_UID=simon \
-      -DSERVER_GID=users \
-      .
+      -DQML_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/qml \
+      -DQT_PLUGIN_INSTALL_DIR=lib${LIBDIRSUFFIX}/qt5/plugins \
+      -DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
+      -DBUILD_TESTS=off \
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -98,6 +94,9 @@ fi
 
 make install DESTDIR=${PKG}
 
+cd ..
+
+make_debug_files
 #strip_binaries
 
 fix_links
@@ -113,16 +112,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "turn-based fantasy strategy game"
-Battle for Wesnoth is a turn-based fantasy strategy game.
-
-Defeat all enemy leaders using a well-chosen cadre of troops, taking
-care to manage your resources of gold and villages. All units have
-their own strengths and weaknesses; to win, deploy your forces to
-their best advantage while denying your foes the chance to do the
-same. As units gain experience, they acquire new abilities and become
-more powerful.
-
+make_slack_desc << EOF
 EOF
 
 post_install
