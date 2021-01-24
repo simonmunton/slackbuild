@@ -6,15 +6,15 @@ TARNAME=fluidsynth
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=1.1.6
+VERSION=1.1.11
 VERSIONEXTRA=
-BUILD=6
+BUILD=1
 
 WEBPAGE="http://www.fluidsynth.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=fluidsynth
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -54,17 +54,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-ladspa \
-	    --disable-static
+  cmake \
+    -DCMAKE_C_FLAGS="${SLKCFLAGS}" \
+    -DCMAKE_CXX_FLAGS="${SLKCFLAGS}" \
+    -DCMAKE_EXE_LINKER_FLAGS="-ltermcap" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-ltermcap" \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DLIB_SUFFIX="${LIBDIRSUFFIX}" \
+    -DDOC_INSTALL_DIR="doc" \
+    -DMAN_INSTALL_DIR="man/man1" \
+    -Denable-ladspa=yes \
+    ..
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -78,6 +84,22 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+(cd ${PKG}/usr/bin
+ mv fluidsynth fluidsynth1
+ cd ../include
+ mv fluidsynth fluidsynth1
+ mv fluidsynth.h fluidsynth1.h
+ sed -i -e "s@fluidsynth/@fluidsynth1/@" fluidsynth.h
+ cd ../lib${LIBDIRSUFFIX}/pkgconfig
+ mv fluidsynth.pc fluidsynth-1.pc
+ cd ..
+ rm libfluidsynth.so
+ cd ../man/man1
+ mv fluidsynth.1 fluidsynth1.1
+)
 
 sed -i -e 's/ [^ ]\+libpulsecommon[^ ]\+ / /' ${PKG}/usr/lib64/libfluidsynth.la
 
