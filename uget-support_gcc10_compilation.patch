@@ -1,0 +1,25 @@
+Author: Mamoru TASAKA <mtasaka@fedoraproject.org>
+Subject: Support gcc10 compilation
+
+ gcc10 now defaults to -fno-common, and with gcc10 uget2 compilation fails like
+
+ /usr/bin/ld: uget_gtk-UgtkTrayIcon.o:/builddir/build/BUILD/uget-2.2.3/ui-gtk/./UgtkBanner.h:67: multiple definition of `banner'; uget_gtk-UgtkTraveler.o:/builddir/build/BUILD/uget-2.2.3/ui-gtk/./UgtkBanner.h:67: first defined here
+ /usr/bin/ld: uget_gtk-UgtkBanner.o:/builddir/build/BUILD/uget-2.2.3/ui-gtk/./UgtkBanner.h:67: multiple definition of `banner'; uget_gtk-UgtkTraveler.o:/builddir/build/BUILD/uget-2.2.3/ui-gtk/./UgtkBanner.h:67: first defined here
+ ....
+
+ This patch removes unneeded tentative "banner" symbol definition.
+
+Origin: https://sourceforge.net/p/urlget/uget2/ci/14890943c52e0a5cd2a87d8a1c51cbffebee7cf9/
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=957896
+
+--- uget.orig/ui-gtk/UgtkBanner.h
++++ uget/ui-gtk/UgtkBanner.h
+@@ -64,7 +64,7 @@ struct UgtkBanner {
+ 		UgetRssFeed*    feed;
+ 		UgetRssItem*    item;
+ 	} rss;
+-} banner;
++};
+ 
+ void  ugtk_banner_init (UgtkBanner* banner);
+ 

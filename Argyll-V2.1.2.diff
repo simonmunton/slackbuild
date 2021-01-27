@@ -1,0 +1,155 @@
+--- Argyll-V2.1.2/Jambase.orig	2020-01-19 01:38:04.000000000 +0000
++++ Argyll-V2.1.2/Jambase	2021-01-26 17:47:23.228964706 +0000
+@@ -967,7 +967,7 @@
+ 
+ 	# UNIX defaults
+ 
+-	CCFLAGS			?= -DUNIX -D_THREAD_SAFE -pipe ;
++	CCFLAGS			?= $(CPPFLAGS) -DUNIX -D_THREAD_SAFE -pipe -fPIC ;
+ 	CCOPTFLAG		?= -O2 ;		
+ 	CCDEBUGFLAG		?= -g ;		
+ 	CCPROFFLAG		?= ;		
+@@ -977,7 +977,7 @@
+ 	CHGRP			?= chgrp ;
+ 	CHOWN			?= chown ;
+ 	LEX				?= lex ;
+-	LINKFLAGS		?= ;
++	LINKFLAGS		?= $(LDFLAGS) ;
+ 	LINKOPTFLAG		?= -O ;				# Affects creating .so's
+ 	LINKSTRIPFLAG	?= -s ;
+ 	LINKDEBUGFLAG	?= ;
+@@ -1076,7 +1076,7 @@
+ 	RMDIR			?= $(RM) ;
+ 	RSH				?= rsh ;
+ 	SED				?= sed ;
+-	SHELLHEADER		?= "#!/bin/sh" ;
++	SHELLHEADER		?= "#!/bin/bash" ;
+ 	SHELLMODE		?= 755 ;
+ 	SLASH			?= / ;
+ 	STDHDRS			?= /usr/include ;
+--- Argyll-V2.1.2/spectro/vinflate.c.orig	2020-01-19 01:38:27.000000000 +0000
++++ Argyll-V2.1.2/spectro/vinflate.c	2021-01-26 16:12:43.199578906 +0000
+@@ -92,8 +92,8 @@
+ */
+ 
+ #define WSIZE 0x8000
+-unsigned int wp;             /* current position in slide */
+-uch slide[32768];
++static unsigned int wp;             /* current position in slide */
++static uch slide[32768];
+ 
+ static int vflush_output(unsigned int w) {
+ 	wp = w;
+@@ -160,10 +160,10 @@
+    the stream.
+  */
+ 
+-ulg bb;                         /* bit buffer */
+-unsigned bk;                    /* bits in bit buffer */
++static ulg bb;                         /* bit buffer */
++static unsigned bk;                    /* bits in bit buffer */
+ 
+-ush vmask_bits[] = {
++static ush vmask_bits[] = {
+     0x0000,
+     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
+     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
+@@ -230,8 +230,8 @@
+  */
+ 
+ 
+-int vlbits = 9;          /* bits in base literal/length lookup table */
+-int vdbits = 6;          /* bits in base distance lookup table */
++static int vlbits = 9;          /* bits in base literal/length lookup table */
++static int vdbits = 6;          /* bits in base distance lookup table */
+ 
+ 
+ /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
+@@ -239,7 +239,7 @@
+ #define N_MAX 288       /* maximum number of codes in any set */
+ 
+ 
+-unsigned hufts;         /* track memory usage */
++static unsigned hufts;         /* track memory usage */
+ 
+ /* Given a list of code lengths and a maximum table size, make a set of
+    tables to decode that set of codes.  Return zero on success, one if
+--- Argyll-V2.1.2/spectro/inflate.c.orig	2020-01-19 01:38:27.000000000 +0000
++++ Argyll-V2.1.2/spectro/inflate.c	2021-01-26 16:11:24.970582639 +0000
+@@ -87,8 +87,8 @@
+ /* unsigned wp;             current position in slide */
+ 
+ #define WSIZE 0x8000
+-unsigned int wp;             /* current position in slide */
+-uch slide[32768];
++static unsigned int wp;             /* current position in slide */
++static uch slide[32768];
+ 
+ static int flush_output(unsigned int w) {
+ 	wp = w;
+@@ -155,10 +155,10 @@
+    the stream.
+  */
+ 
+-ulg bb;                         /* bit buffer */
+-unsigned bk;                    /* bits in bit buffer */
++static ulg bb;                         /* bit buffer */
++static unsigned bk;                    /* bits in bit buffer */
+ 
+-ush mask_bits[] = {
++static ush mask_bits[] = {
+     0x0000,
+     0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
+     0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
+@@ -201,8 +201,8 @@
+  */
+ 
+ 
+-int lbits = 9;          /* bits in base literal/length lookup table */
+-int dbits = 6;          /* bits in base distance lookup table */
++static int lbits = 9;          /* bits in base literal/length lookup table */
++static int dbits = 6;          /* bits in base distance lookup table */
+ 
+ 
+ /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
+@@ -210,7 +210,7 @@
+ #define N_MAX 288       /* maximum number of codes in any set */
+ 
+ 
+-unsigned hufts;         /* track memory usage */
++static unsigned hufts;         /* track memory usage */
+ 
+ 
+ static int huft_build(b, n, s, d, e, t, m)
+--- Argyll-V2.1.2/gamut/gamut.h.orig	2020-01-19 01:38:19.000000000 +0000
++++ Argyll-V2.1.2/gamut/gamut.h	2021-01-26 16:05:47.787598727 +0000
+@@ -36,7 +36,7 @@
+ #define MAXGAMN 10				/* Maximum gamut point neighbors returned */
+ #define NSLOTS 6				/* Number of maximum direction slots */
+ 
+-struct _vrml *wrl;				/* Declared in vrml.h, which may be #included after this */
++// struct _vrml *wrl;				/* Declared in vrml.h, which may be #included after this */
+ 
+ /* ------------------------------------ */
+ #define NODE_STRUCT							\
+--- Argyll-V2.1.2/Jamtop.orig	2020-01-19 01:38:05.000000000 +0000
++++ Argyll-V2.1.2/Jamtop	2021-01-26 17:47:51.871634851 +0000
+@@ -23,6 +23,7 @@
+ # Should we also allow CFLAGS, CXXFLAGS, CPPFLAGS & LDFLAGS env. variables
+ # to have effect ?
+ 
++BUILD_SHARED_LIB = 1 ;
+ 
+ # Tell standalone libraries that they are part of Argyll:
+ DEFINES += ARGYLLCMS ;
+@@ -94,8 +95,8 @@
+ 		}
+ 
+ 		if $(HOST64) {
+-			if [ GLOB /usr/X11R6/lib : libX11.so libX11.a ] {
+-				LibWinD = /usr/X11R6/lib ;
++			if [ GLOB /usr/X11R6/lib64 : libX11.so libX11.a ] {
++				LibWinD = /usr/X11R6/lib64 ;
+ 			} else if [ GLOB /usr/lib/x86_64-linux-gnu : libX11.so libX11.a ] {
+ 				LibWinD = /usr/lib/x86_64-linux-gnu ;
+ 			} else if [ GLOB /usr/lib64 : libX11.so libX11.a ] {
