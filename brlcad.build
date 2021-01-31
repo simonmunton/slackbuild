@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=7.26.4
+VERSION=7.32.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/brlcad-7.16.4.diff
+ patch -p1 < ${CWD}/brlcad-7.32.0.diff
+
 # patch -p0 <  ${TARDIR}/brlcad-rel-7-16-8-r1.patch
  #./autogen.sh
 # sed -i -e 's@-I$(top_srcdir)/src/other/tcl/generic@-I/usr/include/tcl-private/generic@' \
@@ -63,8 +64,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir build
-cd build
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -77,8 +78,8 @@ then
 #
 ##	    --with-cppflags="-I/usr/include/tcl-private/generic"
 
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS} -ggdb" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -ggdb" \
       -DCMAKE_INSTALL_PREFIX=/opt/brlcad \
       -DMAN_INSTALL_DIR=/opt/brlcad/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
