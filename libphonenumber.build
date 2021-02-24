@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=8.12.18
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 # "https://opensource.google.com/projects/libphonenumber"
 WEBPAGE=https://github.com/google/libphonenumber
@@ -59,18 +59,21 @@ fix_perms
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 cd cpp
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -79,8 +82,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
-elif [ -f ./meson.build ]
+      ..
+elif [ -f ../meson.build ]
 then
   meson --prefix=/usr _BuilD_
 fi
@@ -89,7 +92,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
@@ -102,13 +105,14 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
   make install DESTDIR=${PKG}
 fi
 
+cd ..
 cd ..
 
 strip_binaries
