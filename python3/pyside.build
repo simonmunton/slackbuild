@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ #patch -p1 -b -z .orig < ${CWD}/pyside-setup-opensource-src-5.15.2.diff
 )
 fi
 
@@ -56,6 +56,9 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+#mkdir _BuilD_
+#cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -74,7 +77,9 @@ then
 #      -DCMAKE_INSTALL_PREFIX=/usr \
 #      -DMAN_INSTALL_DIR=/usr/man \
 #      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DUSE_PYTHON_VERSION=3 \
+#      ..
 
 fi
 
@@ -91,7 +96,43 @@ then
 fi
 
 #make install DESTDIR=${PKG}
+#cd ..
+
+QT4DIR=
+export LIB_SUFFIX=${LIBDIRSUFFIX}
+
 python3 setup.py install --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake --parallel=8 --root=${PKG}
+
+PYTHON3_SITEDIR=$(python3 -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+
+(cd ${PKG}${PYTHON3_SITEDIR}/PySide2
+ ln -s ${QT5DIR}/bin/uic .
+ ln -s ${QT5DIR}/bin/rcc .
+ ln -s ${QT5DIR}/bin/designer .
+)
+
+mkdir -p ${PKG}/usr/{include,lib${LIBDIRSUFFIX}/{cmake,pkgconfig},share,man/man1}
+
+cp -pr pyside3_install/py3*/include/PySide2 ${PKG}/usr/include
+cp -pr pyside3_install/py3*/share/PySide2 ${PKG}/usr/share
+cp -pr pyside3_install/py3*/lib/pkgconfig/pyside2.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cp -pr pyside3_install/py3*/lib/libpyside2*.so* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp -pr pyside3_install/py3*/lib/cmake/PySide2* ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+
+cp -pr pyside3_install/py3*/include/shiboken2 ${PKG}/usr/include
+cp -pr pyside3_install/py3*/lib/pkgconfig/shiboken2.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cp -pr pyside3_install/py3*/lib/libshiboken2*.so* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp -pr pyside3_install/py3*/lib/cmake/Shiboken2* ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+
+cp -pr pyside3_install/py3*/share/man/man1/pyside2-* ${PKG}/usr/man/man1
+
+sed -i "s@$(pwd)/pyside3_install/py3.9-qt5.15.2-64bit-release@/usr@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+sed -i "s@libdir=lib@libdir=/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+sed -i "/exec_prefix/,\$ s@=/usr@=\${prefix}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+
+sed -i "s@/lib/@/lib${LIBDIRSUFFIX}/@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/PySide2*/*
+sed -i "s@/lib/@/lib${LIBDIRSUFFIX}/@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken2*/Shiboken2Targets*
+sed -i "/SHIBOKEN_SHARED_LIBRARY_DIR/ s@/lib@/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken2*/Shiboken2Config*
 
 strip_binaries
 

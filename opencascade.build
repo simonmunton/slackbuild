@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=7.1.0
+VERSION=7.5.0
 VERSIONEXTRA=
 BUILD=1
 
 WEBPAGE="https://www.opencascade.com/"
+#https://github.com/tpaviot/oce
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/opencascade-7.5.0.diff
 )
 fi
 
@@ -55,20 +56,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,7 +81,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
 fi
 
 fi
@@ -93,6 +97,10 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+sed -i "s@\${OCCT_INSTALL_BIN_LETTER}@@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/opencascade/*
 
 strip_binaries
 

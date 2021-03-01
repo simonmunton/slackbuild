@@ -1,0 +1,129 @@
+--- FreeCAD-0.19_pre/src/Gui/DAGView/DAGView.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Gui/DAGView/DAGView.cpp	2021-02-26 22:14:27.181894916 +0000
+@@ -39,6 +39,7 @@
+ 
+ using namespace Gui;
+ using namespace DAG;
++using namespace boost::placeholders;
+ 
+ DAG::DockWindow::DockWindow(Gui::Document* gDocumentIn, QWidget* parent): Gui::DockWindow(gDocumentIn, parent)
+ {
+--- FreeCAD-0.19_pre/src/App/Link.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/App/Link.cpp	2021-02-27 18:15:39.033705136 +0000
+@@ -40,6 +40,7 @@
+ 
+ using namespace App;
+ using namespace Base;
++using namespace boost::placeholders;
+ 
+ EXTENSION_PROPERTY_SOURCE(App::LinkBaseExtension, App::DocumentObjectExtension)
+ 
+--- FreeCAD-0.19_pre/src/App/GroupExtension.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/App/GroupExtension.cpp	2021-02-27 18:14:32.657708303 +0000
+@@ -36,6 +36,7 @@
+ #include <Base/Tools.h>
+ 
+ using namespace App;
++using namespace boost::placeholders;
+ 
+ EXTENSION_PROPERTY_SOURCE(App::GroupExtension, App::DocumentObjectExtension)
+ 
+--- FreeCAD-0.19_pre/src/CXX/Python3/cxx_extensions.cxx.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/CXX/Python3/cxx_extensions.cxx	2021-02-26 22:21:47.698873897 +0000
+@@ -381,7 +381,11 @@
+ 
+     // Methods to implement standard operations
+     table->tp_dealloc = (destructor)standard_dealloc;
++#if PY_VERSION_HEX < 0x03080000
+     table->tp_print = 0;
++#else
++    table->tp_vectorcall_offset = 0;
++#endif
+     table->tp_getattr = 0;
+     table->tp_setattr = 0;
+     table->tp_repr = 0;
+@@ -524,7 +528,9 @@
+ #ifdef PYCXX_PYTHON_2TO3
+ PythonType &PythonType::supportPrint()
+ {
++#if PY_VERSION_HEX < 0x03080000
+     table->tp_print = print_handler;
++#endif
+     return *this;
+ }
+ #endif
+--- FreeCAD-0.19_pre/src/Mod/Image/Gui/OpenGLImageBox.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Image/Gui/OpenGLImageBox.cpp	2021-02-27 21:04:21.176517890 +0000
+@@ -26,6 +26,7 @@
+ # include <QSurfaceFormat>
+ # include <QMessageBox>
+ # include <QPainter>
++# include <QPainterPath>
+ #endif
+ 
+ #if defined(__MINGW32__)
+--- FreeCAD-0.19_pre/src/Mod/Draft/Resources/Draft.qrc.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Draft/Resources/Draft.qrc	2021-02-27 21:48:18.470140176 +0000
+@@ -88,7 +88,7 @@
+         <file>icons/Snap_Perpendicular.svg</file>
+         <file>icons/Snap_Special.svg</file>
+         <file>icons/Snap_WorkingPlane.svg</file>
+-        <file>patterns/brick01</file>
++        <file>patterns/brick01.svg</file>
+         <file>patterns/concrete.svg</file>
+         <file>patterns/cross.svg</file>
+         <file>patterns/diagonal1.svg</file>
+--- FreeCAD-0.19_pre/src/Mod/Sketcher/Gui/TaskSketcherGeneral.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Sketcher/Gui/TaskSketcherGeneral.cpp	2021-02-26 22:14:27.181894916 +0000
+@@ -40,6 +40,7 @@
+ 
+ using namespace SketcherGui;
+ using namespace Gui::TaskView;
++using namespace boost::placeholders;
+ 
+ SketcherGeneralWidget::SketcherGeneralWidget(QWidget *parent)
+   : QWidget(parent), ui(new Ui_TaskSketcherGeneral)
+--- FreeCAD-0.19_pre/src/Mod/Part/Gui/TaskDimension.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Part/Gui/TaskDimension.cpp	2021-02-27 22:06:10.154625119 +0000
+@@ -78,6 +78,8 @@
+ 
+ #include "TaskDimension.h"
+ 
++using namespace boost::placeholders;
++
+ static bool _MeasureInfoInited;
+ 
+ static void slotDeleteDocument(const App::Document &doc);
+--- FreeCAD-0.19_pre/src/Mod/Part/App/ProgressIndicator.cpp.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Part/App/ProgressIndicator.cpp	2021-02-28 16:26:21.904081080 +0000
+@@ -64,7 +64,7 @@
+ {
+ }
+ 
+-Standard_Boolean ProgressIndicator::Show (const Standard_Boolean theForce)
++void ProgressIndicator::Show (const Message_ProgressScope& theScope, const Standard_Boolean theForce)
+ {
+     if (theForce) {
+         Handle(TCollection_HAsciiString) aName = GetScope(1).GetName(); //current step
+--- FreeCAD-0.19_pre/src/Mod/Part/App/ProgressIndicator.h.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/src/Mod/Part/App/ProgressIndicator.h	2021-02-28 16:20:22.146098245 +0000
+@@ -36,7 +36,7 @@
+     ProgressIndicator (int theMaxVal = 100);
+     virtual ~ProgressIndicator ();
+ 
+-    virtual Standard_Boolean Show (const Standard_Boolean theForce = Standard_True);
++    virtual void Show (const Message_ProgressScope& theScope, const Standard_Boolean theForce = Standard_True);
+     virtual Standard_Boolean UserBreak();
+ 
+ private:
+--- FreeCAD-0.19_pre/cMake/FreeCAD_Helpers/SetupPython.cmake.orig	2019-11-03 18:01:27.000000000 +0000
++++ FreeCAD-0.19_pre/cMake/FreeCAD_Helpers/SetupPython.cmake	2021-02-26 22:17:57.687884872 +0000
+@@ -3,7 +3,7 @@
+ 
+     # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=677598
+     # Acceptable versions of Python
+-    set(Python_ADDITIONAL_VERSIONS "2.7")
++    set(Python_ADDITIONAL_VERSIONS 3.10 3.9 3.8 3.7 3.6 3.5 3.4 "2.7")
+ 
+     # For building on OS X
+     if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT BUILD_WITH_CONDA)
