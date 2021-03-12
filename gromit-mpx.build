@@ -2,17 +2,16 @@
 #
 . build_funcs
 
-TARNAME=unpaper
+TARNAME=gromit-mpx
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/u
+TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=20210312
+VERSION=1.4
 VERSIONEXTRA=
 BUILD=1
 
-#WEBPAGE="http://unpaper.berlios.de/"
-WEBPAGE="https://www.flameeyes.com/projects/unpaper"
+WEBPAGE="https://github.com/bk138/gromit-mpx"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -35,23 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-
- if [ ! -e configure ]
- then
-   autogen.sh
- fi
 )
 fi
 
@@ -61,20 +55,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -83,19 +80,19 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
-elif [ -f ./meson.build ]
+      ..
+elif [ -f ../meson.build ]
 then
-  meson --prefix=/usr _BuilD_
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  ninja -C _BuilD_ || exit
+  ninja || exit
 else
   make ${NUM_JOBS} || exit
 fi
@@ -106,12 +103,14 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
+  DESTDIR=${PKG} ninja install
 else
   make install DESTDIR=${PKG}
 fi
+
+cd ..
 
 strip_binaries
 
@@ -128,13 +127,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "scan post-processing tool"
-unpaper is a post-processing tool for scanned sheets of paper,
-especially for book pages that have been scanned from previously
-created photocopies. The main purpose is to make scanned book pages
-better readable on screen after conversion to PDF. Additionally,
-unpaper might be useful to enhance the quality of scanned pages before
-performing optical character recognition (OCR).
+make_slack_desc << EOF "on-screen annotation tool"
+Gromit-MPX is an on-screen annotation tool that works with any Unix
+desktop environment under X11 as well as Wayland.
+
+Its main use is for making presentations of some application.
+Normally, you would have to move the mouse pointer around the point
+of interest until hopefully everybody noticed it. With Gromit-MPX,
+you can draw everywhere onto the screen, highlighting some button or
+area.
 
 EOF
 
