@@ -1,19 +1,16 @@
---- qt-everywhere-src-5.15.2/gnuwin32/lib/libiconv.la.orig	2020-11-12 15:27:08.000000000 +0000
-+++ qt-everywhere-src-5.15.2/gnuwin32/lib/libiconv.la	2020-11-12 15:27:08.000000000 +0000
-@@ -32,4 +32,4 @@
- dlpreopen=''
- 
- # Directory that this library needs to be installed in:
--libdir='c:/progra~1/LibIconv/lib'
-+libdir='C:/Users/marius/DOWNLO~1/WEBKIT~1/install/lib'
---- qt-everywhere-src-5.15.2/gnuwin32/lib/libcharset.la.orig	2020-11-12 15:27:08.000000000 +0000
-+++ qt-everywhere-src-5.15.2/gnuwin32/lib/libcharset.la	2020-11-12 15:27:08.000000000 +0000
-@@ -32,4 +32,4 @@
- dlpreopen=''
- 
- # Directory that this library needs to be installed in:
--libdir='c:/progra~1/LibIconv/lib'
-+libdir='C:/Users/marius/DOWNLO~1/WEBKIT~1/install/lib'
+--- qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagewriter.cpp.orig	2020-10-27 08:02:11.000000000 +0000
++++ qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagewriter.cpp	2021-03-29 20:26:51.108478152 +0100
+@@ -202,8 +202,8 @@
+             handler->setOption(QImageIOHandler::SubType, testFormat);
+ #endif
+ #ifndef QT_NO_IMAGEFORMAT_PPM
+-        } else if (testFormat == "pbm" || testFormat == "pbmraw" || testFormat == "pgm"
+-                 || testFormat == "pgmraw" || testFormat == "ppm" || testFormat == "ppmraw") {
++        } else if (testFormat == "pbm" || testFormat == "pbmraw" || testFormat == "pgm" || testFormat == "pnm"
++                 || testFormat == "pgmraw" || testFormat == "ppm" || testFormat == "ppmraw"  || testFormat == "pnmraw") {
+             handler = new QPpmHandler;
+             handler->setOption(QImageIOHandler::SubType, testFormat);
+ #endif
 --- qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagereader.cpp.orig	2020-10-27 08:02:11.000000000 +0000
 +++ qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagereader.cpp	2021-03-14 15:58:11.126676845 +0000
 @@ -409,6 +409,7 @@
@@ -24,6 +21,26 @@
              case _qt_PbmFormat:
              case _qt_PgmFormat:
              case _qt_PpmFormat:
+--- qt-everywhere-src-5.15.2/qtbase/src/gui/image/qppmhandler.cpp.orig	2020-10-27 08:02:11.000000000 +0000
++++ qt-everywhere-src-5.15.2/qtbase/src/gui/image/qppmhandler.cpp	2021-03-29 20:25:22.372482386 +0100
+@@ -301,6 +301,17 @@
+     QByteArray format = sourceFormat;
+ 
+     format = format.left(3);                        // ignore RAW part
++    if (format == "ppm") {
++        switch (image.format()) {
++            case QImage::Format_Mono: format = "pbm";
++                break;
++            case QImage::QImage::Format_Grayscale8: format = "pgm";
++                break;
++            default: format = "ppm";
++                break;
++        }
++    }
++
+     bool gray = format == "pgm";
+ 
+     if (format == "pbm") {
 --- qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagereaderwriterhelpers_p.h.orig	2020-10-27 08:02:11.000000000 +0000
 +++ qt-everywhere-src-5.15.2/qtbase/src/gui/image/qimagereaderwriterhelpers_p.h	2021-03-14 15:57:09.368679791 +0000
 @@ -72,6 +72,7 @@
