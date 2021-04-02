@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
 VERSION=1.1.1
 VERSIONEXTRA=
-BUILD=3
+BUILD=2
 
 WEBPAGE="http://opencolorio.org/"
 
@@ -49,6 +49,8 @@ fi
  patch -p0 < ${CWD}/OpenColorIO-fix-cmake-files-location.patch
  patch -p1 < ${CWD}/OpenColorIO-Fix_Linux_compilation.patch
  patch -p1 < ${CWD}/OpenColorIO-Fix_build_with_GCC-8.patch
+
+# patch -p1 < ${CWD}/OpenColorIO-2.0.0.diff
 )
 fi
 
@@ -59,6 +61,9 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -79,7 +84,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DOCIO_BUILD_STATIC=off \
       -DOCIO_BUILD_TESTS=0 \
-      .
+      ..
 
 fi
 
@@ -94,6 +99,10 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
+
+rm -rf ${PKG}/home
 
 strip_binaries
 

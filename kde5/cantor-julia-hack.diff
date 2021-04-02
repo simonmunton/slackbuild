@@ -1,10 +1,24 @@
---- cantor-18.08.3/cmake/FindJulia.cmake.orig	2018-11-02 15:09:45.000000000 +0000
-+++ cantor-18.08.3/cmake/FindJulia.cmake	2018-11-11 18:57:02.883473850 +0000
-@@ -85,6 +85,7 @@
+--- cantor-20.12.3/cmake/FindJulia.cmake.orig	2021-03-26 21:48:12.056470249 +0000
++++ cantor-20.12.3/cmake/FindJulia.cmake	2021-03-26 22:06:13.075634520 +0000
+@@ -46,6 +46,7 @@
+ )
+ if(RESULT EQUAL 0)
+     string(REGEX REPLACE "\"" "" JULIA_INCLUDE_DIRS ${JULIA_INCLUDE_DIRS})
++    string(REGEX REPLACE "\n" "" JULIA_INCLUDE_DIRS ${JULIA_INCLUDE_DIRS})
+     set(JULIA_INCLUDE_DIRS ${JULIA_INCLUDE_DIRS}
+         CACHE PATH "Location of Julia include files")
+ endif()
+@@ -85,6 +86,13 @@
      PATHS ${JULIA_LIBRARY_DIR}
  )
  
-+set( JULIA_LIBRARY "-L /usr/lib64/julia -Wl,-rpath,'/usr/lib64/julia' -Wl,-rpath,'/usr/lib64' -ljulia -lLLVM-9jl" )
++execute_process(
++    COMMAND ${JULIA_EXECUTABLE} /usr/share/julia/julia-config.jl --ldflags --ldlibs
++    OUTPUT_VARIABLE JULIA_LIBRARY
++)
++
++set( JULIA_LIBRARY "${JULIA_LIBRARY} -L/usr/lib64/julia -lLLVM-11jl -ljulia-internal" )
++string(REGEX REPLACE "\n" " " JULIA_LIBRARY ${JULIA_LIBRARY})
  
  include(FindPackageHandleStandardArgs)
  find_package_handle_standard_args(

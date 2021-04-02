@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=2.6.2
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="https://pypi.org/project/pybind11/"
 
@@ -94,6 +94,11 @@ fi
 #make install DESTDIR=${PKG}
 python setup.py install --root=${PKG}
 python3 setup.py install --root=${PKG}
+
+PYTHON3_SITE=$( python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])' )
+mkdir -p ${PKG}/usr/{include,share}
+cp -pr ${PKG}/${PYTHON3_SITE}/pybind11/share/* ${PKG}/usr/share
+cp -pr ${PKG}/${PYTHON3_SITE}/pybind11/include/* ${PKG}/usr/include
 
 strip_binaries
 
