@@ -11,7 +11,7 @@
  				}
  				if (csTypeName == "Separation")
 --- scribus-1.5.6.1/scribus/plugins/import/pdf/slaoutput.h.orig	2020-11-14 22:37:11.000000000 +0000
-+++ scribus-1.5.6.1/scribus/plugins/import/pdf/slaoutput.h	2021-03-02 14:46:50.167622205 +0000
++++ scribus-1.5.6.1/scribus/plugins/import/pdf/slaoutput.h	2021-04-02 17:11:08.408055396 +0100
 @@ -196,7 +196,7 @@
  	void stroke(GfxState *state) override;
  	void fill(GfxState *state) override;
@@ -21,3 +21,16 @@
  	GBool functionShadedFill(GfxState * /*state*/, GfxFunctionShading * /*shading*/) override { qDebug() << "Function Shaded Fill";  return gFalse; }
  	GBool axialShadedFill(GfxState *state, GfxAxialShading *shading, double tMin, double tMax) override;
  	GBool axialShadedSupportExtend(GfxState *state, GfxAxialShading *shading)  override { return (shading->getExtend0() == shading->getExtend1()); }
+@@ -368,7 +368,11 @@
+ 	Catalog *catalog {nullptr};
+ 	SplashFontEngine *m_fontEngine {nullptr};
+ 	SplashFont *m_font {nullptr};
+-	FormPageWidgets *m_formWidgets {nullptr};
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(21, 4, 0)
++	FormPageWidgets *m_formWidgets {nullptr};
++#else
++	std::unique_ptr<FormPageWidgets> m_formWidgets {nullptr};
++#endif
+ 	QHash<QString, QList<int> > m_radioMap;
+ 	QHash<int, PageItem*> m_radioButtons;
+ 	int m_actPage;
