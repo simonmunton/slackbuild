@@ -1,0 +1,257 @@
+--- jami-20210409.1.3e6a4fb/daemon/contrib/src/libgit2/rules.mak.orig	2021-04-09 21:57:32.000000000 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/src/libgit2/rules.mak	2021-04-10 21:37:42.982850609 +0100
+@@ -24,6 +24,6 @@
+ .libgit2: libgit2
+ 	cd $< && mkdir -p build && cd build \
+     && $(CMAKE) -DCMAKE_C_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DUSE_HTTPS=OFF -DCURL=OFF -DUSE_HTTP_PARSER=system -DBUILD_CLAR=OFF -DBUILD_SHARED_LIBS=OFF -DUSE_SSH=OFF -DREGEX_BACKEND=regcomp .. \
+-    && $(CMAKE) --build . \
++    && $(MAKE) \
+     && $(MAKE) install
+ 	touch $@
+--- jami-20210409.1.3e6a4fb/daemon/contrib/x86_64-slackware-linux/include/pjnath/config.h.orig	2021-04-10 18:20:48.060732661 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/x86_64-slackware-linux/include/pjnath/config.h	2021-04-10 18:20:48.059732661 +0100
+@@ -466,6 +466,17 @@
+ #endif
+ 
+ 
++/**
++ * This constant specifies whether ICE stream transport should allow TURN
++ * client session to automatically renew permission for all remote candidates.
++ *
++ * Default: PJ_FALSE
++ */
++#ifndef PJ_ICE_ST_USE_TURN_PERMANENT_PERM
++#   define PJ_ICE_ST_USE_TURN_PERMANENT_PERM	    PJ_FALSE
++#endif
++
++
+ /** ICE session pool initial size. */
+ #ifndef PJNATH_POOL_LEN_ICE_SESS
+ #   define PJNATH_POOL_LEN_ICE_SESS		    512
+--- jami-20210409.1.3e6a4fb/daemon/contrib/x86_64-slackware-linux/include/pjnath/ice_session.h.orig	2021-04-10 18:20:48.060732661 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/x86_64-slackware-linux/include/pjnath/ice_session.h	2021-04-10 18:20:48.059732661 +0100
+@@ -284,6 +284,11 @@
+ typedef struct pj_ice_sess_cand
+ {
+     /**
++     * The candidate ID.
++     */
++    unsigned		 id;
++
++    /**
+      * The candidate type, as described in #pj_ice_cand_type enumeration.
+      */
+     pj_ice_cand_type	 type;
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/ice_strans.c.orig	2021-04-10 18:19:35.326736131 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/ice_strans.c	2021-04-10 18:19:35.334736131 +0100
+@@ -64,9 +64,9 @@
+ #   define HOST_PREF   65535
+ #   define RELAY_PREF  65535
+ #else
+-#   define SRFLX_PREF  0
+-#   define HOST_PREF   0
+-#   define RELAY_PREF  0
++#   define SRFLX_PREF  ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1)
++#   define HOST_PREF   ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1)
++#   define RELAY_PREF  ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1)
+ #endif
+ 
+ #define MAX_RTP_SIZE 65536
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/turn_sock.c.orig	2021-04-10 18:19:35.261736134 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/turn_sock.c	2021-04-10 18:19:35.309736132 +0100
+@@ -1492,9 +1492,6 @@
+     if (new_state >= PJ_TURN_STATE_DESTROYING && turn_sock->sess) {
+ 	pj_time_val delay = {0, 0};
+ 
+-	turn_sock->sess = NULL;
+-	pj_turn_session_set_user_data(sess, NULL);
+-
+ 	pj_timer_heap_cancel_if_active(turn_sock->cfg.timer_heap,
+ 	                               &turn_sock->timer, 0);
+ 	pj_timer_heap_schedule_w_grp_lock(turn_sock->cfg.timer_heap,
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/ice_session.c.orig	2021-04-10 18:19:35.316736132 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/src/pjnath/ice_session.c	2021-04-10 18:19:35.333736131 +0100
+@@ -713,9 +713,9 @@
+ 	   (((256 - comp_id) & 0xFF) << 0);
+ #else
+     enum {
+-	type_mask   = ((2 << PJ_ICE_CAND_TYPE_PREF_BITS) - 1),
+-	local_mask  = ((2 << PJ_ICE_LOCAL_PREF_BITS) - 1),
+-	comp_mask   = ((2 << PJ_ICE_COMP_BITS) - 1),
++	type_mask   = ((1 << PJ_ICE_CAND_TYPE_PREF_BITS) - 1),
++	local_mask  = ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1),
++	comp_mask   = ((1 << PJ_ICE_COMP_BITS) - 1),
+ 
+ 	comp_shift  = 0,
+ 	local_shift = (PJ_ICE_COMP_BITS),
+@@ -926,11 +926,13 @@
+     }
+ 
+     lcand = &ice->lcand[ice->lcand_cnt];
++    lcand->id = ice->lcand_cnt;
+     lcand->comp_id = (pj_uint8_t)comp_id;
+     lcand->transport_id = (pj_uint8_t)transport_id;
+     lcand->type = type;
+     lcand->transport = transport;
+     pj_strdup(ice->pool, &lcand->foundation, foundation);
++    lcand->local_pref = local_pref;
+     lcand->prio = CALC_CAND_PRIO(ice, type, local_pref, lcand->comp_id);
+     pj_sockaddr_cp(&lcand->addr, addr);
+     pj_sockaddr_cp(&lcand->base_addr, base_addr);
+@@ -958,7 +960,7 @@
+     LOG4((ice->obj_name, 
+ 	 "Candidate %d added: comp_id=%d, type=%s, foundation=%.*s, "
+ 	 "addr=%s:%d, base=%s:%d, prio=0x%x (%u)",
+-	 ice->lcand_cnt, 
++	 lcand->id,
+ 	 lcand->comp_id, 
+ 	 cand_type_names[lcand->type],
+ 	 (int)lcand->foundation.slen,
+@@ -970,7 +972,7 @@
+ 	 lcand->prio, lcand->prio));
+ 
+     if (p_cand_id)
+-	*p_cand_id = ice->lcand_cnt;
++	*p_cand_id = lcand->id;
+ 
+     ++ice->lcand_cnt;
+ 
+@@ -1994,7 +1996,7 @@
+ 
+ 	pj_memcpy(cn, &rem_cand[i], sizeof(pj_ice_sess_cand));
+ 	pj_strdup(ice->pool, &cn->foundation, &rem_cand[i].foundation);
+-	ice->rcand_cnt++;
++	cn->id = ice->rcand_cnt++;
+     }
+ 
+     /* Generate checklist */
+@@ -2178,10 +2180,11 @@
+ 
+     /* Add PRIORITY */
+ #if PJNATH_ICE_PRIO_STD
+-    prio = CALC_CAND_PRIO(ice, PJ_ICE_CAND_TYPE_PRFLX, 65535, 
++    prio = CALC_CAND_PRIO(ice, PJ_ICE_CAND_TYPE_PRFLX, 65535 - lcand->id,
+ 			  lcand->comp_id);
+ #else
+-    prio = CALC_CAND_PRIO(ice, PJ_ICE_CAND_TYPE_PRFLX, 0, 
++    prio = CALC_CAND_PRIO(ice, PJ_ICE_CAND_TYPE_PRFLX,
++			  ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1) - lcand->id,
+ 			  lcand->comp_id);
+ #endif
+     pj_stun_msg_add_uint_attr(check->tdata->pool, check->tdata->msg, 
+@@ -3071,7 +3074,13 @@
+ 	status = pj_ice_sess_add_cand(ice, check->lcand->comp_id, 
+ 				      msg_data->transport_id,
+ 				      PJ_ICE_CAND_TYPE_PRFLX,
+-				      65535, &foundation,
++#if PJNATH_ICE_PRIO_STD
++				      65535 - ice->lcand_cnt,
++#else
++				      ((1 << PJ_ICE_LOCAL_PREF_BITS) - 1) -
++				      ice->lcand_cnt,
++#endif
++				      &foundation,
+ 				      &xaddr->sockaddr, 
+ 				      &check->lcand->base_addr, 
+ 				      &check->lcand->base_addr,
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/include/pjnath/config.h.orig	2021-04-10 18:19:35.224736136 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/include/pjnath/config.h	2021-04-10 18:19:35.325736131 +0100
+@@ -466,6 +466,17 @@
+ #endif
+ 
+ 
++/**
++ * This constant specifies whether ICE stream transport should allow TURN
++ * client session to automatically renew permission for all remote candidates.
++ *
++ * Default: PJ_FALSE
++ */
++#ifndef PJ_ICE_ST_USE_TURN_PERMANENT_PERM
++#   define PJ_ICE_ST_USE_TURN_PERMANENT_PERM	    PJ_FALSE
++#endif
++
++
+ /** ICE session pool initial size. */
+ #ifndef PJNATH_POOL_LEN_ICE_SESS
+ #   define PJNATH_POOL_LEN_ICE_SESS		    512
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/include/pjnath/ice_session.h.orig	2021-04-10 18:19:35.246736135 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjnath/include/pjnath/ice_session.h	2021-04-10 18:19:35.332736131 +0100
+@@ -284,6 +284,11 @@
+ typedef struct pj_ice_sess_cand
+ {
+     /**
++     * The candidate ID.
++     */
++    unsigned		 id;
++
++    /**
+      * The candidate type, as described in #pj_ice_cand_type enumeration.
+      */
+     pj_ice_cand_type	 type;
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/Makefile.orig	2020-02-14 09:48:27.000000000 +0000
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/Makefile	2021-04-10 18:19:35.294736133 +0100
+@@ -129,10 +129,8 @@
+ 		sed -e "s!@INCLUDEDIR@!$(includedir)!" | \
+ 		sed -e "s!@LIBDIR@!$(libdir)!" | \
+ 		sed -e "s/@PJ_VERSION@/$(PJ_VERSION)/" | \
+-		sed -e "s!@PJ_LDLIBS@!!" | \
+-		sed -e "s!@PJ_LDXXLIBS@!$(PJ_LDXXLIBS)!" | \
+-		sed -e "s!@PJ_INSTALL_CFLAGS@!!" | \
+-		sed -e "s!@PJ_INSTALL_CXXFLAGS@!$(PJ_INSTALL_CXXFLAGS)!" > $(DESTDIR)/$(libdir)/pkgconfig/libpjproject.pc
++		sed -e "s!@PJ_INSTALL_LDFLAGS@!$(PJ_INSTALL_LDFLAGS)!" | \
++		sed -e "s!@PJ_INSTALL_CFLAGS@!$(PJ_INSTALL_CFLAGS)!" > $(DESTDIR)/$(libdir)/pkgconfig/libpjproject.pc
+ 
+ uninstall:
+ 	$(RM) $(DESTDIR)$(libdir)/pkgconfig/libpjproject.pc
+--- jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjsip/src/pjsip/sip_transport.c.orig	2021-04-10 18:19:35.253736135 +0100
++++ jami-20210409.1.3e6a4fb/daemon/contrib/native/pjproject/pjsip/src/pjsip/sip_transport.c	2021-04-10 18:19:35.346736130 +0100
+@@ -2252,7 +2252,10 @@
+ 	pjsip_transport *seltp = sel->u.transport;
+ 
+ 	/* See if the transport is (not) suitable */
+-	if (seltp->key.type != type) {
++	pjsip_transport_type_e type_no_ipv6 = type % PJSIP_TRANSPORT_IPV6;
++	pjsip_transport_type_e key_type_no_ipv6 = seltp->key.type %
++	    PJSIP_TRANSPORT_IPV6;
++	if (type_no_ipv6 != key_type_no_ipv6) {
+ 	    pj_lock_release(mgr->lock);
+ 	    TRACE_((THIS_FILE, "Transport type in tpsel not matched"));
+ 	    return PJSIP_ETPNOTSUITABLE;
+@@ -2286,6 +2289,7 @@
+ 	int key_len;
+ 	pjsip_transport *tp_ref = NULL;
+ 	transport *tp_entry = NULL;
++	unsigned flag = pjsip_transport_get_flag_from_type(type);
+ 
+ 
+ 	/* If listener is specified, verify that the listener type matches
+@@ -2314,7 +2318,20 @@
+ 		transport *tp_iter = tp_entry;
+ 		do {
+ 		    /* Don't use transport being shutdown */
+-		    if (!tp_iter->tp->is_shutdown) {
++		    if (!tp_iter->tp->is_shutdown &&
++			!tp_iter->tp->is_destroying) {
++			if ((flag & PJSIP_TRANSPORT_SECURE) && tdata) {
++			    /* For secure transport, make sure tdata's
++			     * destination host matches the transport's
++			     * remote host.
++			     */
++			    if (pj_stricmp(&tdata->dest_info.name,
++				  	   &tp_iter->tp->remote_name.host))
++			    {
++			    	tp_iter = tp_iter->next;
++			    	continue;
++			    }
++			}
+ 			if (sel && sel->type == PJSIP_TPSELECTOR_LISTENER &&
+ 			    sel->u.listener)
+ 			{
+@@ -2333,7 +2350,6 @@
+ 	    }
+ 	}
+ 
+-        unsigned flag = pjsip_transport_get_flag_from_type(type);
+ 	if (tp_ref == NULL &&
+ 	    (!sel || sel->disable_connection_reuse == PJ_FALSE))
+ 	{
