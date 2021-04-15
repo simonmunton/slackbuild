@@ -1,0 +1,39 @@
+From: Tomaz Solc <tomaz.solc@tablix.org>
+Date: Sun, 15 Sep 2019 15:46:10 +0200
+Subject: Remove useless string copy.
+
+This fixes warnings on newer gccs with -Wformat-overflow:
+
+dz80.c:440:20: warning: '-0' directive writing 2 bytes into a region of size
+between 0 and 79 [-Wformat-overflow=]
+dz80.c:437:20: warning: '+0' directive writing 2 bytes into a region of size
+between 0 and 79 [-Wformat-overflow=]
+---
+ src/dz80.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/dz80.c b/src/dz80.c
+index 64e6fb0..9bea89b 100644
+--- a/src/dz80.c
++++ b/src/dz80.c
+@@ -198,7 +198,7 @@ void before_undoc(int n)
+ /* Returns number of bytes used */
+ int diz80()
+ {
+-char stri[80];
++const char *stri;
+ char stro[80];
+ int a,r,i;
+ char bstr[MAX_LINE_LEN];
+@@ -309,9 +309,9 @@ else if((a>=0xb0)&&(a<0xc0)&&(edb0[a-0xb0][0]!='0'))FP(fx,"%s",edb0[a-0xb0]);
+ 	}
+ } else if((t[0] == 0xdd) || (t[0] == 0xfd)) {
+ 	if(t[0]==0xfd) {
+-		strcpy(stri,"iy");
++		stri = "iy";
+ 	} else {
+-		strcpy(stri,"ix");
++		stri = "ix";
+ 	}
+ 	if(t[1]==-1) {
+ 		return defb(-1);
