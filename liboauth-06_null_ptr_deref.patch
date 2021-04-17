@@ -1,0 +1,34 @@
+From: Gaurav <g.gupta@samsung.com>
+Date: Tue, 17 Nov 2015 20:11:03 +0900
+Subject: Avoid null pointer dereference
+
+Description: Avoid null pointer dereference
+ Null check done for "in" in while loop suggest "in" can be Null, but it
+ is not checked to Null before calling pclose & hence a static analyzer
+ tool reports error.
+ .
+ Added Null check for popen allocation failure. Refer:
+ http://linux.die.net/man/3/pclose
+Author: Gaurav <g.gupta@samsung.com>
+Origin: upstream, https://github.com/x42/liboauth/commits/68be3d4d4b4840ba3ec7b9318afdc1d141495825
+Last-Update: 2019-01-27
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+---
+ src/oauth_http.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/oauth_http.c b/src/oauth_http.c
+index 6bccec7..e193389 100644
+--- a/src/oauth_http.c
++++ b/src/oauth_http.c
+@@ -475,7 +475,8 @@ char *oauth_exec_shell (const char *cmd) {
+   size_t alloc = 0;
+   char *data = NULL;
+   int rcv = 1;
+-  while (in && rcv > 0 && !feof(in)) {
++  if (!in) return NULL;
++  while (rcv > 0 && !feof(in)) {
+     alloc +=1024;
+     data = (char*)xrealloc(data, alloc * sizeof(char));
+     rcv = fread(data + (alloc-1024), sizeof(char), 1024, in);
