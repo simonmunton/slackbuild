@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=5.212.0-alpha4
 VERSIONEXTRA=
-BUILD=4
+BUILD=5
 
 WEBPAGE=https://github.com/qt/qtwebkit
 #http://download.qt.io/community_releases/"
@@ -46,8 +46,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/qt5-webkit.icu68_1.diff
+# patch -p1 < ${CWD}/qt5-webkit.icu68_1.diff
  patch -p1 < ${CWD}/qt5-webkit.bison27.patch
+ patch -p1 < ${CWD}/qt5-webkit.glib-2.68.0.diff
 
 # syncqt.pl -version 5.6.1 Source/sync.profile
 )
@@ -82,8 +83,8 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --mandir=/usr/man
 elif [ -f ../CMakeLists.txt ]
 then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -DUPRV_BLOCK_MACRO_BEGIN= -DUPRV_BLOCK_MACRO_END=" \
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS} -DU_DEFINE_FALSE_AND_TRUE=1" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -DUPRV_BLOCK_MACRO_BEGIN= -DUPRV_BLOCK_MACRO_END= -DU_DEFINE_FALSE_AND_TRUE=1" \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
