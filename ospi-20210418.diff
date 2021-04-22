@@ -1,0 +1,75 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8c5ba36..790687c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -39,17 +39,17 @@ IF(LIBPODOFO_FOUND)
+ 	MESSAGE(STATUS "PoDoFo Library Found OK")
+ ENDIF(LIBPODOFO_FOUND)
+ 
+-FIND_PACKAGE(PythonLibs)
++FIND_PACKAGE(Python3)
+ IF(PYTHONLIBS_FOUND)
+ #	FIND_PACKAGE(Boost COMPONENTS python)
+-	SET(BOOST_PYTHON_COMP python)
++	SET(BOOST_PYTHON_COMP python3)
+ 	ADD_DEFINITIONS(-DWITH_PYTHONREADER)
+ 	MESSAGE(STATUS "Building the Python plan reader")
+ 	SET(EXTRA_INC ${EXTRA_INC} ${PYTHON_INCLUDE_DIRS})
+ 	SET(EXTRA_LIB ${EXTRA_LIB} ${PYTHON_LIBRARIES})
+ ENDIF(PYTHONLIBS_FOUND)
+ 
+-SET(Boost_USE_STATIC_LIBS        ON)
++#SET(Boost_USE_STATIC_LIBS        ON)
+ SET(Boost_USE_MULTITHREADED      ON)
+ SET(Boost_USE_STATIC_RUNTIME    OFF)
+ 
+diff --git a/src/PlanReader.cpp b/src/PlanReader.cpp
+index f3bd9ee..6f12b00 100644
+--- a/src/PlanReader.cpp
++++ b/src/PlanReader.cpp
+@@ -52,7 +52,7 @@ namespace ospi {
+ 		}
+ 
+ 		PlanReaderPtr preader(instance->creators[readerTS]->Create(plan, params, isData));
+-		preader->Impose();
++		return preader->Impose();
+ 	}
+ 	
+ } // namespace ospi
+diff --git a/src/ReaderJSONCPP.cpp b/src/ReaderJSONCPP.cpp
+index e1fbe61..eeb2bb1 100644
+--- a/src/ReaderJSONCPP.cpp
++++ b/src/ReaderJSONCPP.cpp
+@@ -523,6 +523,7 @@ namespace ospi {
+ 		tdocument->SetWriteMode(PoDoFo::ePdfWriteMode_Clean);
+ 		tdocument->Write(outputName.c_str());
+ 
++                return 0;
+ 	}
+ 
+ } // namespace ospi
+diff --git a/src/SimplePlanReader.cpp b/src/SimplePlanReader.cpp
+index d481971..103e066 100644
+--- a/src/SimplePlanReader.cpp
++++ b/src/SimplePlanReader.cpp
+@@ -123,7 +123,7 @@ namespace ospi {
+ 			k.second->SetWriteMode(PoDoFo::ePdfWriteMode_Clean);
+ 			k.second->Write(k.first.c_str());
+ 		}
+-
++                return 0;
+ 	}
+ 
+ } // namespace ospi
+diff --git a/src/Transform.cpp b/src/Transform.cpp
+index c506b29..22907f3 100644
+--- a/src/Transform.cpp
++++ b/src/Transform.cpp
+@@ -98,6 +98,7 @@ namespace ospi {
+ 		{
+ 			at(i) = o.at(i);
+ 		}
++		return *this;
+ 	}
+ 
+ 	Transform Transform::fromString(const std::string &tm)
