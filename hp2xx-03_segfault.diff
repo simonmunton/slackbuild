@@ -1,0 +1,40 @@
+Description: fix segfault
+Author: Christian T. Steigies <cts@debian.org>
+Last-Update: 2018-12-04
+
+Index: hp2xx/sources/hp2xx.c
+===================================================================
+--- hp2xx.orig/sources/hp2xx.c
++++ hp2xx/sources/hp2xx.c
+@@ -464,7 +464,8 @@ void preset_par(GEN_PAR * pg, IN_PAR * p
+ 	po->dpi_y = 0;
+ 	po->vga_mode = 18;	/* 0x12: VGA 640x480, 16 colors */
+ 	po->picbuf = NULL;
+-	po->outfile = "";
++	po->outfile = malloc(128 * sizeof(char));
++	po->outfile[0] = '\0';
+ 	po->zengage = -1.;
+ 	po->zretract = 1.;
+ 
+@@ -552,7 +553,7 @@ void autoset_outfile_name(const char *mo
+ 		len = (int) strlen(in_name);
+ 
+ 	if (len == 0) {		/* If input from stdin:                           *//*    then supply a default file name           */
+-		*outfile = "hp2xx.out";
++		strcpy(*outfile, "hp2xx.out");
+ 		return;
+ 	}
+ 
+Index: hp2xx/sources/std_main.c
+===================================================================
+--- hp2xx.orig/sources/std_main.c
++++ hp2xx/sources/std_main.c
+@@ -605,7 +605,7 @@ int main(int argc, char *argv[])
+ 	if (strlen(Po.outfile) > 0)
+ 		strcpy(outname, Po.outfile);	/* store fixed outfile name if present */
+ 	else {
+-		Po.outfile = malloc(1 * sizeof(char));
++		Po.outfile = realloc(Po.outfile, 2 * sizeof(char));
+ 		strcpy(Po.outfile, "");
+ 	}
+ /**

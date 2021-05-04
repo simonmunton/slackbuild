@@ -1,0 +1,57 @@
+Description: do not strip binary, enable hardening
+Author: Christian T. Steigies <cts@debian.org>
+Last-Update: 2018-12-04
+Index: hp2xx/sources/Makefile
+===================================================================
+--- hp2xx.orig/sources/Makefile
++++ hp2xx/sources/Makefile
+@@ -31,7 +31,6 @@ CHMOD    = chmod
+ CP       = cp
+ MKINFO   = makeinfo
+ RMCMD    = rm -f
+-STRIP    = strip
+ 
+ # Installation sites (GNU conventions):
+ #
+@@ -46,13 +45,23 @@ infodir  = $(prefix)/info
+ # For non-gcc compilers, simply set CFLAGS = -O (to start with)
+ #
+ CC       = gcc
++# this overwrites CFLAGS set by debhelper:
+ CFLAGS	=  -O2 -g -I/usr/X11R6/include $(DEFINES) $(EX_DEFS) -Wall -pedantic -Wuninitialized -Wunused -Wreturn-type -Wmissing-prototypes -Wstrict-prototypes  
++# append CPPFLAGS but not CFLAGS (-Werror) to prevent FTBFS
++CFLAGS += $(shell dpkg-buildflags --get CPPFLAGS)
++# when FTBFS is fixed:
++# append to CFLAGS set by debhelper:
++#CFLAGS += -I/usr/X11R6/include -Wno-error -Wall -pedantic -Wuninitialized -Wunused -Wreturn-type -Wmissing-prototypes -Wstrict-prototypes
++# enable trigraphs
++CFLAGS += -trigraphs
+ LINT	= splint
+ LINTFLAGS = -weak -initallelements +posixlib -I/usr/X11R6/include $(DEFINES) $(EX_DEFS)
+ 
+ #CFLAGS   = +O1 -Aa -D_HPUX_SOURCE -DSYSV -I/usr/include/X11R5 -I/usr/include/X11R4 $(DEFINES) $(EX_DEFS)
+ 
+ LFLAGS   = -L/usr/X11R6/lib            # only sometimes needed; see below for examples
++# append LDFLAGS set by debhelper
++LFLAGS += $(shell dpkg-buildflags --get LDFLAGS)
+ CPPFLAGS = -I.            # only sometimes needed; see below for examples
+ BINDCMD  =                # only needed for EMX and DJGPP DOS extenders
+ 
+@@ -243,7 +252,8 @@ OBJS	= clip.o fillpoly.o\
+ PROGRAM	= hp2xx
+ 
+ $(PROGRAM): $(OBJS)
+-	$(CC) $(LFLAGS) $(OBJS) $(ALL_LIBS) $(EX_LIBS) -o $(PROGRAM)
++# use CFLAGS for hardening
++	$(CC) $(CFLAGS) $(LFLAGS) $(OBJS) $(ALL_LIBS) $(EX_LIBS) -o $(PROGRAM)
+ 	$(BINDCMD)
+ 
+ default:
+@@ -330,7 +340,6 @@ TAGS:
+ install:	install-bin install-info install-man
+ 
+ install-bin:	$(PROGRAM)
+-		-$(STRIP) $(PROGRAM)
+ 		-$(CP) $(PROGRAM) $(bindir)
+ 		-$(CHMOD) 755 $(bindir)/$(PROGRAM)
+ 

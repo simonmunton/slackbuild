@@ -1,0 +1,68 @@
+Description: fix for bugs foud with AFL
+Author: Christian T. Steigies <cts@debian.org>
+Last-Update: 2018-12-04
+Index: hp2xx/source/hpgl.c
+===================================================================
+diff -uwr hp2xx-3.4.4a/sources/hpgl.c hp2xx-3.4.4afl//sources/hpgl.c
+--- hp2xx-3.4.4a/sources/hpgl.c	2003-06-21 19:54:45.000000000 +0200
++++ hp2xx-3.4.4afl/sources/hpgl.c	2015-03-28 16:01:10.000000000 +0100
+@@ -1297,9 +1297,14 @@
+  **	      EOF if EOF met
+  **/
+ {
+-	int c;
++	volatile int c;      /* Keep compilers from optimizing out the initial EOF check */
++        int i;
+ 	char *ptr, numbuf[80];
+ 
++        c = getc(hd);
++        if (c == EOF) return EOF;
++        ungetc (c, hd);
++                
+ 	for (c = getc(hd);
+ 	     (c != '.') && (c != '+') && (c != '-') && ((c < '0')
+ 							|| (c > '9'));
+@@ -1316,9 +1321,13 @@
+ 	}
+ 	/* Number found: Get it */
+ 	ptr = numbuf;
++	i = 0;
+ 	for (*ptr++ = c, c = getc(hd);
+-	     ((c >= '0') && (c <= '9')) || (c == '.'); c = getc(hd))
++	     ((c >= '0') && (c <= '9')) || (c == '.') || (c == '\n'); c = getc(hd)) 
++		if (c != '\n') {
+ 		*ptr++ = c;	/* Read number          */
++		    i++; if (i == 79) break; /* until buffer full */ 
++	         }
+ 	*ptr = '\0';
+ 	if (c != EOF)
+ 		ungetc(c, hd);
+diff -uwr hp2xx-3.4.4a/sources/lindef.c hp2xx-3.4.4afl//sources/lindef.c
+--- hp2xx-3.4.4a/sources/lindef.c	2003-06-21 17:31:51.000000000 +0200
++++ hp2xx-3.4.4afl//sources/lindef.c	2015-03-28 15:55:29.000000000 +0100
+@@ -92,6 +92,11 @@
+ 		return;
+ 	} else {
+ 		index = (int) tmp;
++		if (index > LT_MAX || index < -LT_MAX) {
++		       if (!silent_mode)
++				fprintf(stderr,"UL command for invalid linetype %d ignored\n",index);
++		       return;
++                }
+ 	}
+ 
+ 	pos_index = index - LT_MIN;
+diff -uwr hp2xx-3.4.4a/sources/picbuf.c hp2xx-3.4.4afl//sources/picbuf.c
+--- hp2xx-3.4.4a/sources/picbuf.c	2003-06-21 17:31:51.000000000 +0200
++++ hp2xx-3.4.4afl//sources/picbuf.c	2015-03-28 15:55:29.000000000 +0100
+@@ -340,6 +340,10 @@
+ 		return NULL;
+ 	}
+ 
++	if (n_rows <= 0 || n_cols <= 0) {
++	        Eprintf("Invalid image dimensions: %d x %d\n",n_rows,n_cols);
++	        return NULL;
++        }
+ 	pb->nr = n_rows;
+ 	pb->nc = n_cols;
+ 	pb->sd = NULL;
