@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=pnglite
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=0.1.17
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://sourceforge.net/projects/pnglite/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/pnglite-include-stdio.patch
+ patch -p1 < ${CWD}/pnglite-system-zlib.patch
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+#mkdir _BuilD_
+#cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+#  make ${NUM_JOBS} || exit
+
+  ABI_MAJOR=0
+
+  gcc -shared -fPIC -Wall ${CFLAGS} ${CPPFLAGS} ${LDFLAGS} \
+                -Wl,--soname,libpnglite.so.${ABI_MAJOR} \
+                -o libpnglite.so.${ABI_MAJOR} -lz pnglite.c
+
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+#  make install DESTDIR=${PKG}
+
+  install -d -m 755 ${PKG}/usr/{include,lib${LIBDIRSUFFIX}}
+
+  install -m 644 libpnglite.so.${ABI_MAJOR} ${PKG}/usr/lib${LIBDIRSUFFIX}
+  install -m 644 pnglite.h ${PKG}/usr/include
+  ln -s libpnglite.so.${ABI_MAJOR} ${PKG}/usr/lib${LIBDIRSUFFIX}/libpnglite.so
+
+
+fi
+
+#cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Lightweight PNG C library"
+Lightweight PNG C library. Depends on zlib for inflate/deflate.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

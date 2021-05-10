@@ -1,0 +1,64 @@
+From: Ryan Pavlik <ryan.pavlik@collabora.com>
+Date: Thu, 27 Feb 2020 12:25:42 -0600
+Subject: Find base dir and plugins where we've installed them.
+
+---
+ src/common/CMakeLists.txt    |  4 ++++
+ src/common/pluginmanager.cpp | 14 ++++++++++++++
+ src/templates/common.cmake   |  3 +++
+ 3 files changed, 21 insertions(+)
+
+diff --git a/src/common/CMakeLists.txt b/src/common/CMakeLists.txt
+index 598cc42..3f5cc9a 100644
+--- a/src/common/CMakeLists.txt
++++ b/src/common/CMakeLists.txt
+@@ -55,6 +55,10 @@ if(WIN32)
+     set(TARGET_TYPE STATIC)
+ endif()
+ add_library(common ${TARGET_TYPE} ${SOURCES} ${HEADERS} ${RESOURCES})
++if(NOT WIN32 AND NOT APPLE)
++    target_compile_definitions(
++        common PRIVATE MESHLAB_LIB_INSTALL_DIR="${MESHLAB_LIB_INSTALL_DIR}")
++endif()
+ 
+ set_target_properties(common PROPERTIES OUTPUT_NAME meshlab-common)
+ target_link_libraries(
+diff --git a/src/common/pluginmanager.cpp b/src/common/pluginmanager.cpp
+index 95a50c4..60a6e5b 100644
+--- a/src/common/pluginmanager.cpp
++++ b/src/common/pluginmanager.cpp
+@@ -203,6 +203,20 @@ QString PluginManager::getBaseDirPath()
+ {
+ 	QDir baseDir(qApp->applicationDirPath());
+ 
++#if defined(Q_OS_LINUX)
++	if (baseDir.dirName() == "bin") {
++		baseDir.cdUp();
++#ifdef MESHLAB_LIB_INSTALL_DIR
++		baseDir.cd(MESHLAB_LIB_INSTALL_DIR);
++#else
++		baseDir.cd("lib");
++		if(baseDir.exists("meshlab")) {
++			baseDir.cd("meshlab");
++		}
++#endif // MESHLAB_LIB_INSTALL_DIR
++	}
++#endif
++
+ #if defined(Q_OS_WIN)
+ 	// Windows:
+ 	// during development with visual studio binary could be in the debug/release subdir.
+diff --git a/src/templates/common.cmake b/src/templates/common.cmake
+index 7dfe455..61a6f8e 100644
+--- a/src/templates/common.cmake
++++ b/src/templates/common.cmake
+@@ -17,6 +17,9 @@ add_library(common ${TARGET_TYPE}
+     ${HEADERS}
+     ${RESOURCES}
+ )
++if(NOT WIN32 AND NOT APPLE)
++    target_compile_definitions(common PRIVATE MESHLAB_LIB_INSTALL_DIR="${MESHLAB_LIB_INSTALL_DIR}")
++endif()
+ {% endblock %}
+ 
+ {% block linking %}
