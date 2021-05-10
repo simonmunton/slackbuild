@@ -1,0 +1,17 @@
+--- gst-plugins-bad-1.18.3/ext/aom/meson.build.orig	2021-01-13 21:11:25.382102300 +0000
++++ gst-plugins-bad-1.18.3/ext/aom/meson.build	2021-05-09 22:23:08.465518326 +0100
+@@ -1,10 +1,13 @@
+ aom_dep = dependency('aom', required: get_option('aom'))
+ if aom_dep.found()
++  cc = meson.get_compiler('c')
++  m_dep = cc.find_library('m', required : false)
++  p_dep = cc.find_library('pthread', required : false)
+   gstaom = library('gstaom',
+     ['gstaom.c', 'gstav1enc.c', 'gstav1dec.c', 'gstav1utils.c'],
+     c_args : gst_plugins_bad_args,
+     include_directories : [configinc],
+-    dependencies : [gstpbutils_dep, gstvideo_dep, aom_dep],
++    dependencies : [gstpbutils_dep, gstvideo_dep, aom_dep, m_dep, p_dep],
+     install : true,
+     install_dir : plugins_install_dir,
+   )
