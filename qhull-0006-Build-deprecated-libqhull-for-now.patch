@@ -1,0 +1,46 @@
+From: =?utf-8?q?Timo_R=C3=B6hling?= <timo@gaussglocke.de>
+Date: Wed, 11 Nov 2020 14:00:30 +0100
+Subject: Build deprecated libqhull for now
+
+---
+ CMakeLists.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e092125..6e6dabd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -345,7 +345,7 @@ set(qhull_SHAREDP qhull_p)  # libqhull and qhull_p are deprecated, use qhull_r i
+ 
+ set(qhull_TARGETS_APPLICATIONS qhull rbox qconvex qdelaunay qvoronoi qhalf)
+ set(qhull_TARGETS_STATIC ${qhull_CPPSTATIC} ${qhull_STATIC} ${qhull_STATICR})
+-set(qhull_TARGETS_SHARED ${qhull_CPP} ${qhull_SHAREDR})
++set(qhull_TARGETS_SHARED ${qhull_CPP} ${qhull_SHAREDR} ${qhull_SHARED})
+ 
+ set(
+     qhull_TARGETS_TEST   # Unused
+@@ -353,7 +353,7 @@ set(
+ )
+ set(
+     qhull_TARGETS_DEPRECATED   # Unused
+-        $(qhull_SHARED) $(qhull_SHAREDP) qhullp user_egp 
++        $(qhull_SHAREDP) qhullp user_egp
+ )
+ 
+ # ---------------------------------------
+@@ -390,7 +390,6 @@ add_library(${qhull_SHARED} SHARED
+         src/libqhull/qhull-exports.def)
+ 
+ set_target_properties(${qhull_SHARED} PROPERTIES
+-    EXCLUDE_FROM_ALL TRUE
+     SOVERSION ${qhull_SOVERSION}
+     VERSION ${qhull_VERSION}
+     OUTPUT_NAME "qhull$<$<CONFIG:Debug>:_d>")
+@@ -745,6 +744,7 @@ install(
+ set(PkgConfigLocation ${LIB_INSTALL_DIR}/pkgconfig)
+ foreach(pkgconfig IN ITEMS "${qhull_SHAREDR};Qhull reentrant shared library"
+                            "${qhull_STATIC};Qhull static library"
++			   "${qhull_SHARED};Qhull shared library"
+                            "${qhull_STATICR};Qhull reentrant static library"
+                            "${qhull_CPP};Qhull C++ library")
+     list(GET pkgconfig 0 LIBRARY_NAME)

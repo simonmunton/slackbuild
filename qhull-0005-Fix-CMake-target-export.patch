@@ -1,0 +1,49 @@
+From: =?utf-8?q?Timo_R=C3=B6hling?= <timo@gaussglocke.de>
+Date: Wed, 11 Nov 2020 13:57:43 +0100
+Subject: Fix CMake target export
+
+---
+ CMakeLists.txt | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3583916..e092125 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -688,7 +688,7 @@ endif()
+ # Define install
+ # ---------------------------------------
+ 
+-set(qhull_TARGETS_INSTALL ${qhull_TARGETS_APPLICATIONS})
++set(qhull_TARGETS_INSTALL)
+ if (BUILD_SHARED_LIBS)
+     list(APPEND qhull_TARGETS_INSTALL ${qhull_TARGETS_SHARED})
+ endif()
+@@ -702,6 +702,9 @@ install(TARGETS ${qhull_TARGETS_INSTALL} EXPORT QhullTargets
+         ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
+         INCLUDES DESTINATION include)
+ 
++install(TARGETS ${qhull_TARGETS_APPLICATIONS}
++        RUNTIME DESTINATION ${BIN_INSTALL_DIR})
++
+ include(CMakePackageConfigHelpers)
+ 
+ write_basic_package_version_file(
+@@ -720,7 +723,7 @@ configure_file(${PROJECT_SOURCE_DIR}/build/config.cmake.in
+   @ONLY
+ )
+ 
+-set(ConfigPackageLocation lib/cmake/Qhull)
++set(ConfigPackageLocation ${LIB_INSTALL_DIR}/cmake/Qhull)
+ install(EXPORT QhullTargets
+   FILE
+     QhullTargets.cmake
+@@ -739,7 +742,7 @@ install(
+     Devel
+ )
+ 
+-set(PkgConfigLocation lib/pkgconfig)
++set(PkgConfigLocation ${LIB_INSTALL_DIR}/pkgconfig)
+ foreach(pkgconfig IN ITEMS "${qhull_SHAREDR};Qhull reentrant shared library"
+                            "${qhull_STATIC};Qhull static library"
+                            "${qhull_STATICR};Qhull reentrant static library"

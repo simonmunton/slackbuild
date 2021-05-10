@@ -1,0 +1,90 @@
+From: =?utf-8?q?Timo_R=C3=B6hling?= <timo@gaussglocke.de>
+Date: Wed, 11 Nov 2020 13:51:36 +0100
+Subject: Build qhullcpp as shared library
+
+---
+ CMakeLists.txt | 33 ++++++++++++++++++++++-----------
+ 1 file changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f50b187..3583916 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -336,6 +336,7 @@ set(
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+ 
+ set(qhull_CPP qhullcpp)
++set(qhull_CPPSTATIC qhullcpp_static)
+ set(qhull_STATIC qhullstatic)
+ set(qhull_STATICR qhullstatic_r)
+ set(qhull_SHAREDR qhull_r)
+@@ -343,8 +344,8 @@ set(qhull_SHARED libqhull)  # Temporarily avoid name conflict with qhull executa
+ set(qhull_SHAREDP qhull_p)  # libqhull and qhull_p are deprecated, use qhull_r instead
+ 
+ set(qhull_TARGETS_APPLICATIONS qhull rbox qconvex qdelaunay qvoronoi qhalf)
+-set(qhull_TARGETS_STATIC ${qhull_CPP} ${qhull_STATIC} ${qhull_STATICR})
+-set(qhull_TARGETS_SHARED ${qhull_SHAREDR})
++set(qhull_TARGETS_STATIC ${qhull_CPPSTATIC} ${qhull_STATIC} ${qhull_STATICR})
++set(qhull_TARGETS_SHARED ${qhull_CPP} ${qhull_SHAREDR})
+ 
+ set(
+     qhull_TARGETS_TEST   # Unused
+@@ -455,17 +456,27 @@ if(UNIX)
+ endif(UNIX)
+ 
+ # ---------------------------------------
+-# Define C++ static library qhullcpp
+-#     Do not create libqhullcpp as a shared library.  
+-#     Qhull C++ classes may change layout and size. 
+-#     Qhull C programs use setjmp/longjmp for error handling.
++# Define C++ shared library qhullcpp
+ # ---------------------------------------
+ 
+-add_library(${qhull_CPP} STATIC ${libqhullcpp_SOURCES})
++add_library(${qhull_CPP} SHARED ${libqhullcpp_SOURCES})
+ set_target_properties(${qhull_CPP} PROPERTIES
++    SOVERSION ${qhull_SOVERSION}
+     VERSION ${qhull_VERSION}
+     OUTPUT_NAME "${qhull_CPP}$<$<CONFIG:Debug>:_d>"
+-    POSITION_INDEPENDENT_CODE "TRUE")
++)
++target_link_libraries(${qhull_CPP} ${qhull_SHAREDR})
++
++# ---------------------------------------
++# Define C++ static library qhullcpp
++# ---------------------------------------
++
++add_library(${qhull_CPPSTATIC} STATIC ${libqhullcpp_SOURCES})
++set_target_properties(${qhull_CPPSTATIC} PROPERTIES
++    VERSION ${qhull_VERSION}
++    OUTPUT_NAME "${qhull_CPP}$<$<CONFIG:Debug>:_d>"
++)
++target_link_libraries(${qhull_CPPSTATIC} ${qhull_STATICR})
+ 
+ # ---------------------------------------
+ # if BUILD_STATIC_LIBS=OFF or BUILD_SHARED_LIBS=OFF
+@@ -474,12 +485,13 @@ set_target_properties(${qhull_CPP} PROPERTIES
+ if(NOT ${BUILD_STATIC_LIBS})
+     set_target_properties(${qhull_STATIC} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+     set_target_properties(${qhull_STATICR} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+-    set_target_properties(${qhull_CPP} PROPERTIES EXCLUDE_FROM_ALL TRUE)
++    set_target_properties(${qhull_CPPSTATIC} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+ endif()
+ if(NOT ${BUILD_SHARED_LIBS})
+     set_target_properties(${qhull_SHARED} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+     set_target_properties(${qhull_SHAREDR} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+     set_target_properties(${qhull_SHAREDP} PROPERTIES EXCLUDE_FROM_ALL TRUE)
++    set_target_properties(${qhull_CPP} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+ endif()
+ 
+ # ---------------------------------------
+@@ -618,8 +630,7 @@ endif()
+ 
+ if(${BUILD_STATIC_LIBS})
+     add_executable(user_eg3 src/user_eg3/user_eg3_r.cpp)
+-    # qhull_STATICR must be last, otherwise qh_fprintf,etc. are not loaded from qhull_CPP
+-    target_link_libraries(user_eg3 ${qhull_CPP} ${qhull_STATICR})
++    target_link_libraries(user_eg3 ${qhull_CPPSTATIC})
+ endif()
+ 
+ # ---------------------------------------

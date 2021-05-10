@@ -7,16 +7,16 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=2003.1
-VERSIONEXTRA=
+VERSION=2020
+VERSIONEXTRA=-src-8.0.2
 BUILD=1
 
-WEBPAGE=""
+WEBPAGE="http://www.qhull.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
 #PKGNAME=
-#PKGVERSION=
+PKGVERSION=2020.2
 #BUILD_SUFFIX=
 #ARCH=noarch
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}-${VERSION}.* ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -45,7 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/qhull-2003.1-alias.patch
+# patch -p1 < ${CWD}/qhull-2003.1-alias.patch
+ patch -p1 < ${CWD}/qhull-0003-Use-local-version-of-function-index.patch
+ patch -p1 < ${CWD}/qhull-0004-Build-qhullcpp-as-shared-library.patch
+ patch -p1 < ${CWD}/qhull-0005-Fix-CMake-target-export.patch
+ patch -p1 < ${CWD}/qhull-0006-Build-deprecated-libqhull-for-now.patch
+ patch -p1 < ${CWD}/qhull-2020.diff
 )
 fi
 
@@ -55,21 +60,45 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --disable-static
+            --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -77,7 +106,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
 
 #strip_binaries
 
