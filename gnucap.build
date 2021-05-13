@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=2013-04-23
+VERSION=20210107
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://www.gnu.org/software/gnucap/"
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/gnucap-2013-04-23.diff
+# patch -p1 -b -z .orig < ${CWD}/gnucap-2013-04-23.diff
 )
 fi
 
@@ -57,6 +57,10 @@ fix_perms
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
+sed -i "/^INSTALL_DIR/ s@/lib.*/@/lib${LIBDIRSUFFIX}/@" apps/Make1
+sed -i "/^INSTALL_DIR/ s@/lib.*@/lib${LIBDIRSUFFIX}@" lib/Make1
+sed -i "/^pkglibdir/ s@/lib.*/@/lib${LIBDIRSUFFIX}/@; s@/lib#@/lib${LIBDIRSUFFIX}#@; s|@#.*/etc|@#/etc|" main/configure
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -76,12 +80,15 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} PREFIX=${PKG}/usr
+make install DESTDIR=${PKG}
 
 if [ ! -z "${LIBDIRSUFFIX}" ]
 then
   mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
 fi
+
+mv ${PKG}/usr/etc ${PKG}/
+#sed -i "/sysconfdir=/ s@=.*@=\"/etc\"@; s@/lib@/lib${LIBDIRSUFFIX}@" ${PKG}/etc/gnucap.conf ${PKG}/usr/bin/gnucap-conf
 
 #strip_binaries
 
