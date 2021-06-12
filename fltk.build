@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=1.3.4-2
+VERSION=1.3.6
 VERSIONEXTRA=-source
 BUILD=1
 
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,32 +55,49 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure-x ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared \
-            --enable-threads \
-	    --enable-gl \
-	    --enable-xinerama \
-	    --enable-xft \
-	    --enable-xdbe \
-	    --enable-largefile \
-	    --enable-x11 \
-	    --enable-xcursor \
-	    --enable-xfixes \
-	    --with-x \
-	    --enable-cairo
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DOPTION_BUILD_SHARED_LIBS=on \
+      -DOPTION_CAIRO=on \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -88,11 +105,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-rm -rf ${PKG}/usr/man/cat*
+cd ..
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -109,9 +131,9 @@ fix_docs
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "Fast Light Tool Kit (FLTK)"
 The Fast Light Tool Kit ("FLTK", pronounced "fulltick") is a cross-
-platform C++ GUI toolkit for UNIX(r)/Linux(r) (X11), Microsoft(r) 
-Windows(r), and MacOS(r) X.  FLTK provides modern GUI functionality 
-without the bloat and supports 3D graphics via OpenGL(r) and its 
+platform C++ GUI toolkit for UNIX(r)/Linux(r) (X11), Microsoft(r)
+Windows(r), and MacOS(r) X.  FLTK provides modern GUI functionality
+without the bloat and supports 3D graphics via OpenGL(r) and its
 built-in GLUT emulation.
 
 EOF
