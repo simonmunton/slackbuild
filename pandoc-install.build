@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=pandoc
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=2.14.0.2
+VERSIONEXTRA=-linux-amd64
+BUILD=1
+
+WEBPAGE="https://github.com/jgm/pandoc"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+mkdir -p ${PKG}/usr
+cd ${PKG}/usr/
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Universal markup converter"
+Pandoc is a Haskell library for converting from one markup format to 
+another, and a command-line tool that uses this library.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
