@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=darktable
+TARNAME=libmanette
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/d
+TARDIR=~/tmp/gnome
 #TAR_EXT=.tar.gz
-VERSION=3.6.0
+VERSION=0.2.6
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.darktable.org/"
+WEBPAGE=""
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/darktable-2.4.4.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -66,7 +66,7 @@ if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -81,13 +81,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,7 +103,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
 
@@ -114,12 +127,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source photography workflow application and RAW developer"
-darktable is an open source photography workflow application and RAW 
-developer. A virtual lighttable and darkroom for photographers. It 
-manages your digital negatives in a database, lets you view them 
-through a zoomable lighttable and enables you to develop raw images 
-and enhance them.
+make_slack_desc << EOF "The simple GObject game controller library"
+libmanette offers painless access to game controllers, from any 
+programming language and with little dependencies.
+
+It supports the de-facto standard gamepad, as defined by the W3C 
+standard gamepad specification or as implemented by the SDL 
+GameController.
 
 EOF
 
