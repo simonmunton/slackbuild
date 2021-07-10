@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.33.0-r1
+VERSION=3.35.4-r1
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="https://github.com/rogerbinns/apsw/"
 
@@ -46,6 +46,8 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
+
+# python3 setup.py fetch --sqlite --missing-checksum-ok || exit
 )
 fi
 
@@ -81,7 +83,7 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+python3 setup.py build --enable-all-extensions --enable=load_extension || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +94,7 @@ fi
 #make install DESTDIR=${PKG}
 python3 setup.py install --root=${PKG}
 
-strip_binaries
+#strip_binaries
 
 fix_links
 

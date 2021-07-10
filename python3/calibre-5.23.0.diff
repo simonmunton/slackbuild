@@ -1,0 +1,20 @@
+--- calibre-5.23.0/src/calibre/db/sqlite_extension.cpp.orig	2021-07-09 04:04:31.000000000 +0100
++++ calibre-5.23.0/src/calibre/db/sqlite_extension.cpp	2021-07-10 15:04:13.868924670 +0100
+@@ -434,11 +434,15 @@
+     fts5_api *fts5api = NULL;
+     int rc = fts5_api_from_db(db, &fts5api);
+     if (rc != SQLITE_OK) {
+-        *pzErrMsg = (char*)"Failed to get FTS 5 API with error code";
++        const char *msg = "Failed to get FTS 5 API with error code";
++        *pzErrMsg = (char *)sqlite3_malloc(strlen(msg) + 1);
++        strcpy(*pzErrMsg, msg);
+         return rc;
+     }
+     if (!fts5api || fts5api->iVersion < 2) {
+-        *pzErrMsg = (char*)"FTS 5 iVersion too old or NULL pointer";
++        const char *msg = "FTS 5 iVersion too old or NULL pointer";
++        *pzErrMsg = (char *)sqlite3_malloc(strlen(msg) + 1);
++        strcpy(*pzErrMsg, msg);
+         return SQLITE_ERROR;
+     }
+     fts5_tokenizer tok = {tok_create, tok_delete, tok_tokenize};
