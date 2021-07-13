@@ -8,7 +8,7 @@ TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
 VERSION=1.2.2
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://lmms.sf.net/"
 
@@ -56,6 +56,9 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
@@ -66,7 +69,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DWANT_VST:BOOL=FALSE \
-      .
+      ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -80,6 +83,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 cat > ${PKG}/install/doinst.sh << EOF
 if which setcap >& /dev/null
