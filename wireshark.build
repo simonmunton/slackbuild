@@ -118,6 +118,18 @@ fi
 
 cd ..
 
+doinst_systemaddgrp wireshark
+
+cat <<EOF >> ${PKG}/install/doinst.sh
+
+if which setcap >& /dev/null
+then
+  setcap cap_net_raw,cap_net_admin=eip usr/bin/tshark
+  setcap cap_net_raw,cap_net_admin=eip usr/bin/dumpcap
+fi
+
+EOF
+
 #strip_binaries
 
 fix_links
