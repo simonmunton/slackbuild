@@ -92,6 +92,13 @@ fi
 #make install DESTDIR=${PKG}
 python3 setup.py install --root=${PKG}
 
+mkdir -p ${PKG}/usr/man/man1
+
+for f in ${PKG}/usr/bin/*
+do
+  PYTHONPATH=. help2man ${f} > ${PKG}/usr/man/man1/$(basename ${f}).1
+done
+
 strip_binaries
 
 fix_links
