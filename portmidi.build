@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
 VERSION=217
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 WEBPAGE="http://portmedia.sourceforge.net/"
 
@@ -122,6 +122,22 @@ make install DESTDIR=${PKG}
  mv local/* .
  rmdir local
 )
+
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+
+cat << EOF > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/portmidi.pc
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=/usr/lib64
+includedir=\${prefix}/include
+
+Name: portmidi
+Description: Portmidi
+Requires:
+Version: 3.100
+Libs: -L\${libdir} -lportmidi
+Cflags: -I\${includedir}
+EOF
 
 strip_binaries
 
