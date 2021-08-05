@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=3.19
+VERSION=3.22
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/gpsd-3.13.diff
+# patch -p1 < ${CWD}/gpsd-3.13.diff
 )
 fi
 
@@ -68,11 +68,11 @@ then
 #	    --enable-dbus
 fi
 
-PYTHON_VER=$(python -c 'import sys; print "%d.%d" % sys.version_info[:2]')
+PYTHON_VER=$(python3 -c 'import sys; print ("%d.%d" % sys.version_info[:2])')
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages || exit
+scons ${NUM_JOBS} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages target_python=python3 || exit
 #make ${NUM_JOBS} || exit
 fi
 
@@ -81,7 +81,7 @@ then
   exit
 fi
 
-DESTDIR=${PKG} scons prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages install
+DESTDIR=${PKG} scons prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} python_libdir=/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VER}/site-packages target_python=python3 install
 #make install DESTDIR=${PKG}
 
 fix_pkgconfig_libdir
