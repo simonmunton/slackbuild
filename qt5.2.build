@@ -10,7 +10,7 @@ TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
 VERSION=5.15.2
 VERSIONEXTRA=
-BUILD=7
+BUILD=8
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -37,7 +37,7 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv qt-kde-qt ${TARNAME}-${VERSION}
-(cd ${TARNAME}-${VERSION}
+cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/qt-everywhere-opensource-src-5.9.5.diff
 
  # set correct X11 prefix
@@ -46,16 +46,27 @@ ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 # perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
 # perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
 
- patch -p1 < ${CWD}/qt5.8-mysql.diff
+ cd qtbase
+ for f in `cat ${CWD}/qt5.15-patches/series`
+ do
+   if ! (echo $f | grep "^#" -q)
+   then
+     patch -p1 < ${CWD}/qt5.15-patches/$f || exit 1
+   fi
+ done
+ cd ..
 
- patch -p1 < ${CWD}/qt5-qtwebengine-everywhere-src-5.15.2-#1904652.patch
+ patch -p1 < ${CWD}/qt5.8-mysql.diff || exit 1
 
- patch -p1 < ${CWD}/qt5-pnm.diff
+ patch -p1 < ${CWD}/qt5-qtwebengine-everywhere-src-5.15.2-#1904652.patch || exit 1
 
-if echo "${ARCH}" | grep -q "i.86" 2>/dev/null; then
+ patch -p1 < ${CWD}/qt5-pnm.diff || exit 1
+
+ if echo "${ARCH}" | grep -q "i.86" 2>/dev/null; then
   sed -i "/^QMAKE_CFLAGS_RELEASE/ s|+=.*|+= ${SLKCFLAGS}|" qtbase/mkspecs/common/gcc-base.conf
-fi
-)
+ fi
+
+cd ..
 fi
 
 pre_configure
