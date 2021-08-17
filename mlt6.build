@@ -1,0 +1,164 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=mlt
+TARNAMEEXTRA=
+TARDIR=~/tmp/new/m
+#TAR_EXT=.tar.gz
+VERSION=6.26.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://www.mltframework.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=mlt6
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+export TERM=xterm
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/mlt-6.6.0.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+#export QTCXXFLAGS="-std=c++11"
+export JAVA_INCLUDE="-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ./configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+	    --enable-gpl \
+	    --enable-gpl3 \
+	    --swig-languages="csharp java lua perl python ruby tcl" \
+	    --qt-libdir=/usr/lib${LIBDIRSUFFIX}/qt5/lib \
+	    --qt-includedir=/usr/lib${LIBDIRSUFFIX}/qt5/include
+
+#	    --avformat-swscale \
+#	    --enable-motion-est \
+#	    --qimage-libdir=/usr/lib${LIBDIRSUFFIX}/qt/lib \
+#	    --qimage-includedir=/usr/lib${LIBDIRSUFFIX}/qt/include \
+#	    --disable-sox
+
+echo "CXXFLAGS+=-std=c++11 -I/usr/include/lua5.2" >> config.mak
+
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DMOD_OPENCV=on \
+      -DSWIG_PYTHON=on \
+      -DSWIG_CSHARP=on \
+      -DSWIG_JAVA=on \
+      -DSWIG_LUA=on \
+      -DSWIG_NODEJS=on \
+      -DSWIG_PERL=on \
+      -DSWIG_PHP=on \
+      -DSWIG_RUBY=on \
+      -DSWIG_TCL=on \
+      ..
+fi
+
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+mv ${PKG}/usr/bin/melt ${PKG}/usr/bin/melt6
+
+#cd ..
+
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
+cp src/swig/python/mlt.py src/swig/python/_mlt.so \
+   ${PKG}/usr/lib${LIBDIRSUFFIX}/python${PYTHON_VERSION}/site-packages
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "multimedia framework for television broadcasting"
+MLT is a LGPL multimedia framework designed for television 
+broadcasting, and Miracle is a GPL multi-unit video playout server 
+with realtime effects.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
