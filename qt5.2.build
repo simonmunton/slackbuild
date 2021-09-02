@@ -8,9 +8,9 @@ TARNAME=qt-everywhere-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=5.15.2
+VERSION=5.15.3_20210826_21ea9c12
 VERSIONEXTRA=
-BUILD=8
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,7 +34,7 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv qt-kde-qt ${TARNAME}-${VERSION}
 cd ${TARNAME}-${VERSION}
@@ -46,19 +46,44 @@ cd ${TARNAME}-${VERSION}
 # perl -pi -e "s,QMAKE_INCDIR_OPENGL.*,QMAKE_INCDIR_OPENGL\t=," mkspecs/*/*.conf
 # perl -pi -e "s,QMAKE_LIBDIR_OPENGL.*,QMAKE_LIBDIR_OPENGL\t=," mkspecs/*/*.conf
 
+# cd qtbase
+# for f in `cat ${CWD}/qt5.15-patches/series`
+# do
+#   if ! (echo $f | grep "^#" -q)
+#   then
+#     patch -p1 < ${CWD}/qt5.15-patches/$f || exit 1
+#   fi
+# done
+# cd ..
+
+ # Fix path to mysql header:
+ patch -p1 < ${CWD}/qt5.mysql.h.diff || exit 1
+
+ # Fix build with gcc11:
  cd qtbase
- for f in `cat ${CWD}/qt5.15-patches/series`
- do
-   if ! (echo $f | grep "^#" -q)
-   then
-     patch -p1 < ${CWD}/qt5.15-patches/$f || exit 1
-   fi
- done
- cd ..
+   patch -p1 < ${CWD}/qt5-qtbase-gcc11.patch || exit 1
+ cd - 1>/dev/null
+ cd qtwebsockets
+   patch -p1 < ${CWD}/qt5-qtwebsockets-gcc11.patch || exit 1
+ cd - 1>/dev/null
+ cd qtwebengine
+   patch -p1 < ${CWD}/qt5-qtwebengine-gcc11.patch || exit 1
+ cd - 1>/dev/null
 
- patch -p1 < ${CWD}/qt5.8-mysql.diff || exit 1
+ # CMake generates wrong -isystem /usr/include compilations flags with Qt5::Gui
+ # and for it breaks KWin compilation with:
+ # /usr/include/c++/9.1.0/cstdlib:75:15: fatal error: stdlib.h: No such file or directory
+ # See also https://bugzilla.redhat.com/1704474
+ cd qtbase
+   patch -p1 < ${CWD}/qt5.qtbase_cmake_isystem_includes.patch || exit 1
+ cd - 1>/dev/null
 
- patch -p1 < ${CWD}/qt5-qtwebengine-everywhere-src-5.15.2-#1904652.patch || exit 1
+ # Fix sandbox functions for glibc-2.33:
+ cd qtwebengine
+   patch -p1 < ${CWD}/qtwebengine-everywhere-src-5.15.2-%231904652.patch || exit 1
+ cd - 1>/dev/null
+
+# patch -p1 < ${CWD}/qt5-qtwebengine-everywhere-src-5.15.2-#1904652.patch || exit 1
 
  patch -p1 < ${CWD}/qt5-pnm.diff || exit 1
 
