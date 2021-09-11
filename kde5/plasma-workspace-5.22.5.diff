@@ -1,0 +1,114 @@
+--- plasma-workspace-5.22.5/applets/devicenotifier/package/contents/ui/devicenotifier.qml.orig	2021-08-31 12:52:18.000000000 +0100
++++ plasma-workspace-5.22.5/applets/devicenotifier/package/contents/ui/devicenotifier.qml	2021-09-11 21:20:01.353449460 +0100
+@@ -88,6 +88,7 @@
+         onSourceAdded: {
+             disconnectSource(source);
+             connectSource(source);
++            sdSource.connectedSources = sources
+         }
+         onSourceRemoved: {
+             disconnectSource(source);
+@@ -111,7 +112,6 @@
+     PlasmaCore.DataSource {
+         id: sdSource
+         engine: "soliddevice"
+-        connectedSources: hpSource.sources
+         interval: 0
+         property string last
+         onSourceAdded: {
+--- plasma-workspace-5.22.5/applets/devicenotifier/package/contents/ui/DeviceItem.qml.orig	2021-08-31 12:52:18.000000000 +0100
++++ plasma-workspace-5.22.5/applets/devicenotifier/package/contents/ui/DeviceItem.qml	2021-09-11 21:26:15.005431632 +0100
+@@ -44,7 +44,8 @@
+     readonly property double totalSpace: sdSource.data[udi] && sdSource.data[udi]["Size"] ? sdSource.data[udi]["Size"] : -1.0
+     property bool freeSpaceKnown: freeSpace > 0 && totalSpace > 0
+ 
+-    readonly property bool isRootVolume: sdSource.data[udi]["File Path"] ? sdSource.data[udi]["File Path"] == "/" : false
++    readonly property bool isRootVolume: sdSource.data[udi] && sdSource.data[udi]["File Path"] ? sdSource.data[udi]["File Path"] == "/" : false
++    readonly property bool isRemovable: sdSource.data[udi] && sdSource.data[udi]["Removable"] ? sdSource.data[udi]["Removable"] : false
+ 
+     onOperationResultChanged: {
+         if (!popupIconTimer.running) {
+@@ -123,7 +124,7 @@
+         var operationName
+         var operation
+         var wasMounted = isMounted;
+-        if (!sdSource.data[udi].Removable || !isMounted) {
++        if (!isRemovable || !isMounted) {
+             service = hpSource.serviceForSource(udi);
+             operation = service.operationDescription('invokeAction');
+             operation.predicate = "test-predicate-openinwindow.desktop";
+@@ -140,26 +141,23 @@
+ 
+     // When there's no better icon available, show a placeholder icon instead
+     // of nothing
+-    icon: sdSource.data[udi] == undefined ? "device-notifier" : sdSource.data[udi].Icon
++    icon: sdSource.data[udi] ? sdSource.data[udi].Icon : "device-notifier"
+ 
+     iconEmblem: {
+-        if (sdSource.data[udi] != undefined) {
+-            if (deviceItem.hasMessage) {
+-                if (deviceItem.message.solidError === 0) {
+-                    return "emblem-information"
+-                } else {
+-                    return "emblem-error"
+-                }
+-            } else if (deviceItem.state == 0 && Emblems && Emblems[0]) {
+-                return Emblems[0]
++        if (deviceItem.hasMessage) {
++            if (deviceItem.message.solidError === 0) {
++                return "emblem-information"
+             } else {
+-                return ""
++                return "emblem-error"
+             }
++        } else if (deviceItem.state == 0 && Emblems && Emblems[0]) {
++            return Emblems[0]
++        } else {
++            return ""
+         }
+-        return ""
+     }
+ 
+-    title: sdSource.data[udi] == undefined ? "" : sdSource.data[udi].Description
++    title: sdSource.data[udi] ? sdSource.data[udi].Description : ""
+ 
+     subtitle: {
+         if (deviceItem.hasMessage) {
+@@ -196,15 +194,15 @@
+ 
+     defaultActionButtonAction: QQC2.Action {
+         icon.name: {
+-            if (!sdSource.data[udi].Removable) {
+-                return "document-open-folder"
+-            } else {
++            if (isRemovable) {
+                 return isMounted ? "media-eject" : "document-open-folder"
++            } else {
++                return "document-open-folder"
+             }
+         }
+         text: {
+             // It's possible for the root volume to be on a removable disk
+-            if (!sdSource.data[udi].Removable || deviceItem.isRootVolume) {
++            if (!isRemovable || isRootVolume) {
+                 return i18n("Open in File Manager")
+             } else {
+                 var types = model["Device Types"];
+@@ -236,7 +234,7 @@
+                 if (modelData.predicate != "test-predicate-openinwindow.desktop") {
+                     return true;
+                 }
+-                return sdSource.data[udi].Removable && deviceItem.isMounted;
++                return deviceItem.isRemovable && deviceItem.isMounted;
+             }
+             onTriggered: {
+                 var service = hpSource.serviceForSource(udi);
+@@ -257,7 +255,7 @@
+         icon.name: "media-mount"
+ 
+         // Only show for unmounted removable devices
+-        enabled: sdSource.data[udi].Removable && !deviceItem.isMounted
++        enabled: deviceItem.isRemovable && !deviceItem.isMounted
+ 
+         onTriggered: {
+             var service = sdSource.serviceForSource(udi);
