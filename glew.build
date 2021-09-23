@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=1.13.0
+VERSION=2.2.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -69,9 +69,13 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
+cd auto
+make
+cd ..
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} SYSTEM=linux-egl LIBDIR=/usr/lib${LIBDIRSUFFIX} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,7 +83,7 @@ then
   exit
 fi
 
-make install.all DESTDIR=${PKG} GLEW_DEST=/usr
+make install.all SYSTEM=linux-egl DESTDIR=${PKG} LIBDIR=/usr/lib${LIBDIRSUFFIX} PKGDIR=/usr/lib${LIBDIRSUFFIX}/pkgconfig
 
 #strip_binaries
 
