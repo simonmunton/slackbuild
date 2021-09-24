@@ -1,0 +1,40 @@
+--- leptonica-1.82.0/CMakeLists.txt.orig	2021-09-24 17:56:19.876932775 +0100
++++ leptonica-1.82.0/CMakeLists.txt	2021-09-24 17:58:24.946926807 +0100
+@@ -57,7 +57,7 @@
+     option(SYM_LINK "Create symlink leptonica -> lept on UNIX" OFF)
+ endif()
+ 
+-set(leptonica_INSTALL_CMAKE_DIR "lib/cmake/leptonica"
++set(leptonica_INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/leptonica"
+     CACHE STRING "Install destination for CMake package files")
+ 
+ if(NOT SW_BUILD)
+@@ -275,7 +275,7 @@
+     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/LeptonicaConfig.cmake.in
+     ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake @ONLY)
+ 
+-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept.pc DESTINATION lib/pkgconfig)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+ install(FILES
+     ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake
+     ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig-version.cmake
+--- leptonica-1.82.0/src/CMakeLists.txt.orig	2021-08-30 20:31:54.000000000 +0100
++++ leptonica-1.82.0/src/CMakeLists.txt	2021-09-24 17:59:38.489923298 +0100
+@@ -70,7 +70,7 @@
+             ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:leptonica>" ${old_target}
+             DEPENDS ${PROJECT_NAME}
+             COMMENT "Creating lept symlink")
+-        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib)
++        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib${LIB_SUFFIX})
+     endif(SYM_LINK)
+ endif()
+ 
+@@ -89,7 +89,7 @@
+     export(TARGETS leptonica APPEND FILE ${CMAKE_BINARY_DIR}/LeptonicaTargets.cmake)
+ endif()
+ 
+-install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
++install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib${LIB_SUFFIX} ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ install(EXPORT LeptonicaTargets DESTINATION  ${leptonica_INSTALL_CMAKE_DIR})
+ install(FILES
+     ${hdr}
