@@ -1,0 +1,32 @@
+--- pyside-setup-opensource-src-5.15.2/sources/shiboken2/libshiboken/sbkstring.cpp.orig	2020-11-11 12:51:30.000000000 +0000
++++ pyside-setup-opensource-src-5.15.2/sources/shiboken2/libshiboken/sbkstring.cpp	2021-10-11 14:30:20.198131863 +0100
+@@ -247,7 +247,7 @@
+ {
+     auto &set = staticStrings();
+     for (PyObject *ob : set) {
+-        Py_REFCNT(ob) = 1;
++        Py_SET_REFCNT(ob,  1);
+         Py_DECREF(ob);
+     }
+     set.clear();
+--- pyside-setup-opensource-src-5.15.2/sources/shiboken2/libshiboken/pep384impl.cpp.orig	2020-11-11 12:51:30.000000000 +0000
++++ pyside-setup-opensource-src-5.15.2/sources/shiboken2/libshiboken/pep384impl.cpp	2021-10-11 14:39:27.885105732 +0100
+@@ -752,7 +752,7 @@
+     Shiboken::AutoDecRef privateobj(PyObject_GetAttr(
+         reinterpret_cast<PyObject *>(Py_TYPE(self)), Shiboken::PyMagicName::name()));
+ #ifndef Py_LIMITED_API
+-    return _Py_Mangle(privateobj, name);
++//    return _Py_Mangle(privateobj, name);
+ #else
+     // For some reason, _Py_Mangle is not in the Limited API. Why?
+     size_t plen = PyUnicode_GET_LENGTH(privateobj);
+--- pyside-setup-opensource-src-5.15.2/build_scripts/config.py.orig	2020-11-11 12:51:30.000000000 +0000
++++ pyside-setup-opensource-src-5.15.2/build_scripts/config.py	2021-10-11 14:25:08.264146746 +0100
+@@ -93,6 +93,7 @@
+             'Programming Language :: Python :: 3.7',
+             'Programming Language :: Python :: 3.8',
+             'Programming Language :: Python :: 3.9',
++            'Programming Language :: Python :: 3.10',
+         ]
+ 
+         self.setup_script_dir = None
