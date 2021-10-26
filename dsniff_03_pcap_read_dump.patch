@@ -1,14 +1,12 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 03_pcap_read_dump.dpatch by Joseph Battaglia <sephail@sephail.net> and Joshua Krage <jkrage@guisarme.us>
-##
-## DP: Allow the reading of saved PCAP capture files.
-## DP: Closes #153462
-## DP: Closes #298604
+Author: Joseph Battaglia <sephail@sephail.net> and Joshua Krage <jkrage@guisarme.us>
+Description: Allow the reading of saved PCAP capture files.
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=153462
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=298604
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 
-@DPATCH@
-diff -urNad --exclude=CVS --exclude=.svn ./dsniff.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/dsniff.8
---- ./dsniff.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/dsniff.8	2005-07-11 20:41:18.000000000 +0000
+--- a/dsniff.8
++++ b/dsniff.8
 @@ -10,7 +10,7 @@
  .nf
  .fi
@@ -28,9 +26,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./dsniff.8 /tmp/dpep-work.KDufia/dsniff
  .IP "\fB-s \fIsnaplen\fR"
  Analyze at most the first \fIsnaplen\fR bytes of each TCP connection,
  rather than the default of 1024.
-diff -urNad --exclude=CVS --exclude=.svn ./dsniff.c /tmp/dpep-work.KDufia/dsniff-2.4b1/dsniff.c
---- ./dsniff.c	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/dsniff.c	2005-07-11 20:41:18.000000000 +0000
+--- a/dsniff.c
++++ b/dsniff.c
 @@ -46,8 +46,9 @@
  usage(void)
  {
@@ -89,9 +86,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./dsniff.c /tmp/dpep-work.KDufia/dsniff
  	
  	nids_run();
  	
-diff -urNad --exclude=CVS --exclude=.svn ./filesnarf.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/filesnarf.8
---- ./filesnarf.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/filesnarf.8	2005-07-11 20:41:18.000000000 +0000
+--- a/filesnarf.8
++++ b/filesnarf.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -110,9 +106,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./filesnarf.8 /tmp/dpep-work.KDufia/dsn
  .IP \fB-v\fR
  "Versus" mode. Invert the sense of matching, to select non-matching
  files.
-diff -urNad --exclude=CVS --exclude=.svn ./filesnarf.c /tmp/dpep-work.KDufia/dsniff-2.4b1/filesnarf.c
---- ./filesnarf.c	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/filesnarf.c	2005-07-11 20:41:18.000000000 +0000
+--- a/filesnarf.c
++++ b/filesnarf.c
 @@ -51,7 +51,7 @@
  usage(void)
  {
@@ -168,9 +163,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./filesnarf.c /tmp/dpep-work.KDufia/dsn
  
  	nids_run();
  
-diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/mailsnarf.8
---- ./mailsnarf.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/mailsnarf.8	2005-07-11 20:41:18.000000000 +0000
+--- a/mailsnarf.8
++++ b/mailsnarf.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -189,9 +183,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.8 /tmp/dpep-work.KDufia/dsn
  .IP \fB-v\fR
  "Versus" mode. Invert the sense of matching, to select non-matching
  messages.
-diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.c /tmp/dpep-work.KDufia/dsniff-2.4b1/mailsnarf.c
---- ./mailsnarf.c	2005-07-11 20:41:18.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/mailsnarf.c	2005-07-11 20:41:18.000000000 +0000
+--- a/mailsnarf.c
++++ b/mailsnarf.c
 @@ -59,7 +59,7 @@
  usage(void)
  {
@@ -223,6 +216,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.c /tmp/dpep-work.KDufia/dsn
  	if (nids_params.pcap_filter != NULL) {
 -		warnx("listening on %s [%s]", nids_params.device,
 -		      nids_params.pcap_filter);
+-	}
+-	else warnx("listening on %s", nids_params.device);
 +                if (nids_params.filename == NULL) {
 +		        warnx("listening on %s [%s]", nids_params.device,
 +		              nids_params.pcap_filter);
@@ -231,8 +226,7 @@ diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.c /tmp/dpep-work.KDufia/dsn
 +		        warnx("using %s [%s]", nids_params.filename,
 +		              nids_params.pcap_filter);
 +                }
- 	}
--	else warnx("listening on %s", nids_params.device);
++	}
 +	else {
 +                if (nids_params.filename == NULL) {
 +                    warnx("listening on %s", nids_params.device);
@@ -244,9 +238,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./mailsnarf.c /tmp/dpep-work.KDufia/dsn
  	
  	nids_run();
  	
-diff -urNad --exclude=CVS --exclude=.svn ./msgsnarf.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/msgsnarf.8
---- ./msgsnarf.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/msgsnarf.8	2005-07-11 20:41:18.000000000 +0000
+--- a/msgsnarf.8
++++ b/msgsnarf.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -265,9 +258,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./msgsnarf.8 /tmp/dpep-work.KDufia/dsni
  .IP \fB-v\fR
  "Versus" mode. Invert the sense of matching, to select non-matching
  messages.
-diff -urNad --exclude=CVS --exclude=.svn ./msgsnarf.c /tmp/dpep-work.KDufia/dsniff-2.4b1/msgsnarf.c
---- ./msgsnarf.c	2005-07-11 20:41:18.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/msgsnarf.c	2005-07-11 20:41:18.000000000 +0000
+--- a/msgsnarf.c
++++ b/msgsnarf.c
 @@ -45,7 +45,7 @@
  usage(void)
  {
@@ -323,9 +315,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./msgsnarf.c /tmp/dpep-work.KDufia/dsni
  
  	nids_run();
  	
-diff -urNad --exclude=CVS --exclude=.svn ./sshow.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/sshow.8
---- ./sshow.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/sshow.8	2005-07-11 20:41:18.000000000 +0000
+--- a/sshow.8
++++ b/sshow.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -344,9 +335,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./sshow.8 /tmp/dpep-work.KDufia/dsniff-
  .IP "\fIexpression\fR"
  Specify a tcpdump(8) filter expression to select traffic to sniff.
  .SH "SEE ALSO"
-diff -urNad --exclude=CVS --exclude=.svn ./sshow.c /tmp/dpep-work.KDufia/dsniff-2.4b1/sshow.c
---- ./sshow.c	2005-07-11 20:41:18.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/sshow.c	2005-07-11 20:41:18.000000000 +0000
+--- a/sshow.c
++++ b/sshow.c
 @@ -82,7 +82,7 @@
  static void
  usage(void)
@@ -405,9 +395,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./sshow.c /tmp/dpep-work.KDufia/dsniff-
  
  	nids_run();
  	
-diff -urNad --exclude=CVS --exclude=.svn ./urlsnarf.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/urlsnarf.8
---- ./urlsnarf.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/urlsnarf.8	2005-07-11 20:41:18.000000000 +0000
+--- a/urlsnarf.8
++++ b/urlsnarf.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -427,9 +416,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./urlsnarf.8 /tmp/dpep-work.KDufia/dsni
  .IP \fB-v\fR
  "Versus" mode. Invert the sense of matching, to select non-matching
  URLs.
-diff -urNad --exclude=CVS --exclude=.svn ./urlsnarf.c /tmp/dpep-work.KDufia/dsniff-2.4b1/urlsnarf.c
---- ./urlsnarf.c	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/urlsnarf.c	2005-07-11 20:41:18.000000000 +0000
+--- a/urlsnarf.c
++++ b/urlsnarf.c
 @@ -41,7 +41,7 @@
  usage(void)
  {
@@ -482,9 +470,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./urlsnarf.c /tmp/dpep-work.KDufia/dsni
  
  	nids_run();
  	
-diff -urNad --exclude=CVS --exclude=.svn ./webspy.8 /tmp/dpep-work.KDufia/dsniff-2.4b1/webspy.8
---- ./webspy.8	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/webspy.8	2005-07-11 20:41:18.000000000 +0000
+--- a/webspy.8
++++ b/webspy.8
 @@ -9,7 +9,7 @@
  .na
  .nf
@@ -503,9 +490,8 @@ diff -urNad --exclude=CVS --exclude=.svn ./webspy.8 /tmp/dpep-work.KDufia/dsniff
  .IP \fIhost\fR
  Specify the web client to spy on.
  .SH "SEE ALSO"
-diff -urNad --exclude=CVS --exclude=.svn ./webspy.c /tmp/dpep-work.KDufia/dsniff-2.4b1/webspy.c
---- ./webspy.c	2005-07-11 20:41:14.000000000 +0000
-+++ /tmp/dpep-work.KDufia/dsniff-2.4b1/webspy.c	2005-07-11 20:41:18.000000000 +0000
+--- a/webspy.c
++++ b/webspy.c
 @@ -42,7 +42,7 @@
  usage(void)
  {
