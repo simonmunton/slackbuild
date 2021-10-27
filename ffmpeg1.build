@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=4.4.1
+VERSION=1.2.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -43,7 +43,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ffmpeg-3.3.4.diff
+# patch -p1 < ${CWD}/ffmpeg-rmdec.diff
 )
 fi
 
@@ -62,164 +62,38 @@ fi
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-
-OPTIONAL_ENABLES=""
-
-if pkg_exist "frei0r-plugins"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-frei0r"
-else
-  echo "frei0r-plugins not found"
-fi
-
-if pkg_exist "gsm"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libgsm"
-else
-  echo "gsm not found"
-fi
-
-#if pkg_exist "libnut"
-#then
-#  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libnut"
-#else
-#  echo "libnut not found"
-#fi
-
-#if pkg_exist "schroedinger"
-#then
-#  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libschroedinger"
-#else
-#  echo "schroedinger not found"
-#fi
-
-if pkg_exist "x265-build" "-+([0-9])"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libx265"
-else
-  echo "x265 not found"
-fi
-
-if pkg_exist "libwebp"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libwebp"
-else
-  echo "libwebp not found"
-fi
-
-if pkg_exist "libdc1394"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libdc1394"
-else
-  echo "libdc1394 not found"
-fi
-
-if pkg_exist "opencore-amr"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libopencore-amrnb --enable-libopencore-amrwb"
-else
-  echo "amrnb not found"
-fi
-
-if pkg_exist "rtmpdump"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-librtmp"
-else
-  echo "rtmpdump not found"
-fi
-
-if pkg_exist "speex"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libspeex"
-else
-  echo "speex not found"
-fi
-
-if pkg_exist "opus"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libopus"
-else
-  echo "opus not found"
-fi
-
-if pkg_exist "lame"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libmp3lame"
-else
-  echo "lame not found"
-fi
-
-if pkg_exist "x264-build" "-+([0-9])"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libx264"
-else
-  echo "x264 not found"
-fi
-
-if pkg_exist "xvidcore"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libxvid"
-else
-  echo "xvidcore not found"
-fi
-
-if pkg_exist "vid.stab"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libvidstab"
-else
-  echo "vid.stab not found"
-fi
-
-if pkg_exist "tesseract-ocr"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libtesseract"
-else
-  echo "tesseract-ocr not found"
-fi
-
-if pkg_exist "SVT-AV1"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libsvtav1"
-else
-  echo "SVT-AV1 not found"
-fi
-
-if pkg_exist "aom"
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libaom"
-else
-  echo "aom not found"
-fi
-
-
 CFLAGS="${SLKCFLAGS} -I/usr/include/gsm" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --shlibdir=/usr/lib${LIBDIRSUFFIX} \
+            --enable-libmp3lame \
             --enable-libvorbis \
             --enable-libtheora \
+	    --enable-libspeex \
+            --enable-libxvid \
+	    --enable-libfaac \
+	    --enable-libnut \
+	    --enable-libschroedinger \
             --enable-gpl \
-            --enable-version3 \
-            --enable-avresample \
-            --enable-libvpx \
+            --enable-libfaac \
+            --enable-libopencore-amrnb \
+            --enable-libopencore-amrwb \
+	    --enable-version3 \
+            --enable-libgsm \
+            --enable-libx264  \
+            --enable-libdc1394 \
             --enable-shared \
             --enable-postproc \
-            --enable-avfilter \
-            --enable-libopenjpeg \
-            --enable-libvpx \
-            --enable-libfontconfig \
-            --enable-libfreetype \
-            --enable-libfribidi \
-            --enable-nonfree \
-            --enable-openssl \
-            $OPTIONAL_ENABLES \
-            --extra-ldflags="-lssl -lcrypto -lz"
+	    --enable-avfilter \
+	    --enable-libopenjpeg \
+	    --enable-librtmp \
+	    --enable-libvpx \
+	    --enable-frei0r \
+	    --enable-nonfree \
+	    --extra-ldflags="-lssl -lcrypto -lz"
 
 
-#            --enable-libfaac \
-
-#	    --enable-libdcadec \
 #	    --enable-libdirac \
 #	    --enable-avfilter-lavf \
 #            --enable-libfaad \
