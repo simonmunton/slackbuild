@@ -1,0 +1,127 @@
+--- OpenColorIO-2.0.2/src/OpenColorIO/CMakeLists.txt.orig	2021-10-31 13:48:24.686175933 +0000
++++ OpenColorIO-2.0.2/src/OpenColorIO/CMakeLists.txt	2021-10-31 13:49:16.640355280 +0000
+@@ -285,7 +285,7 @@
+ 
+ install(TARGETS OpenColorIO
+ 	EXPORT ${PROJECT_NAME}_EXPORTED_TARGETS
+-	LIBRARY DESTINATION lib
++	LIBRARY DESTINATION lib${LIB_SUFFIX}
+ 	RUNTIME DESTINATION bin
+-	ARCHIVE DESTINATION lib
++	ARCHIVE DESTINATION lib${LIB_SUFFIX}
+ )
+--- OpenColorIO-2.0.2/src/apps/ociolutimage/CMakeLists.txt.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/src/apps/ociolutimage/CMakeLists.txt	2021-10-31 11:20:39.355504623 +0000
+@@ -27,6 +27,7 @@
+ 		apputils
+ 		OpenColorIO
+ 		OpenImageIO::OpenImageIO
++		OpenImageIO::OpenImageIO_Util
+ 		utils::strings
+ )
+ 
+--- OpenColorIO-2.0.2/src/apps/ocioconvert/CMakeLists.txt.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/src/apps/ocioconvert/CMakeLists.txt	2021-10-31 13:45:46.746045287 +0000
+@@ -32,6 +32,7 @@
+         oiiohelpers
+         OpenColorIO
+         OpenImageIO::OpenImageIO
++        OpenImageIO::OpenImageIO_Util
+ )
+ 
+ install(TARGETS ocioconvert
+--- OpenColorIO-2.0.2/src/apps/ociodisplay/CMakeLists.txt.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/src/apps/ociodisplay/CMakeLists.txt	2021-10-31 13:46:16.117043885 +0000
+@@ -38,6 +38,7 @@
+ 		OpenColorIO
+ 		${OPENGL_LIBRARIES}
+ 		OpenImageIO::OpenImageIO
++		OpenImageIO::OpenImageIO_Util
+ )
+ install(TARGETS ociodisplay
+     RUNTIME DESTINATION bin
+--- OpenColorIO-2.0.2/src/apps/ocioperf/CMakeLists.txt.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/src/apps/ocioperf/CMakeLists.txt	2021-10-31 13:46:43.371042585 +0000
+@@ -24,6 +24,7 @@
+         oiiohelpers
+         OpenColorIO
+         OpenImageIO::OpenImageIO
++        OpenImageIO::OpenImageIO_Util
+         utils::strings
+ )
+ 
+--- OpenColorIO-2.0.2/share/cmake/utils/CompilerFlags.cmake.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/share/cmake/utils/CompilerFlags.cmake	2021-10-31 13:53:52.184342133 +0000
+@@ -101,6 +101,6 @@
+     if (APPLE)
+         set(CMAKE_INSTALL_RPATH "@loader_path/../lib;@loader_path")
+     else()
+-        set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib;$ORIGIN")
++        set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib${LIB_SUFFIX};$ORIGIN")
+     endif()
+ endif()
+--- OpenColorIO-2.0.2/share/cmake/modules/FindOpenImageIO.cmake.orig	2021-09-03 20:20:34.000000000 +0100
++++ OpenColorIO-2.0.2/share/cmake/modules/FindOpenImageIO.cmake	2021-10-31 13:48:04.115467412 +0000
+@@ -59,6 +59,10 @@
+                NAMES OpenImageIO${OIIO_LIBNAME_SUFFIX}
+                HINTS ${OPENIMAGEIO_ROOT_DIR}
+                PATH_SUFFIXES lib64 lib )
++find_library ( OPENIMAGEIOUTIL_LIBRARY
++               NAMES OpenImageIO_Util${OIIO_LIBNAME_SUFFIX}
++               HINTS ${OPENIMAGEIO_ROOT_DIR}
++               PATH_SUFFIXES lib64 lib )
+ find_path ( OPENIMAGEIO_INCLUDE_DIR
+             NAMES OpenImageIO/imageio.h
+             HINTS ${OPENIMAGEIO_ROOT_DIR} )
+@@ -114,6 +118,15 @@
+             IMPORTED_LOCATION "${OPENIMAGEIO_LIBRARIES}")
+     endif ()
+ 
++    if (NOT TARGET OpenImageIO::OpenImageIO_Util)
++        add_library(OpenImageIO::OpenImageIO_Util UNKNOWN IMPORTED)
++        set_target_properties(OpenImageIO::OpenImageIO_Util PROPERTIES
++            INTERFACE_INCLUDE_DIRECTORIES "${OPENIMAGEIO_INCLUDES}")
++
++        set_property(TARGET OpenImageIO::OpenImageIO_Util APPEND PROPERTY
++            IMPORTED_LOCATION "${OPENIMAGEIOUTIL_LIBRARY}")
++    endif ()
++
+     if (NOT TARGET OpenImageIO::oiiotool AND EXISTS "${OIIOTOOL_BIN}")
+         add_executable(OpenImageIO::oiiotool IMPORTED)
+         set_target_properties(OpenImageIO::oiiotool PROPERTIES
+--- OpenColorIO-2.0.0/CMakeLists.txt.orig	2021-01-28 22:07:14.000000000 +0000
++++ OpenColorIO-2.0.0/CMakeLists.txt	2021-03-24 22:02:25.261752265 +0000
+@@ -38,6 +38,7 @@
+ 
+ enable_testing()
+ 
++include(GNUInstallDirs)
+ 
+ ###############################################################################
+ # Forbid in-source build.
+--- OpenColorIO-2.0.0/src/libutils/oiiohelpers/CMakeLists.txt.orig	2021-01-28 22:07:14.000000000 +0000
++++ OpenColorIO-2.0.0/src/libutils/oiiohelpers/CMakeLists.txt	2021-03-24 22:08:15.387735559 +0000
+@@ -36,8 +36,8 @@
+ )
+ 
+ install(TARGETS oiiohelpers
+-    LIBRARY DESTINATION lib
+-    ARCHIVE DESTINATION lib
++    LIBRARY DESTINATION lib${LIB_SUFFIX}
++    ARCHIVE DESTINATION lib${LIB_SUFFIX}
+ )
+ 
+ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/oiiohelpers.h
+--- OpenColorIO-2.0.0/src/libutils/oglapphelpers/CMakeLists.txt.orig	2021-01-28 22:07:14.000000000 +0000
++++ OpenColorIO-2.0.0/src/libutils/oglapphelpers/CMakeLists.txt	2021-03-24 22:08:00.984736246 +0000
+@@ -84,8 +84,8 @@
+ endif()
+ 
+ install(TARGETS oglapphelpers 
+-    LIBRARY DESTINATION lib
+-    ARCHIVE DESTINATION lib
++    LIBRARY DESTINATION lib${LIB_SUFFIX}
++    ARCHIVE DESTINATION lib${LIB_SUFFIX}
+ )
+ 
+ install(FILES ${INCLUDES}

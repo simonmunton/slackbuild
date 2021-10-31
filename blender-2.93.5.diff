@@ -1,0 +1,38 @@
+--- blender-2.93.5/release/scripts/modules/sys_info.py.orig	2021-04-18 03:03:06.000000000 +0100
++++ blender-2.93.5/release/scripts/modules/sys_info.py	2021-10-31 09:56:08.824726876 +0000
+@@ -140,7 +140,7 @@
+ 
+             oiio = bpy.app.oiio
+             output.write("OpenImageIO: ")
+-            if ocio.supported:
++            if oiio.supported:
+                 output.write("%s\n" % (oiio.version_string))
+             else:
+                 output.write("Blender was built without OpenImageIO support\n")
+--- blender-2.93.5/build_files/cmake/Modules/FindOpenImageIO.cmake.orig	2021-04-18 03:03:05.000000000 +0100
++++ blender-2.93.5/build_files/cmake/Modules/FindOpenImageIO.cmake	2021-10-31 16:17:52.760694110 +0000
+@@ -48,6 +48,15 @@
+     lib64 lib
+   )
+ 
++FIND_LIBRARY(OPENIMAGEIOUTIL_LIBRARY
++  NAMES
++    OpenImageIO_Util
++  HINTS
++    ${_openimageio_SEARCH_DIRS}
++  PATH_SUFFIXES
++    lib64 lib
++  )
++
+ FIND_FILE(OPENIMAGEIO_IDIFF
+   NAMES
+     idiff
+@@ -64,7 +73,7 @@
+     OPENIMAGEIO_LIBRARY OPENIMAGEIO_INCLUDE_DIR)
+ 
+ IF(OPENIMAGEIO_FOUND)
+-  SET(OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY})
++  SET(OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY} ${OPENIMAGEIOUTIL_LIBRARY})
+   SET(OPENIMAGEIO_INCLUDE_DIRS ${OPENIMAGEIO_INCLUDE_DIR})
+   IF(EXISTS ${OPENIMAGEIO_INCLUDE_DIR}/OpenImageIO/pugixml.hpp)
+     SET(OPENIMAGEIO_PUGIXML_FOUND TRUE)

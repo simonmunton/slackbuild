@@ -66,7 +66,25 @@
  )
  
 --- AliceVision-2.4.0/src/CMakeLists.txt.orig	2021-03-09 16:47:48.000000000 +0000
-+++ AliceVision-2.4.0/src/CMakeLists.txt	2021-03-09 16:50:53.026041896 +0000
++++ AliceVision-2.4.0/src/CMakeLists.txt	2021-10-31 14:47:52.186584172 +0000
+@@ -41,7 +41,7 @@
+ endfunction()
+ 
+ # C++11
+-set(CMAKE_CXX_STANDARD 11)
++set(CMAKE_CXX_STANDARD 14)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+ # ==============================================================================
+@@ -209,7 +209,7 @@
+ if(NOT CXX11_COMPILER)
+   message(FATAL_ERROR "The compiler does not support the CXX11 standard.")
+ endif(NOT CXX11_COMPILER)
+-set(CMAKE_CXX_STANDARD 11)
++set(CMAKE_CXX_STANDARD 14)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+ # ==============================================================================
 @@ -898,7 +898,7 @@
                PROPERTY FOLDER AliceVision
                )
@@ -86,3 +104,27 @@
  
  #include <aliceVision/system/Logger.hpp>
  
+--- AliceVision-2.4.0/src/cmake/FindOpenImageIO.cmake.orig	2021-03-09 16:47:48.000000000 +0000
++++ AliceVision-2.4.0/src/cmake/FindOpenImageIO.cmake	2021-10-31 14:56:15.174732629 +0000
+@@ -106,6 +106,12 @@
+ endif (NOT OPENIMAGEIO_LIBRARY OR
+        NOT EXISTS ${OPENIMAGEIO_LIBRARY})
+ 
++find_library(OPENIMAGEIOUTIL_LIBRARY NAMES OpenImageIO_Util
++  HINTS
++        ${OPENIMAGEIO_LIBRARY_DIR_HINTS}
++        # ${OPENIMAGEIO_CHECK_LIBRARY_DIRS}
++  PATH_SUFFIXES ${OPENIMAGEIO_CHECK_LIBRARY_SUFFIXES})
++
+ # Mark internally as found, then verify. OPENIMAGEIO_REPORT_NOT_FOUND() unsets
+ # if called.
+ set(OPENIMAGEIO_FOUND TRUE)
+@@ -135,7 +141,7 @@
+ # Set standard CMake FindPackage variables if found.
+ if (OPENIMAGEIO_FOUND)
+   set(OPENIMAGEIO_INCLUDE_DIRS ${OPENIMAGEIO_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR} ${ILMBASE_INCLUDE_DIR})
+-  set(OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY} ${ILMBASE_LIBRARIES})
++  set(OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY} ${OPENIMAGEIOUTIL_LIBRARY} ${ILMBASE_LIBRARIES})
+ endif (OPENIMAGEIO_FOUND)
+ 
+ openimageio_reset_find_library_prefix()
