@@ -1,3 +1,17 @@
+--- inkscape-1.1/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2021-05-17 20:25:49.000000000 +0100
++++ inkscape-1.1/src/extension/internal/pdfinput/pdf-parser.cpp	2021-11-01 19:44:28.871824510 +0000
+@@ -2169,7 +2169,11 @@
+   }
+   if (printCommands) {
+     printf("  font: tag=%s name='%s' %g\n",
++#if POPPLER_CHECK_VERSION(0,64,0)
++	   font->getTag().c_str(),
++#else
+ 	   font->getTag()->getCString(),
++#endif
+ 	   font->getName() ? font->getName()->getCString() : "???",
+ 	   args[1].getNum());
+     fflush(stdout);
 --- inkscape-1.1/src/3rdparty/2geom/CMakeLists.txt.orig	2021-05-17 20:25:55.000000000 +0100
 +++ inkscape-1.1/src/3rdparty/2geom/CMakeLists.txt	2021-05-25 16:01:28.561828410 +0100
 @@ -144,4 +144,4 @@
