@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=1.11.1
+VERSION=1.12.0
 VERSIONEXTRA=
-BUILD=5
+BUILD=1
 
 WEBPAGE="http://www.pointclouds.org"
 
@@ -53,7 +53,8 @@ fi
 # patch -p1 < ${CWD}/pcl-0009-Fix-THIS_METHOD_IS_ONLY_FOR_1x1_EXPRESSIONS.patch
 # patch -p1 < ${CWD}/pcl-1.8.1.diff
 # patch -p1 < ${CWD}/pcl-vtk-fix.diff
- patch -p1 < ${CWD}/pcl-1.11.1.diff
+
+ patch -p1 < ${CWD}/pcl-1.12.0.diff
 )
 fi
 
@@ -128,11 +129,13 @@ mkdir -p ${PKG}/usr/man/man1
 tar xf ${CWD}/pcl-manpages.tar.gz -C ${PKG}/usr/man/man1
 
 mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl
-mv ${PKG}/usr/share/pcl-*/*.cmake ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl
+mv ${PKG}/usr/share/pcl-*/* ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl
 rmdir -p ${PKG}/usr/share/pcl-*
 
 mv ${PKG}/usr/share/doc/pcl-*/html ${PKG}/usr/doc/${TARNAME}-${VERSION}
 rmdir -p ${PKG}/usr/share/doc/pcl-*
+
+sed -i -e "s@$(pwd)@@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/pcl/PCLConfig.cmake
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
