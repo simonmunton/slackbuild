@@ -1,0 +1,58 @@
+From 439ab5bfac8588e52c77e22c96fb397787512d0e Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Tue, 5 Feb 2013 01:50:28 +0100
+Subject: Add elf_read_next_u*
+
+For stream-like reading of ELF data.
+---
+ ltrace-elf.c |   18 ++++++++++++++++++
+ ltrace-elf.h |    7 +++++++
+ 2 files changed, 25 insertions(+)
+
+Index: b/ltrace-elf.c
+===================================================================
+--- a/ltrace-elf.c
++++ b/ltrace-elf.c
+@@ -242,6 +242,24 @@ DEF_READER(elf_read_u64, 64)
+ 
+ #undef DEF_READER
+ 
++#define DEF_READER(NAME, SIZE)						\
++	int								\
++	NAME(Elf_Data *data, GElf_Xword *offset, uint##SIZE##_t *retp)	\
++	{								\
++		int rc = elf_read_u##SIZE(data, *offset, retp);		\
++		if (rc < 0)						\
++			return rc;					\
++		*offset += SIZE / 8;					\
++		return 0;						\
++	}
++
++DEF_READER(elf_read_next_u8, 8)
++DEF_READER(elf_read_next_u16, 16)
++DEF_READER(elf_read_next_u32, 32)
++DEF_READER(elf_read_next_u64, 64)
++
++#undef DEF_READER
++
+ int
+ ltelf_init(struct ltelf *lte, const char *filename)
+ {
+Index: b/ltrace-elf.h
+===================================================================
+--- a/ltrace-elf.h
++++ b/ltrace-elf.h
+@@ -109,6 +109,13 @@ int elf_read_u16(Elf_Data *data, GElf_Xw
+ int elf_read_u32(Elf_Data *data, GElf_Xword offset, uint32_t *retp);
+ int elf_read_u64(Elf_Data *data, GElf_Xword offset, uint64_t *retp);
+ 
++/* These are same as above, but update *OFFSET with the width
++ * of read datum.  */
++int elf_read_next_u8(Elf_Data *data, GElf_Xword *offset, uint8_t *retp);
++int elf_read_next_u16(Elf_Data *data, GElf_Xword *offset, uint16_t *retp);
++int elf_read_next_u32(Elf_Data *data, GElf_Xword *offset, uint32_t *retp);
++int elf_read_next_u64(Elf_Data *data, GElf_Xword *offset, uint64_t *retp);
++
+ #if __WORDSIZE == 32
+ #define PRI_ELF_ADDR		PRIx32
+ #define GELF_ADDR_CAST(x)	(void *)(uint32_t)(x)

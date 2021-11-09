@@ -1,0 +1,134 @@
+From: Petr Machata <pmachata@redhat.com>
+Subject: Fix bias handling in PPC backend
+Last-Update: 2016-04-06
+
+This is a backport of the following upstream commits:
+ - bf821009: Fix address biasing in PPC backend
+ - d80c5371: Fix cloning of PPC_PLT_NEED_UNRESOLVE breakpoints
+ - d8f1287b: Nits
+
+It was taken from the fedoraproject pkgs ltrace repository:
+http://pkgs.fedoraproject.org/cgit/rpms/ltrace.git/commit/?id=5f8efb0257eaa772639d5a4912a6b5e3a709ceab
+
+The original changelog in fedora spec mentioned:
+
+"""
+# https://bugzilla.redhat.com/show_bug.cgi?id=1171165
+# http://anonscm.debian.org/cgit/collab-maint/ltrace.git/commit/?id=d8f1287b85e2c2b2ae0235809e956f4365e53c45
+# http://anonscm.debian.org/cgit/collab-maint/ltrace.git/commit/?id=d80c5371454383e3f9978622e5578cf02af8c44c
+# http://anonscm.debian.org/cgit/collab-maint/ltrace.git/commit/?id=bf82100966deda9c7d26ad085d97c08126a8ae88
+Patch16: ltrace-0.7.91-ppc-bias.patch
+
+[...]
+
+ * Tue Dec  9 2014 Petr Machata <pmachata@redhat.com> - 0.7.91-11
+ - Fix bias handling in PPC backend
+ - Fix cloning of unresolved breakpoints in PPC backend
+   (ltrace-0.7.91-ppc-bias.patch)
+
+"""
+
+This is Patch16; aka ltrace-0.7.91-ppc-bias.patch
+
+It was refreshed (backported, if you will) for applying on 0.7.3 by:
+Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+
+It is attributed to Petr Machata since there were no origin markings on the
+original patch and he did the commit. If that's not correct, we can fix the
+attribution when someone speaks up.
+
+---
+ sysdeps/linux-gnu/ppc/plt.c |   36 +++++++++++++++++++++++-------------
+ 1 file changed, 23 insertions(+), 13 deletions(-)
+
+Index: b/sysdeps/linux-gnu/ppc/plt.c
+===================================================================
+--- a/sysdeps/linux-gnu/ppc/plt.c
++++ b/sysdeps/linux-gnu/ppc/plt.c
+@@ -309,14 +309,15 @@ arch_plt_sym_val(struct ltelf *lte, size
+ 
+ 		assert(rela->r_addend != 0);
+ 		/* XXX double cast */
+-		arch_addr_t res_addr = (arch_addr_t) (uintptr_t) rela->r_addend;
++		arch_addr_t res_addr
++		  = (arch_addr_t) (uintptr_t) (rela->r_addend + lte->bias);
+ 		if (arch_translate_address(lte, res_addr, &res_addr) < 0) {
+ 			fprintf(stderr, "Couldn't OPD-translate IRELATIVE "
+ 				"resolver address.\n");
+ 			return 0;
+ 		}
+ 		/* XXX double cast */
+-		return (GElf_Addr) (uintptr_t) res_addr;
++		return (GElf_Addr) (uintptr_t) (res_addr - lte->bias);
+ 
+ 	} else {
+ 		/* We put brakpoints to PLT entries the same as the
+@@ -518,7 +519,7 @@ arch_elf_init(struct ltelf *lte, struct
+ #ifndef EF_PPC64_ABI
+ 	assert (! (lte->ehdr.e_flags & 3 ) == 2)
+ #else
+-	lte->arch.elfv2_abi=((lte->ehdr.e_flags & EF_PPC64_ABI) == 2) ;
++	lte->arch.elfv2_abi = ((lte->ehdr.e_flags & EF_PPC64_ABI) == 2);
+ #endif
+ 
+ 	if (lte->ehdr.e_machine == EM_PPC64
+@@ -792,15 +793,15 @@ arch_elf_add_plt_entry(struct Process *p
+ 	assert(plt_slot_addr >= lte->plt_addr
+ 	       || plt_slot_addr < lte->plt_addr + lte->plt_size);
+ 
++	plt_entry_addr += lte->bias;
++	plt_slot_addr += lte->bias;
++
+ 	/* Should avoid to do read if dynamic linker hasn't run yet
+ 	 * or allow -1 a valid return code.  */
+ 	GElf_Addr plt_slot_value;
+-	if (read_plt_slot_value(proc, plt_slot_addr, &plt_slot_value) < 0) {
+-		if (!lte->arch.elfv2_abi)
+-			goto fail;
+-		else
+-			return PPC_PLT_UNRESOLVED;
+-	}
++	int rc = read_plt_slot_value(proc, plt_slot_addr, &plt_slot_value);
++	if (rc < 0 && !lte->arch.elfv2_abi)
++		goto fail;
+ 
+ 	struct library_symbol *libsym = malloc(sizeof(*libsym));
+ 	if (libsym == NULL) {
+@@ -820,8 +821,9 @@ arch_elf_add_plt_entry(struct Process *p
+ 		goto fail;
+ 	libsym->arch.plt_slot_addr = plt_slot_addr;
+ 
+-	if (! is_irelative
+-	    && (plt_slot_value == plt_entry_addr || plt_slot_value == 0)) {
++	if (rc < 0 || (! is_irelative
++		       && (plt_slot_value == plt_entry_addr
++			   || plt_slot_value == 0))) {
+ 		libsym->arch.type = PPC_PLT_UNRESOLVED;
+ 		libsym->arch.resolved_value = plt_entry_addr;
+ 	} else {
+@@ -1147,8 +1149,8 @@ ppc_plt_bp_install(struct breakpoint *bp
+ 				libsym->arch.resolved_value = plt_entry_addr;
+ 			}
+ 		} else {
+-			fprintf(stderr, "Couldn't unresolve %s@%p.  Not tracing"
+-				" this symbol.\n",
++			fprintf(stderr, "Couldn't unresolve %s@%p.  Will not"
++				" trace this symbol.\n",
+ 				breakpoint_name(bp), bp->addr);
+ 			proc_remove_breakpoint(proc, bp);
+ 		}
+@@ -1186,6 +1188,14 @@ arch_library_symbol_clone(struct library
+ 			  struct library_symbol *libsym)
+ {
+ 	retp->arch = libsym->arch;
++	if (libsym->arch.type == PPC_PLT_NEED_UNRESOLVE) {
++		assert(libsym->arch.data->self == libsym->arch.data);
++		retp->arch.data = malloc(sizeof *retp->arch.data);
++		if (retp->arch.data == NULL)
++			return -1;
++		*retp->arch.data = *libsym->arch.data;
++		retp->arch.data->self = retp->arch.data;
++	}
+ 	return 0;
+ }
+ 

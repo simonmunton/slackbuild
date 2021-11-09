@@ -1,0 +1,75 @@
+From 184779e4e8a42f2e9e7f3cee4bf4eb31e8c84ee4 Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Tue, 5 Feb 2013 01:52:05 +0100
+Subject: Add elf_read_{,next_}uleb128
+
+---
+ ltrace-elf.c |   32 ++++++++++++++++++++++++++++++++
+ ltrace-elf.h |    5 +++++
+ 2 files changed, 37 insertions(+)
+
+Index: b/ltrace-elf.c
+===================================================================
+--- a/ltrace-elf.c
++++ b/ltrace-elf.c
+@@ -321,6 +321,38 @@ DEF_READER(elf_read_next_u64, 64)
+ #undef DEF_READER
+ 
+ int
++elf_read_next_uleb128(Elf_Data *data, GElf_Xword *offset, uint64_t *retp)
++{
++	uint64_t result = 0;
++	int shift = 0;
++	int size = 8 * sizeof result;
++
++	while (1) {
++		uint8_t byte;
++		if (elf_read_next_u8(data, offset, &byte) < 0)
++			return -1;
++
++		uint8_t payload = byte & 0x7f;
++		result |= (uint64_t)payload << shift;
++		shift += 7;
++		if (shift > size && byte != 0x1)
++			return -1;
++		if ((byte & 0x80) == 0)
++			break;
++	}
++
++	if (retp != NULL)
++		*retp = result;
++	return 0;
++}
++
++int
++elf_read_uleb128(Elf_Data *data, GElf_Xword offset, uint64_t *retp)
++{
++	return elf_read_next_uleb128(data, &offset, retp);
++}
++
++int
+ ltelf_init(struct ltelf *lte, const char *filename)
+ {
+ 	memset(lte, 0, sizeof *lte);
+Index: b/ltrace-elf.h
+===================================================================
+--- a/ltrace-elf.h
++++ b/ltrace-elf.h
+@@ -121,12 +121,17 @@ int elf_read_u16(Elf_Data *data, GElf_Xw
+ int elf_read_u32(Elf_Data *data, GElf_Xword offset, uint32_t *retp);
+ int elf_read_u64(Elf_Data *data, GElf_Xword offset, uint64_t *retp);
+ 
++/* Read at most 64-bit quantity recorded in an ULEB128 variable-length
++ * encoding.  */
++int elf_read_uleb128(Elf_Data *data, GElf_Xword offset, uint64_t *retp);
++
+ /* These are same as above, but update *OFFSET with the width
+  * of read datum.  */
+ int elf_read_next_u8(Elf_Data *data, GElf_Xword *offset, uint8_t *retp);
+ int elf_read_next_u16(Elf_Data *data, GElf_Xword *offset, uint16_t *retp);
+ int elf_read_next_u32(Elf_Data *data, GElf_Xword *offset, uint32_t *retp);
+ int elf_read_next_u64(Elf_Data *data, GElf_Xword *offset, uint64_t *retp);
++int elf_read_next_uleb128(Elf_Data *data, GElf_Xword *offset, uint64_t *retp);
+ 
+ /* Return whether there's AMOUNT more bytes after OFFSET in DATA.  */
+ int elf_can_read_next(Elf_Data *data, GElf_Xword offset, GElf_Xword amount);

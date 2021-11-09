@@ -1,0 +1,182 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=ltrace
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/l
+#TAR_EXT=.tar.gz
+VERSION=0.7.3
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://www.ltrace.org/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/ltrace-01-avoid-libstdc++
+ patch -p1 < ${CWD}/ltrace-02-printf-p
+ patch -p1 < ${CWD}/ltrace-03-alpha-debug.h
+ patch -p1 < ${CWD}/ltrace-04-compile-warning
+ patch -p1 < ${CWD}/ltrace-05-sparc-ftbfs
+ patch -p1 < ${CWD}/ltrace-06-unexpected-breakpoint
+ patch -p1 < ${CWD}/ltrace-gcc-5.diff
+ patch -p1 < ${CWD}/ltrace-ptrace.diff
+ patch -p1 < ${CWD}/ltrace-add_irelative_tracing_b420a226.patch
+ patch -p1 < ${CWD}/ltrace-find_irelative_b061bae3.patch
+ patch -p1 < ${CWD}/ltrace-keep_plt_reloc_in_vector_673ff510.patch
+ patch -p1 < ${CWD}/ltrace-add_elf_read_u8_3c636fb7.patch
+ patch -p1 < ${CWD}/ltrace-add_elf_read_next_u_439ab5bf.patch
+ patch -p1 < ${CWD}/ltrace-add_elf_can_read_next_5c37171a.patch
+ patch -p1 < ${CWD}/ltrace-add_elf_each_symbol_7a29f9e7.patch
+ patch -p1 < ${CWD}/ltrace-elf_read_uleb128_184779e4.patch
+ patch -p1 < ${CWD}/ltrace-arm_attr_decoding_df7d2311.patch
+ patch -p1 < ${CWD}/ltrace-arm_fetch_backend_97a25160.patch
+ patch -p1 < ${CWD}/ltrace-arm_bpc_62fc7747.patch
+ patch -p1 < ${CWD}/ltrace-arm_vfp_params_1c8596d4.patch
+ patch -p1 < ${CWD}/ltrace-arm_vararg_without_vfp_88a0fe50.patch
+ patch -p1 < ${CWD}/ltrace-arm_backend_fixes_1383e5bd.patch
+ patch -p1 < ${CWD}/ltrace-jmp_irel.patch
+ patch -p1 < ${CWD}/ltrace-elf_load_dynamic_entry_4f2f66e6.patch
+ patch -p1 < ${CWD}/ltrace-arm_plt_rel_9e33f5ac.patch
+ patch -p1 < ${CWD}/ltrace-dont_ltelf_destroy_if_init_fails_0ba3c5ee.patch
+ patch -p1 < ${CWD}/ltrace-ppc64el.diff
+ patch -p1 < ${CWD}/ltrace-ppc64le-fixes.patch
+ patch -p1 < ${CWD}/ltrace-ppc64-fork.patch
+ patch -p1 < ${CWD}/ltrace-on_install_breakpoint_56134ff5.patch
+ patch -p1 < ${CWD}/ltrace-ppc64-unprelink.patch
+ patch -p1 < ${CWD}/ltrace-ppc-bias.patch
+ patch -p1 < ${CWD}/ltrace-Move-get_hfa_type-from-IA64-backend-to-type.c-name-i.patch
+ patch -p1 < ${CWD}/ltrace-Set-child-stack-alignment-in-trace-clone.c.patch
+ patch -p1 < ${CWD}/ltrace-Implement-aarch64-support.patch
+ patch -p1 < ${CWD}/ltrace-add-missing-stdint.h-include.patch
+ patch -p1 < ${CWD}/ltrace-Add-missing-include-stdio.h.patch
+ patch -p1 < ${CWD}/ltrace-deprecated-readdir_r.diff
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "trace library calls"
+ltrace intercepts and records dynamic library calls which are called 
+by an executed process and the signals received by that process. It 
+can also intercept and print the system calls executed by the 
+program.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"

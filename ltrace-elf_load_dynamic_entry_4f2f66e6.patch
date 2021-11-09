@@ -1,0 +1,153 @@
+From 4f2f66e6abc7fedf3a5d04fab7cc00e5f82b37cf Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Mon, 4 Nov 2013 22:45:34 -0500
+Subject: Move load_dynamic_entry from PPC backend to ltrace-elf.c/.h
+
+---
+ ltrace-elf.c                |   32 +++++++++++++++++++++++++++++++
+ ltrace-elf.h                |    4 +++
+ sysdeps/linux-gnu/ppc/plt.c |   45 ++++++--------------------------------------
+ 3 files changed, 43 insertions(+), 38 deletions(-)
+
+Index: b/ltrace-elf.c
+===================================================================
+--- a/ltrace-elf.c
++++ b/ltrace-elf.c
+@@ -527,6 +527,38 @@ read_relplt(struct ltelf *lte, Elf_Scn *
+ 	return 0;
+ }
+ 
++int
++elf_load_dynamic_entry(struct ltelf *lte, int tag, GElf_Addr *valuep)
++{
++	Elf_Scn *scn;
++	GElf_Shdr shdr;
++	if (elf_get_section_type(lte, SHT_DYNAMIC, &scn, &shdr) < 0
++	    || scn == NULL) {
++	fail:
++		fprintf(stderr, "Couldn't get SHT_DYNAMIC: %s\n",
++			elf_errmsg(-1));
++		return -1;
++	}
++
++	Elf_Data *data = elf_loaddata(scn, &shdr);
++	if (data == NULL)
++		goto fail;
++
++	size_t j;
++	for (j = 0; j < shdr.sh_size / shdr.sh_entsize; ++j) {
++		GElf_Dyn dyn;
++		if (gelf_getdyn(data, j, &dyn) == NULL)
++			goto fail;
++
++		if(dyn.d_tag == tag) {
++			*valuep = dyn.d_un.d_ptr;
++			return 0;
++		}
++	}
++
++	return -1;
++}
++
+ static int
+ ltelf_read_elf(struct ltelf *lte, const char *filename)
+ {
+Index: b/ltrace-elf.h
+===================================================================
+--- a/ltrace-elf.h
++++ b/ltrace-elf.h
+@@ -113,6 +113,10 @@ struct elf_each_symbol_t {
+ 					     void *data),
+ 		  void *data);
+ 
++/* Read a given DT_ TAG from LTE.  Value is returned in *VALUEP.
++ * Returns 0 on success or a negative value on failure.  */
++int elf_load_dynamic_entry(struct ltelf *lte, int tag, GElf_Addr *valuep);
++
+ /* Read, respectively, 1, 2, 4, or 8 bytes from Elf data at given
+  * OFFSET, and store it in *RETP.  Returns 0 on success or a negative
+  * value if there's not enough data.  */
+Index: b/sysdeps/linux-gnu/ppc/plt.c
+===================================================================
+--- a/sysdeps/linux-gnu/ppc/plt.c
++++ b/sysdeps/linux-gnu/ppc/plt.c
+@@ -441,38 +441,6 @@ get_glink_vma(struct ltelf *lte, GElf_Ad
+ }
+ 
+ static int
+-load_dynamic_entry(struct ltelf *lte, int tag, GElf_Addr *valuep)
+-{
+-	Elf_Scn *scn;
+-	GElf_Shdr shdr;
+-	if (elf_get_section_type(lte, SHT_DYNAMIC, &scn, &shdr) < 0
+-	    || scn == NULL) {
+-	fail:
+-		fprintf(stderr, "Couldn't get SHT_DYNAMIC: %s\n",
+-			elf_errmsg(-1));
+-		return -1;
+-	}
+-
+-	Elf_Data *data = elf_loaddata(scn, &shdr);
+-	if (data == NULL)
+-		goto fail;
+-
+-	size_t j;
+-	for (j = 0; j < shdr.sh_size / shdr.sh_entsize; ++j) {
+-		GElf_Dyn dyn;
+-		if (gelf_getdyn(data, j, &dyn) == NULL)
+-			goto fail;
+-
+-		if(dyn.d_tag == tag) {
+-			*valuep = dyn.d_un.d_ptr;
+-			return 0;
+-		}
+-	}
+-
+-	return -1;
+-}
+-
+-static int
+ nonzero_data(Elf_Data *data)
+ {
+ 	/* We are not supposed to get here if there's no PLT.  */
+@@ -520,7 +488,7 @@ arch_elf_init(struct ltelf *lte, struct
+ 
+ 	if (lte->ehdr.e_machine == EM_PPC && lte->arch.secure_plt) {
+ 		GElf_Addr ppcgot;
+-		if (load_dynamic_entry(lte, DT_PPC_GOT, &ppcgot) < 0) {
++		if (elf_load_dynamic_entry(lte, DT_PPC_GOT, &ppcgot) < 0) {
+ 			fprintf(stderr, "couldn't find DT_PPC_GOT\n");
+ 			return -1;
+ 		}
+@@ -533,7 +501,8 @@ arch_elf_init(struct ltelf *lte, struct
+ 
+ 	} else if (lte->ehdr.e_machine == EM_PPC64) {
+ 		GElf_Addr glink_vma;
+-		if (load_dynamic_entry(lte, DT_PPC64_GLINK, &glink_vma) < 0) {
++		if (elf_load_dynamic_entry(lte, DT_PPC64_GLINK,
++					   &glink_vma) < 0) {
+ 			fprintf(stderr, "couldn't find DT_PPC64_GLINK\n");
+ 			return -1;
+ 		}
+@@ -543,8 +512,8 @@ arch_elf_init(struct ltelf *lte, struct
+ 
+ 	} else {
+ 		/* By exhaustion--PPC32 BSS.  */
+-		if (load_dynamic_entry(lte, DT_PLTGOT,
+-				       &lib->arch.pltgot_addr) < 0) {
++		if (elf_load_dynamic_entry(lte, DT_PLTGOT,
++					   &lib->arch.pltgot_addr) < 0) {
+ 			fprintf(stderr, "couldn't find DT_PLTGOT\n");
+ 			return -1;
+ 		}
+@@ -639,8 +608,8 @@ arch_elf_init(struct ltelf *lte, struct
+ 	Elf_Scn *rela_sec;
+ 	GElf_Shdr rela_shdr;
+ 	if (lte->ehdr.e_machine == EM_PPC64
+-	    && load_dynamic_entry(lte, DT_RELA, &rela) == 0
+-	    && load_dynamic_entry(lte, DT_RELASZ, &relasz) == 0
++	    && elf_load_dynamic_entry(lte, DT_RELA, &rela) == 0
++	    && elf_load_dynamic_entry(lte, DT_RELASZ, &relasz) == 0
+ 	    && elf_get_section_covering(lte, rela, &rela_sec, &rela_shdr) == 0
+ 	    && rela_sec != NULL) {
+ 

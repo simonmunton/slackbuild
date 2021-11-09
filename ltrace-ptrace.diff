@@ -1,0 +1,68 @@
+Description: try to make PTRACE scope sysctl more discoverable.
+Updated: 2014-05-07
+
+Index: ltrace-0.7.3/sysdeps/linux-gnu/trace.c
+===================================================================
+--- ltrace-0.7.3.orig/sysdeps/linux-gnu/trace.c	2014-05-07 15:17:07.949872643 -0400
++++ ltrace-0.7.3/sysdeps/linux-gnu/trace.c	2014-05-07 15:24:08.077866134 -0400
+@@ -49,7 +49,7 @@
+ #include "type.h"
+ 
+ void
+-trace_fail_warning(pid_t pid)
++trace_fail_warning(pid_t pid, int err)
+ {
+ 	/* This was adapted from GDB.  */
+ #ifdef HAVE_LIBSELINUX
+@@ -66,6 +66,11 @@
+ "tracing other processes.  You can disable this process attach protection by\n"
+ "issuing 'setsebool deny_ptrace=0' in the superuser context.\n");
+ #endif /* HAVE_LIBSELINUX */
++	if (err == EPERM)
++		fprintf(stderr,
++			"Could not attach to process.  If your uid matches the uid of the target\n"
++			"process, check the setting of /proc/sys/kernel/yama/ptrace_scope, or try\n"
++			"again as the root user.  For more details, see /etc/sysctl.d/10-ptrace.conf\n");
+ }
+ 
+ void
+@@ -73,8 +78,9 @@
+ {
+ 	debug(DEBUG_PROCESS, "trace_me: pid=%d", getpid());
+ 	if (ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) {
++                int errno_save = errno;
+ 		perror("PTRACE_TRACEME");
+-		trace_fail_warning(getpid());
++		trace_fail_warning(getpid(), errno_save);
+ 		exit(1);
+ 	}
+ }
+Index: ltrace-0.7.3/backend.h
+===================================================================
+--- ltrace-0.7.3.orig/backend.h	2014-05-07 15:03:16.000000000 -0400
++++ ltrace-0.7.3/backend.h	2014-05-07 15:25:00.805865317 -0400
+@@ -150,7 +150,7 @@
+ 
+ /* Called when trace_me or primary trace_pid fail.  This may plug in
+  * any platform-specific knowledge of why it could be so.  */
+-void trace_fail_warning(pid_t pid);
++void trace_fail_warning(pid_t pid, int err);
+ 
+ /* A pair of functions called to initiate a detachment request when
+  * ltrace is about to exit.  Their job is to undo any effects that
+Index: ltrace-0.7.3/proc.c
+===================================================================
+--- ltrace-0.7.3.orig/proc.c	2014-05-07 15:03:16.000000000 -0400
++++ ltrace-0.7.3/proc.c	2014-05-07 15:24:42.881865595 -0400
+@@ -496,9 +496,10 @@
+ 
+ 	/* First, see if we can attach the requested PID itself.  */
+ 	if (open_one_pid(pid)) {
++		int errno_save = errno;
+ 		fprintf(stderr, "Cannot attach to pid %u: %s\n",
+ 			pid, strerror(errno));
+-		trace_fail_warning(pid);
++		trace_fail_warning(pid, errno_save);
+ 		return;
+ 	}
+ 

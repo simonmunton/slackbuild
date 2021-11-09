@@ -1,0 +1,111 @@
+From 7a29f9e7a2bd5849886519eb82e9c043d24c6a40 Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Mon, 14 Oct 2013 20:04:09 +0200
+Subject: Add elf_each_symbol
+
+---
+ ltrace-elf.c |   60 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ltrace-elf.h |   12 +++++++++++
+ 2 files changed, 72 insertions(+)
+
+Index: b/ltrace-elf.c
+===================================================================
+--- a/ltrace-elf.c
++++ b/ltrace-elf.c
+@@ -190,6 +190,66 @@ name_p(Elf_Scn *scn, GElf_Shdr *shdr, vo
+ 	return strcmp(name, data->name) == 0;
+ }
+ 
++static struct elf_each_symbol_t
++each_symbol_in(Elf_Data *symtab, const char *strtab, size_t count,
++	       unsigned i,
++	       enum callback_status (*cb)(GElf_Sym *symbol,
++					  const char *name, void *data),
++	       void *data)
++{
++	for (; i < count; ++i) {
++		GElf_Sym sym;
++		if (gelf_getsym(symtab, i, &sym) == NULL)
++			return (struct elf_each_symbol_t){ i, -2 };
++
++		switch (cb(&sym, strtab + sym.st_name, data)) {
++		case CBS_FAIL:
++			return (struct elf_each_symbol_t){ i, -1 };
++		case CBS_STOP:
++			return (struct elf_each_symbol_t){ i + 1, 0 };
++		case CBS_CONT:
++			break;
++		}
++	}
++
++	return (struct elf_each_symbol_t){ 0, 0 };
++}
++
++/* N.B.: gelf_getsym takes integer argument.  Since negative values
++ * are invalid as indices, we can use the extra bit to encode which
++ * symbol table we are looking into.  ltrace currently doesn't handle
++ * more than two symbol tables anyway, nor does it handle the xindex
++ * stuff.  */
++struct elf_each_symbol_t
++elf_each_symbol(struct ltelf *lte, unsigned start_after,
++		enum callback_status (*cb)(GElf_Sym *symbol,
++					   const char *name, void *data),
++		void *data)
++{
++	unsigned index = start_after == 0 ? 0 : start_after >> 1;
++
++	/* Go through static symbol table first.  */
++	if ((start_after & 0x1) == 0) {
++		struct elf_each_symbol_t st
++			= each_symbol_in(lte->symtab, lte->strtab,
++					 lte->symtab_count, index, cb, data);
++
++		/* If the iteration stopped prematurely, bail out.  */
++		if (st.restart != 0)
++			return ((struct elf_each_symbol_t)
++				{ st.restart << 1, st.status });
++	}
++
++	struct elf_each_symbol_t st
++		= each_symbol_in(lte->dynsym, lte->dynstr, lte->dynsym_count,
++				 index, cb, data);
++	if (st.restart != 0)
++		return ((struct elf_each_symbol_t)
++			{ st.restart << 1 | 0x1, st.status });
++
++	return (struct elf_each_symbol_t){ 0, 0 };
++}
++
+ int
+ elf_get_section_named(struct ltelf *lte, const char *name,
+ 		     Elf_Scn **tgt_sec, GElf_Shdr *tgt_shdr)
+Index: b/ltrace-elf.h
+===================================================================
+--- a/ltrace-elf.h
++++ b/ltrace-elf.h
+@@ -26,6 +26,7 @@
+ 
+ #include <gelf.h>
+ #include <stdlib.h>
++#include <callback.h>
+ #include "sysdep.h"
+ #include "vect.h"
+ 
+@@ -101,6 +102,17 @@ int elf_get_section_type(struct ltelf *l
+ int elf_get_section_named(struct ltelf *lte, const char *name,
+ 			  Elf_Scn **tgt_sec, GElf_Shdr *tgt_shdr);
+ 
++/* Iterate through all symbols in LTE.  See callback.h for notes on
++ * iteration interfaces.  START_AFTER is 0 in initial call.  */
++struct elf_each_symbol_t {
++	unsigned restart;
++	int status;
++} elf_each_symbol(struct ltelf *lte, unsigned start_after,
++		  enum callback_status (*cb)(GElf_Sym *symbol,
++					     const char *name,
++					     void *data),
++		  void *data);
++
+ /* Read, respectively, 1, 2, 4, or 8 bytes from Elf data at given
+  * OFFSET, and store it in *RETP.  Returns 0 on success or a negative
+  * value if there's not enough data.  */

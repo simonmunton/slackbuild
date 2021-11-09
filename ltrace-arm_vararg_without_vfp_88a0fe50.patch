@@ -1,0 +1,81 @@
+From 88a0fe50a3fad351cf28ef3902dbd0dd3540735c Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Wed, 6 Feb 2013 19:44:56 +0100
+Subject: VFP shouldn't be used for parameter passing in vararg functions on
+ ARM
+
+---
+ sysdeps/linux-gnu/arm/arch.h  |    1 +
+ sysdeps/linux-gnu/arm/fetch.c |   22 +++++++++++++++++++---
+ 2 files changed, 20 insertions(+), 3 deletions(-)
+
+Index: b/sysdeps/linux-gnu/arm/fetch.c
+===================================================================
+--- a/sysdeps/linux-gnu/arm/fetch.c
++++ b/sysdeps/linux-gnu/arm/fetch.c
+@@ -254,6 +254,7 @@ struct fetch_context {
+ 	arch_addr_t nsaa;
+ 	arch_addr_t ret_struct;
+ 	bool hardfp:1;
++	bool in_varargs:1;
+ };
+ 
+ static int
+@@ -389,7 +390,7 @@ arch_fetch_arg_next(struct fetch_context
+ 	const size_t sz = type_sizeof(proc, info);
+ 	assert(sz != (size_t)-1);
+ 
+-	if (ctx->hardfp) {
++	if (ctx->hardfp && !ctx->in_varargs) {
+ 		int rc;
+ 		if ((rc = consider_vfp(ctx, proc, info, valuep)) != 1)
+ 			return rc;
+@@ -454,7 +455,7 @@ arch_fetch_retval(struct fetch_context *
+ 	size_t sz = type_sizeof(proc, info);
+ 	assert(sz != (size_t)-1);
+ 
+-	if (ctx->hardfp) {
++	if (ctx->hardfp && !ctx->in_varargs) {
+ 		int rc;
+ 		if ((rc = consider_vfp(ctx, proc, info, valuep)) != 1)
+ 			return rc;
+@@ -475,7 +476,7 @@ arch_fetch_retval(struct fetch_context *
+ 
+ 	case ARGTYPE_FLOAT:
+ 	case ARGTYPE_DOUBLE:
+-		if (ctx->hardfp) {
++		if (ctx->hardfp && !ctx->in_varargs) {
+ 			unsigned char *data = value_reserve(valuep, sz);
+ 			if (data == NULL)
+ 				return -1;
+@@ -515,3 +516,18 @@ arch_fetch_arg_done(struct fetch_context
+ {
+ 	free(context);
+ }
++
++int
++arch_fetch_param_pack_start(struct fetch_context *context,
++			    enum param_pack_flavor ppflavor)
++{
++	if (ppflavor == PARAM_PACK_VARARGS)
++		context->in_varargs = true;
++	return 0;
++}
++
++void
++arch_fetch_param_pack_end(struct fetch_context *context)
++{
++	context->in_varargs = false;
++}
+Index: b/sysdeps/linux-gnu/arm/arch.h
+===================================================================
+--- a/sysdeps/linux-gnu/arm/arch.h
++++ b/sysdeps/linux-gnu/arm/arch.h
+@@ -35,6 +35,7 @@
+ #define LT_ELF_MACHINE	EM_ARM
+ 
+ #define ARCH_HAVE_FETCH_ARG
++#define ARCH_HAVE_FETCH_PACK
+ #define ARCH_HAVE_BREAKPOINT_DATA
+ struct arch_breakpoint_data {
+ 	int thumb_mode;

@@ -1,0 +1,229 @@
+From b420a226cd2fc5d6028adcaf236c512a1f1fb437 Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Tue, 15 Oct 2013 10:46:28 +0200
+Subject: Add support for tracing of IRELATIVE PLT entries
+
+- Because the IRELATIVE entries have no associated symbol name, we
+  need to allow arch_elf_add_plt_entry to override the name.  This is
+  done by that callback returning PLT_OK and returning the new symbol
+  via libsym-chain return argument.  Filtering is postponed until we
+  have that symbol, and the filter is applied to the whole returned
+  chain.
+
+- Add linux_elf_add_plt_entry_irelative to support proper naming of
+  IRELATIVE PLT entries.  This needs to be called from arch backend,
+  as the numbers of IRELATIVE relocations differ per-architecture.
+---
+ ltrace-elf.c              |   43 +++++++++++++++++++++--------
+ sysdeps/linux-gnu/trace.c |   68 +++++++++++++++++++++++++++++++++++++++++++---
+ sysdeps/linux-gnu/trace.h |   18 ++++++++++++
+ 3 files changed, 115 insertions(+), 14 deletions(-)
+
+Index: b/ltrace-elf.c
+===================================================================
+--- a/ltrace-elf.c
++++ b/ltrace-elf.c
+@@ -539,6 +539,24 @@ mark_chain_latent(struct library_symbol
+ 	}
+ }
+ 
++static void
++filter_symbol_chain(struct filter *filter,
++		    struct library_symbol **libsymp, struct library *lib)
++{
++	assert(libsymp != NULL);
++	struct library_symbol **ptr = libsymp;
++	while (*ptr != NULL) {
++		if (filter_matches_symbol(filter, (*ptr)->name, lib)) {
++			ptr = &(*ptr)->next;
++		} else {
++			struct library_symbol *sym = *ptr;
++			*ptr = (*ptr)->next;
++			library_symbol_destroy(sym);
++			free(sym);
++		}
++	}
++}
++
+ static int
+ populate_plt(struct Process *proc, const char *filename,
+ 	     struct ltelf *lte, struct library *lib,
+@@ -554,30 +572,34 @@ populate_plt(struct Process *proc, const
+ 
+ 		char const *name = lte->dynstr + sym.st_name;
+ 
+-		/* If the symbol wasn't matched, reject it, unless we
+-		 * need to keep latent PLT breakpoints for tracing
+-		 * exports.  */
+ 		int matched = filter_matches_symbol(options.plt_filter,
+ 						    name, lib);
+-		if (!matched && !latent_plts)
+-			continue;
+-
+ 		struct library_symbol *libsym = NULL;
+ 		switch (arch_elf_add_plt_entry(proc, lte, name,
+ 					       &rela, i, &libsym)) {
++		case plt_fail:
++				return -1;
++
+ 		case plt_default:
++			/* Add default entry to the beginning of LIBSYM.  */
+ 			if (default_elf_add_plt_entry(proc, lte, name,
+ 						      &rela, i, &libsym) < 0)
+-			/* fall-through */
+-		case plt_fail:
+ 				return -1;
+-			/* fall-through */
+ 		case plt_ok:
++			/* If we didn't match the PLT entry up there,
++			 * filter the chain to only include the
++			 * matching symbols (but include all if we are
++			 * adding latent symbols).  This is to allow
++			 * arch_elf_add_plt_entry to override the PLT
++			 * symbol's name.  */
++			if (!matched && !latent_plts)
++				filter_symbol_chain(options.plt_filter,
++						    &libsym, lib);
+ 			if (libsym != NULL) {
+ 				/* If we are adding those symbols just
+ 				 * for tracing exports, mark them all
+ 				 * latent.  */
+-				if (!matched)
++				if (!matched && latent_plts)
+ 					mark_chain_latent(libsym);
+ 				library_add_symbol(lib, libsym);
+ 			}
+@@ -657,7 +679,6 @@ populate_this_symtab(struct Process *pro
+ 			continue;
+ 		}
+ 
+-		/* XXX support IFUNC as well.  */
+ 		if (GELF_ST_TYPE(sym.st_info) != STT_FUNC
+ 		    || sym.st_value == 0
+ 		    || sym.st_shndx == STN_UNDEF)
+Index: b/sysdeps/linux-gnu/trace.c
+===================================================================
+--- a/sysdeps/linux-gnu/trace.c
++++ b/sysdeps/linux-gnu/trace.c
+@@ -24,25 +24,29 @@
+ #include "config.h"
+ 
+ #include <asm/unistd.h>
+-#include <sys/types.h>
+-#include <sys/wait.h>
+ #include <assert.h>
+ #include <errno.h>
++#include <gelf.h>
++#include <inttypes.h>
++#include <stdbool.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <sys/types.h>
++#include <sys/wait.h>
+ #include <unistd.h>
+ 
+ #ifdef HAVE_LIBSELINUX
+ # include <selinux/selinux.h>
+ #endif
+ 
+-#include "linux-gnu/trace.h"
+ #include "linux-gnu/trace-defs.h"
++#include "linux-gnu/trace.h"
+ #include "backend.h"
+ #include "breakpoint.h"
+ #include "debug.h"
+ #include "events.h"
++#include "ltrace-elf.h"
+ #include "options.h"
+ #include "proc.h"
+ #include "ptrace.h"
+@@ -1212,3 +1216,61 @@ umovebytes(Process *proc, void *addr, vo
+ 
+ 	return bytes_read;
+ }
++
++struct irelative_name_data_t {
++	GElf_Addr addr;
++	const char *found_name;
++};
++
++static enum callback_status
++irelative_name_cb(GElf_Sym *symbol, const char *name, void *d)
++{
++	struct irelative_name_data_t *data = d;
++
++	if (symbol->st_value == data->addr) {
++		bool is_ifunc = false;
++#ifdef STT_GNU_IFUNC
++		is_ifunc = GELF_ST_TYPE(symbol->st_info) == STT_GNU_IFUNC;
++#endif
++		data->found_name = name;
++
++		/* Keep looking, unless we found the actual IFUNC
++		 * symbol.  What we matched may have been a symbol
++		 * denoting the resolver function, which would have
++		 * the same address.  */
++		return CBS_STOP_IF(is_ifunc);
++	}
++
++	return CBS_CONT;
++}
++
++enum plt_status
++linux_elf_add_plt_entry_irelative(struct Process *proc, struct ltelf *lte,
++				  GElf_Rela *rela, size_t ndx,
++				  struct library_symbol **ret)
++
++{
++	struct irelative_name_data_t data = { rela->r_addend, NULL };
++	if (rela->r_addend != 0
++	    && elf_each_symbol(lte, 0,
++			       irelative_name_cb, &data).status < 0)
++		return -1;
++
++	const char *name;
++	if (data.found_name != NULL) {
++		name = data.found_name;
++	} else {
++#define NAME "IREL."
++		/* NAME\0 + 0x + digits.  */
++		char *tmp_name = alloca(sizeof NAME + 2 + 16);
++		sprintf(tmp_name, NAME "%#" PRIx64,
++			(uint64_t)rela->r_addend);
++		name = tmp_name;
++#undef NAME
++	}
++
++	if (default_elf_add_plt_entry(proc, lte, name, rela, ndx, ret) < 0)
++		return PLT_FAIL;
++
++	return PLT_OK;
++}
+Index: b/sysdeps/linux-gnu/trace.h
+===================================================================
+--- a/sysdeps/linux-gnu/trace.h
++++ b/sysdeps/linux-gnu/trace.h
+@@ -118,4 +118,22 @@ int process_install_stopping_handler
+ void linux_ptrace_disable_and_singlestep(struct process_stopping_handler *self);
+ void linux_ptrace_disable_and_continue(struct process_stopping_handler *self);
+ 
++/* When main binary needs to call an IFUNC function defined in the
++ * binary itself, a PLT entry is set up so that dynamic linker can get
++ * involved and resolve the symbol.  But unlike other PLT relocation,
++ * this one can't rely on symbol table being available.  So it doesn't
++ * reference the symbol by its name, but by its address, and
++ * correspondingly, has another type.  When arch backend wishes to
++ * support these IRELATIVE relocations, it should override
++ * arch_elf_add_plt_entry and dispatch to this function for IRELATIVE
++ * relocations.
++ *
++ * This function behaves as arch_elf_add_plt_entry, except that it
++ * doesn't take name for a parameter, but instead looks up the name in
++ * symbol tables in LTE.  */
++enum plt_status linux_elf_add_plt_entry_irelative(struct Process *proc,
++						  struct ltelf *lte,
++						  GElf_Rela *rela, size_t ndx,
++						  struct library_symbol **ret);
++
+ #endif /* _LTRACE_LINUX_TRACE_H_ */

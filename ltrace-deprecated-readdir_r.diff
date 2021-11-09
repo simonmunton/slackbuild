@@ -1,0 +1,21 @@
+Description: FTBFS in amd64: 'readdir_r' is deprecated
+Author: Juan Cespedes <cespedes@debian.org>
+Bug-Debian: https://bugs.debian.org/837011
+Last-Update: 2016-09-21
+
+--- ltrace-0.7.3.orig/sysdeps/linux-gnu/proc.c
++++ ltrace-0.7.3/sysdeps/linux-gnu/proc.c
+@@ -240,12 +240,8 @@ process_tasks(pid_t pid, pid_t **ret_tas
+ 	size_t alloc = 0;
+ 
+ 	while (1) {
+-		struct dirent entry;
+ 		struct dirent *result;
+-		if (readdir_r(d, &entry, &result) != 0) {
+-			free(tasks);
+-			return -1;
+-		}
++		result = readdir(d);
+ 		if (result == NULL)
+ 			break;
+ 		if (result->d_type == DT_DIR && all_digits(result->d_name)) {

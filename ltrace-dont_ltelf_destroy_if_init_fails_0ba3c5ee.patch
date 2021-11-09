@@ -1,0 +1,30 @@
+From 0ba3c5eee259b77e3883e40c4d0cd2fab5b03ff3 Mon Sep 17 00:00:00 2001
+From: Petr Machata <pmachata@redhat.com>
+Date: Mon, 11 Nov 2013 02:27:08 +0100
+Subject: In ltrace_init, don't call ltelf_destroy if ltelf_init fails
+
+---
+ libltrace.c |   10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+Index: b/libltrace.c
+===================================================================
+--- a/libltrace.c
++++ b/libltrace.c
+@@ -136,9 +136,13 @@ ltrace_init(int argc, char **argv) {
+ 	if (command) {
+ 		/* Check that the binary ABI is supported before
+ 		 * calling execute_program.  */
+-		struct ltelf lte;
+-		ltelf_init(&lte, command);
+-		ltelf_destroy(&lte);
++		{
++			struct ltelf lte;
++			if (ltelf_init(&lte, command) == 0)
++				ltelf_destroy(&lte);
++			else
++				exit(EXIT_FAILURE);
++		}
+ 
+ 		pid_t pid = execute_program(command, argv);
+ 		struct Process *proc = open_program(command, pid);
