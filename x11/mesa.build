@@ -6,7 +6,7 @@ TARNAME=mesa
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/m/Mesa3D
 #TAR_EXT=.tar.gz
-VERSION=19.1.1
+VERSION=21.2.6
 VERSIONEXTRA=
 BUILD=1
 
@@ -52,9 +52,12 @@ fi
 # ./autogen.sh
 # autoreconf -v --install --force
 
-# patch -p1 < ${CWD}/Mesa-10.2.7.diff
+ patch -p1 -R < ${CWD}/mesa-revert-72566fd92c27b39abe2057f6f23388ec40793dd9.patch
+ patch -p1 -R < ${CWD}/mesa-revert-80817b6e344258ac9b955f824ebf9019a0fc1610.patch
 
- sed -i -e 's/DRI_DIRS =/DRI_DIRS = swrast/' configs/linux-dri
+ patch -p1 < ${CWD}/mesa-xcb-fix.diff
+
+# sed -i -e 's/DRI_DIRS =/DRI_DIRS = swrast/' configs/linux-dri
 )
 fi
 
@@ -65,15 +68,22 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 case ${ARCH} in
-  i486) SLKCFLAGS="-march=i686" ;;
-  *) SLKCFLAGS="" ;;
+  i486) SLKCFLAGS="-march=i686 -O2" ;;
+  *) SLKCFLAGS="-O2 -fPIC" ;;
 esac
+
+# Be sure this list is up-to-date:
+DRI_DRIVERS="i915,i965,r100,r200,nouveau"
+GALLIUM_DRIVERS="nouveau,r300,r600,svga,radeonsi,swrast,virgl,iris,crocus,zink"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #true
 
 #(cd configs && rm -f current && ln -s linux-dri-x86 current)
+
+mkdir meson-build
+cd meson-build
 
 #make realclean
 if [ -f ./configure_xx ]
@@ -120,24 +130,59 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
-elif [ -f ./meson.build ]
+elif [ -f ../meson.build ]
 then
-  meson --prefix=/usr \
-        --buildtype=release \
-        -D b_ndebug=true \
-        -D dri-drivers-path=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri \
-        -D osmesa=gallium \
-        -D tools=all \
-        _BuilD_
+  export CFLAGS="$SLKCFLAGS"
+  export CXXFLAGS="$SLKCFLAGS"
+
+  meson setup \
+  --prefix=/usr \
+  --libdir=lib${LIBDIRSUFFIX} \
+  --libexecdir=/usr/libexec \
+  --bindir=/usr/bin \
+  --sbindir=/usr/sbin \
+  --includedir=/usr/include \
+  --datadir=/usr/share \
+  --mandir=/usr/man \
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --buildtype=release \
+  -Dplatforms=x11,wayland \
+  -Dgallium-opencl=icd \
+  -Dgallium-nine=true \
+  -Dosmesa=true \
+  -Ddri-drivers=$DRI_DRIVERS \
+  -Dgallium-drivers=$GALLIUM_DRIVERS \
+  -Dvulkan-drivers=amd,intel,swrast \
+  -Dvulkan-layers=device-select,intel-nullhw,overlay \
+  -Dglvnd=true \
+  -Dllvm=enabled \
+  -Dshared-llvm=enabled \
+  -Dshared-glapi=enabled \
+  -Degl=enabled \
+  -Dgles1=enabled \
+  -Dgles2=enabled \
+  -Dopengl=true \
+  -Dglx=dri \
+  .. || exit 1
+
+#  meson --prefix=/usr \
+#        --buildtype=release \
+#        -D b_ndebug=true \
+#        -D dri-drivers-path=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri \
+#        -D osmesa=gallium \
+#        -D tools=all \
+#        _BuilD_
+
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  ninja -C _BuilD_ || exit
+  ninja ${NUM_JOBS} || exit
 else
 #make ${NUM_JOBS} linux-dri-x86 INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib/xorg/modules/dri || exit
 make ${NUM_JOBS} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri || exit
@@ -153,28 +198,42 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
+  DESTDIR=${PKG} ninja install
 else
 #make install DESTDIR=${PKG}
 make install DESTDIR=${PKG} INSTALL_DIR=/usr DRI_DRIVER_INSTALL_DIR=/usr/lib${LIBDIRSUFFIX}/xorg/modules/dri
 fi
 
-# Install some "demos":
-( cd progs/xdemos
-  mkdir -p ${PKG}/usr/bin
-  cp glthreads glxcontexts glxdemo glxgears glxgears_fbconfig glxheads \
-    glxinfo glxpbdemo glxpixmap \
-    ${PKG}/usr/bin
-)
+cd ..
 
-if [ -e ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ]
-then
-  mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeong_drv.so
+# Install /etc/drirc as a .new file:
+if [ -r ${PKG}/etc/drirc ]; then
+  mv ${PKG}/etc/drirc ${PKG}/etc/drirc.new
 fi
 
-strip_binaries
+# Add a default provider for glvnd when the vendor cannot be determined:
+( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+  if [ ! -r libGLX_system.so.0 ]; then
+    ln -sf libGLX_mesa.so.0 libGLX_system.so.0
+  fi
+)
+
+# Install some "demos":
+#( cd progs/xdemos
+#  mkdir -p ${PKG}/usr/bin
+#  cp glthreads glxcontexts glxdemo glxgears glxgears_fbconfig glxheads \
+#    glxinfo glxpbdemo glxpixmap \
+#    ${PKG}/usr/bin
+#)
+
+#if [ -e ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ]
+#then
+#  mv ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeon_drv.so ${PKG}/usr/lib${LIBDIRSUFFIX}/xorg/modules/drivers/radeong_drv.so
+#fi
+
+#strip_binaries
 
 fix_links
 
@@ -183,14 +242,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO docs/* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  docs/COPYING* docs/relnotes/${VERSION}.html docs/README* docs/GL* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-rm ${PKG}/usr/doc/${TARNAME}-${VERSION}/{RELNOTES,relnotes}*
+mkdir ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
+cp -a docs/*.html ${PKG}/usr/doc/${TARNAME}-${VERSION}/html
 
-cp -a \
-  docs/RELNOTES-${VERSION} docs/relnotes-${VERSION}.html docs/relnotes.html \
-  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+rm -f ${PKG}/usr/doc/${TARNAME}-${VERSION}/html/relnotes*.html
 
 fix_docs
 

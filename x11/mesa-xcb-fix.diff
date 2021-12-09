@@ -1,0 +1,1579 @@
+diff --git a/include/GL/internal/dri_interface.h b/include/GL/internal/dri_interface.h
+index 66dc0927cb718cdb6975a725722deb64a4418926..3b8d416276d8a649c3596332fd7dd7866e123c37 100644
+--- a/include/GL/internal/dri_interface.h
++++ b/include/GL/internal/dri_interface.h
+@@ -1203,50 +1203,36 @@ struct __DRIdri2LoaderExtensionRec {
+ 
+ #define __DRI_CTX_ATTRIB_MAJOR_VERSION		0
+ #define __DRI_CTX_ATTRIB_MINOR_VERSION		1
+-#define __DRI_CTX_ATTRIB_FLAGS			2
+-
+-/**
+- * \requires __DRI2_ROBUSTNESS.
+- */
+-#define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
+ 
++/* These must alias the GLX/EGL values. */
++#define __DRI_CTX_ATTRIB_FLAGS			2
+ #define __DRI_CTX_FLAG_DEBUG			0x00000001
+ #define __DRI_CTX_FLAG_FORWARD_COMPATIBLE	0x00000002
+-
+-/**
+- * \requires __DRI2_ROBUSTNESS.
+- */
+ #define __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS	0x00000004
+-
+-/**
+- * \requires __DRI2_NO_ERROR.
+- *
+- */
++/* Deprecated, do not use */
+ #define __DRI_CTX_FLAG_NO_ERROR			0x00000008
++/* Not yet implemented but placed here to reserve the alias with GLX */
++#define __DRI_CTX_FLAG_RESET_ISOLATION          0x00000008
+ 
+-/**
+- * \name Context reset strategies.
+- */
+-/*@{*/
++#define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
+ #define __DRI_CTX_RESET_NO_NOTIFICATION		0
+ #define __DRI_CTX_RESET_LOSE_CONTEXT		1
+-/*@}*/
+ 
++/**
++ * \name Context priority levels.
++ */
+ #define __DRI_CTX_ATTRIB_PRIORITY		4
+-
+ #define __DRI_CTX_PRIORITY_LOW			0
+ #define __DRI_CTX_PRIORITY_MEDIUM		1
+ #define __DRI_CTX_PRIORITY_HIGH			2
+ 
+-/**
+- * \name Context release behaviors.
+- */
+-/*@{*/
+ #define __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR	5
+-
+ #define __DRI_CTX_RELEASE_BEHAVIOR_NONE         0
+ #define __DRI_CTX_RELEASE_BEHAVIOR_FLUSH        1
+-/*@}*/
++
++#define __DRI_CTX_ATTRIB_NO_ERROR               6
++
++#define __DRI_CTX_NUM_ATTRIBS                   7
+ 
+ /**
+  * \name Reasons that __DRIdri2Extension::createContextAttribs might fail
+@@ -1883,10 +1869,13 @@ struct __DRIrobustnessExtensionRec {
+ };
+ 
+ /**
+- * No-error context driver extension.
++ * No-error context driver extension (deprecated).
+  *
+  * Existence of this extension means the driver can accept the
+  * __DRI_CTX_FLAG_NO_ERROR flag.
++ *
++ * This extension is deprecated, and modern loaders will not use it. Please
++ * use __DRI2_NO_ERROR2 instead.
+  */
+ #define __DRI2_NO_ERROR "DRI_NoError"
+ #define __DRI2_NO_ERROR_VERSION 1
+@@ -1895,6 +1884,19 @@ typedef struct __DRInoErrorExtensionRec {
+    __DRIextension base;
+ } __DRInoErrorExtension;
+ 
++/*
++ * No-error context driver extension.
++ *
++ * Existence of this extension means the driver can accept the
++ * __DRI_CTX_ATTRIB_NO_ERROR attribute.
++ */
++#define __DRI2_NO_ERROR2 "DRI_NoError2"
++#define __DRI2_NO_ERROR2_VERSION 1
++
++typedef struct __DRInoError2ExtensionRec {
++   __DRIextension base;
++} __DRInoError2Extension;
++
+ /*
+  * Flush control driver extension.
+  *
+diff --git a/src/egl/drivers/dri2/egl_dri2.c b/src/egl/drivers/dri2/egl_dri2.c
+index 99b05579c7101437837d206276ab30d7003cb4f9..edb238804b2971c63f7ee415176b9948866f0243 100644
+--- a/src/egl/drivers/dri2/egl_dri2.c
++++ b/src/egl/drivers/dri2/egl_dri2.c
+@@ -721,7 +721,7 @@ static const struct dri2_extension_match optional_driver_extensions[] = {
+ 
+ static const struct dri2_extension_match optional_core_extensions[] = {
+    { __DRI2_ROBUSTNESS, 1, offsetof(struct dri2_egl_display, robustness) },
+-   { __DRI2_NO_ERROR, 1, offsetof(struct dri2_egl_display, no_error) },
++   { __DRI2_NO_ERROR2, 1, offsetof(struct dri2_egl_display, no_error) },
+    { __DRI2_CONFIG_QUERY, 1, offsetof(struct dri2_egl_display, config) },
+    { __DRI2_FENCE, 1, offsetof(struct dri2_egl_display, fence) },
+    { __DRI2_BUFFER_DAMAGE, 1, offsetof(struct dri2_egl_display, buffer_damage) },
+@@ -1388,7 +1388,7 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+    ctx_attribs[pos++] = __DRI_CTX_ATTRIB_MINOR_VERSION;
+    ctx_attribs[pos++] = dri2_ctx->base.ClientMinorVersion;
+ 
+-   if (dri2_ctx->base.Flags != 0 || dri2_ctx->base.NoError) {
++   if (dri2_ctx->base.Flags != 0) {
+       /* If the implementation doesn't support the __DRI2_ROBUSTNESS
+        * extension, don't even try to send it the robust-access flag.
+        * It may explode.  Instead, generate the required EGL error here.
+@@ -1400,8 +1400,7 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+       }
+ 
+       ctx_attribs[pos++] = __DRI_CTX_ATTRIB_FLAGS;
+-      ctx_attribs[pos++] = dri2_ctx->base.Flags |
+-         (dri2_ctx->base.NoError ? __DRI_CTX_FLAG_NO_ERROR : 0);
++      ctx_attribs[pos++] = dri2_ctx->base.Flags;
+    }
+ 
+    if (dri2_ctx->base.ResetNotificationStrategy != EGL_NO_RESET_NOTIFICATION_KHR) {
+@@ -1445,6 +1444,11 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+       ctx_attribs[pos++] = __DRI_CTX_RELEASE_BEHAVIOR_NONE;
+    }
+ 
++   if (dri2_ctx->base.NoError) {
++      ctx_attribs[pos++] = __DRI_CTX_ATTRIB_NO_ERROR;
++      ctx_attribs[pos++] = true;
++   }
++
+    *num_attribs = pos;
+ 
+    return true;
+diff --git a/src/egl/drivers/dri2/egl_dri2.h b/src/egl/drivers/dri2/egl_dri2.h
+index 6a7eedea1125ec716ce64b18446a7bb43c219402..c2b5f2868ed0a57e74ebe54b6e6ac8843201468c 100644
+--- a/src/egl/drivers/dri2/egl_dri2.h
++++ b/src/egl/drivers/dri2/egl_dri2.h
+@@ -192,7 +192,7 @@ struct dri2_egl_display
+    const __DRItexBufferExtension  *tex_buffer;
+    const __DRIimageExtension      *image;
+    const __DRIrobustnessExtension *robustness;
+-   const __DRInoErrorExtension    *no_error;
++   const __DRInoError2Extension    *no_error;
+    const __DRI2configQueryExtension *config;
+    const __DRI2fenceExtension *fence;
+    const __DRI2bufferDamageExtension *buffer_damage;
+diff --git a/src/gallium/frontends/dri/dri2.c b/src/gallium/frontends/dri/dri2.c
+index 6dcbd3365c2432191c91b70b0a35f61bf9d2a92c..19621348c1e7edac935d069f4faae29b940f3d6c 100644
+--- a/src/gallium/frontends/dri/dri2.c
++++ b/src/gallium/frontends/dri/dri2.c
+@@ -2233,7 +2233,7 @@ static const __DRIextension *dri_screen_extensions_base[] = {
+    &dri2ThrottleExtension.base,
+    &dri2FenceExtension.base,
+    &dri2InteropExtension.base,
+-   &dri2NoErrorExtension.base,
++   &dri2NoError2Extension.base,
+    &driBlobExtension.base,
+    &driMutableRenderBufferExtension.base,
+ };
+diff --git a/src/gallium/frontends/dri/dri_context.c b/src/gallium/frontends/dri/dri_context.c
+index 55bfa224bcfeeeacfb3d548d54d1720f9dd634a2..1921b3cfe6b57827e84bc39973cfae3f1542aede 100644
+--- a/src/gallium/frontends/dri/dri_context.c
++++ b/src/gallium/frontends/dri/dri_context.c
+@@ -57,11 +57,11 @@ dri_create_context(gl_api api, const struct gl_config * visual,
+    struct st_context_attribs attribs;
+    enum st_context_error ctx_err = 0;
+    unsigned allowed_flags = __DRI_CTX_FLAG_DEBUG |
+-                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE |
+-                            __DRI_CTX_FLAG_NO_ERROR;
++                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE;
+    unsigned allowed_attribs =
+       __DRIVER_CONTEXT_ATTRIB_PRIORITY |
+-      __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
++      __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR |
++      __DRIVER_CONTEXT_ATTRIB_NO_ERROR;
+    const __DRIbackgroundCallableExtension *backgroundCallable =
+       screen->sPriv->dri2.backgroundCallable;
+    const struct driOptionCache *optionCache = &screen->dev->option_cache;
+@@ -119,8 +119,8 @@ dri_create_context(gl_api api, const struct gl_config * visual,
+       if (ctx_config->reset_strategy != __DRI_CTX_RESET_NO_NOTIFICATION)
+          attribs.flags |= ST_CONTEXT_FLAG_RESET_NOTIFICATION_ENABLED;
+ 
+-   if (ctx_config->flags & __DRI_CTX_FLAG_NO_ERROR)
+-      attribs.flags |= ST_CONTEXT_FLAG_NO_ERROR;
++   if (ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_NO_ERROR)
++      attribs.flags |= ctx_config->no_error ? ST_CONTEXT_FLAG_NO_ERROR : 0;
+ 
+    if (ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_PRIORITY) {
+       switch (ctx_config->priority) {
+diff --git a/src/gallium/frontends/dri/drisw.c b/src/gallium/frontends/dri/drisw.c
+index 5f5d475c45fce166a0bef8b1dae39815b92429cb..2da77ca72ffbd5545a78b040bb8965fe0d368a06 100644
+--- a/src/gallium/frontends/dri/drisw.c
++++ b/src/gallium/frontends/dri/drisw.c
+@@ -465,7 +465,7 @@ static const __DRIextension *drisw_screen_extensions[] = {
+    &dri2RendererQueryExtension.base,
+    &dri2ConfigQueryExtension.base,
+    &dri2FenceExtension.base,
+-   &dri2NoErrorExtension.base,
++   &dri2NoError2Extension.base,
+    &driSWImageExtension.base,
+    &dri2FlushControlExtension.base,
+    NULL
+@@ -476,7 +476,7 @@ static const __DRIextension *drisw_robust_screen_extensions[] = {
+    &dri2RendererQueryExtension.base,
+    &dri2ConfigQueryExtension.base,
+    &dri2FenceExtension.base,
+-   &dri2NoErrorExtension.base,
++   &dri2NoError2Extension.base,
+    &dri2Robustness.base,
+    &driSWImageExtension.base,
+    &dri2FlushControlExtension.base,
+diff --git a/src/glx/create_context.c b/src/glx/create_context.c
+index 7e1cec98c6470d48396290360d0da720fdecc116..12e68e672a6133db476f0b17154762e6ab34cc45 100644
+--- a/src/glx/create_context.c
++++ b/src/glx/create_context.c
+@@ -54,7 +54,7 @@ glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config,
+    struct glx_screen *psc;
+    xcb_generic_error_t *err;
+    xcb_void_cookie_t cookie;
+-   unsigned dummy_err = 0;
++   unsigned error = BadImplementation;
+    uint32_t xid, share_xid;
+    int screen = -1;
+ 
+@@ -92,24 +92,30 @@ glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config,
+ 
+    assert(screen == psc->scr);
+ 
++#ifdef GLX_USE_APPLEGL
++   gc = applegl_create_context(psc, cfg, share, 0);
++#else
+    if (direct && psc->vtable->create_context_attribs) {
+-      /* GLX drops the error returned by the driver.  The expectation is that
+-       * an error will also be returned by the server.  The server's error
+-       * will be delivered to the application.
+-       */
+       gc = psc->vtable->create_context_attribs(psc, cfg, share, num_attribs,
+ 					       (const uint32_t *) attrib_list,
+-					       &dummy_err);
++					       &error);
++   } else if (!direct) {
++      gc = indirect_create_context_attribs(psc, cfg, share, num_attribs,
++                                           (const uint32_t *) attrib_list,
++                                           &error);
+    }
++#endif
+ 
+    if (gc == NULL) {
+-#ifdef GLX_USE_APPLEGL
+-      gc = applegl_create_context(psc, cfg, share, 0);
+-#else
+-      gc = indirect_create_context_attribs(psc, cfg, share, num_attribs,
+-              (const uint32_t *) attrib_list,
+-              &dummy_err);
+-#endif
++      /* -1 isn't a legal XID, which is sort of the point, we've failed
++       * before we even got to XID allocation.
++       */
++      if (error == GLXBadContext || error == GLXBadFBConfig ||
++          error == GLXBadProfileARB)
++         __glXSendError(dpy, error, -1, 0, False);
++      else
++         __glXSendError(dpy, error, -1, 0, True);
++      return NULL;
+    }
+ 
+    xid = xcb_generate_id(c);
+@@ -141,15 +147,6 @@ glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config,
+ 
+       __glXSendErrorForXcb(dpy, err);
+       free(err);
+-   } else if (!gc) {
+-      /* the server thought the context description was okay, but we failed
+-       * somehow on the client side. clean up the server resource and panic.
+-       */
+-      xcb_glx_destroy_context(c, xid);
+-      /* increment dpy->request in order to give a unique serial number to the
+-       * error */
+-      XNoOp(dpy);
+-      __glXSendError(dpy, GLXBadFBConfig, xid, 0, False);
+    } else {
+       gc->xid = xid;
+       gc->share_xid = share_xid;
+diff --git a/src/glx/dri2_glx.c b/src/glx/dri2_glx.c
+index e681042bdc5117ef7c2b107c240e5cab868520d5..7f8132330ec69e34b0aaeee660ce0bd90fab8c50 100644
+--- a/src/glx/dri2_glx.c
++++ b/src/glx/dri2_glx.c
+@@ -190,42 +190,34 @@ dri2_create_context_attribs(struct glx_screen *base,
+    __GLXDRIconfigPrivate *config = (__GLXDRIconfigPrivate *) config_base;
+    __DRIcontext *shared = NULL;
+ 
+-   uint32_t minor_ver;
+-   uint32_t major_ver;
+-   uint32_t renderType;
+-   uint32_t flags;
+-   unsigned api;
+-   int reset;
+-   int release;
++   struct dri_ctx_attribs dca;
+    uint32_t ctx_attribs[2 * 6];
+    unsigned num_ctx_attribs = 0;
+ 
+-   if (psc->dri2->base.version < 3) {
+-      *error = __DRI_CTX_ERROR_NO_MEMORY;
+-      goto error_exit;
+-   }
+-
+-   /* Remap the GLX tokens to DRI2 tokens.
+-    */
+-   if (!dri2_convert_glx_attribs(num_attribs, attribs,
+-                                 &major_ver, &minor_ver, &renderType, &flags,
+-                                 &api, &reset, &release, error))
++   *error = dri_convert_glx_attribs(num_attribs, attribs, &dca);
++   if (*error != __DRI_CTX_ERROR_SUCCESS)
+       goto error_exit;
+ 
+-   if (!dri2_check_no_error(flags, shareList, major_ver, error)) {
++   /* Check the renderType value */
++   if (!validate_renderType_against_config(config_base, dca.render_type)) {
++      *error = BadValue;
+       goto error_exit;
+    }
+ 
+-   /* Check the renderType value */
+-   if (!validate_renderType_against_config(config_base, renderType))
+-       goto error_exit;
+-
+    if (shareList) {
+-      /* If the shareList context is not a DRI2 context, we cannot possibly
+-       * create a DRI2 context that shares it.
++      /* We can't share with an indirect context */
++      if (!shareList->isDirect)
++         return NULL;
++
++      /* The GLX_ARB_create_context_no_error specs say:
++       *
++       *    BadMatch is generated if the value of GLX_CONTEXT_OPENGL_NO_ERROR_ARB
++       *    used to create <share_context> does not match the value of
++       *    GLX_CONTEXT_OPENGL_NO_ERROR_ARB for the context being created.
+        */
+-      if (shareList->vtable->destroy != dri2_destroy_context) {
+-	 return NULL;
++      if (!!shareList->noError != !!dca.no_error) {
++         *error = BadMatch;
++         return NULL;
+       }
+ 
+       pcp_shared = (struct dri2_context *) shareList;
+@@ -234,7 +226,7 @@ dri2_create_context_attribs(struct glx_screen *base,
+ 
+    pcp = calloc(1, sizeof *pcp);
+    if (pcp == NULL) {
+-      *error = __DRI_CTX_ERROR_NO_MEMORY;
++      *error = BadAlloc;
+       goto error_exit;
+    }
+ 
+@@ -242,44 +234,43 @@ dri2_create_context_attribs(struct glx_screen *base,
+       goto error_exit;
+ 
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MAJOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = major_ver;
++   ctx_attribs[num_ctx_attribs++] = dca.major_ver;
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MINOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = minor_ver;
++   ctx_attribs[num_ctx_attribs++] = dca.minor_ver;
+ 
+    /* Only send a value when the non-default value is requested.  By doing
+     * this we don't have to check the driver's DRI2 version before sending the
+     * default value.
+     */
+-   if (reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
++   if (dca.reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
+       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RESET_STRATEGY;
+-      ctx_attribs[num_ctx_attribs++] = reset;
++      ctx_attribs[num_ctx_attribs++] = dca.reset;
+    }
+ 
+-   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
++   if (dca.release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
+       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR;
+-      ctx_attribs[num_ctx_attribs++] = release;
++      ctx_attribs[num_ctx_attribs++] = dca.release;
+    }
+ 
+-   if (flags != 0) {
+-      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_FLAGS;
++   if (dca.no_error) {
++      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_NO_ERROR;
++      ctx_attribs[num_ctx_attribs++] = dca.no_error;
++      pcp->base.noError = GL_TRUE;
++   }
+ 
+-      /* The current __DRI_CTX_FLAG_* values are identical to the
+-       * GLX_CONTEXT_*_BIT values.
+-       */
+-      ctx_attribs[num_ctx_attribs++] = flags;
++   if (dca.flags != 0) {
++      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_FLAGS;
++      ctx_attribs[num_ctx_attribs++] = dca.flags;
+    }
+ 
+    /* The renderType is retrieved from attribs, or set to default
+     *  of GLX_RGBA_TYPE.
+     */
+-   pcp->base.renderType = renderType;
+-
+-   if (flags & __DRI_CTX_FLAG_NO_ERROR)
+-      pcp->base.noError = GL_TRUE;
++   pcp->base.renderType = dca.render_type;
+ 
+    pcp->driContext =
+       (*psc->dri2->createContextAttribs) (psc->driScreen,
+-					  api,
++					  dca.api,
+ 					  config ? config->driConfig : NULL,
+ 					  shared,
+ 					  num_ctx_attribs / 2,
+@@ -287,10 +278,12 @@ dri2_create_context_attribs(struct glx_screen *base,
+ 					  error,
+ 					  pcp);
+ 
++   *error = dri_context_error_to_glx_error(*error);
++
+    if (pcp->driContext == NULL)
+       goto error_exit;
+ 
+-   pcp->base.vtable = &dri2_context_vtable;
++   pcp->base.vtable = base->context_vtable;
+ 
+    return &pcp->base;
+ 
+@@ -1050,6 +1043,7 @@ dri2BindExtensions(struct dri2_screen *psc, struct glx_display * priv,
+ {
+    const struct dri2_display *const pdp = (struct dri2_display *)
+       priv->dri2Display;
++   const unsigned mask = psc->dri2->getAPIMask(psc->driScreen);
+    const __DRIextension **extensions;
+    int i;
+ 
+@@ -1077,21 +1071,17 @@ dri2BindExtensions(struct dri2_screen *psc, struct glx_display * priv,
+       __glXEnableDirectExtension(&psc->base, "GLX_INTEL_swap_event");
+    }
+ 
+-   if (psc->dri2->base.version >= 3) {
+-      const unsigned mask = psc->dri2->getAPIMask(psc->driScreen);
+-
+-      __glXEnableDirectExtension(&psc->base, "GLX_ARB_create_context");
+-      __glXEnableDirectExtension(&psc->base, "GLX_ARB_create_context_profile");
+-      __glXEnableDirectExtension(&psc->base, "GLX_EXT_no_config_context");
+-
+-      if ((mask & ((1 << __DRI_API_GLES) |
+-                   (1 << __DRI_API_GLES2) |
+-                   (1 << __DRI_API_GLES3))) != 0) {
+-         __glXEnableDirectExtension(&psc->base,
+-                                    "GLX_EXT_create_context_es_profile");
+-         __glXEnableDirectExtension(&psc->base,
+-                                    "GLX_EXT_create_context_es2_profile");
+-      }
++   __glXEnableDirectExtension(&psc->base, "GLX_ARB_create_context");
++   __glXEnableDirectExtension(&psc->base, "GLX_ARB_create_context_profile");
++   __glXEnableDirectExtension(&psc->base, "GLX_EXT_no_config_context");
++
++   if ((mask & ((1 << __DRI_API_GLES) |
++                (1 << __DRI_API_GLES2) |
++                (1 << __DRI_API_GLES3))) != 0) {
++      __glXEnableDirectExtension(&psc->base,
++                                 "GLX_EXT_create_context_es_profile");
++      __glXEnableDirectExtension(&psc->base,
++                                 "GLX_EXT_create_context_es2_profile");
+    }
+ 
+    for (i = 0; extensions[i]; i++) {
+@@ -1111,27 +1101,15 @@ dri2BindExtensions(struct dri2_screen *psc, struct glx_display * priv,
+       if (((strcmp(extensions[i]->name, __DRI2_THROTTLE) == 0)))
+ 	 psc->throttle = (__DRI2throttleExtension *) extensions[i];
+ 
+-      /* DRI2 version 3 is also required because
+-       * GLX_ARB_create_context_robustness requires GLX_ARB_create_context.
+-       */
+-      if (psc->dri2->base.version >= 3
+-          && strcmp(extensions[i]->name, __DRI2_ROBUSTNESS) == 0)
++      if (strcmp(extensions[i]->name, __DRI2_ROBUSTNESS) == 0)
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_create_context_robustness");
+ 
+-      /* DRI2 version 3 is also required because
+-       * GLX_ARB_create_context_no_error requires GLX_ARB_create_context.
+-       */
+-      if (psc->dri2->base.version >= 3
+-          && strcmp(extensions[i]->name, __DRI2_NO_ERROR) == 0)
++      if (strcmp(extensions[i]->name, __DRI2_NO_ERROR2) == 0)
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_create_context_no_error");
+ 
+-      /* DRI2 version 3 is also required because GLX_MESA_query_renderer
+-       * requires GLX_ARB_create_context_profile.
+-       */
+-      if (psc->dri2->base.version >= 3
+-          && strcmp(extensions[i]->name, __DRI2_RENDERER_QUERY) == 0) {
++      if (strcmp(extensions[i]->name, __DRI2_RENDERER_QUERY) == 0) {
+          psc->rendererQuery = (__DRI2rendererQueryExtension *) extensions[i];
+          __glXEnableDirectExtension(&psc->base, "GLX_MESA_query_renderer");
+       }
+@@ -1139,11 +1117,7 @@ dri2BindExtensions(struct dri2_screen *psc, struct glx_display * priv,
+       if (strcmp(extensions[i]->name, __DRI2_INTEROP) == 0)
+ 	 psc->interop = (__DRI2interopExtension*)extensions[i];
+ 
+-      /* DRI2 version 3 is also required because
+-       * GLX_ARB_control_flush_control requires GLX_ARB_create_context.
+-       */
+-      if (psc->dri2->base.version >= 3
+-          && strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0)
++      if (strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0)
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_context_flush_control");
+    }
+@@ -1235,7 +1209,7 @@ dri2CreateScreen(int screen, struct glx_display * priv)
+ 	 psc->dri2 = (__DRIdri2Extension *) extensions[i];
+    }
+ 
+-   if (psc->core == NULL || psc->dri2 == NULL) {
++   if (psc->core == NULL || psc->dri2 || psc->dri2->base.version < 3) {
+       ErrorMessageF("core dri or dri2 extension not found\n");
+       goto handle_error;
+    }
+@@ -1278,6 +1252,7 @@ dri2CreateScreen(int screen, struct glx_display * priv)
+    psc->driver_configs = driver_configs;
+ 
+    psc->base.vtable = &dri2_screen_vtable;
++   psc->base.context_vtable = &dri2_context_vtable;
+    psp = &psc->vtable;
+    psc->base.driScreen = psp;
+    psp->destroyScreen = dri2DestroyScreen;
+diff --git a/src/glx/dri3_glx.c b/src/glx/dri3_glx.c
+index db1b079663f73d3f4f49e8218281592e6fa95441..923900c22bbb51c03a1d9207b49bdda388ad9db4 100644
+--- a/src/glx/dri3_glx.c
++++ b/src/glx/dri3_glx.c
+@@ -241,38 +241,34 @@ dri3_create_context_attribs(struct glx_screen *base,
+    __GLXDRIconfigPrivate *config = (__GLXDRIconfigPrivate *) config_base;
+    __DRIcontext *shared = NULL;
+ 
+-   uint32_t minor_ver = 1;
+-   uint32_t major_ver = 2;
+-   uint32_t flags = 0;
+-   unsigned api;
+-   int reset = __DRI_CTX_RESET_NO_NOTIFICATION;
+-   int release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
++   struct dri_ctx_attribs dca;
+    uint32_t ctx_attribs[2 * 6];
+    unsigned num_ctx_attribs = 0;
+-   uint32_t render_type;
+ 
+-   /* Remap the GLX tokens to DRI2 tokens.
+-    */
+-   if (!dri2_convert_glx_attribs(num_attribs, attribs,
+-                                 &major_ver, &minor_ver,
+-                                 &render_type, &flags, &api,
+-                                 &reset, &release, error))
++   *error = dri_convert_glx_attribs(num_attribs, attribs, &dca);
++   if (*error != __DRI_CTX_ERROR_SUCCESS)
+       goto error_exit;
+ 
+-   if (!dri2_check_no_error(flags, shareList, major_ver, error)) {
++   /* Check the renderType value */
++   if (!validate_renderType_against_config(config_base, dca.render_type)) {
++      *error = BadValue;
+       goto error_exit;
+    }
+ 
+-   /* Check the renderType value */
+-   if (!validate_renderType_against_config(config_base, render_type))
+-       goto error_exit;
+-
+    if (shareList) {
+-      /* If the shareList context is not a DRI3 context, we cannot possibly
+-       * create a DRI3 context that shares it.
++      /* We can't share with an indirect context */
++      if (!shareList->isDirect)
++         return NULL;
++
++      /* The GLX_ARB_create_context_no_error specs say:
++       *
++       *    BadMatch is generated if the value of GLX_CONTEXT_OPENGL_NO_ERROR_ARB
++       *    used to create <share_context> does not match the value of
++       *    GLX_CONTEXT_OPENGL_NO_ERROR_ARB for the context being created.
+        */
+-      if (shareList->vtable->destroy != dri3_destroy_context) {
+-	 return NULL;
++      if (!!shareList->noError != !!dca.no_error) {
++         *error = BadMatch;
++         return NULL;
+       }
+ 
+       pcp_shared = (struct dri3_context *) shareList;
+@@ -281,7 +277,7 @@ dri3_create_context_attribs(struct glx_screen *base,
+ 
+    pcp = calloc(1, sizeof *pcp);
+    if (pcp == NULL) {
+-      *error = __DRI_CTX_ERROR_NO_MEMORY;
++      *error = BadAlloc;
+       goto error_exit;
+    }
+ 
+@@ -289,39 +285,38 @@ dri3_create_context_attribs(struct glx_screen *base,
+       goto error_exit;
+ 
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MAJOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = major_ver;
++   ctx_attribs[num_ctx_attribs++] = dca.major_ver;
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MINOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = minor_ver;
++   ctx_attribs[num_ctx_attribs++] = dca.minor_ver;
+ 
+    /* Only send a value when the non-default value is requested.  By doing
+     * this we don't have to check the driver's DRI3 version before sending the
+     * default value.
+     */
+-   if (reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
++   if (dca.reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
+       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RESET_STRATEGY;
+-      ctx_attribs[num_ctx_attribs++] = reset;
++      ctx_attribs[num_ctx_attribs++] = dca.reset;
+    }
+ 
+-   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
++   if (dca.release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
+       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR;
+-      ctx_attribs[num_ctx_attribs++] = release;
++      ctx_attribs[num_ctx_attribs++] = dca.release;
+    }
+ 
+-   if (flags != 0) {
+-      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_FLAGS;
+-
+-      /* The current __DRI_CTX_FLAG_* values are identical to the
+-       * GLX_CONTEXT_*_BIT values.
+-       */
+-      ctx_attribs[num_ctx_attribs++] = flags;
++   if (dca.no_error) {
++      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_NO_ERROR;
++      ctx_attribs[num_ctx_attribs++] = dca.no_error;
++      pcp->base.noError = GL_TRUE;
++   }
+ 
+-      if (flags & __DRI_CTX_FLAG_NO_ERROR)
+-         pcp->base.noError = GL_TRUE;
++   if (dca.flags != 0) {
++      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_FLAGS;
++      ctx_attribs[num_ctx_attribs++] = dca.flags;
+    }
+ 
+    pcp->driContext =
+       (*psc->image_driver->createContextAttribs) (psc->driScreen,
+-                                                  api,
++                                                  dca.api,
+                                                   config ? config->driConfig
+                                                          : NULL,
+                                                   shared,
+@@ -330,10 +325,12 @@ dri3_create_context_attribs(struct glx_screen *base,
+                                                   error,
+                                                   pcp);
+ 
++   *error = dri_context_error_to_glx_error(*error);
++
+    if (pcp->driContext == NULL)
+       goto error_exit;
+ 
+-   pcp->base.vtable = &dri3_context_vtable;
++   pcp->base.vtable = base->context_vtable;
+ 
+    return &pcp->base;
+ 
+@@ -785,7 +782,7 @@ dri3_bind_extensions(struct dri3_screen *psc, struct glx_display * priv,
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_create_context_robustness");
+ 
+-      if (strcmp(extensions[i]->name, __DRI2_NO_ERROR) == 0)
++      if (strcmp(extensions[i]->name, __DRI2_NO_ERROR2) == 0)
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_create_context_no_error");
+ 
+@@ -991,6 +988,7 @@ dri3_create_screen(int screen, struct glx_display * priv)
+    psc->driver_configs = driver_configs;
+ 
+    psc->base.vtable = &dri3_screen_vtable;
++   psc->base.context_vtable = &dri3_context_vtable;
+    psp = &psc->vtable;
+    psc->base.driScreen = psp;
+    psp->destroyScreen = dri3_destroy_screen;
+diff --git a/src/glx/dri_common.c b/src/glx/dri_common.c
+index 8fe8802bed7893cf15e1cba83477a0e2b5afb02e..e0ae789190112aa712a599af942d8eaf9431ede4 100644
+--- a/src/glx/dri_common.c
++++ b/src/glx/dri_common.c
+@@ -418,144 +418,113 @@ driReleaseDrawables(struct glx_context *gc)
+ 
+ }
+ 
+-_X_HIDDEN bool
+-dri2_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
+-                         unsigned *major_ver, unsigned *minor_ver,
+-                         uint32_t *render_type, uint32_t *flags, unsigned *api,
+-                         int *reset, int *release, unsigned *error)
++_X_HIDDEN int
++dri_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
++                        struct dri_ctx_attribs *dca)
+ {
+    unsigned i;
+-   bool got_profile = false;
+-   int no_error = 0;
+-   uint32_t profile;
+-
+-   *major_ver = 1;
+-   *minor_ver = 0;
+-   *render_type = GLX_RGBA_TYPE;
+-   *reset = __DRI_CTX_RESET_NO_NOTIFICATION;
+-   *release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
+-   *flags = 0;
+-   *api = __DRI_API_OPENGL;
+-
+-   if (num_attribs == 0) {
+-      return true;
+-   }
++   uint32_t profile = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+ 
+-   /* This is actually an internal error, but what the heck.
+-    */
+-   if (attribs == NULL) {
+-      *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+-      return false;
+-   }
++   dca->major_ver = 1;
++   dca->minor_ver = 0;
++   dca->render_type = GLX_RGBA_TYPE;
++   dca->reset = __DRI_CTX_RESET_NO_NOTIFICATION;
++   dca->release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
++   dca->flags = 0;
++   dca->api = __DRI_API_OPENGL;
++   dca->no_error = 0;
+ 
+    for (i = 0; i < num_attribs; i++) {
+       switch (attribs[i * 2]) {
+       case GLX_CONTEXT_MAJOR_VERSION_ARB:
+-	 *major_ver = attribs[i * 2 + 1];
++	 dca->major_ver = attribs[i * 2 + 1];
+ 	 break;
+       case GLX_CONTEXT_MINOR_VERSION_ARB:
+-	 *minor_ver = attribs[i * 2 + 1];
++	 dca->minor_ver = attribs[i * 2 + 1];
+ 	 break;
+       case GLX_CONTEXT_FLAGS_ARB:
+-	 *flags = attribs[i * 2 + 1];
++	 dca->flags = attribs[i * 2 + 1];
+ 	 break;
+       case GLX_CONTEXT_OPENGL_NO_ERROR_ARB:
+-	 no_error = attribs[i * 2 + 1];
++	 dca->no_error = attribs[i * 2 + 1];
+ 	 break;
+       case GLX_CONTEXT_PROFILE_MASK_ARB:
+ 	 profile = attribs[i * 2 + 1];
+-	 got_profile = true;
+ 	 break;
+       case GLX_RENDER_TYPE:
+-         *render_type = attribs[i * 2 + 1];
++         dca->render_type = attribs[i * 2 + 1];
+ 	 break;
+       case GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB:
+          switch (attribs[i * 2 + 1]) {
+          case GLX_NO_RESET_NOTIFICATION_ARB:
+-            *reset = __DRI_CTX_RESET_NO_NOTIFICATION;
++            dca->reset = __DRI_CTX_RESET_NO_NOTIFICATION;
+             break;
+          case GLX_LOSE_CONTEXT_ON_RESET_ARB:
+-            *reset = __DRI_CTX_RESET_LOSE_CONTEXT;
++            dca->reset = __DRI_CTX_RESET_LOSE_CONTEXT;
+             break;
+          default:
+-            *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+-            return false;
++            return BadValue;
+          }
+          break;
+       case GLX_CONTEXT_RELEASE_BEHAVIOR_ARB:
+          switch (attribs[i * 2 + 1]) {
+          case GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB:
+-            *release = __DRI_CTX_RELEASE_BEHAVIOR_NONE;
++            dca->release = __DRI_CTX_RELEASE_BEHAVIOR_NONE;
+             break;
+          case GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB:
+-            *release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
++            dca->release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
+             break;
+          default:
+-            *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+-            return false;
++            return BadValue;
+          }
+          break;
+       case GLX_SCREEN:
+          /* Implies GLX_EXT_no_config_context */
+-         *render_type = GLX_DONT_CARE;
++         dca->render_type = GLX_DONT_CARE;
+          break;
+       default:
+ 	 /* If an unknown attribute is received, fail.
+ 	  */
+-	 *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+-	 return false;
++	 return BadValue;
+       }
+    }
+ 
+-   if (no_error) {
+-      *flags |= __DRI_CTX_FLAG_NO_ERROR;
+-   }
+-
+-   if (!got_profile) {
+-      if (*major_ver > 3 || (*major_ver == 3 && *minor_ver >= 2))
+-	 *api = __DRI_API_OPENGL_CORE;
+-   } else {
+-      switch (profile) {
+-      case GLX_CONTEXT_CORE_PROFILE_BIT_ARB:
+-	 /* There are no profiles before OpenGL 3.2.  The
+-	  * GLX_ARB_create_context_profile spec says:
+-	  *
+-	  *     "If the requested OpenGL version is less than 3.2,
+-	  *     GLX_CONTEXT_PROFILE_MASK_ARB is ignored and the functionality
+-	  *     of the context is determined solely by the requested version."
+-	  */
+-	 *api = (*major_ver > 3 || (*major_ver == 3 && *minor_ver >= 2))
+-	    ? __DRI_API_OPENGL_CORE : __DRI_API_OPENGL;
+-	 break;
+-      case GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB:
+-	 *api = __DRI_API_OPENGL;
+-	 break;
+-      case GLX_CONTEXT_ES_PROFILE_BIT_EXT:
+-         if (*major_ver >= 3)
+-            *api = __DRI_API_GLES3;
+-         else if (*major_ver == 2 && *minor_ver == 0)
+-            *api = __DRI_API_GLES2;
+-         else if (*major_ver == 1 && *minor_ver < 2)
+-            *api = __DRI_API_GLES;
+-         else {
+-            *error = __DRI_CTX_ERROR_BAD_API;
+-            return false;
+-         }
+-         break;
+-      default:
+-	 *error = __DRI_CTX_ERROR_BAD_API;
+-	 return false;
++   switch (profile) {
++   case GLX_CONTEXT_CORE_PROFILE_BIT_ARB:
++      /* This is the default value, but there are no profiles before OpenGL
++       * 3.2. The GLX_ARB_create_context_profile spec says:
++       *
++       *     "If the requested OpenGL version is less than 3.2,
++       *     GLX_CONTEXT_PROFILE_MASK_ARB is ignored and the functionality
++       *     of the context is determined solely by the requested version."
++       */
++      dca->api = (dca->major_ver > 3 || (dca->major_ver == 3 && dca->minor_ver >= 2))
++         ? __DRI_API_OPENGL_CORE : __DRI_API_OPENGL;
++      break;
++   case GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB:
++      dca->api = __DRI_API_OPENGL;
++      break;
++   case GLX_CONTEXT_ES_PROFILE_BIT_EXT:
++      if (dca->major_ver >= 3)
++         dca->api = __DRI_API_GLES3;
++      else if (dca->major_ver == 2 && dca->minor_ver == 0)
++         dca->api = __DRI_API_GLES2;
++      else if (dca->major_ver == 1 && dca->minor_ver < 2)
++         dca->api = __DRI_API_GLES;
++      else {
++         return BadValue;
+       }
++      break;
++   default:
++      return GLXBadProfileARB;
+    }
+ 
+-   /* Unknown flag value.
+-    */
+-   if (*flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
+-                  | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
+-                  | __DRI_CTX_FLAG_NO_ERROR)) {
+-      *error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+-      return false;
+-   }
++   /* Unknown flag value */
++   if (dca->flags & ~(__DRI_CTX_FLAG_DEBUG |
++                      __DRI_CTX_FLAG_FORWARD_COMPATIBLE |
++                      __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
++                      __DRI_CTX_FLAG_RESET_ISOLATION))
++      return BadValue;
+ 
+    /* There are no forward-compatible contexts before OpenGL 3.0.  The
+     * GLX_ARB_create_context spec says:
+@@ -563,45 +532,24 @@ dri2_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
+     *     "Forward-compatible contexts are defined only for OpenGL versions
+     *     3.0 and later."
+     */
+-   if (*major_ver < 3 && (*flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0) {
+-      *error = __DRI_CTX_ERROR_BAD_FLAG;
+-      return false;
+-   }
+-
+-   if (*major_ver >= 3 && *render_type == GLX_COLOR_INDEX_TYPE) {
+-      *error = __DRI_CTX_ERROR_BAD_FLAG;
+-      return false;
+-   }
+-
+-   *error = __DRI_CTX_ERROR_SUCCESS;
+-   return true;
+-}
+-
+-_X_HIDDEN bool
+-dri2_check_no_error(uint32_t flags, struct glx_context *share_context,
+-                    int major, unsigned *error)
+-{
+-   Bool noError = flags & __DRI_CTX_FLAG_NO_ERROR;
++   if (dca->major_ver < 3 && (dca->flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0)
++      return BadMatch;
+ 
+-   /* The KHR_no_error specs say:
++   /* It also says:
+     *
+-    *    Requires OpenGL ES 2.0 or OpenGL 2.0.
++    *    "OpenGL contexts supporting version 3.0 or later of the API do not
++    *    support color index rendering, even if a color index <config> is
++    *    available."
+     */
+-   if (noError && major < 2) {
+-      *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+-      return false;
+-   }
++   if (dca->major_ver >= 3 && dca->render_type == GLX_COLOR_INDEX_TYPE)
++      return BadMatch;
+ 
+-   /* The GLX_ARB_create_context_no_error specs say:
++   /* The KHR_no_error specs say:
+     *
+-    *    BadMatch is generated if the value of GLX_CONTEXT_OPENGL_NO_ERROR_ARB
+-    *    used to create <share_context> does not match the value of
+-    *    GLX_CONTEXT_OPENGL_NO_ERROR_ARB for the context being created.
++    *    Requires OpenGL ES 2.0 or OpenGL 2.0.
+     */
+-   if (share_context && !!share_context->noError != !!noError) {
+-      *error = __DRI_CTX_ERROR_BAD_FLAG;
+-      return false;
+-   }
++   if (dca->no_error && dca->major_ver < 2)
++      return BadMatch;
+ 
+    /* The GLX_ARB_create_context_no_error specs say:
+     *
+@@ -609,13 +557,32 @@ dri2_check_no_error(uint32_t flags, struct glx_context *share_context,
+     *    the same time as a debug or robustness context is specified.
+     *
+     */
+-   if (noError && ((flags & __DRI_CTX_FLAG_DEBUG) ||
+-                   (flags & __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS))) {
+-      *error = __DRI_CTX_ERROR_BAD_FLAG;
+-      return false;
+-   }
++   if (dca->no_error && ((dca->flags & __DRI_CTX_FLAG_DEBUG) ||
++                         (dca->flags & __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS)))
++      return BadMatch;
++
++   return Success;
++}
+ 
+-   return true;
++unsigned
++dri_context_error_to_glx_error(unsigned error)
++{
++   if (error == __DRI_CTX_ERROR_SUCCESS)
++      return Success;
++   if (error == __DRI_CTX_ERROR_NO_MEMORY)
++      return BadAlloc;
++   else if (error == __DRI_CTX_ERROR_BAD_API)
++      return BadMatch;
++   else if (error == __DRI_CTX_ERROR_BAD_VERSION)
++      return GLXBadFBConfig;
++   else if (error == __DRI_CTX_ERROR_BAD_FLAG)
++      return BadMatch;
++   else if (error == __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE)
++      return BadValue;
++   else if (error == __DRI_CTX_ERROR_UNKNOWN_FLAG)
++      return BadValue;
++   else
++      unreachable("Impossible DRI context error");
+ }
+ 
+ struct glx_context *
+diff --git a/src/glx/dri_common.h b/src/glx/dri_common.h
+index 5a5ab0e626f16494c3c44f26a2c8f351cadcba12..79593491ee6d191c7466aac0cd4bebc04b92153c 100644
+--- a/src/glx/dri_common.h
++++ b/src/glx/dri_common.h
+@@ -66,16 +66,27 @@ driReleaseDrawables(struct glx_context *gc);
+ extern const __DRIextension **driOpenDriver(const char *driverName,
+                                             void **out_driver_handle);
+ 
+-extern bool
+-dri2_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
+-                         unsigned *major_ver, unsigned *minor_ver,
+-                         uint32_t *render_type, uint32_t *flags, unsigned *api,
+-                         int *reset, int *release, unsigned *error);
++struct dri_ctx_attribs {
++   unsigned major_ver;
++   unsigned minor_ver;
++   uint32_t render_type;
++   uint32_t flags;
++   unsigned api;
++   int reset;
++   int release;
++   int no_error;
++};
++
++extern int
++dri_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
++                        struct dri_ctx_attribs *dca);
+ 
+ extern bool
+-dri2_check_no_error(uint32_t flags, struct glx_context *share_context,
++dri2_check_no_error(Bool noError, struct glx_context *share_context,
+                     int major, unsigned *error);
+ 
++extern unsigned
++dri_context_error_to_glx_error(unsigned error);
+ 
+ extern struct glx_context *
+ dri_common_create_context(struct glx_screen *base,
+diff --git a/src/glx/drisw_glx.c b/src/glx/drisw_glx.c
+index 122c35221abf9d5a746e3f9996c9fe383a992af1..5d4fcecbf47620d66180e8e155fc780f005fee30 100644
+--- a/src/glx/drisw_glx.c
++++ b/src/glx/drisw_glx.c
+@@ -509,13 +509,7 @@ drisw_create_context_attribs(struct glx_screen *base,
+    struct drisw_screen *psc = (struct drisw_screen *) base;
+    __DRIcontext *shared = NULL;
+ 
+-   uint32_t minor_ver;
+-   uint32_t major_ver;
+-   uint32_t renderType;
+-   uint32_t flags;
+-   unsigned api;
+-   int reset;
+-   int release;
++   struct dri_ctx_attribs dca;
+    uint32_t ctx_attribs[2 * 5];
+    unsigned num_ctx_attribs = 0;
+ 
+@@ -525,34 +519,30 @@ drisw_create_context_attribs(struct glx_screen *base,
+    if (psc->swrast->base.version < 3)
+       return NULL;
+ 
+-   /* Remap the GLX tokens to DRI2 tokens.
+-    */
+-   if (!dri2_convert_glx_attribs(num_attribs, attribs,
+-                                 &major_ver, &minor_ver, &renderType, &flags,
+-                                 &api, &reset, &release, error))
+-      return NULL;
+-
+-   if (!dri2_check_no_error(flags, shareList, major_ver, error))
++   *error = dri_convert_glx_attribs(num_attribs, attribs, &dca);
++   if (*error != __DRI_CTX_ERROR_SUCCESS)
+       return NULL;
+ 
+    /* Check the renderType value */
+-   if (!validate_renderType_against_config(config_base, renderType)) {
+-       return NULL;
+-   }
+-
+-   if (reset != __DRI_CTX_RESET_NO_NOTIFICATION)
+-      return NULL;
+-
+-   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH &&
+-       release != __DRI_CTX_RELEASE_BEHAVIOR_NONE)
++   if (!validate_renderType_against_config(config_base, dca.render_type)) {
++      *error = BadValue;
+       return NULL;
++   }
+ 
+    if (shareList) {
+-      /* If the shareList context is not a DRISW context, we cannot possibly
+-       * create a DRISW context that shares it.
++      /* We can't share with an indirect context */
++      if (!shareList->isDirect)
++         return NULL;
++
++      /* The GLX_ARB_create_context_no_error specs say:
++       *
++       *    BadMatch is generated if the value of GLX_CONTEXT_OPENGL_NO_ERROR_ARB
++       *    used to create <share_context> does not match the value of
++       *    GLX_CONTEXT_OPENGL_NO_ERROR_ARB for the context being created.
+        */
+-      if (shareList->vtable->destroy != drisw_destroy_context) {
+-	 return NULL;
++      if (!!shareList->noError != !!dca.no_error) {
++         *error = BadMatch;
++         return NULL;
+       }
+ 
+       pcp_shared = (struct drisw_context *) shareList;
+@@ -569,43 +559,44 @@ drisw_create_context_attribs(struct glx_screen *base,
+    }
+ 
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MAJOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = major_ver;
++   ctx_attribs[num_ctx_attribs++] = dca.major_ver;
+    ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MINOR_VERSION;
+-   ctx_attribs[num_ctx_attribs++] = minor_ver;
+-   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
++   ctx_attribs[num_ctx_attribs++] = dca.minor_ver;
++   if (dca.release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
+        ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR;
+-       ctx_attribs[num_ctx_attribs++] = release;
++       ctx_attribs[num_ctx_attribs++] = dca.release;
++   }
++   if (dca.no_error) {
++       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_NO_ERROR;
++       ctx_attribs[num_ctx_attribs++] = GL_TRUE;
++       pcp->base.noError = GL_TRUE;
+    }
+ 
+-   if (flags != 0) {
++   if (dca.flags != 0) {
+       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_FLAGS;
+-
+-      /* The current __DRI_CTX_FLAG_* values are identical to the
+-       * GLX_CONTEXT_*_BIT values.
+-       */
+-      ctx_attribs[num_ctx_attribs++] = flags;
+-
+-      if (flags & __DRI_CTX_FLAG_NO_ERROR)
+-         pcp->base.noError = GL_TRUE;
++      ctx_attribs[num_ctx_attribs++] = dca.flags;
+    }
+ 
+-   pcp->base.renderType = renderType;
++   pcp->base.renderType = dca.render_type;
+ 
+    pcp->driContext =
+       (*psc->swrast->createContextAttribs) (psc->driScreen,
+-					    api,
++					    dca.api,
+ 					    config ? config->driConfig : 0,
+ 					    shared,
+ 					    num_ctx_attribs / 2,
+ 					    ctx_attribs,
+ 					    error,
+ 					    pcp);
++
++   *error = dri_context_error_to_glx_error(*error);
++
+    if (pcp->driContext == NULL) {
+       free(pcp);
+       return NULL;
+    }
+ 
+-   pcp->base.vtable = &drisw_context_vtable;
++   pcp->base.vtable = base->context_vtable;
+ 
+    return &pcp->base;
+ }
+@@ -797,7 +788,7 @@ driswBindExtensions(struct drisw_screen *psc, const __DRIextension **extensions)
+ 				     "GLX_ARB_context_flush_control");
+       }
+ 
+-      if (strcmp(extensions[i]->name, __DRI2_NO_ERROR) == 0)
++      if (strcmp(extensions[i]->name, __DRI2_NO_ERROR2) == 0)
+          __glXEnableDirectExtension(&psc->base,
+                                     "GLX_ARB_create_context_no_error");
+    }
+@@ -905,6 +896,7 @@ driswCreateScreen(int screen, struct glx_display *priv)
+    psc->driver_configs = driver_configs;
+ 
+    psc->base.vtable = &drisw_screen_vtable;
++   psc->base.context_vtable = &drisw_context_vtable;
+    psp = &psc->vtable;
+    psc->base.driScreen = psp;
+    psp->destroyScreen = driswDestroyScreen;
+diff --git a/src/glx/glxclient.h b/src/glx/glxclient.h
+index 68df42f53b0ee3acfc19da970a5b37467a68a4f8..4802b40d4074b2e9bf4b90ccab229a90a5003d0d 100644
+--- a/src/glx/glxclient.h
++++ b/src/glx/glxclient.h
+@@ -483,6 +483,12 @@ struct glx_screen_vtable {
+ 					 struct glx_context *shareList,
+ 					 int renderType);
+ 
++   /* The error outparameter here abuses the fact that the only possible
++    * errors are are GLXBadContext (0), GLXBadFBConfig (9), GLXBadProfileARB
++    * (13), BadValue (2), BadMatch (8), and BadAlloc (11). Since those don't
++    * collide we just use them directly rather than try to offset or use
++    * a sign convention.
++    */
+    struct glx_context *(*create_context_attribs)(struct glx_screen *psc,
+ 						 struct glx_config *config,
+ 						 struct glx_context *shareList,
+@@ -502,6 +508,7 @@ struct glx_screen_vtable {
+ struct glx_screen
+ {
+    const struct glx_screen_vtable *vtable;
++   const struct glx_context_vtable *context_vtable;
+ 
+     /**
+      * \name Storage for the GLX vendor, version, and extension strings
+diff --git a/src/glx/indirect_glx.c b/src/glx/indirect_glx.c
+index db26605b8b251a41536d21b4cf5fbf910b549d6a..7cab5c380b29e829b2f6762e7120e6c684d167ce 100644
+--- a/src/glx/indirect_glx.c
++++ b/src/glx/indirect_glx.c
+@@ -253,10 +253,6 @@ indirect_create_context(struct glx_screen *psc,
+  * \todo Eliminate \c __glXInitVertexArrayState.  Replace it with a new
+  * function called \c __glXAllocateClientState that allocates the memory and
+  * does all the initialization (including the pixel pack / unpack).
+- *
+- * \note
+- * This function is \b not the place to validate the context creation
+- * parameters.  It is just the allocator for the \c glx_context.
+  */
+ _X_HIDDEN struct glx_context *
+ indirect_create_context_attribs(struct glx_screen *psc,
+@@ -277,6 +273,7 @@ indirect_create_context_attribs(struct glx_screen *psc,
+ 
+    opcode = __glXSetupForCommand(psc->dpy);
+    if (!opcode) {
++      *error = BadImplementation;
+       return NULL;
+    }
+ 
+@@ -299,12 +296,18 @@ indirect_create_context_attribs(struct glx_screen *psc,
+    if (mask != GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB ||
+        major != 1 ||
+        minor > 4) {
++      *error = GLXBadFBConfig;
+       return NULL;
+    }
+ 
++   /* We can't share with a direct context */
++   if (shareList && shareList->isDirect)
++      return NULL;
++
+    /* Allocate our context record */
+    gc = calloc(1, sizeof *gc);
+    if (!gc) {
++      *error = BadAlloc;
+       /* Out of memory */
+       return NULL;
+    }
+@@ -317,6 +320,7 @@ indirect_create_context_attribs(struct glx_screen *psc,
+ 
+    if (state == NULL) {
+       /* Out of memory */
++      *error = BadAlloc;
+       free(gc);
+       return NULL;
+    }
+@@ -333,6 +337,7 @@ indirect_create_context_attribs(struct glx_screen *psc,
+    bufSize = (XMaxRequestSize(psc->dpy) * 4) - sz_xGLXRenderReq;
+    gc->buf = malloc(bufSize);
+    if (!gc->buf) {
++      *error = BadAlloc;
+       free(gc->client_state_private);
+       free(gc);
+       return NULL;
+diff --git a/src/mesa/drivers/dri/common/dri_util.c b/src/mesa/drivers/dri/common/dri_util.c
+index f379cef06f1eaa37244371df22a20c8fee1ce0c5..47d32fc672e79a4403ee5b9c2e208acbada6a740 100644
+--- a/src/mesa/drivers/dri/common/dri_util.c
++++ b/src/mesa/drivers/dri/common/dri_util.c
+@@ -251,44 +251,53 @@ static const __DRIextension **driGetExtensions(__DRIscreen *psp)
+ 
+ /*@}*/
+ 
+-
+-static bool
++static unsigned
+ validate_context_version(__DRIscreen *screen,
+                          int mesa_api,
+                          unsigned major_version,
+-                         unsigned minor_version,
+-                         unsigned *dri_ctx_error)
++                         unsigned minor_version)
+ {
+    unsigned req_version = 10 * major_version + minor_version;
+    unsigned max_version = 0;
+ 
+-   switch (mesa_api) {
+-   case API_OPENGL_COMPAT:
++   if (major_version == 0 || major_version > 4)
++      return __DRI_CTX_ERROR_BAD_API;
++
++   if (mesa_api == API_OPENGL_COMPAT) {
++      if ((major_version == 4 && minor_version > 6) ||
++          (major_version == 3 && minor_version > 3) ||
++          (major_version == 2 && minor_version > 1) ||
++          (major_version == 1 && minor_version > 5))
++         return __DRI_CTX_ERROR_BAD_API;
+       max_version = screen->max_gl_compat_version;
+-      break;
+-   case API_OPENGL_CORE:
+-      max_version = screen->max_gl_core_version;
+-      break;
+-   case API_OPENGLES:
++   } else if (mesa_api == API_OPENGLES) {
++      if (major_version > 1 || minor_version > 1)
++         return __DRI_CTX_ERROR_BAD_API;
+       max_version = screen->max_gl_es1_version;
+-      break;
+-   case API_OPENGLES2:
++   } else if (mesa_api == API_OPENGLES2) {
++      if ((major_version >  3) ||
++          (major_version == 3 && minor_version > 2) ||
++          (major_version == 2 && minor_version > 0) ||
++          (major_version <  2))
++         return __DRI_CTX_ERROR_BAD_API;
+       max_version = screen->max_gl_es2_version;
+-      break;
+-   default:
+-      max_version = 0;
+-      break;
++   } else if (mesa_api == API_OPENGL_CORE) {
++      if ((major_version == 4 && minor_version > 6) ||
++          (major_version == 3 && (minor_version > 3 || minor_version < 2)) ||
++          (major_version < 3))
++         return __DRI_CTX_ERROR_BAD_API;
++      max_version = screen->max_gl_core_version;
++   } else {
++      return __DRI_CTX_ERROR_BAD_API;
+    }
+ 
+-   if (max_version == 0) {
+-      *dri_ctx_error = __DRI_CTX_ERROR_BAD_API;
+-      return false;
+-   } else if (req_version > max_version) {
+-      *dri_ctx_error = __DRI_CTX_ERROR_BAD_VERSION;
+-      return false;
+-   }
++   if (max_version == 0)
++      return __DRI_CTX_ERROR_BAD_API;
+ 
+-   return true;
++   if (req_version > max_version)
++      return __DRI_CTX_ERROR_BAD_VERSION;
++
++   return __DRI_CTX_ERROR_SUCCESS;
+ }
+ 
+ /*****************************************************************/
+@@ -378,6 +387,16 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+                     ~__DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
+             }
+             break;
++        case __DRI_CTX_ATTRIB_NO_ERROR:
++            if (attribs[i * 2 + 1] != 0) {
++               ctx_config.attribute_mask |=
++                  __DRIVER_CONTEXT_ATTRIB_NO_ERROR;
++               ctx_config.no_error = attribs[i * 2 + 1];
++            } else {
++               ctx_config.attribute_mask &=
++                  ~__DRIVER_CONTEXT_ATTRIB_NO_ERROR;
++            }
++            break;
+ 	default:
+ 	    /* We can't create a context that satisfies the requirements of an
+ 	     * attribute that we don't understand.  Return failure.
+@@ -429,8 +448,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+     if (mesa_api != API_OPENGL_COMPAT
+         && mesa_api != API_OPENGL_CORE
+         && (ctx_config.flags & ~(__DRI_CTX_FLAG_DEBUG |
+-                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
+-                                 __DRI_CTX_FLAG_NO_ERROR))) {
++                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS))) {
+ 	*error = __DRI_CTX_ERROR_BAD_FLAG;
+ 	return NULL;
+     }
+@@ -453,16 +471,16 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+     const uint32_t allowed_flags = (__DRI_CTX_FLAG_DEBUG
+                                     | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
+                                     | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
+-                                    | __DRI_CTX_FLAG_NO_ERROR);
++                                    | __DRI_CTX_FLAG_RESET_ISOLATION);
+     if (ctx_config.flags & ~allowed_flags) {
+ 	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+ 	return NULL;
+     }
+ 
+-    if (!validate_context_version(screen, mesa_api,
+-                                  ctx_config.major_version,
+-                                  ctx_config.minor_version,
+-                                  error))
++    *error = validate_context_version(screen, mesa_api,
++                                      ctx_config.major_version,
++                                      ctx_config.minor_version);
++    if (*error != __DRI_CTX_ERROR_SUCCESS)
+        return NULL;
+ 
+     context = calloc(1, sizeof *context);
+@@ -496,8 +514,6 @@ driContextSetFlags(struct gl_context *ctx, uint32_t flags)
+        _mesa_set_debug_state_int(ctx, GL_DEBUG_OUTPUT, GL_TRUE);
+         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_DEBUG_BIT;
+     }
+-    if ((flags & __DRI_CTX_FLAG_NO_ERROR) != 0)
+-        ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
+ }
+ 
+ static __DRIcontext *
+@@ -1071,6 +1087,6 @@ const __DRIcopySubBufferExtension driCopySubBufferExtension = {
+    .copySubBuffer               = driCopySubBuffer,
+ };
+ 
+-const __DRInoErrorExtension dri2NoErrorExtension = {
+-   .base = { __DRI2_NO_ERROR, 1 },
++const __DRInoError2Extension dri2NoError2Extension = {
++   .base = { __DRI2_NO_ERROR2, 1 },
+ };
+diff --git a/src/mesa/drivers/dri/common/dri_util.h b/src/mesa/drivers/dri/common/dri_util.h
+index 1bc84ebddaa5563a18667735f49695daf35ae414..96470576485065397d1ddbd715862443c13f7e6e 100644
+--- a/src/mesa/drivers/dri/common/dri_util.h
++++ b/src/mesa/drivers/dri/common/dri_util.h
+@@ -101,11 +101,15 @@ struct __DriverContextConfig {
+ 
+     /* Only valid if __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR is set */
+     int release_behavior;
++
++    /* Only valid if __DRIVER_CONTEXT_ATTRIB_NO_ERROR is set */
++    int no_error;
+ };
+ 
+ #define __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY   (1 << 0)
+ #define __DRIVER_CONTEXT_ATTRIB_PRIORITY         (1 << 1)
+ #define __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR (1 << 2)
++#define __DRIVER_CONTEXT_ATTRIB_NO_ERROR         (1 << 3)
+ 
+ /**
+  * Driver callback functions.
+@@ -337,6 +341,6 @@ driContextSetFlags(struct gl_context *ctx, uint32_t flags);
+ 
+ extern const __DRIimageDriverExtension driImageDriverExtension;
+ 
+-extern const __DRInoErrorExtension dri2NoErrorExtension;
++extern const __DRInoError2Extension dri2NoError2Extension;
+ 
+ #endif /* _DRI_UTIL_H_ */
+diff --git a/src/mesa/drivers/dri/i915/intel_screen.c b/src/mesa/drivers/dri/i915/intel_screen.c
+index 6135357c2a065d2a317f75a76ea435e1334a8a44..03926848a7e46b1763e61a9c75e961fbc81e118a 100644
+--- a/src/mesa/drivers/dri/i915/intel_screen.c
++++ b/src/mesa/drivers/dri/i915/intel_screen.c
+@@ -814,7 +814,7 @@ static const __DRIextension *intelScreenExtensions[] = {
+     &intelImageExtension.base,
+     &intelRendererQueryExtension.base,
+     &dri2ConfigQueryExtension.base,
+-    &dri2NoErrorExtension.base,
++    &dri2NoError2Extension.base,
+     NULL
+ };
+ 
+@@ -980,7 +980,7 @@ intelCreateContext(gl_api api,
+    __DRIscreen *sPriv = driContextPriv->driScreenPriv;
+    struct intel_screen *intelScreen = sPriv->driverPrivate;
+ 
+-   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_NO_ERROR)) {
++   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG)) {
+       *error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+       return false;
+    }
+diff --git a/src/mesa/drivers/dri/i965/brw_context.c b/src/mesa/drivers/dri/i965/brw_context.c
+index 097dd9cb1dc94a241a6743e4baa9feb29f6787b0..a9490eb3798a718f9d239679555700720323c26b 100644
+--- a/src/mesa/drivers/dri/i965/brw_context.c
++++ b/src/mesa/drivers/dri/i965/brw_context.c
+@@ -972,8 +972,7 @@ brw_create_context(gl_api api,
+     * provides us with context reset notifications.
+     */
+    uint32_t allowed_flags = __DRI_CTX_FLAG_DEBUG |
+-                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE |
+-                            __DRI_CTX_FLAG_NO_ERROR;
++                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE;
+ 
+    if (screen->has_context_reset_notification)
+       allowed_flags |= __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS;
+diff --git a/src/mesa/drivers/dri/i965/brw_screen.c b/src/mesa/drivers/dri/i965/brw_screen.c
+index 227d31d59c34611b1cae491de7da2131cf997ddb..919376bf88ede6b1402b490692a34a0d62628622 100644
+--- a/src/mesa/drivers/dri/i965/brw_screen.c
++++ b/src/mesa/drivers/dri/i965/brw_screen.c
+@@ -1680,7 +1680,7 @@ static const __DRIextension *screenExtensions[] = {
+     &brwRendererQueryExtension.base,
+     &brwMutableRenderBufferExtension.base,
+     &dri2ConfigQueryExtension.base,
+-    &dri2NoErrorExtension.base,
++    &dri2NoError2Extension.base,
+     &brwBlobExtension.base,
+     NULL
+ };
+@@ -1694,7 +1694,7 @@ static const __DRIextension *brwRobustScreenExtensions[] = {
+     &brwMutableRenderBufferExtension.base,
+     &dri2ConfigQueryExtension.base,
+     &dri2Robustness.base,
+-    &dri2NoErrorExtension.base,
++    &dri2NoError2Extension.base,
+     &brwBlobExtension.base,
+     NULL
+ };
+diff --git a/src/mesa/drivers/dri/nouveau/nouveau_context.c b/src/mesa/drivers/dri/nouveau/nouveau_context.c
+index 014b3061e43949a5dde981989c3178c1ae7bd67b..9fc39d285d15e5480bd072ba89e82ad7a3620edc 100644
+--- a/src/mesa/drivers/dri/nouveau/nouveau_context.c
++++ b/src/mesa/drivers/dri/nouveau/nouveau_context.c
+@@ -60,7 +60,7 @@ nouveau_context_create(gl_api api,
+ 	struct nouveau_context *nctx;
+ 	struct gl_context *ctx;
+ 
+-	if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_NO_ERROR)) {
++	if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG)) {
+ 		*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+ 		return false;
+ 	}
+diff --git a/src/mesa/drivers/dri/nouveau/nouveau_screen.c b/src/mesa/drivers/dri/nouveau/nouveau_screen.c
+index c92efcd7b20393a307e631c91feccad7fb79e9aa..abb15b2675654bbc09a8fe188c5b2a7cc6da3101 100644
+--- a/src/mesa/drivers/dri/nouveau/nouveau_screen.c
++++ b/src/mesa/drivers/dri/nouveau/nouveau_screen.c
+@@ -325,7 +325,7 @@ static const __DRIextension *nouveau_screen_extensions[] = {
+     &nouveau_texbuffer_extension.base,
+     &nouveau_renderer_query_extension.base,
+     &dri2ConfigQueryExtension.base,
+-    &dri2NoErrorExtension.base,
++    &dri2NoError2Extension.base,
+     NULL
+ };
+ 
+diff --git a/src/mesa/drivers/dri/r200/r200_context.c b/src/mesa/drivers/dri/r200/r200_context.c
+index d7264deca29ae71712cc79fb29fbafa108608e70..88b369df89d11cc628ab796bccd52f01915dbcdf 100644
+--- a/src/mesa/drivers/dri/r200/r200_context.c
++++ b/src/mesa/drivers/dri/r200/r200_context.c
+@@ -187,7 +187,7 @@ GLboolean r200CreateContext( gl_api api,
+    int i;
+    int tcl_mode;
+ 
+-   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_NO_ERROR)) {
++   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG)) {
+       *error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+       return false;
+    }
+diff --git a/src/mesa/drivers/dri/radeon/radeon_context.c b/src/mesa/drivers/dri/radeon/radeon_context.c
+index 5c56ca99f1263ea132a2feba96e0f7bf37d9058b..28cfeee97f1bb213962a89aac89ce3a82a4f0876 100644
+--- a/src/mesa/drivers/dri/radeon/radeon_context.c
++++ b/src/mesa/drivers/dri/radeon/radeon_context.c
+@@ -152,7 +152,7 @@ r100CreateContext( gl_api api,
+    int i;
+    int tcl_mode, fthrottle_mode;
+ 
+-   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_NO_ERROR)) {
++   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG)) {
+       *error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+       return false;
+    }
+diff --git a/src/mesa/drivers/dri/radeon/radeon_screen.c b/src/mesa/drivers/dri/radeon/radeon_screen.c
+index 3764a5d653874cb338eca784c70d1571d6e8b2fc..003542bf0e756e4fd9a96c8c5669044a36b04c55 100644
+--- a/src/mesa/drivers/dri/radeon/radeon_screen.c
++++ b/src/mesa/drivers/dri/radeon/radeon_screen.c
+@@ -559,7 +559,7 @@ static const __DRIextension *radeon_screen_extensions[] = {
+     &radeonFlushExtension.base,
+     &radeonImageExtension.base,
+     &radeonRendererQueryExtension.base,
+-    &dri2NoErrorExtension.base,
++    &dri2NoError2Extension.base,
+     NULL
+ };
+ 
