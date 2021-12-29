@@ -6,9 +6,6 @@ then
   exit 1
 fi
 
-FILES=(
-`cat $1 | grep -v "^#" | grep -v "^$"`
-)
 
 declare -A BLACKLIST
 
@@ -20,11 +17,22 @@ JOBS=8
 
 DODISTCC=0
 
+COUNT=0
 
-
-
-for f in ${FILES[*]}
+while read f opts
 do
+  if [ -z $f ]; then continue; fi
+  if [[ $f =~ ^#  ]]; then continue; fi
+  FILES[$COUNT]="$f"
+  OPTS[$COUNT]="$opts"
+  : $(( COUNT++ ))
+done < $1
+
+for ((n = 0; n < COUNT; n++))
+do
+  f=${FILES[$n]}
+  opts=${OPTS[$n]}
+
   (
   cd `dirname $f`
   f=`basename $f`
@@ -57,7 +65,7 @@ do
 #        export DISTCC_HOSTS="hades/6 localhost"
       fi
 
-      ./$f.build -j$JOBS 2>&1 | tee $f.log
+      ./$f.build -j$JOBS $opts 2>&1 | tee $f.log
     fi
 
     su -c "upgradepkg --install-new --reinstall /tmp/packages/${PKGNAME}-*"
