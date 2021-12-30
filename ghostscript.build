@@ -8,7 +8,7 @@ TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
 #TARDIR=~/tmp/gnu/ghostscript
 #TAR_EXT=.tar.gz
-VERSION=9.27
+VERSION=9.55.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -44,31 +44,16 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ghostscript-8.64.gs_res.ps.diff
-# patch -p1 < ${CWD}/ghostscript-CVE-2009-0196.patch
-# patch -p1 < ${CWD}/ghostscript-CVE-2009-0583,0584.patch
-# patch -p1 < ${CWD}/ghostscript-CVE-2009-0792.patch
-# patch -p1 < ${CWD}/ghostscript-jbig2dec-nullderef.patch
-# patch -p1 < ${CWD}/ghostscript-bitcmyk.patch
-# patch -p1 < ${CWD}/ghostscript-pdf2dsc.patch
-# patch -p1 < ${CWD}/ghostscript.fix_black_page.diff
+ patch -p1 < ${CWD}/ghostscript-9.55.0-rangecheck.patch
 
-# patch -p1 < ${CWD}/ghostscript-020110812~46b4ee6-pxl-landscape.patch
-# patch -p1 < ${CWD}/ghostscript-020110812~d9e044e-lips4v-fix.patch
-# patch -p1 < ${CWD}/ghostscript-020110815-eb6b631-cups-raster-generate-cups-rgbw.patch
-# patch -p1 < ${CWD}/ghostscript-020110815-05b517b-gdevcups-c-eliminate-compiler-warning.patch
-# patch -p1 < ${CWD}/ghostscript-020110815-1920f21-cups-raster-set-default-color-profiles.patch
-# patch -p1 < ${CWD}/ghostscript-020110816-d8da050-cups-raster-improve-black-recognition-on-cmyk-to-rgbw.patch
-# patch -p1 < ${CWD}/ghostscript-020110816-781b738-cups-raster-fix-segfaults-on-color-model-change.patch
-# patch -p1 < ${CWD}/ghostscript-020110817-766df64-cups-raster-suppress-warnings.patch
-# patch -p1 < ${CWD}/ghostscript-1001_dont-crash-when-not-finding-icc-profile.patch
-# patch -p1 < ${CWD}/ghostscript-020111005-d5f1e72-clist-fix-for-rgbw-color-mode.patch
-# patch -p1 < ${CWD}/ghostscript-020111114-4258227-lzw-encode-filter-fix.patch
-# patch -p1 < ${CWD}/ghostscript-029111114-08dc129-ps2write-truetype-fix.patch
-# patch -p1 < ${CWD}/ghostscript-020111122-5cce070-ps2write-postscript-duplex-command-insertion.patch
-# patch -p1 < ${CWD}/ghostscript-020111122-cd8f397-ps2write-fix-handling-of-format-4-cmap-subtables-in-truetype-fonts.patch
-# patch -p1 < ${CWD}/ghostscript-020111209-5359a2d-do-not-use-hexadecimal-names-for-type42-charstrings-and-encoding.patch
-# patch -p1 < ${CWD}/ghostscript-020111125-979f218-ps2write-fix-conversion-of-escaped-string-to-hex-string.patch
+# Remove unmaintained garbage:
+rm -rf freetype jpeg lcms2 libpng libtiff png tiff zlib
+
+# Regenerate ./configure.  Needed if patched, or to prevent libtool mismatch.
+autoreconf --force --install
+( cd jbig2dec ; autoreconf --force --install )
+( cd ijs ; autoreconf --force --install )
+
 )
 fi
 
@@ -82,12 +67,7 @@ fix_perms
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 #libtoolize -f
-(cd ijs
-# if [ ! -r configure ]; then
-   sh autogen.sh
-# fi
-touch configure.ac aclocal.m4 configure Makefile.am Makefile.in
-
+cd ijs
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -97,7 +77,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 	    --mandir=/usr/man \
 	    --enable-shared=yes \
 	    --enable-static=no
-)
+cd ..
 
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -106,18 +86,20 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
+	    --docdir=/usr/share/ghostscript/${VERSION}/tmpdoc \
 	    --with-fontpath=/usr/share/fonts/TTF \
-	    --disable-compile-inits \
-	    --enable-cups \
-	    --with-system-libtiff \
-	    --enable-dynamic \
-	    --with-drivers=ALL \
-	    --with-jbig2dec \
-	    --with-jasper \
 	    --with-ijs \
-	    --with-gimp-print \
-	    --with-install-cups \
-	    --with-x
+	    --disable-compile-inits \
+	    --enable-dynamic \
+	    --with-system-libtiff \
+	    --enable-cups \
+
+#	    --with-drivers=ALL \
+#	    --with-jbig2dec \
+#	    --with-jasper \
+#	    --with-gimp-print \
+#	    --with-install-cups \
+#	    --with-x
 
 #	    --with-omni \
 
@@ -126,11 +108,11 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make clean soclean
-make ${NUM_JOBS} || exit
-make so ${NUM_JOBS} || exit
 cd ijs
 make ${NUM_JOBS} || exit
 cd ..
+make ${NUM_JOBS} || exit
+make so ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -138,33 +120,77 @@ then
   exit
 fi
 
+cd ijs
+make install DESTDIR=${PKG}
+cd ..
 make install DESTDIR=${PKG}
 make soinstall DESTDIR=${PKG}
-(cd ijs
- make install DESTDIR=${PKG}
-)
 
-#ln -s gsc ${PKG}/usr/bin/gs
-#ln -s gsc ${PKG}/usr/bin/gs-no-x11
+#ln -s /usr/share/ghostscript/${VERSION}/doc ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc
 
-ln -s /usr/share/ghostscript/${VERSION}/doc ${PKG}/usr/doc/${TARNAME}-${VERSION}/doc
+# Add back ijs-config, which is needed by at least gutenprint to find IJS
+# and produce a ghostscript driver:
+cat ${CWD}/ghostscript-ijs-config | sed -e "s/lib64/lib${LIBDIRSUFFIX}/g" > ${PKG}/usr/bin/ijs-config
+chmod 755 ${PKG}/usr/bin/ijs-config
 
 # Replace the default cidfmap with one containing additional
 # support for CJK printing:
 
-if [ -r ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ]; then
-  mv ${PKG}/usr/share/ghostscript/${VERSION}/Resource/Init/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/Resource/Init/cidfmap.default.ghostscript-${VERSION}
-#  mv ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.default.ghostscript-${VERSION}
-  cp ${CWD}/ghostscript-cidfmap > ${PKG}/usr/share/ghostscript/${VERSION}/lib/cidfmap.new
+if [ -r ${PKG}/usr/share/ghostscript/*.*/Resource/Init/cidfmap ]; then
+  SHARE_VERSION=$(echo ${PKG}/usr/share/ghostscript/*.*/Resource/Init/cidfmap | rev | cut -f 4 -d / | rev)
+  mv ${PKG}/usr/share/ghostscript/${SHARE_VERSION}/Resource/Init/cidfmap ${PKG}/usr/share/ghostscript/${SHARE_VERSION}/Resource/Init/cidfmap.default.ghostscript-${VERSION}
+  cat ${CWD}/ghostscript-cidfmap > ${PKG}/usr/share/ghostscript/${SHARE_VERSION}/Resource/Init/cidfmap.new
 
-  doinst_config usr/share/ghostscript/${VERSION}/lib/cidfmap.new
+  doinst_config usr/share/ghostscript/${SHARE_VERSION}/Resource/Init/cidfmap.new
 fi
 
-cp -a examples/cjk ${PKG}/usr/share/ghostscript/${VERSION}/examples/
+# gs9.23 fails if you try to have --docdir put things in the proper place.
+# Not much choice but to have things put in the wrong place and then move them.
+# First, remove broken symlinks:
+rm -f ${PKG}/usr/share/ghostscript/${VERSION}/doc ${PKG}/usr/share/ghostscript/${VERSION}/tmpdoc/${VERSION}/${VERSION}
+# Then, move the docs to the proper location:
+mv ${PKG}/usr/share/ghostscript/${VERSION}/tmpdoc/${VERSION} ${PKG}/usr/share/ghostscript/${VERSION}/doc
+# Remove this (probably empty) directory:
+rm -rf ${PKG}/usr/share/ghostscript/${VERSION}/tmpdoc
+# And finally, pray for upstream to quit drinking while coding. ;-)
 
-mkdir -p ${PKG}/usr/share/cups/mime
-mv ${PKG}/etc/cups/*.convs ${PKG}/usr/share/cups/mime
-rmdir -p ${PKG}/etc/cups
+# Add a documentation directory:
+mkdir -p ${PKG}/usr/doc/${TARNAME}-${VERSION}
+( cd doc
+  cp -a \
+    AUTHORS COPYING* ../LICENSE* README* \
+    ${PKG}/usr/doc/${TARNAME}-${VERSION}
+)
+( cd ${PKG}/usr/doc/${TARNAME}-${VERSION}
+  ln -sf /usr/share/ghostscript/${VERSION}/doc doc
+)
+
+# Version 9.02 fails to install History9.htm, but also the full unabridged
+# history of Ghostscript is not required here.  See the source for that.
+( cd doc
+  cp -a \
+    History*.htm \
+    ${PKG}/usr/share/ghostscript/${VERSION}/doc
+  rm -f ${PKG}/usr/share/ghostscript/${VERSION}/doc/History{1,2,3,4,5,6,7,8}.htm
+  # More cruft:
+  rm -f ${PKG}/usr/share/ghostscript/${VERSION}/doc/Details{1,2,3,4,5,6,7,8}.htm
+  # This is also bloat:
+  rm -f ${PKG}/usr/share/ghostscript/${VERSION}/doc/*.pdf
+  chown root:root ${PKG}/usr/share/ghostscript/${VERSION}/doc/History*htm
+  chmod 644 ${PKG}/usr/share/ghostscript/${VERSION}/doc/History*htm
+)
+
+# Install example files:
+rm -rf ${PKG}/usr/share/ghostscript/${VERSION}/examples
+cp -a examples ${PKG}/usr/share/ghostscript/${VERSION}
+
+
+
+#cp -a examples/cjk ${PKG}/usr/share/ghostscript/${VERSION}/examples/
+
+#mkdir -p ${PKG}/usr/share/cups/mime
+#mv ${PKG}/etc/cups/*.convs ${PKG}/usr/share/cups/mime
+#rmdir -p ${PKG}/etc/cups
 
 strip_binaries
 

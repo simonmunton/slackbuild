@@ -1,0 +1,26 @@
+commit d9d8db23e862707795e76ea8f8cdcf7434b2df65
+Author: Robin Watts <Robin.Watts@artifex.com>
+Date:   Thu Oct 7 16:06:58 2021 +0100
+
+    Bug 704543: Fix gx_default_copy_alpha calling get_bits_rectangle.
+    
+    In a previous commit I moved from using the (now removed) get_bits
+    call to using get_bits_rectangle. In so doing, I had to choose a
+    set of options to use when retrieving the bitmap data.
+    
+    I chose GB_ALIGN_ANY for the alignment, when actually I should have
+    picked GB_ALIGN_STANDARD. Correcting that solves this issue.
+
+diff --git a/base/gdevdbit.c b/base/gdevdbit.c
+index a04e0b33a..34e8762d6 100644
+--- a/base/gdevdbit.c
++++ b/base/gdevdbit.c
+@@ -379,7 +379,7 @@ gx_default_copy_alpha(gx_device * dev, const byte * data, int data_x,
+             int l_xprev = x;
+             gs_get_bits_params_t params;
+ 
+-            params.options = (GB_ALIGN_ANY |
++            params.options = (GB_ALIGN_STANDARD |
+                               (GB_RETURN_COPY | GB_RETURN_POINTER) |
+                               GB_OFFSET_0 |
+                               GB_RASTER_STANDARD | GB_PACKING_CHUNKY |
