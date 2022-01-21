@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=3.0.1
+VERSION=3.0.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -70,7 +70,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f x./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -87,9 +87,9 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-(cd src
-make LIB=lib${LIBDIRSUFFIX} all gmic_qt zart || exit
-)
+cd src
+make LIB=lib${LIBDIRSUFFIX} || exit
+cd ..
 #make ${NUM_JOBS} || exit
 fi
 
@@ -98,9 +98,9 @@ then
   exit
 fi
 
-(cd src
+cd src
 make install DESTDIR=${PKG} LIB=lib${LIBDIRSUFFIX}
-)
+cd ..
 #make install DESTDIR=${PKG}
 
 strip_binaries
