@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=LibreCAD
+TARNAME=lsp-plugins-src
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=2.2.0-rc3
+VERSION=1.1.31
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://librecad.org"
+WEBPAGE="http://lsp-plug.in/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/LibreCAD-boost_tuple.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,23 +55,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
-PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin:$PATH
+#mkdir _BuilD_
+#cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,16 +80,22 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
-
-qmake librecad.pro
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} BUILD_PROFILE=${ARCH} PREFIX=/usr LIB_PATH=/usr/lib${LIBDIRSUFFIX} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -97,39 +103,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG} BUILD_PROFILE=${ARCH} PREFIX=/usr LIB_PATH=/usr/lib${LIBDIRSUFFIX}
+fi
 
-
-(cd unix
-
-mkdir -p ${PKG}/opt/LibreCAD/
-cp -pr * ${PKG}/opt/LibreCAD/
-)
-
-mkdir -p ${PKG}/usr/man/man1
-cp desktop/librecad.1 ${PKG}/usr/man/man1
-
-mkdir -p ${PKG}/usr/share/applications
-cp desktop/librecad.desktop ${PKG}/usr/share/applications
-
-mkdir -p ${PKG}/usr/share/mime/packages
-cp desktop/librecad.sharedmimeinfo ${PKG}/usr/share/mime/packages
-
-#cp desktop/librecad.mime xxx
-
-
-mkdir -p ${PKG}/usr/bin
-#ln -s /opt/LibreCAD/librecad ${PKG}/usr/bin/librecad
-
-cat > ${PKG}/usr/bin/librecad << EOF
-#! /bin/bash
-
-cd /opt/LibreCAD
-/opt/LibreCAD/librecad "\$@"
-EOF
-
-chmod +x ${PKG}/usr/bin/librecad
-
+#cd ..
 
 strip_binaries
 
@@ -146,10 +127,17 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Open Source CAD application"
-LibreCAD is a free Open Source CAD application for Windows, Apple and 
-Linux. Support and documentation is free from our large, dedicated 
-community of users, contributors and developers.
+make_slack_desc << EOF "Linux Studio Plugins"
+LSP (Linux Studio Plugins) is a collection of open-source plugins
+compatible with following formats:
+
+    LADSPA - set of plugins for Linux Audio Developer's Simple Plugin
+    API
+    LV2 - set of plugins and UIs for Linux Audio Developer's Simple
+    Plugin API (LADSPA) version 2
+    LinuxVST - set of plugins and UIs for Steinberg's VST 2.4 format
+    ported on GNU/Linux Platform
+    JACK - Standalone versions for JACK Audio connection Kit with UI
 
 EOF
 

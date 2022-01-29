@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=pulseeffects
+TARNAME=rnnoise
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/p
+TARDIR=~/tmp/new/r
 #TAR_EXT=.tar.gz
-VERSION=4.8.3
+VERSION=20220129
 VERSIONEXTRA=
-BUILD=4
+BUILD=1
 
-WEBPAGE="https://github.com/wwmm/pulseeffects"
+WEBPAGE="https://github.com/xiph/rnnoise"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,20 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/pulseeffects-4.5.9.diff
+ #patch -p1 < ${CWD}/
+
+ ./autogen.sh
 )
 fi
 
@@ -55,20 +57,23 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,19 +82,19 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
-elif [ -f ./meson.build ]
+      ..
+elif [ -f ../meson.build ]
 then
-  meson --prefix=/usr _BuilD_
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  ninja -C _BuilD_ || exit
+  ninja || exit
 else
   make ${NUM_JOBS} || exit
 fi
@@ -100,12 +105,14 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
+  DESTDIR=${PKG} ninja install
 else
   make install DESTDIR=${PKG}
 fi
+
+cd ..
 
 strip_binaries
 
@@ -122,9 +129,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Audio effects for Pulseaudio applications"
-Limiter, compressor, reverberation, equalizer and auto volume effects 
-for Pulseaudio applications
+make_slack_desc << EOF "Recurrent neural network for audio noise reduction"
+RNNoise is a noise suppression library based on a recurrent neural 
+network.
 
 EOF
 

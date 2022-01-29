@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=LibreCAD
+TARNAME=easyeffects
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/e
 #TAR_EXT=.tar.gz
-VERSION=2.2.0-rc3
+VERSION=4.8.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://librecad.org"
+WEBPAGE="https://github.com/wwmm/easyeffects"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/LibreCAD-boost_tuple.diff
+# patch -p1 -b -z .orig < ${CWD}/pulseeffects-4.5.9.diff
 )
 fi
 
@@ -54,9 +54,6 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
-
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
-PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin:$PATH
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -81,15 +78,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
-
-qmake librecad.pro
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -97,39 +100,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-
-(cd unix
-
-mkdir -p ${PKG}/opt/LibreCAD/
-cp -pr * ${PKG}/opt/LibreCAD/
-)
-
-mkdir -p ${PKG}/usr/man/man1
-cp desktop/librecad.1 ${PKG}/usr/man/man1
-
-mkdir -p ${PKG}/usr/share/applications
-cp desktop/librecad.desktop ${PKG}/usr/share/applications
-
-mkdir -p ${PKG}/usr/share/mime/packages
-cp desktop/librecad.sharedmimeinfo ${PKG}/usr/share/mime/packages
-
-#cp desktop/librecad.mime xxx
-
-
-mkdir -p ${PKG}/usr/bin
-#ln -s /opt/LibreCAD/librecad ${PKG}/usr/bin/librecad
-
-cat > ${PKG}/usr/bin/librecad << EOF
-#! /bin/bash
-
-cd /opt/LibreCAD
-/opt/LibreCAD/librecad "\$@"
-EOF
-
-chmod +x ${PKG}/usr/bin/librecad
-
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG}
+fi
 
 strip_binaries
 
@@ -146,10 +122,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Open Source CAD application"
-LibreCAD is a free Open Source CAD application for Windows, Apple and 
-Linux. Support and documentation is free from our large, dedicated 
-community of users, contributors and developers.
+make_slack_desc << EOF "Audio effects for Pulseaudio applications"
+Limiter, compressor, reverberation, equalizer and auto volume effects 
+for Pulseaudio applications
 
 EOF
 
