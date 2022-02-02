@@ -1,0 +1,93 @@
+--- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp.orig	2022-01-23 16:16:01.000000000 +0000
++++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-02-02 20:00:01.560684629 +0000
+@@ -3027,14 +3027,14 @@
+ void SlaOutputDev::updateFont(GfxState *state)
+ {
+ 	GfxFont *gfxFont;
+-	GfxFontLoc *fontLoc;
++	std::optional<GfxFontLoc> fontLoc;
+ 	GfxFontType fontType;
+ 	SlaOutFontFileID *id;
+ 	SplashFontFile *fontFile;
+ 	SplashFontSrc *fontsrc = nullptr;
+-	FoFiTrueType *ff;
++	std::unique_ptr<FoFiTrueType> ff;
+ 	Object refObj, strObj;
+-	GooString *fileName;
++	std::string fileName;
+ 	char *tmpBuf;
+ 	int tmpBufLen = 0;
+ 	int *codeToGID;
+@@ -3046,9 +3046,7 @@
+ 	SplashCoord matrix[6];
+ 
+ 	m_font = nullptr;
+-	fileName = nullptr;
+ 	tmpBuf = nullptr;
+-	fontLoc = nullptr;
+ 
+ 	gfxFont = state->getFont();
+ 	if (!gfxFont)
+@@ -3088,8 +3086,8 @@
+ 		}
+ 
+ 		fontsrc = new SplashFontSrc;
+-		if (fileName)
+-			fontsrc->setFile(fileName, gFalse);
++		if (!fileName.empty())
++			fontsrc->setFile(fileName.c_str(), gFalse);
+ 		else
+ 			fontsrc->setBuf(tmpBuf, tmpBufLen, gTrue);
+ 
+@@ -3130,15 +3128,14 @@
+ 			break;
+ 		case fontTrueType:
+ 		case fontTrueTypeOT:
+-			if (fileName)
+-				ff = FoFiTrueType::load(fileName->getCString());
++			if (!fileName.empty())
++				ff = FoFiTrueType::load(fileName.c_str());
+ 			else
+ 				ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 			if (ff)
+ 			{
+-				codeToGID = ((Gfx8BitFont *)gfxFont)->getCodeToGIDMap(ff);
++				codeToGID = ((Gfx8BitFont *)gfxFont)->getCodeToGIDMap(ff.get());
+ 				n = 256;
+-				delete ff;
+ 			}
+ 			else
+ 			{
+@@ -3203,14 +3200,13 @@
+ 			}
+ 			else
+ 			{
+-				if (fileName)
+-					ff = FoFiTrueType::load(fileName->getCString());
++				if (!fileName.empty())
++					ff = FoFiTrueType::load(fileName.c_str());
+ 				else
+ 					ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
+ 				if (! ff)
+ 					goto err2;
+-				codeToGID = ((GfxCIDFont *)gfxFont)->getCodeToGIDMap(ff, &n);
+-				delete ff;
++				codeToGID = ((GfxCIDFont *)gfxFont)->getCodeToGIDMap(ff.get(), &n);
+ 			}
+ 			if (!(fontFile = m_fontEngine->loadTrueTypeFont(
+ 							id,
+@@ -3247,14 +3243,12 @@
+ 	mat[3] = -m22;
+ 	m_font = m_fontEngine->getFont(fontFile, mat, matrix);
+ 
+-	delete fontLoc;
+ 	if (fontsrc && !fontsrc->isFile)
+ 		fontsrc->unref();
+ 	return;
+ 
+ err2:
+ 	delete id;
+-	delete fontLoc;
+ err1:
+ 	if (fontsrc && !fontsrc->isFile)
+ 		fontsrc->unref();
