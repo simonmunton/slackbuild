@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=tbb
+TARNAME=oneTBB
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/t
+TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=2019_U9
+VERSION=2021.5.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/intel/tbb"
+WEBPAGE="https://github.com/oneapi-src/oneTBB"
+#"https://github.com/intel/tbb"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=tbb
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -57,18 +58,21 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+mkdir _BuilD_
+cd _BuilD_
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -77,8 +81,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
-elif [ -f ./meson.build ]
+      ..
+elif [ -f ../meson.build ]
 then
   meson --prefix=/usr _BuilD_
 fi
@@ -87,7 +91,7 @@ fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
@@ -100,29 +104,31 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
 :
-#  make install DESTDIR=${PKG}
+  make install DESTDIR=${PKG}
 fi
 
-mkdir -p ${PKG}/usr/{include,lib${LIBDIRSUFFIX}/cmake}
-cp build/*release/*.so.* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cd ..
 
-(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
- for f in *.so.*
- do
-  ln -s $f ${f%.*}
- done
-)
+#mkdir -p ${PKG}/usr/{include,lib${LIBDIRSUFFIX}/cmake}
+#cp build/*release/*.so.* ${PKG}/usr/lib${LIBDIRSUFFIX}
 
-cp -pr include/{serial,tbb} ${PKG}/usr/include
+#(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+# for f in *.so.*
+# do
+#  ln -s $f ${f%.*}
+# done
+#)
 
-(cd cmake
- cmake -DINSTALL_DIR=${PKG}/usr/lib${LIBDIRSUFFIX}/cmake -DSYSTEM_NAME=Linux -DINC_PATH=${PKG}/usr/include -DLIB_PATH=${PKG}/usr/lib${LIBDIRSUFFIX} -P tbb_config_installer.cmake
-)
+#cp -pr include/{serial,tbb} ${PKG}/usr/include
+
+#(cd cmake
+# cmake -DINSTALL_DIR=${PKG}/usr/lib${LIBDIRSUFFIX}/cmake -DSYSTEM_NAME=Linux -DINC_PATH=${PKG}/usr/include -DLIB_PATH=${PKG}/usr/lib${LIBDIRSUFFIX} -P tbb_config_installer.cmake
+#)
 
 strip_binaries
 
