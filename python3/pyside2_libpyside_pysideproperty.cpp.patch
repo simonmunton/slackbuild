@@ -1,0 +1,20 @@
+X-Git-Url: https://codereview.qt-project.org/gitweb?p=pyside%2Fpyside-setup.git;a=blobdiff_plain;f=sources%2Fpyside2%2Flibpyside%2Fpysideproperty.cpp;h=7e4a6ebf4f953e50f85aa5091a852e5dc19f3444;hp=97729d28c1d584f29a21814ab1b94dd1bc2032bb;hb=5dd7e2b0f7d343e5cf6c119f79ba73286fcb0f42;hpb=57a5bc7a850dc0ce7f2d13f58823dee966af3c46
+
+diff --git a/sources/pyside2/libpyside/pysideproperty.cpp b/sources/pyside2/libpyside/pysideproperty.cpp
+index 97729d28c1..7e4a6ebf4f 100644
+--- a/sources/pyside2/libpyside/pysideproperty.cpp
++++ b/sources/pyside2/libpyside/pysideproperty.cpp
+@@ -222,9 +222,10 @@ static int qpropertyTpInit(PyObject *self, PyObject *args, PyObject *kwds)
+ 
+     if (pData->typeName.isEmpty())
+         PyErr_SetString(PyExc_TypeError, "Invalid property type or type name.");
+-    else if (pData->constant && (pData->fset || pData->notify))
+-        PyErr_SetString(PyExc_TypeError, "A constant property cannot have a WRITE method or a NOTIFY signal.");
+-
++    else if (pData->constant && ((pData->fset && pData->fset != Py_None)
++                                 || (pData->notify && pData->notify != Py_None)))
++        PyErr_SetString(PyExc_TypeError, "A constant property cannot have a WRITE method or a "
++                                         "NOTIFY signal.");
+     if (!PyErr_Occurred()) {
+         Py_XINCREF(pData->fget);
+         Py_XINCREF(pData->fset);
