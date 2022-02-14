@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=2021.1.0
 VERSIONEXTRA=
-BUILD=3
+BUILD=4
 
 WEBPAGE="https://github.com/alicevision/meshroom"
 
@@ -45,7 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/meshroom-2020.1.1.diff
+ patch -p1 -b -z .orig < ${CWD}/meshroom-2021.1.0.diff
+
+  # Hardcode camera_database and voctree default value
+  sed -i "s:'ALICEVISION_VOCTREE', '':'ALICEVISION_VOCTREE', '/usr/share/aliceVision/vlfeat_K80L3.SIFT.tree':g" meshroom/nodes/aliceVision/*.py
+  sed -i "s:'ALICEVISION_SENSOR_DB', '':'ALICEVISION_SENSOR_DB', '/usr/share/aliceVision/cameraSensors.db':g" meshroom/nodes/aliceVision/*.py
+
 )
 fi
 
