@@ -8,7 +8,7 @@ TARNAME=qt-everywhere-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=5.15.3_20211130_014c375b
+VERSION=5.15.3_20220215_a57a104f
 VERSIONEXTRA=
 BUILD=1
 
@@ -78,14 +78,16 @@ cd ${TARNAME}-${VERSION}
    patch -p1 < ${CWD}/qt5.qtbase_cmake_isystem_includes.patch || exit 1
  cd - 1>/dev/null
 
- # Fix sandbox functions for glibc-2.33:
- cd qtwebengine
-   patch -p1 < ${CWD}/qtwebengine-everywhere-src-5.15.2-%231904652.patch || exit 1
- cd - 1>/dev/null
+# # Fix sandbox functions for glibc-2.33:
+# cd qtwebengine
+#   patch -p1 < ${CWD}/qtwebengine-everywhere-src-5.15.2-%231904652.patch || exit 1
+# cd - 1>/dev/null
 
 # patch -p1 < ${CWD}/qt5-qtwebengine-everywhere-src-5.15.2-#1904652.patch || exit 1
 
  patch -p1 < ${CWD}/qt5-pnm.diff || exit 1
+
+ sed -i 's/^MODULE_VERSION = .*/MODULE_VERSION = 5.15.3/' qtwebengine/.qmake.conf
 
  if echo "${ARCH}" | grep -q "i.86" 2>/dev/null; then
   sed -i "/^QMAKE_CFLAGS_RELEASE/ s|+=.*|+= ${SLKCFLAGS}|" qtbase/mkspecs/common/gcc-base.conf
@@ -157,6 +159,8 @@ OPENSOURCE_CXXFLAGS="${SLKCFLAGS}" \
 	    -libproxy \
 	    -system-pcre \
             -plugin-sql-odbc \
+	    -qt-assimp \
+	    -qt-quick3d-assimp \
 	    2>&1 | tee _Build_config.log
 
 
@@ -172,6 +176,7 @@ OPENSOURCE_CXXFLAGS="${SLKCFLAGS}" \
 fi
 
 NUM_JOBS="-j 4"
+export NINJAJOBS="-j3"
 
 if [ ${DO_MAKE} == "yes" ]
 then
