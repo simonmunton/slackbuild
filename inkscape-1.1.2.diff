@@ -1,0 +1,33 @@
+--- inkscape-1.1.2/src/extension/internal/pdfinput/pdf-input.cpp.orig	2022-02-05 01:21:47.000000000 +0000
++++ inkscape-1.1.2/src/extension/internal/pdfinput/pdf-input.cpp	2022-03-02 20:21:33.835768034 +0000
+@@ -668,8 +668,12 @@
+ 
+     // poppler does not use glib g_open. So on win32 we must use unicode call. code was copied from
+     // glib gstdio.c
++#if POPPLER_CHECK_VERSION(22,3,0)
++    pdf_doc = std::make_shared<PDFDoc>(std::make_unique<GooString>(uri));   // TODO: Could ask for password
++#else
+     GooString *filename_goo = new GooString(uri);
+     pdf_doc = std::make_shared<PDFDoc>(filename_goo, nullptr, nullptr, nullptr);   // TODO: Could ask for password
++#endif
+ 
+     if (!pdf_doc->isOk()) {
+         int error = pdf_doc->getErrorCode();
+--- inkscape-1.1.2/src/3rdparty/2geom/CMakeLists.txt.orig	2022-02-05 01:21:52.000000000 +0000
++++ inkscape-1.1.2/src/3rdparty/2geom/CMakeLists.txt	2022-02-09 17:42:04.228169700 +0000
+@@ -144,4 +144,4 @@
+ 
+ configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/2geom.pc.in
+                 ${CMAKE_CURRENT_BINARY_DIR}/2geom.pc @ONLY IMMEDIATE )
+-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/2geom.pc" DESTINATION lib/pkgconfig)
++install(FILES "${CMAKE_CURRENT_BINARY_DIR}/2geom.pc" DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+--- inkscape-1.1.2/src/3rdparty/2geom/2geom.pc.in.orig	2022-02-05 01:13:25.000000000 +0000
++++ inkscape-1.1.2/src/3rdparty/2geom/2geom.pc.in	2022-02-09 17:42:04.228169700 +0000
+@@ -1,6 +1,6 @@
+ prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+-libdir=${exec_prefix}/lib
++libdir=${exec_prefix}/lib@LIB_SUFFIX@
+ includedir=${prefix}/include
+ 
+ Name: 2geom

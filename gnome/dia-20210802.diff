@@ -1,0 +1,33 @@
+--- dia-20210802/plug-ins/pdf/pdf-import.cpp.orig	2021-08-02 14:42:19.147138019 +0100
++++ dia-20210802/plug-ins/pdf/pdf-import.cpp	2022-03-02 21:27:38.592582083 +0000
+@@ -38,6 +38,8 @@
+ #include <poppler/GlobalParams.h>
+ #include <poppler/PDFDocFactory.h>
+ 
++#include <poppler/glib/poppler-features.h>
++
+ #include <vector>
+ 
+ /*!
+@@ -867,7 +869,11 @@
+   // without this we will get strange crashes (at least with /O2 build)
+   globalParams = std::make_unique<GlobalParams>();
+ 
++#if POPPLER_CHECK_VERSION(22, 3, 0)
++  doc = PDFDocFactory().createPDFDoc(*fileName).get();
++#else
+   doc = PDFDocFactory().createPDFDoc(*fileName, ownerPW, userPW).get();
++#endif
+   if (!doc->isOk()) {
+     dia_context_add_message (ctx, _("PDF document not OK.\n%s"),
+ 			     dia_context_get_filename (ctx));
+--- dia-20210802/sheets/meson.build.orig	2021-08-02 14:35:40.000000000 +0100
++++ dia-20210802/sheets/meson.build	2022-03-02 21:16:22.471614342 +0000
+@@ -45,7 +45,6 @@
+ 
+ foreach sheet : sheet_files
+     sheet_files_targets += i18n.merge_file(
+-        sheet,
+         input: sheet,
+         output: sheet,
+         po_dir: po_dir,

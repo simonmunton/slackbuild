@@ -1,0 +1,14 @@
+--- kitinerary-21.12.2/src/lib/pdf/pdfdocument.cpp.orig	2022-01-28 23:31:44.000000000 +0000
++++ kitinerary-21.12.2/src/lib/pdf/pdfdocument.cpp	2022-03-02 18:19:20.655903312 +0000
+@@ -301,7 +301,11 @@
+     obj.initNull();
+     auto stream = new MemStream(const_cast<char*>(doc->d->m_pdfData.constData()), 0, doc->d->m_pdfData.size(), &obj);
+ #endif
++#if KPOPPLER_VERSION >= QT_VERSION_CHECK(22, 3, 0)
++    std::unique_ptr<PDFDoc> popplerDoc(new PDFDoc(stream));
++#else
+     std::unique_ptr<PDFDoc> popplerDoc(new PDFDoc(stream, nullptr, nullptr));
++#endif
+     if (!popplerDoc->isOk()) {
+         qCWarning(Log) << "Got invalid PDF document!" << popplerDoc->getErrorCode();
+         return nullptr;

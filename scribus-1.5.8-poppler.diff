@@ -1,3 +1,47 @@
+--- scribus-1.5.8/scribus/plugins/import/pdf/importpdf.cpp.orig	2022-01-23 16:16:01.000000000 +0000
++++ scribus-1.5.8/scribus/plugins/import/pdf/importpdf.cpp	2022-03-02 21:04:21.871648724 +0000
+@@ -90,7 +90,11 @@
+ #endif
+ 	globalParams->setErrQuiet(gTrue);
+ 
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 3, 0)
++	PDFDoc pdfDoc{std::make_unique<GooString>(fname)};
++#else
+ 	PDFDoc pdfDoc{fname, nullptr, nullptr, nullptr};
++#endif
+ 	if (!pdfDoc.isOk() || pdfDoc.getErrorCode() == errEncrypted)
+ 		return QImage();
+ 
+@@ -343,7 +347,11 @@
+ 	globalParams->setErrQuiet(gTrue);
+ //	globalParams->setPrintCommands(gTrue);
+ 	QList<OptionalContentGroup*> ocgGroups;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 3, 0)
++	auto pdfDoc = std::unique_ptr<PDFDoc>(new PDFDoc(std::make_unique<GooString>(fname)));
++#else
+ 	auto pdfDoc = std::unique_ptr<PDFDoc>(new PDFDoc(fname, nullptr, nullptr, nullptr));
++#endif
+ 	if (pdfDoc)
+ 	{
+ 		if (pdfDoc->getErrorCode() == errEncrypted)
+@@ -360,10 +368,17 @@
+ #if defined(Q_OS_WIN32) && POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(0, 62, 0)
+ 				auto fname = new GooString(fn.toUtf8().data());
+ #else
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(22, 3, 0)
+ 				auto fname = new GooString(QFile::encodeName(fn).data());
++#endif
+ #endif
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 3, 0)
++				std::optional<GooString> userPW(text.toLocal8Bit().data());
++				pdfDoc.reset(new PDFDoc(std::make_unique<GooString>(QFile::encodeName(fn).data()), userPW, userPW));
++#else
+ 				auto userPW = new GooString(text.toLocal8Bit().data());
+ 				pdfDoc.reset(new PDFDoc(fname, userPW, userPW, nullptr));
++#endif
+ 				qApp->changeOverrideCursor(QCursor(Qt::WaitCursor));
+ 			}
+ 			if ((!pdfDoc) || (pdfDoc->getErrorCode() != errNone))
 --- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp.orig	2022-01-23 16:16:01.000000000 +0000
 +++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-02-02 20:00:01.560684629 +0000
 @@ -3027,14 +3027,14 @@
