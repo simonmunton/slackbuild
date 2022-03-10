@@ -1,0 +1,261 @@
+From 3e3d75d16abb00c0aacff3fc058d65d4ad5c1a29 Mon Sep 17 00:00:00 2001
+From: Adam Jackson <ajax@redhat.com>
+Date: Mon, 4 Oct 2021 17:46:46 -0400
+Subject: [PATCH] dri: Epoch how no-error context creation works
+
+The bug here is that the DRI context "flags" are intended to alias the
+GLX context flag values, and they don't, DRI's no-error flag is GLX's
+reset-isolation flag. GLX (and EGL!) treat no-error as a context
+attribute, and reset isolation predates Mesa's no-error implementation
+by several years. The GL_KHR_no_error spec does describe it as a
+"context flag", though, so maybe that's why we do it as a (DRI) context
+flag.
+
+In order to unalias these we need a new contract with the loader. We
+remove the old __DRI_NO_ERROR extension, and add a new
+__DRI_RENDERER_HAS_CONTEXT_NO_ERROR value to query. Loaders can key on
+that to know to pass no-error-ness through as a context attribute,
+matching the GLX/EGL calling convention. We go ahead and define
+__DRI_CTX_FLAG_RESET_ISOLATION as well, and update the drivers to refuse
+it since we don't support it yet.
+
+This means mismatched drivers/loaders will not be able to create
+no-error contexts. Too bad. If you want performance that badly you can
+build both things at once.
+
+Reviewed-by: Emil Velikov <emil.l.velikov@gmail.com>
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/12474>
+---
+ include/GL/internal/dri_interface.h     | 18 +++++++++++++++---
+ src/gallium/frontends/dri/dri2.c        |  1 -
+ src/gallium/frontends/dri/dri_context.c | 10 +++++-----
+ src/gallium/frontends/dri/dri_util.c    | 19 ++++++++++++-------
+ src/gallium/frontends/dri/dri_util.h    |  6 ++++--
+ src/gallium/frontends/dri/drisw.c       |  2 --
+ src/gallium/frontends/dri/utils.c       |  4 ++++
+ 7 files changed, 40 insertions(+), 20 deletions(-)
+
+diff --git a/include/GL/internal/dri_interface.h b/include/GL/internal/dri_interface.h
+index 10ce61e8eda..443f6496b0f 100644
+--- a/include/GL/internal/dri_interface.h
++++ b/include/GL/internal/dri_interface.h
+@@ -1063,16 +1063,22 @@ struct __DRIdri2LoaderExtensionRec {
+ #define __DRI_CTX_ATTRIB_MAJOR_VERSION		0
+ #define __DRI_CTX_ATTRIB_MINOR_VERSION		1
+ 
++/* These must alias the GLX/EGL values. */
+ #define __DRI_CTX_ATTRIB_FLAGS			2
+ #define __DRI_CTX_FLAG_DEBUG			0x00000001
+ #define __DRI_CTX_FLAG_FORWARD_COMPATIBLE	0x00000002
+ #define __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS	0x00000004
+-#define __DRI_CTX_FLAG_NO_ERROR			0x00000008
++#define __DRI_CTX_FLAG_NO_ERROR			0x00000008 /* Deprecated, do not use */
++/* Not yet implemented but placed here to reserve the alias with GLX */
++#define __DRI_CTX_FLAG_RESET_ISOLATION          0x00000008
+ 
+ #define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
+ #define __DRI_CTX_RESET_NO_NOTIFICATION		0
+ #define __DRI_CTX_RESET_LOSE_CONTEXT		1
+ 
++/**
++ * \name Context priority levels.
++ */
+ #define __DRI_CTX_ATTRIB_PRIORITY		4
+ #define __DRI_CTX_PRIORITY_LOW			0
+ #define __DRI_CTX_PRIORITY_MEDIUM		1
+@@ -1082,7 +1088,9 @@ struct __DRIdri2LoaderExtensionRec {
+ #define __DRI_CTX_RELEASE_BEHAVIOR_NONE         0
+ #define __DRI_CTX_RELEASE_BEHAVIOR_FLUSH        1
+ 
+-#define __DRI_CTX_NUM_ATTRIBS                   6
++#define __DRI_CTX_ATTRIB_NO_ERROR               6
++
++#define __DRI_CTX_NUM_ATTRIBS                   7
+ 
+ /**
+  * \name Reasons that __DRIdri2Extension::createContextAttribs might fail
+@@ -1758,10 +1766,13 @@ struct __DRIrobustnessExtensionRec {
+ };
+ 
+ /**
+- * No-error context driver extension.
++ * No-error context driver extension (deprecated).
+  *
+  * Existence of this extension means the driver can accept the
+  * __DRI_CTX_FLAG_NO_ERROR flag.
++ *
++ * This extension is deprecated, and modern loaders will not use it. Please
++ * use __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT instead.
+  */
+ #define __DRI2_NO_ERROR "DRI_NoError"
+ #define __DRI2_NO_ERROR_VERSION 1
+@@ -1868,6 +1879,7 @@ typedef struct __DRIDriverVtableExtensionRec {
+ 
+ #define __DRI2_RENDERER_HAS_PROTECTED_CONTENT                 0x000e
+ #define __DRI2_RENDERER_PREFER_BACK_BUFFER_REUSE              0x000f
++#define __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT                  0x0010
+ 
+ typedef struct __DRI2rendererQueryExtensionRec __DRI2rendererQueryExtension;
+ struct __DRI2rendererQueryExtensionRec {
+diff --git a/src/gallium/frontends/dri/dri2.c b/src/gallium/frontends/dri/dri2.c
+index 4b77601a82c..59979ec1843 100644
+--- a/src/gallium/frontends/dri/dri2.c
++++ b/src/gallium/frontends/dri/dri2.c
+@@ -2257,7 +2257,6 @@ static const __DRIextension *dri_screen_extensions_base[] = {
+    &dri2ThrottleExtension.base,
+    &dri2FenceExtension.base,
+    &dri2InteropExtension.base,
+-   &dri2NoErrorExtension.base,
+    &driBlobExtension.base,
+    &driMutableRenderBufferExtension.base,
+ };
+diff --git a/src/gallium/frontends/dri/dri_context.c b/src/gallium/frontends/dri/dri_context.c
+index 1b0dd9f569e..f6f2a984ac8 100644
+--- a/src/gallium/frontends/dri/dri_context.c
++++ b/src/gallium/frontends/dri/dri_context.c
+@@ -58,11 +58,11 @@ dri_create_context(gl_api api, const struct gl_config * visual,
+    struct st_context_attribs attribs;
+    enum st_context_error ctx_err = 0;
+    unsigned allowed_flags = __DRI_CTX_FLAG_DEBUG |
+-                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE |
+-                            __DRI_CTX_FLAG_NO_ERROR;
++                            __DRI_CTX_FLAG_FORWARD_COMPATIBLE;
+    unsigned allowed_attribs =
+       __DRIVER_CONTEXT_ATTRIB_PRIORITY |
+-      __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
++      __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR |
++      __DRIVER_CONTEXT_ATTRIB_NO_ERROR;
+    const __DRIbackgroundCallableExtension *backgroundCallable =
+       screen->sPriv->dri2.backgroundCallable;
+    const struct driOptionCache *optionCache = &screen->dev->option_cache;
+@@ -120,8 +120,8 @@ dri_create_context(gl_api api, const struct gl_config * visual,
+       if (ctx_config->reset_strategy != __DRI_CTX_RESET_NO_NOTIFICATION)
+          attribs.flags |= ST_CONTEXT_FLAG_RESET_NOTIFICATION_ENABLED;
+ 
+-   if (ctx_config->flags & __DRI_CTX_FLAG_NO_ERROR)
+-      attribs.flags |= ST_CONTEXT_FLAG_NO_ERROR;
++   if (ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_NO_ERROR)
++      attribs.flags |= ctx_config->no_error ? ST_CONTEXT_FLAG_NO_ERROR : 0;
+ 
+    if (ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_PRIORITY) {
+       switch (ctx_config->priority) {
+diff --git a/src/gallium/frontends/dri/dri_util.c b/src/gallium/frontends/dri/dri_util.c
+index b9fbed05ca9..dc105ea4933 100644
+--- a/src/gallium/frontends/dri/dri_util.c
++++ b/src/gallium/frontends/dri/dri_util.c
+@@ -376,6 +376,16 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+                     ~__DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
+             }
+             break;
++        case __DRI_CTX_ATTRIB_NO_ERROR:
++            if (attribs[i * 2 + 1] != 0) {
++               ctx_config.attribute_mask |=
++                  __DRIVER_CONTEXT_ATTRIB_NO_ERROR;
++               ctx_config.no_error = attribs[i * 2 + 1];
++            } else {
++               ctx_config.attribute_mask &=
++                  ~__DRIVER_CONTEXT_ATTRIB_NO_ERROR;
++            }
++            break;
+ 	default:
+ 	    /* We can't create a context that satisfies the requirements of an
+ 	     * attribute that we don't understand.  Return failure.
+@@ -427,8 +437,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+     if (mesa_api != API_OPENGL_COMPAT
+         && mesa_api != API_OPENGL_CORE
+         && (ctx_config.flags & ~(__DRI_CTX_FLAG_DEBUG |
+-                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
+-                                 __DRI_CTX_FLAG_NO_ERROR))) {
++                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS))) {
+ 	*error = __DRI_CTX_ERROR_BAD_FLAG;
+ 	return NULL;
+     }
+@@ -451,7 +460,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
+     const uint32_t allowed_flags = (__DRI_CTX_FLAG_DEBUG
+                                     | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
+                                     | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
+-                                    | __DRI_CTX_FLAG_NO_ERROR);
++                                    | __DRI_CTX_FLAG_RESET_ISOLATION);
+     if (ctx_config.flags & ~allowed_flags) {
+ 	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+ 	return NULL;
+@@ -1036,7 +1045,3 @@ const __DRIcopySubBufferExtension driCopySubBufferExtension = {
+ 
+    .copySubBuffer               = driCopySubBuffer,
+ };
+-
+-const __DRInoErrorExtension dri2NoErrorExtension = {
+-   .base = { __DRI2_NO_ERROR, 1 },
+-};
+diff --git a/src/gallium/frontends/dri/dri_util.h b/src/gallium/frontends/dri/dri_util.h
+index 470dc493e37..be91c4917f8 100644
+--- a/src/gallium/frontends/dri/dri_util.h
++++ b/src/gallium/frontends/dri/dri_util.h
+@@ -101,11 +101,15 @@ struct __DriverContextConfig {
+ 
+     /* Only valid if __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR is set */
+     int release_behavior;
++
++    /* Only valid if __DRIVER_CONTEXT_ATTRIB_NO_ERROR is set */
++    int no_error;
+ };
+ 
+ #define __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY   (1 << 0)
+ #define __DRIVER_CONTEXT_ATTRIB_PRIORITY         (1 << 1)
+ #define __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR (1 << 2)
++#define __DRIVER_CONTEXT_ATTRIB_NO_ERROR         (1 << 3)
+ 
+ /**
+  * Driver callback functions.
+@@ -331,6 +335,4 @@ dri2InvalidateDrawable(__DRIdrawable *drawable);
+ 
+ extern const __DRIimageDriverExtension driImageDriverExtension;
+ 
+-extern const __DRInoErrorExtension dri2NoErrorExtension;
+-
+ #endif /* _DRI_UTIL_H_ */
+diff --git a/src/gallium/frontends/dri/drisw.c b/src/gallium/frontends/dri/drisw.c
+index 64c77889de4..1e0a84d6cb5 100644
+--- a/src/gallium/frontends/dri/drisw.c
++++ b/src/gallium/frontends/dri/drisw.c
+@@ -472,7 +472,6 @@ static const __DRIextension *drisw_screen_extensions[] = {
+    &dri2RendererQueryExtension.base,
+    &dri2ConfigQueryExtension.base,
+    &dri2FenceExtension.base,
+-   &dri2NoErrorExtension.base,
+    &driSWImageExtension.base,
+    &dri2FlushControlExtension.base,
+    NULL
+@@ -483,7 +482,6 @@ static const __DRIextension *drisw_robust_screen_extensions[] = {
+    &dri2RendererQueryExtension.base,
+    &dri2ConfigQueryExtension.base,
+    &dri2FenceExtension.base,
+-   &dri2NoErrorExtension.base,
+    &dri2Robustness.base,
+    &driSWImageExtension.base,
+    &dri2FlushControlExtension.base,
+diff --git a/src/gallium/frontends/dri/utils.c b/src/gallium/frontends/dri/utils.c
+index e44647eeafc..9fb940cf12f 100644
+--- a/src/gallium/frontends/dri/utils.c
++++ b/src/gallium/frontends/dri/utils.c
+@@ -502,6 +502,7 @@ driIndexConfigAttrib(const __DRIconfig *config, int index,
+  *     - \c __DRI2_RENDERER_OPENGL_COMPATIBLITY_PROFILE_VERSION
+  *     - \c __DRI2_RENDERER_ES_PROFILE_VERSION
+  *     - \c __DRI2_RENDERER_ES2_PROFILE_VERSION
++ *     - \c __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT
+  *
+  * \returns
+  * Zero if a recognized value of \c param is supplied, -1 otherwise.
+@@ -552,6 +553,9 @@ driQueryRendererIntegerCommon(__DRIscreen *psp, int param, unsigned int *value)
+       value[0] = psp->max_gl_es2_version / 10;
+       value[1] = psp->max_gl_es2_version % 10;
+       return 0;
++   case __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT:
++      value[0] = GL_TRUE;
++      return 0;
+    default:
+       break;
+    }
+-- 
+GitLab
+

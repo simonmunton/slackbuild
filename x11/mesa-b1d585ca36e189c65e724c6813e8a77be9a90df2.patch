@@ -1,0 +1,80 @@
+From b1d585ca36e189c65e724c6813e8a77be9a90df2 Mon Sep 17 00:00:00 2001
+From: Adam Jackson <ajax@redhat.com>
+Date: Mon, 4 Oct 2021 17:53:27 -0400
+Subject: [PATCH] egl: Use the new no-error driver interface
+
+Reviewed-by: Emil Velikov <emil.l.velikov@gmail.com>
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/12474>
+---
+ src/egl/drivers/dri2/egl_dri2.c | 14 +++++++++-----
+ src/egl/drivers/dri2/egl_dri2.h |  1 -
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/src/egl/drivers/dri2/egl_dri2.c b/src/egl/drivers/dri2/egl_dri2.c
+index 93e3af618f9..cf626c5b214 100644
+--- a/src/egl/drivers/dri2/egl_dri2.c
++++ b/src/egl/drivers/dri2/egl_dri2.c
+@@ -741,7 +741,6 @@ static const struct dri2_extension_match optional_driver_extensions[] = {
+ 
+ static const struct dri2_extension_match optional_core_extensions[] = {
+    { __DRI2_ROBUSTNESS, 1, offsetof(struct dri2_egl_display, robustness) },
+-   { __DRI2_NO_ERROR, 1, offsetof(struct dri2_egl_display, no_error) },
+    { __DRI2_CONFIG_QUERY, 1, offsetof(struct dri2_egl_display, config) },
+    { __DRI2_FENCE, 1, offsetof(struct dri2_egl_display, fence) },
+    { __DRI2_BUFFER_DAMAGE, 1, offsetof(struct dri2_egl_display, buffer_damage) },
+@@ -950,7 +949,8 @@ dri2_setup_screen(_EGLDisplay *disp)
+          disp->Extensions.EXT_create_context_robustness = EGL_TRUE;
+    }
+ 
+-   if (dri2_dpy->no_error)
++   if (dri2_renderer_query_integer(dri2_dpy,
++                                   __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT))
+       disp->Extensions.KHR_create_context_no_error = EGL_TRUE;
+ 
+    if (dri2_dpy->fence) {
+@@ -1408,7 +1408,7 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+    ctx_attribs[pos++] = __DRI_CTX_ATTRIB_MINOR_VERSION;
+    ctx_attribs[pos++] = dri2_ctx->base.ClientMinorVersion;
+ 
+-   if (dri2_ctx->base.Flags != 0 || dri2_ctx->base.NoError) {
++   if (dri2_ctx->base.Flags != 0) {
+       /* If the implementation doesn't support the __DRI2_ROBUSTNESS
+        * extension, don't even try to send it the robust-access flag.
+        * It may explode.  Instead, generate the required EGL error here.
+@@ -1420,8 +1420,7 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+       }
+ 
+       ctx_attribs[pos++] = __DRI_CTX_ATTRIB_FLAGS;
+-      ctx_attribs[pos++] = dri2_ctx->base.Flags |
+-         (dri2_ctx->base.NoError ? __DRI_CTX_FLAG_NO_ERROR : 0);
++      ctx_attribs[pos++] = dri2_ctx->base.Flags;
+    }
+ 
+    if (dri2_ctx->base.ResetNotificationStrategy != EGL_NO_RESET_NOTIFICATION_KHR) {
+@@ -1465,6 +1464,11 @@ dri2_fill_context_attribs(struct dri2_egl_context *dri2_ctx,
+       ctx_attribs[pos++] = __DRI_CTX_RELEASE_BEHAVIOR_NONE;
+    }
+ 
++   if (dri2_ctx->base.NoError) {
++      ctx_attribs[pos++] = __DRI_CTX_ATTRIB_NO_ERROR;
++      ctx_attribs[pos++] = true;
++   }
++
+    *num_attribs = pos;
+ 
+    return true;
+diff --git a/src/egl/drivers/dri2/egl_dri2.h b/src/egl/drivers/dri2/egl_dri2.h
+index c466ff83c53..fc773105694 100644
+--- a/src/egl/drivers/dri2/egl_dri2.h
++++ b/src/egl/drivers/dri2/egl_dri2.h
+@@ -226,7 +226,6 @@ struct dri2_egl_display
+    const __DRItexBufferExtension *tex_buffer;
+    const __DRIimageExtension *image;
+    const __DRIrobustnessExtension *robustness;
+-   const __DRInoErrorExtension *no_error;
+    const __DRI2configQueryExtension *config;
+    const __DRI2fenceExtension *fence;
+    const __DRI2bufferDamageExtension *buffer_damage;
+-- 
+GitLab
+

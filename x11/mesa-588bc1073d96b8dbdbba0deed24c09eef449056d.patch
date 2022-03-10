@@ -1,0 +1,63 @@
+From 588bc1073d96b8dbdbba0deed24c09eef449056d Mon Sep 17 00:00:00 2001
+From: Adam Jackson <ajax@redhat.com>
+Date: Fri, 23 Jul 2021 18:14:33 -0400
+Subject: [PATCH] glx/dri: Fix error generation for invalid GLX_RENDER_TYPE
+
+This needs to throw BadValue.
+---
+ src/glx/dri2_glx.c  | 6 ++++--
+ src/glx/dri3_glx.c  | 6 ++++--
+ src/glx/drisw_glx.c | 3 ++-
+ 3 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/src/glx/dri2_glx.c b/src/glx/dri2_glx.c
+index c9ca203e516..acbb87a2ba0 100644
+--- a/src/glx/dri2_glx.c
++++ b/src/glx/dri2_glx.c
+@@ -199,8 +199,10 @@ dri2_create_context_attribs(struct glx_screen *base,
+       goto error_exit;
+ 
+    /* Check the renderType value */
+-   if (!validate_renderType_against_config(config_base, dca.render_type))
+-       goto error_exit;
++   if (!validate_renderType_against_config(config_base, dca.render_type)) {
++      *error = BadValue;
++      goto error_exit;
++   }
+ 
+    if (shareList) {
+       /* We can't share with an indirect context */
+diff --git a/src/glx/dri3_glx.c b/src/glx/dri3_glx.c
+index e8d5a8c5c61..58153d632bb 100644
+--- a/src/glx/dri3_glx.c
++++ b/src/glx/dri3_glx.c
+@@ -250,8 +250,10 @@ dri3_create_context_attribs(struct glx_screen *base,
+       goto error_exit;
+ 
+    /* Check the renderType value */
+-   if (!validate_renderType_against_config(config_base, dca.render_type))
+-       goto error_exit;
++   if (!validate_renderType_against_config(config_base, dca.render_type)) {
++      *error = BadValue;
++      goto error_exit;
++   }
+ 
+    if (shareList) {
+       /* We can't share with an indirect context */
+diff --git a/src/glx/drisw_glx.c b/src/glx/drisw_glx.c
+index 0e91eb6c5f8..0f1f691efc1 100644
+--- a/src/glx/drisw_glx.c
++++ b/src/glx/drisw_glx.c
+@@ -525,7 +525,8 @@ drisw_create_context_attribs(struct glx_screen *base,
+ 
+    /* Check the renderType value */
+    if (!validate_renderType_against_config(config_base, dca.render_type)) {
+-       return NULL;
++      *error = BadValue;
++      return NULL;
+    }
+ 
+    if (shareList) {
+-- 
+GitLab
+
