@@ -1,0 +1,72 @@
+--- vlc-3.0.17.3/modules/codec/dav1d.c.orig	2022-02-21 09:19:25.000000000 +0000
++++ vlc-3.0.17.3/modules/codec/dav1d.c	2022-03-18 16:51:27.406098439 +0000
+@@ -49,6 +49,8 @@
+  * Module descriptor
+  *****************************************************************************/
+ 
++#define THREAD_TEXT N_("Threads")
++#define THREAD_LONGTEXT N_( "Max number of threads used for decoding, default 0=auto" )
+ #define THREAD_FRAMES_TEXT N_("Frames Threads")
+ #define THREAD_FRAMES_LONGTEXT N_( "Max number of threads used for frame decoding, default 0=auto" )
+ #define THREAD_TILES_TEXT N_("Tiles Threads")
+@@ -63,10 +65,15 @@
+     set_category(CAT_INPUT)
+     set_subcategory(SUBCAT_INPUT_VCODEC)
+ 
++#if DAV1D_API_VERSION_MAJOR >= 6
++    add_integer_with_range("dav1d-threads", 0, 0, DAV1D_MAX_THREADS,
++                THREAD_TEXT, THREAD_LONGTEXT, false)
++#else
+     add_integer_with_range("dav1d-thread-frames", 0, 0, DAV1D_MAX_FRAME_THREADS,
+                 THREAD_FRAMES_TEXT, THREAD_FRAMES_LONGTEXT, false)
+     add_integer_with_range("dav1d-thread-tiles", 0, 0, DAV1D_MAX_TILE_THREADS,
+                 THREAD_TILES_TEXT, THREAD_TILES_LONGTEXT, false)
++#endif
+ vlc_module_end ()
+ 
+ /*****************************************************************************
+@@ -294,6 +301,14 @@
+         return VLC_ENOMEM;
+ 
+     dav1d_default_settings(&p_sys->s);
++#if DAV1D_API_VERSION_MAJOR >= 6
++    p_sys->s.n_threads = var_InheritInteger(p_this, "dav1d-threads");
++    if (p_sys->s.n_threads == 0)
++        p_sys->s.n_threads =
++            (i_core_count > 4) ? 4 :
++            (i_core_count > 1) ? i_core_count :
++            1;
++#else
+     p_sys->s.n_tile_threads = var_InheritInteger(p_this, "dav1d-thread-tiles");
+     if (p_sys->s.n_tile_threads == 0)
+         p_sys->s.n_tile_threads =
+@@ -303,6 +318,7 @@
+     p_sys->s.n_frame_threads = var_InheritInteger(p_this, "dav1d-thread-frames");
+     if (p_sys->s.n_frame_threads == 0)
+         p_sys->s.n_frame_threads = (i_core_count < 16) ? i_core_count : 16;
++#endif
+     p_sys->s.allocator.cookie = dec;
+     p_sys->s.allocator.alloc_picture_callback = NewPicture;
+     p_sys->s.allocator.release_picture_callback = FreePicture;
+@@ -313,12 +329,21 @@
+         return VLC_EGENERIC;
+     }
+ 
++#if DAV1D_API_VERSION_MAJOR >= 6
++    msg_Dbg(p_this, "Using dav1d version %s with %d threads",
++            dav1d_version(), p_sys->s.n_threads);
++#else
+     msg_Dbg(p_this, "Using dav1d version %s with %d/%d frame/tile threads",
+             dav1d_version(), p_sys->s.n_frame_threads, p_sys->s.n_tile_threads);
++#endif
+ 
+     dec->pf_decode = Decode;
+     dec->pf_flush = FlushDecoder;
++#if DAV1D_API_VERSION_MAJOR >= 6
++    dec->i_extra_picture_buffers = (p_sys->s.n_threads - 1);
++#else
+     dec->i_extra_picture_buffers = (p_sys->s.n_frame_threads - 1);
++#endif
+ 
+     dec->fmt_out.video.i_width = dec->fmt_in.video.i_width;
+     dec->fmt_out.video.i_height = dec->fmt_in.video.i_height;
