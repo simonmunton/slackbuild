@@ -1,0 +1,199 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=Python
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p/python
+#TAR_EXT=.tar.gz
+VERSION=3.10.2
+VERSIONEXTRA=
+BUILD=1
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=python310
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ patch -p1 < ${CWD}/python3.readline.set_pre_input_hook.diff
+
+ # We don't want a large libpython*.a.
+ # patch -p1 < ${CWD}/python310.no-static-library.diff
+
+# if [ ${ARCH} == "x86_64" ]
+# then
+#   patch -p1 -b -z .orig< ${CWD}/python3.x86_64.diff
+# fi
+
+ # Fix python3 path in cgi.py.
+ sed -i '1s|^#.*/usr/local/bin/python|#!/usr/bin/python3|' Lib/cgi.py
+
+ # If system we're building on already has Python3 with pip in site-packages,
+ # ignore it and install pip anyway.
+ sed -i 's|\("install",\)|\1 "--ignore-installed",|' Lib/ensurepip/__init__.py
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PY_VER=${VERSION%.*}
+
+# Location for Python site-packages:
+SITEPK=${PKG}/opt/python310/lib/python${PY_VER}/site-packages
+# same as above without $PKG
+TOOLSDIR=/usr/lib/python${PY_VER}/site-packages
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+./configure --prefix=/opt/python310 \
+            --sysconfdir=/opt/python310/etc \
+            --localstatedir=/var/lib \
+	    --mandir=/opt/python310/man \
+	    --libdir=/opt/python310/lib \
+	    --docdir=/opt/python310/doc/python-${VERSION} \
+	    --enable-ipv6 \
+	    --enable-shared \
+	    --with-system-expat \
+	    --with-system-ffi \
+	    --enable-loadable-sqlite-extensions \
+	    --without-ensurepip \
+	    --without-static-libpython
+
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+mv ${PKG}/usr/doc/Python-${VERSION} ${PKG}/usr/doc/python-${VERSION}
+
+make install DESTDIR=${PKG}
+
+# Remove to avoid overwriting a copy from Python2.
+rm -f ${PKG}/opt/python310/bin/2to3
+
+# We'll install the python-tools under site-packages:
+mkdir -p ${SITEPK}
+cp -a Tools/* ${SITEPK}
+
+# Remove DOS batch/exe files.
+find ${PKG} \( -name '*.exe' -o -name '*.bat' \) -exec rm -f '{}' \;
+
+# Fix permissions on dynamic libraries.
+find ${PKG} -type f -perm 555 -exec chmod 755 '{}' \;
+
+(cd ${PKG}/opt/python310/include
+ ln -s python${PY_VER}m python${PY_VER}
+)
+
+# Install some python-demo files:
+cp -a Demo ${PKG}/opt/python310/doc/python-${VERSION}
+
+
+#mv ${SITEPK}/README ${PKG}/usr/doc/python-${VERSION}/README.python-tools
+#( cd ${PKG}/usr/doc/python-${VERSION}
+#  ln -sf ${TOOLSDIR} Tools
+#)
+## Make a few useful symlinks:
+#mkdir -p ${PKG}/usr/bin
+#( cd ${PKG}/usr/bin
+##  ln -sf ${TOOLSDIR}/modulator/modulator.py modulator
+#  ln -sf ${TOOLSDIR}/pynche/pynche pynche
+#  ln -sf ${TOOLSDIR}/i18n/msgfmt.py .
+#  ln -sf ${TOOLSDIR}/i18n/pygettext.py .
+#)
+
+( cd ${PKG}/opt/python310/bin
+  rm -f python
+#  ln -sf python${PY_VER} python
+)
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+# Install docs:
+mkdir -p ${PKG}/opt/python310/doc/python-${VERSION}/Documentation
+
+tar xf ${TARDIR}/python-${VERSION}-docs-text.tar.?z*
+mv python-${VERSION}-docs-text/* ${PKG}/opt/python310/doc/python-${VERSION}/Documentation
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO Misc \
+  ${PKG}/usr/doc/python-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "object-oriented interpreted programming language"
+Python is an interpreted, interactive, object-oriented programming
+language that combines remarkable power with very clear syntax.  
+Python's basic power can be extended with your own modules written in
+C or C++.  Python is also adaptable as an extension language for
+existing applications.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
