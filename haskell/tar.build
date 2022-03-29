@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=tar
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/h/Haskell
+#TAR_EXT=.tar.gz
+VERSION=0.5.1.1
+VERSIONEXTRA=
+BUILD=1
+REVISION=4
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=haskell-${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+ if [ -n "${REVISION}" ]
+ then
+  cp ${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}-${REVISION}.cabal ${TARNAME}.cabal
+ fi
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+GHC_VERSION=$(ghc --numeric-version)
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+runghc Setup configure \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --libsubdir=ghc-${GHC_VERSION}/${TARNAME}-${VERSION} \
+  --enable-shared \
+  --enable-library-profiling \
+  --docdir=/usr/doc/${TARNAME}-${VERSION}
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+runghc Setup build
+runghc Setup haddock
+
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+runghc Setup copy --destdir=${PKG}
+runghc Setup register --gen-pkg-config
+
+PKGCONFD=/usr/lib${LIBDIRSUFFIX}/ghc-${GHC_VERSION}/package.conf.d
+PKGID=$( grep -E "^id: " ${TARNAME}-${VERSION}.conf | sed "s/[[:space:]][[:space:]]*/ /" | cut -d" " -f2 )
+mkdir -p ${PKG}/${PKGCONFD}
+mv ${TARNAME}-${VERSION}.conf ${PKG}/${PKGCONFD}/${PKGID}.conf
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cat << EOF >> ${PKG}/install/doinst.sh
+/usr/bin/ghc-pkg recache
+EOF
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root.root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}.${GROUP} ${PKG}"
