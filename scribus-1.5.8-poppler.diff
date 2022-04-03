@@ -43,12 +43,63 @@
  			}
  			if ((!pdfDoc) || (pdfDoc->getErrorCode() != errNone))
 --- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp.orig	2022-01-23 16:16:01.000000000 +0000
-+++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-02-02 20:00:01.560684629 +0000
-@@ -3027,14 +3027,14 @@
++++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-04-02 22:33:07.731313399 +0100
+@@ -133,7 +133,9 @@
+ 
+ AnoOutputDev::~AnoOutputDev()
+ {
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(22, 4, 0)
+ 	delete fontName;
++#endif
+ 	delete itemText;
+ }
+ 
+@@ -170,7 +172,11 @@
+ 	currColorText = getColor(state->getFillColorSpace(), state->getFillColor(), &shade);
+ 	fontSize = state->getFontSize();
+ 	if (state->getFont())
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++		fontName = state->getFont()->getName().value_or("");
++#else
+ 		fontName = state->getFont()->getName()->copy();
++#endif
+ 	itemText = s->copy();
+ }
+ 
+@@ -358,7 +364,11 @@
+ GBool SlaOutputDev::annotations_callback(Annot *annota, void *user_data)
+ {
+ 	SlaOutputDev *dev = (SlaOutputDev*)user_data;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++	const PDFRectangle *box = &annota->getRect();
++#else
+ 	PDFRectangle *box = annota->getRect();
++#endif
+ 	double xCoor = dev->m_doc->currentPage()->xOffset() + box->x1 - dev->cropOffsetX;
+ 	double yCoor = dev->m_doc->currentPage()->yOffset() + dev->m_doc->currentPage()->height() - box->y2 + dev->cropOffsetY;
+ 	double width = box->x2 - box->x1;
+@@ -701,7 +711,11 @@
+ 			if (apa || !achar)
+ 			{
+ 				AnoOutputDev *annotOutDev = new AnoOutputDev(m_doc, m_importedColors);
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				Gfx *gfx = new Gfx(pdfDoc, annotOutDev, pdfDoc->getPage(m_actPage)->getResourceDict(), &annota->getRect(), nullptr);
++#else
+ 				Gfx *gfx = new Gfx(pdfDoc, annotOutDev, pdfDoc->getPage(m_actPage)->getResourceDict(), annota->getRect(), nullptr);
++#endif
+ 				ano->draw(gfx, false);
+ 				if (!bgFound)
+ 					m_currColorFill = annotOutDev->currColorFill;
+@@ -3026,16 +3040,24 @@
+ 
  void SlaOutputDev::updateFont(GfxState *state)
  {
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++	std::shared_ptr<GfxFont> gfxFont;
++#else
  	GfxFont *gfxFont;
 -	GfxFontLoc *fontLoc;
++#endif
 +	std::optional<GfxFontLoc> fontLoc;
  	GfxFontType fontType;
  	SlaOutFontFileID *id;
@@ -59,31 +110,113 @@
  	Object refObj, strObj;
 -	GooString *fileName;
 +	std::string fileName;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++	std::vector<unsigned char> tmpBuf;
++#else
  	char *tmpBuf;
++#endif
  	int tmpBufLen = 0;
  	int *codeToGID;
-@@ -3046,9 +3046,7 @@
+ 	const double *textMat;
+@@ -3046,9 +3068,9 @@
  	SplashCoord matrix[6];
  
  	m_font = nullptr;
 -	fileName = nullptr;
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(22, 4, 0)
  	tmpBuf = nullptr;
 -	fontLoc = nullptr;
++#endif
  
  	gfxFont = state->getFont();
  	if (!gfxFont)
-@@ -3088,8 +3086,8 @@
+@@ -3075,9 +3097,17 @@
+ 		if (fontLoc->locType == gfxFontLocEmbedded)
+ 		{
+ 			// if there is an embedded font, read it to memory
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++			std::optional<std::vector<unsigned char> > tmpBuf1 = gfxFont->readEmbFontFile(xref);
++			if (!tmpBuf1)
++				goto err2;
++			tmpBuf = tmpBuf1.value();
++			tmpBufLen = tmpBuf.size();
++#else
+ 			tmpBuf = gfxFont->readEmbFontFile(xref, &tmpBufLen);
+ 			if (! tmpBuf)
+ 				goto err2;
++#endif
+ 
+ 			// external font
+ 		}
+@@ -3088,10 +3118,17 @@
  		}
  
  		fontsrc = new SplashFontSrc;
 -		if (fileName)
 -			fontsrc->setFile(fileName, gFalse);
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++		if (!fileName.empty())
++			fontsrc->setFile(fileName);
++		else
++			fontsrc->setBuf((char *)tmpBuf.data(), tmpBufLen);
++#else
 +		if (!fileName.empty())
 +			fontsrc->setFile(fileName.c_str(), gFalse);
  		else
  			fontsrc->setBuf(tmpBuf, tmpBufLen, gTrue);
++#endif
  
-@@ -3130,15 +3128,14 @@
+ 		// load the font file
+ 		switch (fontType) {
+@@ -3099,7 +3136,11 @@
+ 			if (!(fontFile = m_fontEngine->loadType1Font(
+ 				id,
+ 				fontsrc,
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				(const char **)((Gfx8BitFont *) gfxFont.get())->getEncoding())))
++#else
+ 				(const char **)((Gfx8BitFont *) gfxFont)->getEncoding())))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+ 				gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
+@@ -3107,10 +3148,17 @@
+ 			}
+ 			break;
+ 		case fontType1C:
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++			if (!(fontFile = m_fontEngine->loadType1CFont(
++							id,
++							fontsrc,
++							(const char **)((Gfx8BitFont *) gfxFont.get())->getEncoding())))
++#else
+ 			if (!(fontFile = m_fontEngine->loadType1CFont(
+ 							id,
+ 							fontsrc,
+ 							(const char **)((Gfx8BitFont *) gfxFont)->getEncoding())))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+ 				gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
+@@ -3118,10 +3166,17 @@
+ 			}
+ 			break;
+ 		case fontType1COT:
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++			if (!(fontFile = m_fontEngine->loadOpenTypeT1CFont(
++							id,
++							fontsrc,
++							(const char **)((Gfx8BitFont *) gfxFont.get())->getEncoding())))
++#else
+ 			if (!(fontFile = m_fontEngine->loadOpenTypeT1CFont(
+ 							id,
+ 							fontsrc,
+ 							(const char **)((Gfx8BitFont *) gfxFont)->getEncoding())))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+ 				gfxFont->getName() ? gfxFont->getName()->getCString() : "(unnamed)");
+@@ -3130,15 +3185,22 @@
  			break;
  		case fontTrueType:
  		case fontTrueTypeOT:
@@ -92,18 +225,69 @@
 +			if (!fileName.empty())
 +				ff = FoFiTrueType::load(fileName.c_str());
  			else
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				ff = FoFiTrueType::make(tmpBuf.data(), tmpBufLen);
++#else
  				ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
++#endif
  			if (ff)
  			{
 -				codeToGID = ((Gfx8BitFont *)gfxFont)->getCodeToGIDMap(ff);
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				codeToGID = ((Gfx8BitFont *)gfxFont.get())->getCodeToGIDMap(ff.get());
++#else
 +				codeToGID = ((Gfx8BitFont *)gfxFont)->getCodeToGIDMap(ff.get());
++#endif
  				n = 256;
 -				delete ff;
  			}
  			else
  			{
-@@ -3203,14 +3200,13 @@
+@@ -3167,11 +3229,21 @@
  			}
+ 			break;
+ 		case fontCIDType0COT:
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++			if (((GfxCIDFont *) gfxFont.get())->getCIDToGID())
++#else
+ 			if (((GfxCIDFont *) gfxFont)->getCIDToGID())
++#endif
+ 			{
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				n = ((GfxCIDFont *) gfxFont.get())->getCIDToGIDLen();
++				codeToGID = (int *) gmallocn(n, sizeof(*codeToGID));
++				memcpy(codeToGID, ((GfxCIDFont *) gfxFont.get())->getCIDToGID(), n * sizeof(*codeToGID));
++#else
+ 				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
+ 				codeToGID = (int *) gmallocn(n, sizeof(*codeToGID));
+ 				memcpy(codeToGID, ((GfxCIDFont *) gfxFont)->getCIDToGID(), n * sizeof(*codeToGID));
++#endif
+ 			}
+ 			else
+ 			{
+@@ -3192,6 +3264,17 @@
+ 		case fontCIDType2OT:
+ 			codeToGID = nullptr;
+ 			n = 0;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++			if (((GfxCIDFont *) gfxFont.get())->getCIDToGID())
++			{
++				n = ((GfxCIDFont *) gfxFont.get())->getCIDToGIDLen();
++				if (n)
++				{
++					codeToGID = (int *)gmallocn(n, sizeof(*codeToGID));
++					memcpy(codeToGID, ((GfxCIDFont *)gfxFont.get())->getCIDToGID(), n * sizeof(*codeToGID));
++				}
++			}
++#else
+ 			if (((GfxCIDFont *) gfxFont)->getCIDToGID())
+ 			{
+ 				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
+@@ -3201,16 +3284,24 @@
+ 					memcpy(codeToGID, ((GfxCIDFont *)gfxFont)->getCIDToGID(), n * sizeof(*codeToGID));
+ 				}
+ 			}
++#endif
  			else
  			{
 -				if (fileName)
@@ -111,16 +295,24 @@
 +				if (!fileName.empty())
 +					ff = FoFiTrueType::load(fileName.c_str());
  				else
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++					ff = FoFiTrueType::make(tmpBuf.data(), tmpBufLen);
++#else
  					ff = FoFiTrueType::make(tmpBuf, tmpBufLen);
++#endif
  				if (! ff)
  					goto err2;
 -				codeToGID = ((GfxCIDFont *)gfxFont)->getCodeToGIDMap(ff, &n);
 -				delete ff;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++				codeToGID = ((GfxCIDFont *)gfxFont.get())->getCodeToGIDMap(ff.get(), &n);
++#else
 +				codeToGID = ((GfxCIDFont *)gfxFont)->getCodeToGIDMap(ff.get(), &n);
++#endif
  			}
  			if (!(fontFile = m_fontEngine->loadTrueTypeFont(
  							id,
-@@ -3247,14 +3243,12 @@
+@@ -3247,14 +3338,12 @@
  	mat[3] = -m22;
  	m_font = m_fontEngine->getFont(fontFile, mat, matrix);
  
@@ -135,3 +327,29 @@
  err1:
  	if (fontsrc && !fontsrc->isFile)
  		fontsrc->unref();
+@@ -3357,7 +3446,11 @@
+ GBool SlaOutputDev::beginType3Char(GfxState *state, double x, double y, double dx, double dy, CharCode code, POPPLER_CONST_082 Unicode *u, int uLen)
+ {
+ //	qDebug() << "beginType3Char";
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++	std::shared_ptr<GfxFont> gfxFont;
++#else
+ 	GfxFont *gfxFont;
++#endif
+ 	if (!(gfxFont = state->getFont()))
+ 		return gTrue;
+ 	if (gfxFont->getType() != fontType3)
+--- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.h.orig	2022-01-23 16:16:01.000000000 +0000
++++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.h	2022-04-02 20:11:26.990926343 +0100
+@@ -145,7 +145,11 @@
+ 	QString currColorFill;
+ 	QString currColorStroke;
+ 	double  fontSize {12};
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
++	std::string fontName {nullptr};
++#else
+ 	GooString *fontName {nullptr};
++#endif
+ 	GooString *itemText {nullptr};
+ 
+ private:

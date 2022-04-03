@@ -13,6 +13,93 @@
  
      if (!pdf_doc->isOk()) {
          int error = pdf_doc->getErrorCode();
+--- inkscape-1.1.2/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2022-02-09 17:42:04.227169700 +0000
++++ inkscape-1.1.2/src/extension/internal/pdfinput/pdf-parser.cpp	2022-04-02 19:56:13.151969944 +0100
+@@ -2158,7 +2158,11 @@
+ // TODO not good that numArgs is ignored but args[] is used:
+ void PdfParser::opSetFont(Object args[], int /*numArgs*/)
+ {
++#if POPPLER_CHECK_VERSION(22,4,0)
++  std::shared_ptr<GfxFont> font = res->lookupFont(args[0].getName());
++#else
+   GfxFont *font = res->lookupFont(args[0].getName());
++#endif
+ 
+   if (!font) {
+     // unsetting the font (drawing no text) is better than using the
+@@ -2179,7 +2183,9 @@
+     fflush(stdout);
+   }
+ 
++#if ! POPPLER_CHECK_VERSION(22,4,0)
+   font->incRefCnt();
++#endif
+   state->setFont(font, args[1].getNum());
+   fontChanged = gTrue;
+ }
+@@ -2373,7 +2379,11 @@
+ #else
+ void PdfParser::doShowText(GooString *s) {
+ #endif
++#if POPPLER_CHECK_VERSION(22,4,0)
++  std::shared_ptr<GfxFont> font;
++#else
+   GfxFont *font;
++#endif
+   int wMode;
+   double riseX, riseY;
+   CharCode code;
+@@ -2445,10 +2455,17 @@
+       //out->updateCTM(state, 1, 0, 0, 1, 0, 0);
+       if (false){ /*!out->beginType3Char(state, curX + riseX, curY + riseY, tdx, tdy,
+ 			       code, u, uLen)) {*/
++#if POPPLER_CHECK_VERSION(22,4,0)
++        _POPPLER_CALL_ARGS(charProc, ((Gfx8BitFont *)font.get())->getCharProc, code);
++	if ((resDict = ((Gfx8BitFont *)font.get())->getResources())) {
++	  pushResources(resDict);
++	}
++#else
+         _POPPLER_CALL_ARGS(charProc, ((Gfx8BitFont *)font)->getCharProc, code);
+ 	if ((resDict = ((Gfx8BitFont *)font)->getResources())) {
+ 	  pushResources(resDict);
+ 	}
++#endif
+ 	if (charProc.isStream()) {
+ 	  //parse(&charProc, gFalse); // TODO: parse into SVG font
+ 	} else {
+--- inkscape-1.1.2/src/extension/internal/pdfinput/svg-builder.cpp.orig	2022-02-05 01:21:47.000000000 +0000
++++ inkscape-1.1.2/src/extension/internal/pdfinput/svg-builder.cpp	2022-04-02 19:58:03.216964693 +0100
+@@ -1025,7 +1025,11 @@
+         //sp_repr_css_attr_unref(_font_style);
+     }
+     _font_style = sp_repr_css_attr_new();
++#if POPPLER_CHECK_VERSION(22,4,0)
++    std::shared_ptr<GfxFont> font = state->getFont();
++#else
+     GfxFont *font = state->getFont();
++#endif
+     // Store original name
+     if (font->getName()) {
+         _font_specification = font->getName()->getCString();
+--- inkscape-1.1.2/src/extension/internal/pdfinput/svg-builder.h.orig	2022-02-05 01:21:47.000000000 +0000
++++ inkscape-1.1.2/src/extension/internal/pdfinput/svg-builder.h	2022-04-02 20:00:25.299957914 +0100
+@@ -47,6 +47,7 @@
+ 
+ class SPCSSAttr;
+ 
++#include <memory>
+ #include <vector>
+ #include <glib.h>
+ 
+@@ -203,7 +204,7 @@
+     std::vector<SvgGraphicsState> _state_stack;
+ 
+     SPCSSAttr *_font_style;          // Current font style
+-    GfxFont *_current_font;
++    std::shared_ptr<GfxFont> _current_font;
+     const char *_font_specification;
+     double _font_scaling;
+     bool _need_font_update;
 --- inkscape-1.1.2/src/3rdparty/2geom/CMakeLists.txt.orig	2022-02-05 01:21:52.000000000 +0000
 +++ inkscape-1.1.2/src/3rdparty/2geom/CMakeLists.txt	2022-02-09 17:42:04.228169700 +0000
 @@ -144,4 +144,4 @@

@@ -1,5 +1,5 @@
 --- dia-20210802/plug-ins/pdf/pdf-import.cpp.orig	2021-08-02 14:42:19.147138019 +0100
-+++ dia-20210802/plug-ins/pdf/pdf-import.cpp	2022-03-02 21:27:38.592582083 +0000
++++ dia-20210802/plug-ins/pdf/pdf-import.cpp	2022-04-02 20:58:37.194231730 +0100
 @@ -38,6 +38,8 @@
  #include <poppler/GlobalParams.h>
  #include <poppler/PDFDocFactory.h>
@@ -9,7 +9,72 @@
  #include <vector>
  
  /*!
-@@ -867,7 +869,11 @@
+@@ -308,10 +310,18 @@
+     //FIXME: Dia is really unhappy about zero size fonts
+     if (!(state->getFontSize() > 0.0))
+       return;
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    std::shared_ptr<GfxFont> f = state->getFont();
++#else
+     GfxFont *f = state->getFont();
++#endif
+ 
+     // instead of building the same font over and over again
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    if (g_hash_table_lookup (this->font_map, f.get())) {
++#else
+     if (g_hash_table_lookup (this->font_map, f)) {
++#endif
+       ++font_map_hits;
+       return;
+     }
+@@ -323,8 +333,13 @@
+     gchar *family = g_strdup (f->getFamily() ? f->getFamily()->c_str() : "sans");
+ 
+     // we are (not anymore) building the same font over and over again
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    g_print ("Font 0x%x: '%s' size=%g (* %g)\n",
++	     GPOINTER_TO_INT (f.get()), family, state->getTransformedFontSize(), scale);
++#else
+     g_print ("Font 0x%x: '%s' size=%g (* %g)\n",
+ 	     GPOINTER_TO_INT (f), family, state->getTransformedFontSize(), scale);
++#endif
+ 
+     // now try to make a fontname Dia/Pango can cope with
+     // strip style postfix - we already have extracted the style bits above
+@@ -344,7 +359,11 @@
+       fsize *= fabs(fm[3] / fm[0]);
+     font = dia_font_new (family, style, fsize * scale / 0.8);
+ 
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    g_hash_table_insert (this->font_map, f.get(), font);
++#else
+     g_hash_table_insert (this->font_map, f, font);
++#endif
+     g_free (family);
+   }
+   void updateTextShift(GfxState *state, double shift)
+@@ -711,11 +730,19 @@
+     return;
+   if (!(state->getFontSize() > 0.0))
+     return;
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++  font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont().get());
++#else
+   font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont());
++#endif
+ 
+   // we have to decode the string data first
+   {
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    std::shared_ptr<GfxFont> f = state->getFont();
++#else
+     GfxFont *f = state->getFont();
++#endif
+     const char *p = s->c_str();
+     CharCode code;
+     int   j = 0, m, n;
+@@ -867,7 +894,11 @@
    // without this we will get strange crashes (at least with /O2 build)
    globalParams = std::make_unique<GlobalParams>();
  
