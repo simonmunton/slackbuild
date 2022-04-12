@@ -1,0 +1,119 @@
+--- dia-20220411/plug-ins/pdf/pdf-import.cpp.orig	2022-04-11 11:58:49.000000000 +0100
++++ dia-20220411/plug-ins/pdf/pdf-import.cpp	2022-04-11 18:27:05.594862759 +0100
+@@ -37,6 +37,7 @@
+ 
+ #include <poppler/GlobalParams.h>
+ #include <poppler/PDFDocFactory.h>
++#include <poppler/glib/poppler-features.h>
+ 
+ #include <vector>
+ 
+@@ -318,10 +319,18 @@
+     //FIXME: Dia is really unhappy about zero size fonts
+     if (!(state->getFontSize() > 0.0))
+       return;
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    std::shared_ptr<GfxFont> f = state->getFont();
++#else
+     GfxFont *f = state->getFont();
++#endif
+ 
+     // instead of building the same font over and over again
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    if (g_hash_table_lookup (this->font_map, f.get())) {
++#else
+     if (g_hash_table_lookup (this->font_map, f)) {
++#endif
+       ++font_map_hits;
+       return;
+     }
+@@ -333,8 +342,13 @@
+     gchar *family = g_strdup (f->getFamily() ? f->getFamily()->c_str() : "sans");
+ 
+     // we are (not anymore) building the same font over and over again
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    g_print ("Font 0x%x: '%s' size=%g (* %g)\n",
++            GPOINTER_TO_INT (f.get()), family, state->getTransformedFontSize(), scale);
++#else
+     g_print ("Font 0x%x: '%s' size=%g (* %g)\n",
+ 	     GPOINTER_TO_INT (f), family, state->getTransformedFontSize(), scale);
++#endif
+ 
+     // now try to make a fontname Dia/Pango can cope with
+     // strip style postfix - we already have extracted the style bits above
+@@ -354,7 +368,11 @@
+       fsize *= fabs(fm[3] / fm[0]);
+     font = dia_font_new (family, style, fsize * scale / 0.8);
+ 
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    g_hash_table_insert (this->font_map, f.get(), font);
++#else
+     g_hash_table_insert (this->font_map, f, font);
++#endif
+     g_free (family);
+   }
+   void updateTextShift(GfxState *state, double shift)
+@@ -721,11 +739,19 @@
+     return;
+   if (!(state->getFontSize() > 0.0))
+     return;
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++  font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont().get());
++#else
+   font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont());
++#endif
+ 
+   // we have to decode the string data first
+   {
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++    std::shared_ptr<GfxFont> f = state->getFont();
++#else
+     GfxFont *f = state->getFont();
++#endif
+     const char *p = s->c_str();
+     CharCode code;
+     int   j = 0, m, n;
+@@ -867,7 +893,11 @@
+ gboolean
+ import_pdf(const gchar *filename, DiagramData *dia, DiaContext *ctx, void* user_data)
+ {
++#if POPPLER_CHECK_VERSION(22, 4, 0)
++  std::unique_ptr<PDFDoc> doc;
++#else
+   PDFDoc *doc;
++#endif
+   GooString *fileName = new GooString(filename);
+   // no passwords yet
+   GooString *ownerPW = NULL;
+@@ -877,7 +907,11 @@
+   // without this we will get strange crashes (at least with /O2 build)
+   globalParams = std::make_unique<GlobalParams>();
+ 
++#if POPPLER_CHECK_VERSION(22, 3, 0)
++  doc = PDFDocFactory().createPDFDoc(*fileName);
++#else
+   doc = PDFDocFactory().createPDFDoc(*fileName, ownerPW, userPW);
++#endif
+   if (!doc->isOk()) {
+     dia_context_add_message (ctx, _("PDF document not OK.\n%s"),
+ 			     dia_context_get_filename (ctx));
+@@ -899,7 +933,9 @@
+     delete diaOut;
+     ret = TRUE;
+   }
++#if !POPPLER_CHECK_VERSION(22, 4, 0)
+   delete doc;
++#endif
+   delete fileName;
+ 
+   return ret;
+--- dia-20220411/sheets/meson.build.orig	2022-04-11 11:58:49.000000000 +0100
++++ dia-20220411/sheets/meson.build	2022-04-11 15:59:30.545219252 +0100
+@@ -45,7 +45,6 @@
+ 
+ foreach sheet : sheet_files
+     sheet_files_targets += i18n.merge_file(
+-        sheet,
+         input: sheet,
+         output: sheet,
+         po_dir: po_dir,
