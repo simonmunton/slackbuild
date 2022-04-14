@@ -7,15 +7,15 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/j
 #TAR_EXT=.tar.gz
-VERSION=20210917.1.4af2017
+VERSION=20211223.2.37be4c3
 VERSIONEXTRA=
-BUILD=1
+BUILD=3
 
 WEBPAGE="https://ring.cx/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=ring-lrc
+PKGNAME=ring-daemon
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -37,6 +37,7 @@ if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ring-project ${TARNAME}-${VERSION}
+mv jami-project ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -47,7 +48,7 @@ fi
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/ring-20180830.1.2b1e63a.diff
 # patch -p1 < ${CWD}/ring-restbed-ssl.diff
-# patch -p1 < ${CWD}/jami-20210409.1.3e6a4fb.diff
+ patch -p1 < ${CWD}/jami-20211223.2.37be4c3.diff
 )
 fi
 
@@ -57,12 +58,17 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-cd lrc
-
-mkdir _BuilD_
-cd _BuilD_
+cd daemon
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+cd contrib
+mkdir -p native
+cd native
+../bootstrap
+make || exit
+cd ../..
+./autogen.sh
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -74,28 +80,28 @@ CXXFLAGS="${SLKCFLAGS}" \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+	    --mandir=/usr/man \
+	    --disable-shared
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DCMAKE_INSTALL_LIBDIR=/usr/lib${LIBDIRSUFFIX} \
-      ..
+      .
 elif [ -f ./meson.build ]
 then
-  meson --prefix=/usr _BuilD_
+  meson --prefix=/usr -Dpkg_config_path=`pwd`/contrib/`cc -dumpmachine`/lib/pkgconfig -Ddefault_library=static -Dinterfaces=dbus _BuilD_
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f .X/meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
@@ -108,14 +114,12 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f .X/meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
   make install DESTDIR=${PKG}
 fi
-
-cd ..
 
 strip_binaries
 
@@ -132,7 +136,7 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Ring client library"
+make_slack_desc << EOF "Ring daemon"
 Ring is a free and universal communication platform which preserves 
 the users' privacy and freedoms.
 

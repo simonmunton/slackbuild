@@ -1,0 +1,79 @@
+--- jami-20211223.2.37be4c3/daemon/contrib/native/ffmpeg/libavcodec/libopusenc.c.orig	2021-04-08 21:55:16.000000000 +0100
++++ jami-20211223.2.37be4c3/daemon/contrib/native/ffmpeg/libavcodec/libopusenc.c	2022-04-14 16:06:21.790671304 +0100
+@@ -33,6 +33,7 @@
+ typedef struct LibopusEncOpts {
+     int vbr;
+     int application;
++    int enable_fec;
+     int packet_loss;
+     int fec;
+     int complexity;
+@@ -144,6 +145,13 @@
+                "Unable to set constrained VBR: %s\n", opus_strerror(ret));
+ 
+     ret = opus_multistream_encoder_ctl(enc,
++                                       OPUS_SET_INBAND_FEC(opts->enable_fec));
++    if (ret != OPUS_OK)
++        av_log(avctx, AV_LOG_WARNING,
++               "Unable to set enable FEC flag percentage: %s\n",
++               opus_strerror(ret));
++
++    ret = opus_multistream_encoder_ctl(enc,
+                                        OPUS_SET_PACKET_LOSS_PERC(opts->packet_loss));
+     if (ret != OPUS_OK)
+         av_log(avctx, AV_LOG_WARNING,
+@@ -460,6 +468,15 @@
+     int ret;
+     int discard_padding;
+ 
++    // Reload packet loss setting
++    ret = opus_multistream_encoder_ctl(opus->enc,
++                                       OPUS_SET_PACKET_LOSS_PERC(opus->opts.packet_loss));
++    if (ret != OPUS_OK)
++        av_log(avctx, AV_LOG_WARNING,
++               "Unable to set expected packet loss percentage: %s\n",
++               opus_strerror(ret));
++
++
+     if (frame) {
+         ret = ff_af_queue_add(&opus->afq, frame);
+         if (ret < 0)
+@@ -551,6 +568,7 @@
+         { "audio",          "Favor faithfulness to the input",         0, AV_OPT_TYPE_CONST, { .i64 = OPUS_APPLICATION_AUDIO },               0, 0, FLAGS, "application" },
+         { "lowdelay",       "Restrict to only the lowest delay modes", 0, AV_OPT_TYPE_CONST, { .i64 = OPUS_APPLICATION_RESTRICTED_LOWDELAY }, 0, 0, FLAGS, "application" },
+     { "frame_duration", "Duration of a frame in milliseconds", OFFSET(frame_duration), AV_OPT_TYPE_FLOAT, { .dbl = 20.0 }, 2.5, 120.0, FLAGS },
++    { "enable_fec",     "Enable forward error correction",     OFFSET(enable_fec),     AV_OPT_TYPE_BOOL,  { .i64 = 0 },    0,   1,     FLAGS },
+     { "packet_loss",    "Expected packet loss percentage",     OFFSET(packet_loss),    AV_OPT_TYPE_INT,   { .i64 = 0 },    0,   100,  FLAGS },
+     { "fec",             "Enable inband FEC. Expected packet loss must be non-zero",     OFFSET(fec),    AV_OPT_TYPE_BOOL,   { .i64 = 0 }, 0, 1, FLAGS },
+     { "vbr",            "Variable bit rate mode",              OFFSET(vbr),            AV_OPT_TYPE_INT,   { .i64 = 1 },    0,   2,    FLAGS, "vbr" },
+--- jami-20211223.2.37be4c3/daemon/contrib/native/ffmpeg/libavcodec/mjpegdec.c.orig	2021-04-08 21:55:16.000000000 +0100
++++ jami-20211223.2.37be4c3/daemon/contrib/native/ffmpeg/libavcodec/mjpegdec.c	2022-04-14 16:06:21.764671305 +0100
+@@ -2447,9 +2447,7 @@
+                    "restart marker: %d\n", start_code & 0x0f);
+             /* APP fields */
+         } else if (start_code >= APP0 && start_code <= APP15) {
+-            if ((ret = mjpeg_decode_app(s)) < 0)
+-                av_log(avctx, AV_LOG_ERROR, "unable to decode APP fields: %s\n",
+-                       av_err2str(ret));
++            ret = mjpeg_decode_app(s);
+             /* Comment */
+         } else if (start_code == COM) {
+             ret = mjpeg_decode_com(s);
+--- jami-20211223.2.37be4c3/lrc/src/callbackshandler.cpp.orig	1970-01-01 01:00:01.000000000 +0100
++++ jami-20211223.2.37be4c3/lrc/src/callbackshandler.cpp	2022-04-14 16:57:50.371667202 +0100
+@@ -270,13 +270,13 @@
+             Qt::QueuedConnection);
+ 
+     connect(&VideoManager::instance(),
+-            &VideoManagerInterface::startedDecoding,
++            &VideoManagerInterface::decodingStarted,
+             this,
+             &CallbacksHandler::slotStartedDecoding,
+             Qt::QueuedConnection);
+ 
+     connect(&VideoManager::instance(),
+-            &VideoManagerInterface::stoppedDecoding,
++            &VideoManagerInterface::decodingStopped,
+             this,
+             &CallbacksHandler::slotStoppedDecoding,
+             Qt::QueuedConnection);
