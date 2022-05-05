@@ -1,0 +1,88 @@
+--- qmlAlembic-2021.1.0/cmake/FindIlmBase.cmake.orig	2021-02-02 12:27:39.000000000 +0000
++++ qmlAlembic-2021.1.0/cmake/FindIlmBase.cmake	2022-05-05 14:58:30.413994368 +0100
+@@ -67,9 +67,7 @@
+ ENDIF()
+ 
+ SET(_ilmbase_FIND_COMPONENTS
+-    Half
+     Iex
+-    IexMath
+     IlmThread
+     Imath
+ )
+@@ -89,7 +87,7 @@
+ 
+ FIND_PATH(ILMBASE_INCLUDE_DIR
+   NAMES
+-    IlmBaseConfig.h
++    IlmThread.h
+   HINTS
+     ${_ilmbase_SEARCH_DIRS}
+   PATH_SUFFIXES
+@@ -104,7 +102,7 @@
+ 
+     FIND_FILE(_ilmbase_CONFIG
+       NAMES
+-        IlmBaseConfig.h
++        OpenEXRConfig.h
+       PATHS
+         "${ILMBASE_INCLUDE_DIR}"
+         "${ILMBASE_INCLUDE_DIR}/OpenEXR"
+@@ -112,14 +110,14 @@
+ 
+     IF(_ilmbase_CONFIG)
+       FILE(STRINGS "${_ilmbase_CONFIG}" ILMBASE_BUILD_SPECIFICATION
+-           REGEX "^[ \t]*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
++           REGEX "^[ \t]*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
+     ELSE()
+       MESSAGE(WARNING "Could not find \"OpenEXRConfig.h\" in \"${ILMBASE_INCLUDE_DIR}\"")
+     ENDIF()
+ 
+     IF(ILMBASE_BUILD_SPECIFICATION)
+       MESSAGE(STATUS "${ILMBASE_BUILD_SPECIFICATION}")
+-      STRING(REGEX REPLACE ".*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
++      STRING(REGEX REPLACE ".*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
+              "\\1" _ilmbase_libs_ver_init ${ILMBASE_BUILD_SPECIFICATION})
+     ELSE()
+       MESSAGE(WARNING "Could not determine ILMBase library version, assuming ${_ilmbase_libs_ver_init}.")
+@@ -153,27 +151,16 @@
+ 
+ UNSET(_ilmbase_libs_ver)
+ 
+-IF ( ${ALEMBIC_ILMBASE_HALF_LIB} STREQUAL "ALEMBIC_ILMBASE_HALF_LIB-NOTFOUND" )
+-  MESSAGE( FATAL_ERROR "ilmbase libraries (Half, Iex, IlmThread, Imath) not found, required" )
+-ENDIF()
+-
+ IF ( ${ALEMBIC_ILMBASE_IEX_LIB} STREQUAL "ALEMBIC_ILMBASE_IEX_LIB-NOTFOUND" )
+-  MESSAGE( FATAL_ERROR "ilmbase libraries (Half, Iex, IlmThread, Imath) not found, required" )
+-ENDIF()
+-
+-IF ( DEFINED USE_IEXMATH AND USE_IEXMATH )
+-  IF ( ${ALEMBIC_ILMBASE_IEXMATH_LIB} STREQUAL
+-    "ALEMBIC_ILMBASE_IEXMATH_LIB-NOTFOUND" )
+-  MESSAGE( FATAL_ERROR "ilmbase libraries (Half, Iex, IexMath, IlmThread, Imath) not found, required" )
+-  ENDIF()
++  MESSAGE( FATAL_ERROR "ilmbase libraries (Iex, IlmThread, Imath) not found, required" )
+ ENDIF()
+ 
+ IF ( ${ALEMBIC_ILMBASE_ILMTHREAD_LIB} STREQUAL "ALEMBIC_ILMBASE_ILMTHREAD_LIB-NOTFOUND" )
+-  MESSAGE( FATAL_ERROR "ilmbase libraries (Half, Iex, IlmThread, Imath) not found, required" )
++  MESSAGE( FATAL_ERROR "ilmbase libraries (Iex, IlmThread, Imath) not found, required" )
+ ENDIF()
+ 
+ IF ( ${ALEMBIC_ILMBASE_IMATH_LIB} STREQUAL "ALEMBIC_ILMBASE_IMATH_LIB-NOTFOUND" )
+-  MESSAGE( FATAL_ERROR "ilmbase libraries (Half, Iex, IlmThread, Imath) not found, required" )
++  MESSAGE( FATAL_ERROR "ilmbase libraries (Iex, IlmThread, Imath) not found, required" )
+ ENDIF()
+ 
+ IF ( ${ALEMBIC_ILMBASE_INCLUDE_DIRECTORY} STREQUAL "ALEMBIC_ILMBASE_INCLUDE_DIRECTORY-NOTFOUND" )
+@@ -182,9 +169,7 @@
+ 
+ 
+ MESSAGE( STATUS "ILMBASE INCLUDE PATH: ${ALEMBIC_ILMBASE_INCLUDE_DIRECTORY}" )
+-MESSAGE( STATUS "HALF LIB: ${ALEMBIC_ILMBASE_HALF_LIB}" )
+ MESSAGE( STATUS "IEX LIB: ${ALEMBIC_ILMBASE_IEX_LIB}" )
+-MESSAGE( STATUS "IEXMATH LIB: ${ALEMBIC_ILMBASE_IEXMATH_LIB}" )
+ MESSAGE( STATUS "ILMTHREAD LIB: ${ALEMBIC_ILMBASE_ILMTHREAD_LIB}" )
+ MESSAGE( STATUS "IMATH LIB: ${ALEMBIC_ILMBASE_IMATH_LIB}" )
+ 

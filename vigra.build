@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
 VERSION=1.11.1
 VERSIONEXTRA=-src
-BUILD=11
+BUILD=12
 
 WEBPAGE="https://ukoethe.github.io/vigra/"
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/vigra-1.11.1.diff
 )
 fi
 
@@ -54,6 +54,9 @@ pre_configure
 cd ${TARNAME}-${VERSION}
 
 fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -76,7 +79,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DWITH_OPENEXR=on \
       -DWITH_BOOST_THREAD=on \
-      .
+      ..
 
 fi
 
@@ -91,6 +94,8 @@ then
 fi
 
 make install DESTDIR=${PKG}
+
+cd ..
 
 strip_binaries
 

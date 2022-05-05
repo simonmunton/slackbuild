@@ -106,3 +106,74 @@
  
  
  template<typename T>
+--- pfstools-2.1.0/src/pfsglview/CMakeLists.txt.orig	2022-05-04 14:08:43.558001429 +0100
++++ pfstools-2.1.0/src/pfsglview/CMakeLists.txt	2022-05-04 14:11:17.163994100 +0100
+@@ -12,7 +12,7 @@
+ add_executable(pfsglview pfsglview.cpp picture_io.cpp module.cpp m_histogram.cpp m_status.cpp m_on_screen_display.cpp)
+ 
+ # TODO: Use ${GLUT_LIBRARY} instead.
+-target_link_libraries(pfsglview ${OPENGL_LIBRARIES} ${GLUT_glut_LIBRARY} pfs)
++target_link_libraries(pfsglview ${OPENGL_LIBRARIES} ${GLUT_glut_LIBRARY} ${GLUT_LIBRARIES} pfs)
+ 
+ install (TARGETS pfsglview DESTINATION bin)
+ install (FILES pfsglview.1 DESTINATION ${MAN_DIR})
+--- pfstools-2.1.0/src/fileformat/CMakeLists.txt.orig	2017-11-13 17:38:27.000000000 +0000
++++ pfstools-2.1.0/src/fileformat/CMakeLists.txt	2022-05-05 17:05:53.306714257 +0100
+@@ -67,7 +67,7 @@
+ install (FILES pfsoutpfm.1 DESTINATION ${MAN_DIR})
+ 
+ if( OPENEXR_FOUND )
+-    include_directories("${OPENEXR_INCLUDE_DIR}")
++    include_directories(${OPENEXR_INCLUDE_DIR} ${IMATH_INCLUDE_DIR})
+ 
+     add_executable(pfsinexr pfsinexr.cpp "${GETOPT_OBJECT}")
+     target_link_libraries(pfsinexr pfs ${OPENEXR_LIBRARIES})
+--- pfstools-2.1.0/cmake/FindOpenEXR.cmake.orig	2022-05-05 17:00:00.098731110 +0100
++++ pfstools-2.1.0/cmake/FindOpenEXR.cmake	2022-05-05 17:07:18.328710200 +0100
+@@ -35,11 +35,10 @@
+ ENDIF()
+ 
+ SET(_openexr_FIND_COMPONENTS
+-  Half
+   Iex
+-  IlmImf
+   IlmThread
+   Imath
++  OpenEXR
+ )
+ 
+ 
+@@ -61,7 +60,16 @@
+     include/OpenEXR include
+ )
+ 
+-#message( "Include dir: ${OPENEXR_INCLUDE_DIR}" )
++FIND_PATH(IMATH_INCLUDE_DIR
++  NAMES
++    half.h
++  HINTS
++    ${_openexr_SEARCH_DIRS}
++  PATH_SUFFIXES
++    include/Imath include
++)
++
++#message( "Include dir: ${OPENEXR_INCLUDE_DIR} ${IMATH_INCLUDE_DIR}" )
+ 
+ SET(_openexr_LIBRARIES)
+ FOREACH(COMPONENT ${_openexr_FIND_COMPONENTS})
+@@ -108,12 +116,12 @@
+   
+ # This is a work-around as passing the list does not work in cmake 2.8.11.2 (cygwin)  
+ FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenEXR  DEFAULT_MSG  
+-    OPENEXR_HALF_LIBRARY OPENEXR_IEX_LIBRARY OPENEXR_ILMIMF_LIBRARY OPENEXR_ILMTHREAD_LIBRARY OPENEXR_IMATH_LIBRARY ZLIB_LIBRARY OPENEXR_INCLUDE_DIR)
++    OPENEXR_IEX_LIBRARY OPENEXR_ILMTHREAD_LIBRARY OPENEXR_IMATH_LIBRARY ZLIB_LIBRARY OPENEXR_INCLUDE_DIR)
+  	
+ IF(OPENEXR_FOUND)
+-  SET(OPENEXR_LIBRARIES ${OPENEXR_ILMTHREAD_LIBRARY} ${OPENEXR_IEX_LIBRARY} ${OPENEXR_ILMIMF_LIBRARY} ${OPENEXR_IMATH_LIBRARY} ${OPENEXR_HALF_LIBRARY} ${ZLIB_LIBRARY} pthread)
++  SET(OPENEXR_LIBRARIES ${OPENEXR_ILMTHREAD_LIBRARY} ${OPENEXR_IEX_LIBRARY} ${OPENEXR_IMATH_LIBRARY} ${OPENEXR_OPENEXR_LIBRARY} ${ZLIB_LIBRARY} pthread)
+   # Both include paths are needed because of dummy OSL headers mixing #include <OpenEXR/foo.h> and #include <foo.h> :(
+-  SET(OPENEXR_INCLUDE_DIRS ${OPENEXR_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}/OpenEXR ${ZLIB_INCLUDE_DIR})
++  SET(OPENEXR_INCLUDE_DIRS ${OPENEXR_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}/OpenEXR ${ZLIB_INCLUDE_DIR} ${IMATH_INCLUDE_DIR})
+ ENDIF()
+ 
+ MARK_AS_ADVANCED(OPENEXR_INCLUDE_DIR)

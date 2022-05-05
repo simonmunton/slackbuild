@@ -1,0 +1,35 @@
+--- blender-3.0.1/build_files/cmake/Modules/FindOpenEXR.cmake.orig	2021-10-27 20:21:32.000000000 +0100
++++ blender-3.0.1/build_files/cmake/Modules/FindOpenEXR.cmake	2022-05-05 09:30:47.636312873 +0100
+@@ -34,11 +34,10 @@
+ SET(_openexr_libs_ver_init "2.0")
+ 
+ SET(_openexr_FIND_COMPONENTS
+-  Half
+   Iex
+-  IlmImf
+   IlmThread
+   Imath
++  OpenEXR
+ )
+ 
+ SET(_openexr_SEARCH_DIRS
+@@ -120,7 +119,7 @@
+ IF(OPENEXR_FOUND)
+   SET(OPENEXR_LIBRARIES ${_openexr_LIBRARIES})
+   # Both include paths are needed because of dummy OSL headers mixing #include <OpenEXR/foo.h> and #include <foo.h> :(
+-  SET(OPENEXR_INCLUDE_DIRS ${OPENEXR_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}/OpenEXR)
++  SET(OPENEXR_INCLUDE_DIRS ${OPENEXR_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}/OpenEXR ${OPENEXR_INCLUDE_DIR}/Imath)
+ ENDIF()
+ 
+ MARK_AS_ADVANCED(
+--- blender-3.0.1/source/blender/imbuf/intern/openexr/openexr_api.cpp.orig	2022-05-05 09:49:39.049632177 +0100
++++ blender-3.0.1/source/blender/imbuf/intern/openexr/openexr_api.cpp	2022-05-05 09:49:14.500633349 +0100
+@@ -38,6 +38,8 @@
+ #include <ImfChannelList.h>
+ #include <ImfCompression.h>
+ #include <ImfCompressionAttribute.h>
++#include <ImfFrameBuffer.h>
++#include <ImfInt64.h>
+ #include <ImfIO.h>
+ #include <ImfInputFile.h>
+ #include <ImfOutputFile.h>

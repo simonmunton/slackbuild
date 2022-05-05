@@ -1,93 +1,57 @@
---- ctl-1.5.2/OpenEXR_CTL/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/OpenEXR_CTL/CMakeLists.txt	2018-10-23 22:24:52.613729219 +0100
-@@ -13,7 +13,7 @@
+--- ctl-1.5.2/CMakeLists.txt.orig	2022-05-05 10:10:13.871573261 +0100
++++ ctl-1.5.2/CMakeLists.txt	2022-05-05 11:59:15.092484823 +0100
+@@ -49,8 +49,8 @@
+ add_subdirectory(unittest EXCLUDE_FROM_ALL)
+ 
+ # Add all targets to the build-tree export set
+-export( TARGETS IlmCtl IlmCtlMath IlmCtlSimd FILE "${PROJECT_BINARY_DIR}/CTLLibraryDepends.cmake" )
+-export(PACKAGE CTL)
++#export( TARGETS IlmCtl IlmCtlMath IlmCtlSimd FILE "${PROJECT_BINARY_DIR}/CTLLibraryDepends.cmake" )
++#export(PACKAGE CTL)
+  
+ # Create a CTLBuildTreeSettings.cmake file for the use from the build tree
+ file(RELATIVE_PATH CONF_REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+@@ -59,6 +59,7 @@
+ configure_file(config/CTLConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/CTLConfigVersion.cmake" @ONLY)
  
  if ( PKG_CONFIG_FOUND )
- configure_file(../config/OpenEXR_CTL.pc.in "${PROJECT_BINARY_DIR}/OpenEXR_CTL.pc" @ONLY)
--install( FILES "${PROJECT_BINARY_DIR}/OpenEXR_CTL.pc" DESTINATION lib/pkgconfig COMPONENT dev )
-+install( FILES "${PROJECT_BINARY_DIR}/OpenEXR_CTL.pc" DESTINATION lib${LIB_SUFFIX}/pkgconfig COMPONENT dev )
- endif()
- 
- # TODO CMake config
---- ctl-1.5.2/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/CMakeLists.txt	2018-10-23 22:23:04.038734399 +0100
-@@ -14,7 +14,7 @@
- if( WIN32 AND NOT CYGWIN )
-   set(DEF_INSTALL_CMAKE_DIR CMake)
- else()
--  set(DEF_INSTALL_CMAKE_DIR lib/CMake/CTL)
-+  set(DEF_INSTALL_CMAKE_DIR lib${LIB_SUFFIX}/CMake/CTL)
- endif()
- set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Install directory for project CMake files" )
- 
-@@ -28,9 +28,9 @@
- # which point to directories outside the build tree to the install RPATH
- SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
- # the RPATH to be used when installing, but only if it's not a system directory
--LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-+LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" isSystemDir)
- IF("${isSystemDir}" STREQUAL "-1")
--  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
- ENDIF("${isSystemDir}" STREQUAL "-1")
- 
- 
-@@ -77,7 +77,7 @@
- 
- if ( PKG_CONFIG_FOUND )
++string(REPLACE ";" " " IlmBase_LDFLAGS_str "${IlmBase_LDFLAGS}")
  configure_file(config/CTL.pc.in "${PROJECT_BINARY_DIR}/CTL.pc" @ONLY)
--install( FILES "${PROJECT_BINARY_DIR}/CTL.pc" DESTINATION lib/pkgconfig COMPONENT dev )
-+install( FILES "${PROJECT_BINARY_DIR}/CTL.pc" DESTINATION lib${LIB_SUFFIX}/pkgconfig COMPONENT dev )
+ install( FILES "${PROJECT_BINARY_DIR}/CTL.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev )
  endif()
+--- ctl-1.5.2/lib/IlmImfCtl/CMakeLists.txt.orig	2022-05-05 10:10:13.873573260 +0100
++++ ctl-1.5.2/lib/IlmImfCtl/CMakeLists.txt	2022-05-05 10:47:02.158467897 +0100
+@@ -11,6 +11,7 @@
  
- install( FILES
---- ctl-1.5.2/lib/IlmImfCtl/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/IlmImfCtl/CMakeLists.txt	2018-10-23 22:23:56.829731880 +0100
-@@ -13,4 +13,4 @@
+ install( FILES ImfCtlApplyTransforms.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenEXR )
  
- export( TARGETS IlmImfCtl IlmCtl FILE "${PROJECT_BINARY_DIR}/CTLLibraryDepends.cmake" )
+-export( TARGETS IlmImfCtl IlmCtl FILE "${PROJECT_BINARY_DIR}/CTLLibraryDepends.cmake" )
++#export( TARGETS IlmImfCtl IlmCtl FILE "${PROJECT_BINARY_DIR}/CTLLibraryDepends.cmake" )
  
--install( TARGETS IlmImfCtl DESTINATION lib )
-+install( TARGETS IlmImfCtl DESTINATION lib${LIB_SUFFIX} )
---- ctl-1.5.2/lib/IlmCtlSimd/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/IlmCtlSimd/CMakeLists.txt	2018-10-23 22:23:45.645732414 +0100
-@@ -42,4 +42,4 @@
+-install( TARGETS IlmImfCtl DESTINATION ${CMAKE_INSTALL_LIBDIR} )
++install( TARGETS IlmImfCtl EXPORT CTLLibraryDepends DESTINATION ${CMAKE_INSTALL_LIBDIR} )
++install(EXPORT CTLLibraryDepends DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} )
+--- ctl-1.5.2/lib/IlmCtlMath/CtlPointTree.h.orig	2014-06-03 02:11:24.000000000 +0100
++++ ctl-1.5.2/lib/IlmCtlMath/CtlPointTree.h	2022-05-05 10:22:09.399539121 +0100
+@@ -181,7 +181,7 @@
+ 	    double bl = (_points[b] - _center).length2();
  
- install( FILES CtlSimdInterpreter.h DESTINATION include/CTL )
+ 	    volatile double delta = fabs (al - bl);
+-	    const double eps = 2.0 * Imath::limits<double>::epsilon();
++	    const double eps = 2.0 * std::numeric_limits<double>::epsilon();
  
--install( TARGETS IlmCtlSimd DESTINATION lib )
-+install( TARGETS IlmCtlSimd DESTINATION lib${LIB_SUFFIX} )
---- ctl-1.5.2/lib/IlmCtlMath/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/IlmCtlMath/CMakeLists.txt	2018-10-23 22:23:36.265732862 +0100
-@@ -20,6 +20,6 @@
-   CtlSparseMatrix.h
-  DESTINATION include/CTL )
- 
--install( TARGETS IlmCtlMath DESTINATION lib )
-+install( TARGETS IlmCtlMath DESTINATION lib${LIB_SUFFIX} )
- 
- # TODO Add Imath and Iex libadd dependency and version info
---- ctl-1.5.2/lib/IlmCtl/CMakeLists.txt.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/IlmCtl/CMakeLists.txt	2018-10-23 22:23:25.959733353 +0100
+     	    //
+ 	    // Impose strict weak ordering... if the lengths are the same,
+--- ctl-1.5.2/lib/IlmCtl/CMakeLists.txt.orig	2022-05-05 10:10:13.872573260 +0100
++++ ctl-1.5.2/lib/IlmCtl/CMakeLists.txt	2022-05-05 10:50:14.947115513 +0100
 @@ -50,4 +50,4 @@
  	CtlVersion.h
   DESTINATION include/CTL )
  
--install( TARGETS IlmCtl DESTINATION lib )
-+install( TARGETS IlmCtl DESTINATION lib${LIB_SUFFIX} )
---- ctl-1.5.2/lib/IlmCtlSimd/CtlSimdInst.cpp.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/IlmCtlSimd/CtlSimdInst.cpp	2020-10-30 20:07:22.112484717 +0000
-@@ -189,7 +189,7 @@
- 	    REPLACE_EXC
- 		(e, "\n" <<
- 		 xcontext.fileName() << ":" <<
--		 inst->lineNumber() << ": " << e);
-+		 inst->lineNumber() << ": " << e.message());
- 
- 	    throw e;
- 	}
+-install( TARGETS IlmCtl DESTINATION ${CMAKE_INSTALL_LIBDIR} )
++install( TARGETS IlmCtl EXPORT CTLLibraryDepends DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 --- ctl-1.5.2/lib/dpx/dpx.hh.orig	2014-06-03 02:11:24.000000000 +0100
-+++ ctl-1.5.2/lib/dpx/dpx.hh	2021-11-18 19:37:52.860422133 +0000
++++ ctl-1.5.2/lib/dpx/dpx.hh	2022-05-05 10:29:01.632519452 +0100
 @@ -297,7 +297,7 @@
  		compliance_e current_compliance;
  		endian_mode_e current_endian_mode;
@@ -97,3 +61,43 @@
  
  	public:
  		virtual ~dpx();
+--- ctl-1.5.2/configure.cmake.orig	2022-05-05 10:10:13.872573260 +0100
++++ ctl-1.5.2/configure.cmake	2022-05-05 10:18:32.850549453 +0100
+@@ -1,7 +1,7 @@
+ # Make Pkg-Config required.
+ find_package( PkgConfig )
+ 
+-PKG_CHECK_MODULES ( IlmBase REQUIRED IlmBase )
++PKG_CHECK_MODULES ( IlmBase REQUIRED Imath )
+ if(IlmBase_FOUND)
+   message( STATUS "found IlmBase, version ${IlmBase_VERSION}" )
+   ###
+@@ -39,6 +39,8 @@
+ PKG_CHECK_MODULES ( OpenEXR REQUIRED OpenEXR )
+ if (OpenEXR_FOUND)
+   message( STATUS "Found OpenEXR, version ${OpenEXR_VERSION}" )
++  include_directories( ${OpenEXR_INCLUDE_DIRS} )
++  link_directories( ${OpenEXR_LIBRARY_DIRS} )
+ else()
+   message( WARNING "Unable to find OpenEXR libraries, disabling" )
+ endif()
+--- ctl-1.5.2/config/CTL.pc.in.orig	2022-05-05 10:10:13.872573260 +0100
++++ ctl-1.5.2/config/CTL.pc.in	2022-05-05 11:24:36.875017133 +0100
+@@ -5,5 +5,5 @@
+ Name: CTL
+ Description: CTL interpreter library
+ Version: @CTL_VERSION@
+-Libs: -L${libdir} -lIlmCtlSimd -lIlmCtlMath -lIlmCtl @IlmBase_LDFLAGS@
++Libs: -L${libdir} -lIlmCtlSimd -lIlmCtlMath -lIlmCtl @IlmBase_LDFLAGS_str@
+ Cflags: @IlmBase_CFLAGS@ -I${CTL_includedir}
+--- ctl-1.5.2/ctlrender/exr_file.cc.orig	2014-06-03 02:11:24.000000000 +0100
++++ ctl-1.5.2/ctlrender/exr_file.cc	2022-05-05 10:30:01.403516600 +0100
+@@ -63,6 +63,8 @@
+ #include <ImfChannelList.h>
+ #include <Iex.h>
+ 
++#include <fstream>
++
+ bool exr_read(const char *name, float scale, ctl::dpx::fb<float> *pixels,
+               format_t *format) {
+ 	std::ifstream ins;

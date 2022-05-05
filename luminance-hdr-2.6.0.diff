@@ -1,0 +1,35 @@
+--- luminance-hdr-2.6.0/CMakeLists.txt.orig	2019-06-09 20:18:38.000000000 +0100
++++ luminance-hdr-2.6.0/CMakeLists.txt	2022-05-04 20:29:17.778480283 +0100
+@@ -189,7 +189,7 @@
+ INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
+ 
+ FIND_PACKAGE(OpenEXR REQUIRED)
+-INCLUDE_DIRECTORIES(${OPENEXR_INCLUDE_DIR} "${OPENEXR_INCLUDE_DIR}/OpenEXR")
++INCLUDE_DIRECTORIES(${OPENEXR_INCLUDE_DIR} "${OPENEXR_INCLUDE_DIR}/OpenEXR" "${OPENEXR_INCLUDE_DIR}/Imath")
+ 
+ FIND_PACKAGE(GSL REQUIRED)
+ INCLUDE_DIRECTORIES(${GSL_INCLUDE_DIR} ${GSLCBLAS_INCLUDE_DIR})
+@@ -402,7 +402,7 @@
+     TARGET_LINK_LIBRARIES(luminance-hdr -Xlinker --start-group ${LUMINANCE_MODULES_GUI} -Xlinker --end-group)
+     TARGET_LINK_LIBRARIES(luminance-hdr-cli -Xlinker --start-group ${LUMINANCE_MODULES_CLI} -Xlinker --end-group)
+     TARGET_LINK_LIBRARIES(luminance-hdr ${LIBS})
+-    TARGET_LINK_LIBRARIES(luminance-hdr-cli ${LIBS})
++    TARGET_LINK_LIBRARIES(luminance-hdr-cli ${LIBS} Boost::program_options)
+ 
+     # make install directivies
+     INSTALL(TARGETS luminance-hdr RUNTIME DESTINATION bin) # main GUI exec
+--- luminance-hdr-2.6.0/build_files/Modules/FindOpenEXR.cmake.orig	2019-06-09 20:18:38.000000000 +0100
++++ luminance-hdr-2.6.0/build_files/Modules/FindOpenEXR.cmake	2022-05-04 20:25:59.642489737 +0100
+@@ -48,11 +48,10 @@
+ else ()
+   string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _openexr_libs_ver ${OPENEXR_VERSION})
+   SET(_openexr_FIND_COMPONENTS
+-    Half
+     Iex-${_openexr_libs_ver}
+-    IlmImf-${_openexr_libs_ver}
+     IlmThread-${_openexr_libs_ver}
+     Imath-${_openexr_libs_ver}
++    OpenEXR-${_openexr_libs_ver}
+   )
+ endif ()
+ 
