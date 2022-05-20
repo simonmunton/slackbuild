@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/k/kde-plasma-5.24.5
 #TAR_EXT=.tar.gz
 VERSION=5.24.5
 VERSIONEXTRA=
-BUILD=2
+BUILD=3
 
 WEBPAGE=""
 
@@ -97,13 +97,63 @@ make install DESTDIR=${PKG}
 
 cd ..
 
-# Use ck-launch-session in runlevel 3,
+
+SLACKPAM=yes
+SLKELOGIND=yes
+
+# Use ck-launch-session in runlevel 3 if that is available,
 # to start and attach a ConsoleKit session to the X session:
 mkdir -p ${PKG}/etc/X11/xinit
-cat ${CWD}/plasma-workspace/xinit/xinitrc.plasma \
+cat ${CWD}/plasma-workspace/xinit/xinitrc.kde \
   | sed -e "s/@LIBDIRSUFFIX@/${LIBDIRSUFFIX}/g" \
-  > ${PKG}/etc/X11/xinit/xinitrc.plasma
-chmod 0755 ${PKG}/etc/X11/xinit/xinitrc.plasma
+  > ${PKG}/etc/X11/xinit/xinitrc.kde
+chmod 0755 ${PKG}/etc/X11/xinit/xinitrc.kde
+
+# Add a script that launches a Plasma Wayland session from the commandline:
+mkdir -p ${PKG}/usr/bin
+cat ${CWD}/plasma-workspace/scripts/startkwayland \
+  | sed -e "s/@LIBDIRSUFFIX@/${LIBDIRSUFFIX}/g" \
+  > ${PKG}/usr/bin/startkwayland
+chmod 0755 ${PKG}/usr/bin/startkwayland
+
+# Install custom "full wayland" session
+pushd ${PKG}/usr/share/wayland-sessions/
+sed '/^Name/d;s/^Exec=/Exec=env GDK_BACKEND=wayland QT_QPA_PLATFORM=wayland /' plasmawayland.desktop > z_plasmafullwayland.desktop
+echo 'Name=Plasma (Full Wayland)' >> z_plasmafullwayland.desktop
+popd
+
+# Add a "fail-safe" version of KDE Plasma desktop session.
+# Prefix the name with "z_" because SDDM is braindead:
+mkdir -p ${PKG}/usr/share/xsessions
+cat ${CWD}/plasma-workspace/xsession/plasma-safe.desktop \
+  | sed -e "s,@PREFIX@,/usr,g" \
+  >  ${PKG}/usr/share/xsessions/z_plasma-safe.desktop
+
+# Move the polkit dbus configuration files to the proper place:
+mkdir -p ${PKG}/etc
+mv ${PKG}/etc/kde/dbus-1 ${PKG}/etc/
+
+if [ "$SLACKPAM" == "no" ]; then
+  # For shadow, this file needs to be setuid root just like the KDE4 version:
+  if [ -f ${PKG}/usr/lib${LIBDIRSUFFIX}/kcheckpass ]; then
+    chmod +s ${PKG}/usr/lib${LIBDIRSUFFIX}/kcheckpass
+  fi
+
+  # ck-launch-session is needed for a Wayland session, since we do not have PAM:
+  sed -e 's/^Exec=dbus-launch/Exec=ck-launch-session dbus-launch --sh-syntax/' \
+    -i ${PKG}/usr/share/wayland-sessions/plasmawayland.desktop
+else
+  # Install a PAM file for Plasma5 workspace:
+  install -Dm644 ${CWD}/plasma-workspace/pam.d/kde ${PKG}/etc/pam.d/kde.new
+  doinst_config etc/pam.d/kde.new
+fi
+
+if [ "$SLKELOGIND" == "yes" ]; then
+  # Since elogind does not set DBUS_SESSION_BUS_ADDRESS we need to start
+  # Plasma X11 session through dbus-run-session like Wayland is launched:
+  sed -i ${PKG}/usr/share/xsessions/plasma.desktop \
+      -e "s,^Exec=/,Exec=dbus-run-session /,"
+fi
 
 
 
