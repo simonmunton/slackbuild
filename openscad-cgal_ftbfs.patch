@@ -1,0 +1,50 @@
+From: Kristian Nielsen <knielsen@knielsen-hq.org>
+Date: Fri, 24 Sep 2021 18:34:28 +0200
+Subject: Fix FTBFS with newer CGAL
+
+Cherry-pick of upstream commit cc49ad8dac24309f5452d5dea9abd406615a52d9:
+"Fix build failure with "generic_print_polyhedron" on CGAL-5.3."
+
+Forwarded: not-needed
+----
+---
+ src/cgalutils-polyhedron.cc | 13 -------------
+ src/cgalutils.h             |  1 -
+ 2 files changed, 14 deletions(-)
+
+diff --git a/src/cgalutils-polyhedron.cc b/src/cgalutils-polyhedron.cc
+index 9f4f98f..41cca4b 100644
+--- a/src/cgalutils-polyhedron.cc
++++ b/src/cgalutils-polyhedron.cc
+@@ -337,19 +337,6 @@ namespace CGALUtils {
+     }
+ 	};
+ 
+-	template <typename Polyhedron>
+-	std::string printPolyhedron(const Polyhedron &p) {
+-		std::ostringstream sstream;
+-		sstream.precision(20);
+-
+-    Polyhedron_writer writer;
+-    generic_print_polyhedron(sstream, p, writer);
+-		
+-		return sstream.str();
+-	}
+-
+-	template std::string printPolyhedron(const CGAL_Polyhedron &p);
+-
+ }; // namespace CGALUtils
+ 
+ #endif /* ENABLE_CGAL */
+diff --git a/src/cgalutils.h b/src/cgalutils.h
+index 21a01cd..c08a3aa 100644
+--- a/src/cgalutils.h
++++ b/src/cgalutils.h
+@@ -45,7 +45,6 @@ namespace CGALUtils {
+ 	bool is_approximately_convex(const PolySet &ps);
+ 	Geometry const* applyMinkowski(const Geometry::Geometries &children);
+ 
+-	template <typename Polyhedron> std::string printPolyhedron(const Polyhedron &p);
+ 	template <typename Polyhedron> bool createPolySetFromPolyhedron(const Polyhedron &p, PolySet &ps);
+ 	template <typename Polyhedron> bool createPolyhedronFromPolySet(const PolySet &ps, Polyhedron &p);
+ 	template <class Polyhedron_A, class Polyhedron_B> 

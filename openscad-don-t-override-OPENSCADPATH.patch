@@ -1,0 +1,42 @@
+From: chrysn <chrysn@fsfe.org>
+Date: Fri, 7 Mar 2014 09:19:29 +0100
+Subject: don't override OPENSCADPATH
+
+the debian tests scripts already set an adaequate OPENSCADPATH; the
+overrides in the test scripts would set that wrongly again (because
+openscad and mcad are not built in the same tree in debian)
+
+for a cleaner solution, the library path should be respected
+unconditionally, removing the necessity for debian to specify a path at
+all.
+---
+ tests/CMakeLists.txt       | 2 +-
+ tests/CTestCustom.template | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index b62dd80..4df879e 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -74,7 +74,7 @@ if ( ${DIFFPNG} )
+ endif()
+ 
+ # Search for MCAD in correct place
+-set(CTEST_ENVIRONMENT "${CTEST_ENVIRONMENT};OPENSCADPATH=${CMAKE_CURRENT_SOURCE_DIR}/../libraries")
++#set(CTEST_ENVIRONMENT "${CTEST_ENVIRONMENT};OPENSCADPATH=${CMAKE_CURRENT_SOURCE_DIR}/../libraries")
+ 
+ # Platform specific settings
+ 
+diff --git a/tests/CTestCustom.template b/tests/CTestCustom.template
+index 4d661a4..8464137 100644
+--- a/tests/CTestCustom.template
++++ b/tests/CTestCustom.template
+@@ -12,7 +12,7 @@
+ 
+ # Part 0. Finding MCAD
+ 
+-set(ENV{OPENSCADPATH} "__cmake_current_source_dir__/../libraries")
++#set(ENV{OPENSCADPATH} "__cmake_current_source_dir__/../libraries")
+ 
+ # Part 1. X11 and Virtual Framebuffer, for headless Linux/BSD systems. 
+ # This is not used by Windows or Mac because they have alternate means 

@@ -1,0 +1,27 @@
+From: Kristian Nielsen <knielsen@knielsen-hq.org>
+Date: Sun, 9 Jan 2022 17:57:42 +0100
+Subject: Add file bounds check to comment parser
+
+Backported patch from upstream.
+
+Origin: https://github.com/openscad/openscad/commit/84addf3c1efbd51d8ff424b7da276400bbfa1a4b
+Bug: https://github.com/openscad/openscad/issues/4043
+Bug-Debian: https://bugs.debian.org/1005641
+Forwarded: not-needed
+---
+ src/comment.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/comment.cpp b/src/comment.cpp
+index f02ad2c..1ce3ab5 100644
+--- a/src/comment.cpp
++++ b/src/comment.cpp
+@@ -92,7 +92,7 @@ static std::string getComment(const std::string &fulltext, int line)
+ 	}
+ 
+ 	int end = start + 1;
+-	while (fulltext[end] != '\n') end++;
++	while (end < fulltext.size() && fulltext[end] != '\n') end++;
+ 
+ 	std::string comment = fulltext.substr(start, end - start);
+ 
