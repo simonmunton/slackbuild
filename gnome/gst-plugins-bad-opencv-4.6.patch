@@ -1,0 +1,127 @@
+From d86ad30be2648dca354315597b706c6fdb7e6d4c Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Mon, 6 Jun 2022 00:30:15 +0200
+Subject: [PATCH] opencv: Allow building against 4.6.x
+
+Replace the broken version checks with one modeled after
+`GLIB_CHECK_VERSION`.
+
+Part-of: <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/2557>
+---
+ .../gst-plugins-bad/ext/opencv/gstcvtracker.cpp    | 14 +++++++-------
+ .../gst-plugins-bad/ext/opencv/gstcvtracker.h      | 11 +++++++++--
+ ext/opencv/meson.build |  2 +-
+ 3 files changed, 17 insertions(+), 10 deletions(-)
+
+diff --git a/ext/opencv/gstcvtracker.cpp b/ext/opencv/gstcvtracker.cpp
+index 492c9cf9b87..0c5dfda35f0 100644
+--- a/ext/opencv/gstcvtracker.cpp
++++ b/ext/opencv/gstcvtracker.cpp
+@@ -233,7 +233,7 @@ gst_cvtracker_init (GstCVTracker * filter)
+   filter->y = DEFAULT_PROP_INITIAL_Y;
+   filter->width = DEFAULT_PROP_INITIAL_WIDTH;
+   filter->height = DEFAULT_PROP_INITIAL_HEIGHT;
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+   filter->tracker = cv::legacy::upgradeTrackingAPI(
+       cv::legacy::TrackerMedianFlow::create());
+ #else
+@@ -283,7 +283,7 @@ create_cvtracker (GstCVTracker * filter)
+ {
+   switch (filter->algorithm) {
+     case GST_OPENCV_TRACKER_ALGORITHM_BOOSTING:
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+       filter->tracker = cv::legacy::upgradeTrackingAPI(
+           cv::legacy::TrackerBoosting::create());
+ #else
+@@ -297,7 +297,7 @@ create_cvtracker (GstCVTracker * filter)
+       filter->tracker = cv::TrackerKCF::create ();
+       break;
+     case GST_OPENCV_TRACKER_ALGORITHM_MEDIANFLOW:
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+       filter->tracker = cv::legacy::upgradeTrackingAPI(
+           cv::legacy::TrackerMedianFlow::create());
+ #else
+@@ -308,7 +308,7 @@ create_cvtracker (GstCVTracker * filter)
+       filter->tracker = cv::TrackerMIL::create ();
+       break;
+     case GST_OPENCV_TRACKER_ALGORITHM_MOSSE:
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+       filter->tracker = cv::legacy::upgradeTrackingAPI(
+           cv::legacy::TrackerMOSSE::create());
+ #else
+@@ -316,7 +316,7 @@ create_cvtracker (GstCVTracker * filter)
+ #endif
+       break;
+     case GST_OPENCV_TRACKER_ALGORITHM_TLD:
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+       filter->tracker = cv::legacy::upgradeTrackingAPI(
+           cv::legacy::TrackerTLD::create());
+ #else
+@@ -366,7 +366,7 @@ gst_cvtracker_transform_ip (GstOpencvVideoFilter * base,
+   GstMessage *msg;
+ 
+   if (filter->roi.empty ()) {
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+     filter->roi = new (cv::Rect);
+ #else
+     filter->roi = new (cv::Rect2d);
+@@ -378,7 +378,7 @@ gst_cvtracker_transform_ip (GstOpencvVideoFilter * base,
+     create_cvtracker (filter);
+     filter->tracker->init (img, *filter->roi);
+   } else if (filter->tracker->update (img, *filter->roi)) {
+-#if (!(CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1))
++#if !GST_OPENCV_CHECK_VERSION(4, 5, 1)
+     /* Round values to avoid inconsistencies depending on the OpenCV version. */
+     filter->roi->x = cvRound (filter->roi->x);
+     filter->roi->y = cvRound (filter->roi->y);
+diff --git a/ext/opencv/gstcvtracker.h b/ext/opencv/gstcvtracker.h
+index d3531efbc59..1a06111d8b0 100644
+--- a/ext/opencv/gstcvtracker.h
++++ b/ext/opencv/gstcvtracker.h
+@@ -50,7 +50,14 @@
+ #include <opencv2/core.hpp>
+ #include <opencv2/imgproc.hpp>
+ #include <opencv2/tracking.hpp>
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++
++#define GST_OPENCV_CHECK_VERSION(major,minor,revision) \
++  (CV_VERSION_MAJOR > (major) || \
++   (CV_VERSION_MAJOR == (major) && CV_VERSION_MINOR > (minor)) || \
++   (CV_VERSION_MAJOR == (major) && CV_VERSION_MINOR == (minor) && \
++    CV_VERSION_REVISION >= (revision)))
++
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+ #include <opencv2/tracking/tracking_legacy.hpp>
+ #endif
+ 
+@@ -84,7 +91,7 @@ struct _GstCVTracker
+   gboolean post_debug_info;
+ 
+   cv::Ptr<cv::Tracker> tracker;
+-#if CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 5 && CV_VERSION_REVISION >= 1
++#if GST_OPENCV_CHECK_VERSION(4, 5, 1)
+   cv::Ptr<cv::Rect> roi;
+ #else
+   cv::Ptr<cv::Rect2d> roi;
+diff --git a/ext/opencv/meson.build b/ext/opencv/meson.build
+index 1d86b9092d9..3962cff90a5 100644
+--- a/ext/opencv/meson.build
++++ b/ext/opencv/meson.build
+@@ -71,7 +71,7 @@ if opencv_found
+ endif
+ 
+ if not opencv_found
+-  opencv_dep = dependency('opencv4', version : ['>= 4.0.0', '< 4.6.0'], required : false)
++  opencv_dep = dependency('opencv4', version : ['>= 4.0.0', '< 4.7.0'], required : false)
+   opencv_found = opencv_dep.found()
+   if opencv_found
+     foreach h : libopencv4_headers
+-- 
+GitLab
+
