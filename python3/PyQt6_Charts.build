@@ -1,0 +1,138 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=PyQt6_Charts
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/p
+#TAR_EXT=.tar.gz
+VERSION=6.3.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://pypi.org/project/PyQt6_Charts/"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=python-${TARNAME}
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 < ${CWD}/PyQtChart-5.15.4.diff
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt6
+PATH=/usr/lib${LIBDIRSUFFIX}/qt6/bin:$PATH
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+PY2_SITE=`python -c 'import site; print(site.getsitepackages()[0])'`
+PY3_SITE=`python3 -c 'import site; print(site.getsitepackages()[0])'`
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+#mkdir _BuilDP2_
+#cd _BuilDP2_
+#echo yes | python ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake --pyqt-sipdir=${PY2_SITE}/PyQt5/bindings --sip=/usr/bin/sip
+#cd ..
+#mkdir _BuilDP3_
+#cd _BuilDP3_
+#echo yes | python3 ../configure.py --verbose CFLAGS="${SLKCFLAGS}" CXXFLAGS="${SLKCFLAGS}" --qmake=/usr/lib${LIBDIRSUFFIX}/qt5/bin/qmake --pyqt-sipdir=${PY3_SITE}/PyQt5/bindings
+#cd ..
+
+sip-build \
+    --no-make \
+    --api-dir /usr/share/qt6/qsci/api/python \
+    --pep484-pyi \
+    --build-dir _BuilDP3_
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+#cd _BuilDP2_
+#make ${NUM_JOBS} || exit
+#cd ..
+cd _BuilDP3_
+make ${NUM_JOBS} || exit
+cd ..
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#cd _BuilDP2_
+#make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+#cd ..
+cd _BuilDP3_
+make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+cd ..
+
+mkdir -p ${PKG}/usr/share/sip/PyQt6
+cp -pr ${PKG}/${PY3_SITE}/PyQt6/bindings/* ${PKG}/usr/share/sip/PyQt6
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "PyQtChart"
+PyQtChart is a set of Python bindings for The Qt Companys Qt Charts 
+library. The bindings sit on top of PyQt6 and are implemented as a 
+single module.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
