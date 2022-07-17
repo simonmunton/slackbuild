@@ -1,0 +1,66 @@
+--- brlcad-7.32.6/regress/repository/repocheck.cpp.orig	2022-05-09 04:00:00.000000000 +0100
++++ brlcad-7.32.6/regress/repository/repocheck.cpp	2022-07-17 14:58:48.644125399 +0100
+@@ -43,6 +43,7 @@
+ 
+ #include <cctype>
+ #include <cstdio>
++#include <cstring>
+ #include <algorithm>
+ #include <locale>
+ #include <fstream>
+--- brlcad-7.32.6/regress/coverage/covgcheck.cpp.orig	2022-05-09 03:59:59.000000000 +0100
++++ brlcad-7.32.6/regress/coverage/covgcheck.cpp	2022-07-17 15:01:05.573126799 +0100
+@@ -43,6 +43,7 @@
+ 
+ #include <cctype>
+ #include <cstdio>
++#include <cstring>
+ #include <algorithm>
+ #include <locale>
+ #include <fstream>
+--- brlcad-7.32.6/src/other/stepcode/src/clstepcore/complexSupport.h.orig	2022-05-09 04:00:20.000000000 +0100
++++ brlcad-7.32.6/src/other/stepcode/src/clstepcore/complexSupport.h	2022-07-17 18:29:11.458589725 +0100
+@@ -208,19 +208,19 @@
+         // but all we need.
+         EntList * firstNot( JoinType );
+         EntList * nextNot( JoinType j ) {
+-            return next->firstNot( j );
++            return next ? next->firstNot( j ) : NULL;
+         }
+         EntList * firstWanted( MatchType );
+         EntList * nextWanted( MatchType mat ) {
+-            return next->firstWanted( mat );
++            return next ? next->firstWanted( mat ) : NULL;
+         }
+         EntList * lastNot( JoinType );
+         EntList * prevNot( JoinType j ) {
+-            return prev->lastNot( j );
++            return prev ? prev->lastNot( j ) : NULL;
+         }
+         EntList * lastWanted( MatchType );
+         EntList * prevWanted( MatchType mat ) {
+-            return prev->lastWanted( mat );
++            return prev ? prev->lastWanted( mat ) : NULL;
+         }
+ 
+         JoinType join;
+--- brlcad-7.32.6/src/libtclcad/init.c.orig	2022-05-09 04:00:07.000000000 +0100
++++ brlcad-7.32.6/src/libtclcad/init.c	2022-07-17 15:44:22.585153362 +0100
+@@ -131,7 +131,7 @@
+     tclcad_auto_path(interp);
+ 
+     /* Initialize [incr Tcl] */
+-    if (Tcl_Eval(interp, "package require Itcl 3") != TCL_OK) {
++    if (Tcl_Eval(interp, "package require Itcl 4") != TCL_OK) {
+ 	if (tlog)
+ 	    bu_vls_printf(tlog, "Itcl init ERROR:\n%s\n", Tcl_GetStringResult(interp));
+ 	return TCL_ERROR;
+@@ -140,7 +140,7 @@
+     /* Initialize [incr Tk] */
+     if (init_gui) {
+ #ifdef HAVE_TK
+-	if (Tcl_Eval(interp, "package require Itk 3") != TCL_OK) {
++	if (Tcl_Eval(interp, "package require Itk 4") != TCL_OK) {
+ 	    if (tlog)
+ 	       	bu_vls_printf(tlog, "Itk init ERROR:\n%s\n", Tcl_GetStringResult(interp));
+ 	    return TCL_ERROR;

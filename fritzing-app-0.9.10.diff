@@ -1,0 +1,46 @@
+--- fritzing-app-0.9.10/pri/libgit2detect.pri.orig	2022-07-14 22:32:23.000000000 +0100
++++ fritzing-app-0.9.10/pri/libgit2detect.pri	2022-07-14 22:37:03.874473697 +0100
+@@ -14,10 +14,7 @@
+ # ********************************************************************
+ 
+ 
+-packagesExist(libgit2) {
+-} else {
+-    LIBGIT_STATIC = true
+-}
++LIBGIT_STATIC = !packagesExist(libgit2) 
+ 
+ if ($$LIBGIT_STATIC) {
+     LIBGIT2INCLUDE = "$$_PRO_FILE_PWD_/../libgit2/include"
+--- fritzing-app-0.9.10/pri/quazipdetect.pri.orig	2022-07-14 22:36:06.000000000 +0100
++++ fritzing-app-0.9.10/pri/quazipdetect.pri	2022-07-17 11:09:33.627766862 +0100
+@@ -5,6 +5,9 @@
+ SOURCES += \
+     src/zlibdummy.c \
+ 
++LIBQUAZIP_STATIC = !packagesExist(quazip1-qt5)
++
++if ($$LIBQUAZIP_STATIC) {
+ exists($$absolute_path($$PWD/../../quazip_qt5)) {
+         QUAZIPPATH = $$absolute_path($$PWD/../../quazip_qt5)
+         message("found quazip in $${QUAZIPPATH}")
+@@ -13,12 +16,19 @@
+     }
+ 
+ message("including $$absolute_path($${QUAZIPPATH}/include/quazip)")
++}
+ 
+ unix:!macx {
++if ($$LIBQUAZIP_STATIC) {
+     message("including quazip library on linux")
+     INCLUDEPATH += $$absolute_path($${QUAZIPPATH}/include/quazip)
+     LIBS += -L$$absolute_path($${QUAZIPPATH}/lib) -lquazip1-qt5
+     QMAKE_RPATHDIR += $$absolute_path($${QUAZIPPATH}/lib)
++} else {
++        !build_pass:warning("Using dynamic linking for quazip.")
++        #message("Enabled dynamic linking of quazip")
++        PKGCONFIG += quazip1-qt5
++}
+ }
+ 
+ macx {
