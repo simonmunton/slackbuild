@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=wxWidgets
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=~/tmp/new/w/wxWidgets
+#TAR_EXT=.tar.gz
+VERSION=3.2.0
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=wxGTK-3.2-unicode
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man \
+            --with-gtk \
+            --with-opengl \
+            --enable-geometry \
+            --enable-sound \
+            --with-sdl \
+            --enable-display \
+            --enable-unicode
+
+#           --enable-debug
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+#make -C contrib/src ${NUM_JOBS} || exit
+#make -C contrib/src/stc ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+#make -C contrib/src install DESTDIR=${PKG}
+#make -C contrib/src/stc install DESTDIR=${PKG}
+
+cd ..
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "cross-platform GUI library"
+wxWidgets is a free C++ library for cross-platform GUI
+development. With wxWidgets, you can create applications for
+different GUIs (GTK+, Motif, MS Windows, MacOS X, Windows CE,
+GPE) from the same source code.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
