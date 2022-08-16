@@ -1,0 +1,109 @@
+--- qwt-6.2.0/designer/designer.pro.orig	2021-07-18 12:19:33.632367371 +0100
++++ qwt-6.2.0/designer/designer.pro	2022-08-14 16:50:41.561060976 +0100
+@@ -98,8 +98,15 @@
+         # compile the path for finding the Qwt library
+         # into the plugin. Not supported on Windows !
+ 
+-        QMAKE_RPATHDIR *= $${QWT_INSTALL_LIBS}
+-        qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt)
++#        QMAKE_RPATHDIR *= $${QWT_INSTALL_LIBS}
++         contains(QWT_CONFIG, QwtDll) {
++             greaterThan(QT_MAJOR_VERSION, 4) {
++                 qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt-qt5)
++             } else {
++                 qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt)
++             }
++        }
++
+ 
+         contains(QWT_CONFIG, QwtDll) {
+ 
+--- qwt-6.2.0/examples/examples.pri.orig	2021-07-18 12:19:33.000000000 +0100
++++ qwt-6.2.0/examples/examples.pri	2022-08-14 16:51:19.707059156 +0100
+@@ -33,8 +33,11 @@
+     }
+ }
+ 
+-QMAKE_RPATHDIR *= $${QWT_OUT_ROOT}/lib
+-qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt)
++greaterThan(QT_MAJOR_VERSION, 4) {
++    qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt-qt5)
++} else {
++    qwtAddLibrary($${QWT_OUT_ROOT}/lib, qwt)
++}
+ 
+ greaterThan(QT_MAJOR_VERSION, 4) {
+ 
+--- qwt-6.2.0/src/src.pro.orig	2021-07-18 12:19:33.628367286 +0100
++++ qwt-6.2.0/src/src.pro	2022-08-14 16:34:58.356737554 +0100
+@@ -17,7 +17,12 @@
+ QWT_OUT_ROOT = $${OUT_PWD}/..
+ 
+ TEMPLATE          = lib
+-TARGET            = $$qwtLibraryTarget(qwt)
++greaterThan(QT_MAJOR_VERSION, 4) {
++    TARGET = $$qwtLibraryTarget(qwt-qt5)
++}
++else {
++    TARGET = $$qwtLibraryTarget(qwt)
++}
+ 
+ DESTDIR           = $${QWT_OUT_ROOT}/lib
+ 
+--- qwt-6.2.0/qwtconfig.pri.orig	2021-07-18 12:19:33.656367878 +0100
++++ qwt-6.2.0/qwtconfig.pri	2022-08-14 16:39:59.329723194 +0100
+@@ -19,8 +19,7 @@
+ QWT_INSTALL_PREFIX = $$[QT_INSTALL_PREFIX]
+ 
+ unix {
+-    QWT_INSTALL_PREFIX    = /usr/local/qwt-$$QWT_VERSION
+-    # QWT_INSTALL_PREFIX = /usr/local/qwt-$$QWT_VERSION-qt-$$QT_VERSION
++    QWT_INSTALL_PREFIX    = $$[QT_INSTALL_PREFIX]
+ }
+ 
+ win32 {
+@@ -28,9 +27,9 @@
+     # QWT_INSTALL_PREFIX = C:/Qwt-$$QWT_VERSION-qt-$$QT_VERSION
+ }
+ 
+-QWT_INSTALL_DOCS      = $${QWT_INSTALL_PREFIX}/doc
+-QWT_INSTALL_HEADERS   = $${QWT_INSTALL_PREFIX}/include
+-QWT_INSTALL_LIBS      = $${QWT_INSTALL_PREFIX}/lib
++QWT_INSTALL_DOCS      = $${QWT_INSTALL_PREFIX}/doc/qwt
++QWT_INSTALL_HEADERS   = $${QWT_INSTALL_PREFIX}/include/qwt
++QWT_INSTALL_LIBS      = $${QWT_INSTALL_PREFIX}/lib$${LIBDIRSUFFIX}
+ 
+ ######################################################################
+ # Designer plugin
+@@ -42,7 +41,7 @@
+ # runtime environment of designer/creator.
+ ######################################################################
+ 
+-QWT_INSTALL_PLUGINS   = $${QWT_INSTALL_PREFIX}/plugins/designer
++QWT_INSTALL_PLUGINS   = $$[QT_INSTALL_PLUGINS]/designer
+ 
+ # linux distributors often organize the Qt installation
+ # their way and QT_INSTALL_PREFIX doesn't offer a good
+@@ -63,7 +62,7 @@
+ # with every Qt upgrade.
+ ######################################################################
+ 
+-QWT_INSTALL_FEATURES  = $${QWT_INSTALL_PREFIX}/features
++QWT_INSTALL_FEATURES  = $$[QMAKE_MKSPECS]/features
+ # QWT_INSTALL_FEATURES  = $$[QT_INSTALL_PREFIX]/features
+ 
+ ######################################################################
+--- qwt-6.2.0/qwt.prf.orig	2021-07-18 12:19:31.424320675 +0100
++++ qwt-6.2.0/qwt.prf	2022-08-14 16:39:50.608723610 +0100
+@@ -44,4 +44,9 @@
+ }   
+ 
+ # QMAKE_RPATHDIR *= $${QWT_INSTALL_LIBS}
+-qwtAddLibrary($${QWT_INSTALL_LIBS}, qwt)
++greaterThan(QT_MAJOR_VERSION, 4) {
++    qwtAddLibrary($${QWT_OUT_ROOT}/lib$${LIBDIRSUFFIX},qwt-qt5)
++}
++else {
++    qwtAddLibrary($${QWT_OUT_ROOT}/lib$${LIBDIRSUFFIX},qwt)
++}
+\ No newline at end of file
