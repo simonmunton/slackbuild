@@ -1,5 +1,5 @@
 --- dia-20220411/plug-ins/pdf/pdf-import.cpp.orig	2022-04-11 11:58:49.000000000 +0100
-+++ dia-20220411/plug-ins/pdf/pdf-import.cpp	2022-04-11 18:27:05.594862759 +0100
++++ dia-20220411/plug-ins/pdf/pdf-import.cpp	2022-09-02 20:49:50.905099282 +0100
 @@ -37,6 +37,7 @@
  
  #include <poppler/GlobalParams.h>
@@ -8,7 +8,28 @@
  
  #include <vector>
  
-@@ -318,10 +319,18 @@
+@@ -152,11 +153,20 @@
+   void
+   updateLineDash (GfxState *state)
+   {
++#if POPPLER_CHECK_VERSION(22, 9, 0)
++    std::vector<double> dashPattern;
++    int dashLength;
++    double dashStart;
++
++    dashPattern = state->getLineDash (&dashStart);
++    dashLength = dashPattern.size();
++#else
+     double *dashPattern;
+     int dashLength;
+     double dashStart;
+ 
+     state->getLineDash (&dashPattern, &dashLength, &dashStart);
++#endif
+     this->dash_length = dashLength ? dashPattern[0] * scale : 1.0;
+ 
+     if (dashLength == 0)
+@@ -318,10 +328,18 @@
      //FIXME: Dia is really unhappy about zero size fonts
      if (!(state->getFontSize() > 0.0))
        return;
@@ -27,7 +48,7 @@
        ++font_map_hits;
        return;
      }
-@@ -333,8 +342,13 @@
+@@ -333,8 +351,13 @@
      gchar *family = g_strdup (f->getFamily() ? f->getFamily()->c_str() : "sans");
  
      // we are (not anymore) building the same font over and over again
@@ -41,7 +62,7 @@
  
      // now try to make a fontname Dia/Pango can cope with
      // strip style postfix - we already have extracted the style bits above
-@@ -354,7 +368,11 @@
+@@ -354,7 +377,11 @@
        fsize *= fabs(fm[3] / fm[0]);
      font = dia_font_new (family, style, fsize * scale / 0.8);
  
@@ -53,7 +74,7 @@
      g_free (family);
    }
    void updateTextShift(GfxState *state, double shift)
-@@ -721,11 +739,19 @@
+@@ -721,11 +748,19 @@
      return;
    if (!(state->getFontSize() > 0.0))
      return;
@@ -73,7 +94,7 @@
      const char *p = s->c_str();
      CharCode code;
      int   j = 0, m, n;
-@@ -867,7 +893,11 @@
+@@ -867,7 +902,11 @@
  gboolean
  import_pdf(const gchar *filename, DiagramData *dia, DiaContext *ctx, void* user_data)
  {
@@ -85,7 +106,7 @@
    GooString *fileName = new GooString(filename);
    // no passwords yet
    GooString *ownerPW = NULL;
-@@ -877,7 +907,11 @@
+@@ -877,7 +916,11 @@
    // without this we will get strange crashes (at least with /O2 build)
    globalParams = std::make_unique<GlobalParams>();
  
@@ -97,7 +118,7 @@
    if (!doc->isOk()) {
      dia_context_add_message (ctx, _("PDF document not OK.\n%s"),
  			     dia_context_get_filename (ctx));
-@@ -899,7 +933,9 @@
+@@ -899,7 +942,9 @@
      delete diaOut;
      ret = TRUE;
    }

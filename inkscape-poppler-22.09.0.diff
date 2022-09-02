@@ -1,0 +1,50 @@
+--- inkscape-1.2.1/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2022-05-07 14:43:15.000000000 +0100
++++ inkscape-1.2.1/src/extension/internal/pdfinput/pdf-parser.cpp	2022-09-02 20:43:18.533335561 +0100
+@@ -685,6 +685,20 @@
+ // TODO not good that numArgs is ignored but args[] is used:
+ void PdfParser::opSetDash(Object args[], int /*numArgs*/)
+ {
++#if POPPLER_CHECK_VERSION(22, 9, 0)
++  std::vector<double> dash;
++
++  Array *a = args[0].getArray();
++  int length = a->getLength();
++  if (length != 0) {
++    for (int i = 0; i < length; ++i) {
++      Object obj;
++      dash[i] = _POPPLER_CALL_ARGS_DEREF(obj, a->get, i).getNum();
++      _POPPLER_FREE(obj);
++    }
++  }
++  state->setLineDash(std::move(dash), args[1].getNum());
++#else
+   double *dash = nullptr;
+ 
+   Array *a = args[0].getArray();
+@@ -698,6 +712,7 @@
+     }
+   }
+   state->setLineDash(dash, length, args[1].getNum());
++#endif
+   builder->updateStyle(state);
+ }
+ 
+--- inkscape-1.2.1/src/extension/internal/pdfinput/svg-builder.cpp.orig	2022-05-07 14:43:15.000000000 +0100
++++ inkscape-1.2.1/src/extension/internal/pdfinput/svg-builder.cpp	2022-09-02 18:25:07.691235047 +0100
+@@ -388,10 +388,16 @@
+     sp_repr_css_set_property(css, "stroke-miterlimit", os_ml.str().c_str());
+ 
+     // Line dash
++#if POPPLER_CHECK_VERSION(22, 9, 0)
++    double dash_start;
++    std::vector<double> dash_pattern = state->getLineDash(&dash_start);
++    int dash_length = dash_pattern.size();
++#else
+     double *dash_pattern;
+     int dash_length;
+     double dash_start;
+     state->getLineDash(&dash_pattern, &dash_length, &dash_start);
++#endif
+     if ( dash_length > 0 ) {
+         Inkscape::CSSOStringStream os_array;
+         for ( int i = 0 ; i < dash_length ; i++ ) {

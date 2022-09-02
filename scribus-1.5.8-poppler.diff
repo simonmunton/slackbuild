@@ -1,5 +1,5 @@
 --- scribus-1.5.8/scribus/plugins/import/pdf/importpdf.cpp.orig	2022-01-23 16:16:01.000000000 +0000
-+++ scribus-1.5.8/scribus/plugins/import/pdf/importpdf.cpp	2022-04-03 08:42:46.213304198 +0100
++++ scribus-1.5.8/scribus/plugins/import/pdf/importpdf.cpp	2022-04-12 20:04:30.249538984 +0100
 @@ -90,7 +90,11 @@
  #endif
  	globalParams->setErrQuiet(gTrue);
@@ -43,7 +43,7 @@
  			}
  			if ((!pdfDoc) || (pdfDoc->getErrorCode() != errNone))
 --- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp.orig	2022-01-23 16:16:01.000000000 +0000
-+++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-04-10 20:58:11.699524720 +0100
++++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.cpp	2022-09-02 20:57:56.384076119 +0100
 @@ -133,7 +133,9 @@
  
  AnoOutputDev::~AnoOutputDev()
@@ -345,8 +345,24 @@
  	if (!(gfxFont = state->getFont()))
  		return gTrue;
  	if (gfxFont->getType() != fontType3)
+@@ -3681,9 +3778,15 @@
+ 			break;
+ 	}
+ 	double lw = state->getLineWidth();
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 9, 0)
++	std::vector<double> dashPattern;
++	dashPattern = state->getLineDash(&DashOffset);
++	int dashLength = dashPattern.size();
++#else
+ 	double *dashPattern;
+ 	int dashLength;
+ 	state->getLineDash(&dashPattern, &dashLength, &DashOffset);
++#endif
+ 	QVector<double> pattern(dashLength);
+ 	for (int i = 0; i < dashLength; ++i)
+ 	{
 --- scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.h.orig	2022-01-23 16:16:01.000000000 +0000
-+++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.h	2022-04-03 08:42:46.214304198 +0100
++++ scribus-1.5.8/scribus/plugins/import/pdf/slaoutput.h	2022-04-12 20:04:30.250538984 +0100
 @@ -145,7 +145,11 @@
  	QString currColorFill;
  	QString currColorStroke;
