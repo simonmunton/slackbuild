@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p/python
 #TAR_EXT=.tar.gz
-VERSION=3.10.6
+VERSION=3.10.7
 VERSIONEXTRA=
 BUILD=1
 WEBPAGE=""
@@ -75,9 +75,9 @@ fix_perms
 PY_VER=${VERSION%.*}
 
 # Location for Python site-packages:
-SITEPK=${PKG}/usr/lib${LIBDIRSUFFIX}/python${PY_VER}/site-packages
+SITEPK=${PKG}/opt/python3/lib${LIBDIRSUFFIX}/python${PY_VER}/site-packages
 # same as above without $PKG
-TOOLSDIR=/usr/lib/python${PY_VER}/site-packages
+TOOLSDIR=/opt/python3/lib${LIBDIRSUFFIX}/python${PY_VER}/site-packages
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -85,11 +85,11 @@ if [ ${DO_CONFIGURE} == "yes" ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+./configure --prefix=/opt/python3 \
             --sysconfdir=/etc \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --libdir=/usr/lib${LIBDIRSUFFIX} \
+	    --mandir=/opt/python3/man \
+	    --libdir=/opt/python3/lib${LIBDIRSUFFIX} \
 	    --with-platlibdir=lib${LIBDIRSUFFIX} \
 	    --docdir=/usr/doc/python-${VERSION} \
 	    --enable-ipv6 \
@@ -126,7 +126,7 @@ mv ${PKG}/usr/doc/Python-${VERSION} ${PKG}/usr/doc/python-${VERSION}
 make altinstall DESTDIR=${PKG}
 
 # Remove to avoid overwriting a copy from Python2.
-rm -f ${PKG}/usr/bin/2to3
+#rm -f ${PKG}/usr/bin/2to3
 
 # We'll install the python-tools under site-packages:
 mkdir -p ${SITEPK}
@@ -138,14 +138,22 @@ find ${PKG} \( -name '*.exe' -o -name '*.bat' \) -exec rm -f '{}' \;
 # Fix permissions on dynamic libraries.
 find ${PKG} -type f -perm 555 -exec chmod 755 '{}' \;
 
-( cd ${PKG}/usr/bin
+( cd ${PKG}/opt/python3/bin
 #  rm -f python idle3 pydoc3 python3 python3-config
+  ln -s 2to3-3.10 2to3-3
+  ln -s idle3.10 idle3
+  ln -s pydoc3.10 pydoc3
+  ln -s python3.10 python3
+  ln -s python3.10-config python3-config
+
+  # so python finds the library
+  patchelf --set-rpath /opt/python3/lib${LIBDIRSUFFIX} python3.10
 )
 
 # remove libpython3.so to avoid clobbering slackware installed version
-( cd ${PKG}/usr/lib${LIBDIRSUFFIX}
-  rm -f libpython3.so
-)
+#( cd ${PKG}/opt/python3/lib${LIBDIRSUFFIX}
+#  rm -f libpython3.so
+#)
 
 strip_binaries
 
