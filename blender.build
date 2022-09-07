@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=3.0.1
+VERSION=3.3.0
 VERSIONEXTRA=
-BUILD=7
+BUILD=1
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -58,8 +58,8 @@ fi
 
 # patch -p1 < ${CWD}/blender-python-3.10.diff
 
- patch -p1 < ${CWD}/blender-3.0.0.diff
- patch -p1 < ${CWD}/blender-3.0.1.diff
+# patch -p1 < ${CWD}/blender-3.0.0.diff
+# patch -p1 < ${CWD}/blender-3.0.1.diff
 
  mv user-config.py user-config.py.old
 
@@ -73,7 +73,11 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PYTHON_VERSION=`python3 -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+PATH=/opt/python3/bin:${PATH}
+
+export PYTHON_ROOT_DIR=/opt/python3/
+
+PYTHON_VERSION=3.10 #`python3 -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
 
 mkdir _BuilD_
 cd _BuilD_
@@ -186,6 +190,11 @@ make install DESTDIR=${PKG}
 cd ..
 
 #strip_binaries
+
+if [ -n "${PYTHON_ROOT_DIR}" ]
+then
+patchelf --set-rpath ${PYTHON_ROOT_DIR}/lib64 ${PKG}/usr/bin/blender
+fi
 
 fix_links
 
