@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
 VERSION=20220402
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://glew.sourceforge.net/"
 
@@ -45,7 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/glew-1.5.1.diff
+# patch -p1 < ${CWD}/glew-install.patch
+ patch -p1 < ${CWD}/glew-egl+glx.patch
 
 # sed -i -e 's/\r//' Makefile
 # cd config
@@ -75,9 +76,24 @@ cd auto
 make
 cd ..
 
+make clean
+
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-make ${NUM_JOBS} ${SYSTEM} LIBDIR=/usr/lib${LIBDIRSUFFIX} GLEW_PREFIX=/usr GLEW_DEST=/usr || exit
+STRIP= \
+make ${NUM_JOBS} LIBDIR=/usr/lib${LIBDIRSUFFIX} glew.bin || exit
+
+mv bin/glewinfo bin/glxewinfo
+rm glew.pc
+
+rm -rf lib tmp
+
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+STRIP= \
+make ${NUM_JOBS} SYSTEM=linux-egl LIBDIR=/usr/lib${LIBDIRSUFFIX} glew.lib.shared bin/glewinfo || exit
+mv bin/glewinfo bin/eglewinfo
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -85,7 +101,9 @@ then
   exit
 fi
 
-make install.all ${SYSTEM} DESTDIR=${PKG} LIBDIR=/usr/lib${LIBDIRSUFFIX} PKGDIR=/usr/lib${LIBDIRSUFFIX}/pkgconfig GLEW_PREFIX=/usr GLEW_DEST=/usr
+make install SYSTEM=linux-egl STRIP= DESTDIR=${PKG} LIBDIR=/usr/lib${LIBDIRSUFFIX} PKGDIR=/usr/lib${LIBDIRSUFFIX}/pkgconfig GLEW_PREFIX=/usr GLEW_DEST=/usr
+install -D -m755 -t ${PKG}/usr/bin bin/eglewinfo bin/glxewinfo bin/visualinfo
+ln -s eglewinfo ${PKG}/usr/bin/glewinfo
 
 #strip_binaries
 
