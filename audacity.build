@@ -7,7 +7,7 @@ TARNAME=audacity
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=3.1.3
+VERSION=3.2.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -45,6 +45,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
+ tar xf ${TARDIR}/${TARNAME}-manual-${VERSION}.*
+
 # patch -p1 -b -z .orig < ${CWD}/audacity-3.0.4.diff
 )
 fi
@@ -53,7 +55,7 @@ pre_configure
 
 cd ${TARNAME}-${VERSION}
 
-export WX_CONFIG="/usr/bin/wx-config --version=3.0"
+export WX_CONFIG="/usr/bin/wx-config --version=3.2"
 #export WX_CONFIG="/usr/bin/wx-config"
 
 fix_perms
@@ -87,9 +89,10 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -Daudacity_use_wxwidgets=local \
+      -Daudacity_use_wxwidgets=system \
       -Daudacity_lib_preference=system \
       -Daudacity_obey_system_dependencies=on \
+      -Daudacity_has_vst3=off \
       ..
 fi
 fi
