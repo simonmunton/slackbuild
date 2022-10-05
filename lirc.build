@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.10.1
+VERSION=0.10.2
 VERSIONEXTRA=
-BUILD=9
+BUILD=1
 
 WEBPAGE="http://www.lirc.org/"
 
@@ -26,10 +26,6 @@ FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTR
 pre_unpack
 
 PKG=/tmp/package-${PKGNAME}
-PKG_MODULE=/tmp/package-${PKGNAME}-module
-
-rm -rf ${PKG_MODULE}
-mkdir -p ${PKG_MODULE}/install
 
 if [ ! -f ${FULL_TARNAME} ]
 then
@@ -50,8 +46,8 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/lirc-0.8.6.diff
- patch -p1 < ${CWD}/lirc-pyyaml-60-compatibility.patch
- ./autogen.sh
+# patch -p1 < ${CWD}/lirc-pyyaml-60-compatibility.patch
+# ./autogen.sh
 )
 fi
 
@@ -106,18 +102,10 @@ fi
 
 make -i install DESTDIR=${PKG}
 
-mv ${PKG}/lib ${PKG_MODULE}
 rm -rf ${PKG}/dev
 
 #/dev/lircd
 #/dev/lircm
-
-cat > ${PKG_MODULE}/install/doinst.sh << EOF
-#
-/sbin/depmod ${KERNELRELEASE}
-
-EOF
-
 
 strip_binaries
 
@@ -133,13 +121,6 @@ cp -a \
 
 fix_docs
 
-#-----handy-ruler-for-slack-desc-width-------------------------------|
-PKGNAME=${PKGNAME}-module \
-make_slack_desc << EOF "LIRC kernel modules"
-LIRC kernel modules
-
-EOF
-
 mv ${PKG}/install/slack-desc ${PKG_MODULE}/install
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "LIRC - linux infrared remote control"
@@ -148,10 +129,7 @@ EOF
 post_install
 
 cd ${PKG}
-su -c "chown -R root:root ${PKG} ${PKG_MODULE}; \
+su -c "chown -R root:root ${PKG}; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-cd ${PKG_MODULE}; \
-find . -type d -exec chmod 755 {} \; ; \
-makepkg -l y -c n ${PKGDIR}${PKGNAME}-module-${PKGVERSION}_${KERNELRELEASE//-/_}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
-chown -R ${USERNAME}:${GROUP} ${PKG} ${PKG_MODULE}; "
+chown -R ${USERNAME}:${GROUP} ${PKG}; "
