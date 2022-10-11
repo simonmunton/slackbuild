@@ -7,13 +7,13 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/f
 #TAR_EXT=.tar.gz
-VERSION=5.1.2
+VERSION=4.4.2
 VERSIONEXTRA=
-BUILD=1
+BUILD=4
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=ffmpeg
+PKGNAME=ffmpeg4
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -32,18 +32,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/ffmpeg-add-av_stream_get_first_dts-for-chromium.patch
+# patch -p1 < ${CWD}/ffmpeg-3.3.4.diff
 )
 fi
 
@@ -60,26 +60,93 @@ else
   SLKCFLAGS="-O4 -march=pentium4 -mtune=pentium4"
 fi
 
-optional_lib()
-{
-if pkg_exist $1
-then
-  OPTIONAL_ENABLES="$OPTIONAL_ENABLES $2"
-else
-  echo "$1 not found"
-fi
-}
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 
 OPTIONAL_ENABLES=""
+
+if pkg_exist "frei0r-plugins"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-frei0r"
+else
+  echo "frei0r-plugins not found"
+fi
+
+if pkg_exist "gsm"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libgsm"
+else
+  echo "gsm not found"
+fi
+
+#if pkg_exist "libnut"
+#then
+#  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libnut"
+#else
+#  echo "libnut not found"
+#fi
+
+#if pkg_exist "schroedinger"
+#then
+#  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libschroedinger"
+#else
+#  echo "schroedinger not found"
+#fi
 
 if pkg_exist "x265-build" "-+([0-9])"
 then
   OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libx265"
 else
   echo "x265 not found"
+fi
+
+if pkg_exist "libwebp"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libwebp"
+else
+  echo "libwebp not found"
+fi
+
+if pkg_exist "libdc1394"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libdc1394"
+else
+  echo "libdc1394 not found"
+fi
+
+if pkg_exist "opencore-amr"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libopencore-amrnb --enable-libopencore-amrwb"
+else
+  echo "amrnb not found"
+fi
+
+if pkg_exist "rtmpdump"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-librtmp"
+else
+  echo "rtmpdump not found"
+fi
+
+if pkg_exist "speex"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libspeex"
+else
+  echo "speex not found"
+fi
+
+if pkg_exist "opus"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libopus"
+else
+  echo "opus not found"
+fi
+
+if pkg_exist "lame"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libmp3lame"
+else
+  echo "lame not found"
 fi
 
 if pkg_exist "x264-build" "-+([0-9])"
@@ -89,57 +156,40 @@ else
   echo "x264 not found"
 fi
 
-# optional_lib schroedinger --enable-libschroedinger
-optional_lib SVT-AV1 --enable-libsvtav1
-optional_lib aom --enable-libaom
-optional_lib celt --enable-libcelt
-optional_lib chromaprint --enable-chromaprint
-optional_lib frei0r-plugins --enable-frei0r
-optional_lib gsm --enable-libgsm
-optional_lib ladspa_sdk --enable-ladspa
-optional_lib lame --enable-libmp3lame
-optional_lib libass --enable-libass
-optional_lib libbs2b --enable-libbs2b
-optional_lib libcodec2 --enable-libcodec2
-optional_lib dav1d --enable-libdav1d
-optional_lib libdc1394 --enable-libdc1394
-optional_lib libflite --enable-libflite
-optional_lib libgme --enable-libgme
-optional_lib libiec61883 --enable-libiec61883
-optional_lib libilbc --enable-libilbc
-optional_lib jack2 --enable-libjack
-optional_lib libmodplug --enable-libmodplug
-#optional_lib libnut --enable-libnut
-#optional_lib opencv --enable-libopencv
-optional_lib libsnappy --enable-libsnappy
-optional_lib soxr --enable-libsoxr
-optional_lib srt --enable-libsrt
-optional_lib twolame --enable-libtwolame
-optional_lib libwebp --enable-libwebp
-optional_lib zimg --enable-libzimg
-optional_lib zeromq --enable-libzmq
-optional_lib zvbi --enable-libzvbi
-optional_lib lv2core --enable-lv2
-optional_lib opencore-amr "--enable-libopencore-amrnb --enable-libopencore-amrwb"
-optional_lib opus --enable-libopus
-optional_lib rabbitmq --enable-librabbitmq
-optional_lib rtmpdump --enable-librtmp
-optional_lib rubberband --enable-librubberband
-optional_lib speex --enable-libspeex
-optional_lib tesseract-ocr --enable-libtesseract
-optional_lib vapoursynth --enable-vapoursynth
-optional_lib vid.stab --enable-libvidstab
-optional_lib xvidcore --enable-libxvid
+if pkg_exist "xvidcore"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libxvid"
+else
+  echo "xvidcore not found"
+fi
 
-### libcodec2 not found
-### libflite not found
-### libgme not found
-### libilbc not found
-### libsnappy not found
-### rabbitmq not found
-### vapoursynth not found
-###
-### Unknown option "--enable-libnut"
+if pkg_exist "vid.stab"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libvidstab"
+else
+  echo "vid.stab not found"
+fi
+
+if pkg_exist "tesseract-ocr"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libtesseract"
+else
+  echo "tesseract-ocr not found"
+fi
+
+if pkg_exist "SVT-AV1"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libsvtav1"
+else
+  echo "SVT-AV1 not found"
+fi
+
+if pkg_exist "aom"
+then
+  OPTIONAL_ENABLES="$OPTIONAL_ENABLES --enable-libaom"
+else
+  echo "aom not found"
+fi
 
 
 CFLAGS="${SLKCFLAGS} -I/usr/include/gsm" \
@@ -147,46 +197,26 @@ CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --shlibdir=/usr/lib${LIBDIRSUFFIX} \
+            --enable-libvorbis \
+            --enable-libtheora \
             --enable-gpl \
             --enable-version3 \
+            --enable-avresample \
+            --enable-libvpx \
             --enable-shared \
-            --disable-static \
             --enable-postproc \
             --enable-avfilter \
-            --enable-nonfree \
-            $OPTIONAL_ENABLES \
+            --enable-libopenjpeg \
+            --enable-libvpx \
             --enable-libfontconfig \
             --enable-libfreetype \
             --enable-libfribidi \
-            --enable-gnutls \
-            --enable-libbluray \
-            --enable-libcaca \
-            --enable-libcdio \
-            --enable-libssh \
-            --enable-libtheora \
-            --enable-libv4l2 \
-            --enable-libvorbis \
-            --enable-libvpx \
-            --enable-libwebp \
-            --enable-libmp3lame \
-            --enable-opencl \
-            --enable-opengl \
-            --enable-libopenjpeg \
-            --enable-libpulse \
-            --enable-libsmbclient \
-            --enable-libspeex \
-            --enable-openal \
-            --enable-libopus \
-            --enable-libvidstab \
-            --enable-libxml2 \
-            --enable-librsvg \
-            --enable-libdrm \
-            --enable-libglslang \
-            --enable-vulkan \
+            --enable-nonfree \
+            --enable-openssl \
+            $OPTIONAL_ENABLES \
             --extra-ldflags="-lssl -lcrypto -lz"
 
 
-#            --enable-openssl \
 #            --enable-libfaac \
 
 #	    --enable-libdcadec \
