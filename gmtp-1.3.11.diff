@@ -1,0 +1,610 @@
+--- gmtp-1.3.11/src/interface.c.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/interface.c	2022-11-20 22:14:13.318972741 +0000
+@@ -46,7 +46,7 @@
+ void __fileDownload(GtkTreeRowReference *Row);
+ void __folderRemove(GtkTreeRowReference *Row);
+ 
+-GtkWidget *windowMain;
++GtkWidget *windowMain1;
+ GtkWidget *scrolledwindowMain;
+ GtkWidget *toolbuttonAddFile;
+ GtkWidget *toolbuttonRetrieve;
+@@ -206,17 +206,17 @@
+ 
+     accel_group = gtk_accel_group_new();
+ 
+-    windowMain = gtk_window_new(GTK_WINDOW_TOPLEVEL);
++    windowMain1 = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+     setWindowTitle(NULL);
+-    gtk_window_set_default_size(GTK_WINDOW(windowMain), 880, 400);
+-    gtk_window_set_icon_from_file(GTK_WINDOW(windowMain), file_icon48_png, NULL);
++    gtk_window_set_default_size(GTK_WINDOW(windowMain1), 880, 400);
++    gtk_window_set_icon_from_file(GTK_WINDOW(windowMain1), file_icon48_png, NULL);
+ #if HAVE_GTK3 == 0
+     vbox1 = gtk_vbox_new(FALSE, 0);
+ #else 
+     vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+ #endif
+     gtk_widget_show(vbox1);
+-    gtk_container_add(GTK_CONTAINER(windowMain), vbox1);
++    gtk_container_add(GTK_CONTAINER(windowMain1), vbox1);
+ 
+     menubarMain = gtk_menu_bar_new();
+     gtk_widget_show(menubarMain);
+@@ -772,7 +772,7 @@
+ 
+     // End Dnd functions
+ 
+-    g_signal_connect((gpointer) windowMain, "destroy",
++    g_signal_connect((gpointer) windowMain1, "destroy",
+             G_CALLBACK(on_quit1_activate),
+             NULL);
+ 
+@@ -968,7 +968,7 @@
+             G_CALLBACK(on_treeviewFolders_rowactivated),
+             NULL);
+ 
+-    gtk_window_add_accel_group(GTK_WINDOW(windowMain), accel_group);
++    gtk_window_add_accel_group(GTK_WINDOW(windowMain1), accel_group);
+     gtk_menu_set_accel_group(GTK_MENU(menuitem1_menu), accel_group);
+     gtk_widget_add_accelerator(fileRemove, "activate", accel_group, GDK_Delete, 0, GTK_ACCEL_VISIBLE);
+     gtk_widget_add_accelerator(fileRename, "activate", accel_group, GDK_F2, 0, GTK_ACCEL_VISIBLE);
+@@ -981,7 +981,7 @@
+     gtk_widget_add_accelerator(editAddAlbumArt, "activate", accel_group, GDK_A, GDK_CONTROL_MASK + GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+     gtk_widget_add_accelerator(editSelectAll, "activate", accel_group, GDK_A, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+     gtk_widget_add_accelerator(editFind, "activate", accel_group, GDK_F, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+-    return windowMain;
++    return windowMain1;
+ }
+ 
+ // ************************************************************************************************
+@@ -1376,7 +1376,7 @@
+     GtkWidget *FileDialog;
+ 
+     FileDialog = gtk_file_chooser_dialog_new(_("Select Files to Add"),
+-            GTK_WINDOW(windowMain), GTK_FILE_CHOOSER_ACTION_OPEN,
++            GTK_WINDOW(windowMain1), GTK_FILE_CHOOSER_ACTION_OPEN,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+             _("_Open"), GTK_RESPONSE_ACCEPT,
+             NULL);
+@@ -1924,7 +1924,7 @@
+     // Let's confirm our download path.
+     if (Preferences.ask_download_path == TRUE) {
+         GtkWidget *FileDialog = gtk_file_chooser_dialog_new(_("Select Path to Download"),
+-                GTK_WINDOW(windowMain), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
++                GTK_WINDOW(windowMain1), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                 _("_Cancel"), GTK_RESPONSE_CANCEL,
+                 _("_Open"), GTK_RESPONSE_ACCEPT,
+                 NULL);
+@@ -1957,7 +1957,7 @@
+     // Let's confirm our download path.
+     if (Preferences.ask_download_path == TRUE) {
+         GtkWidget *FileDialog = gtk_file_chooser_dialog_new(_("Select Path to Download"),
+-                GTK_WINDOW(windowMain), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
++                GTK_WINDOW(windowMain1), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                 _("_Cancel"), GTK_RESPONSE_CANCEL,
+                 _("_Open"), GTK_RESPONSE_ACCEPT,
+                 NULL);
+@@ -2362,7 +2362,7 @@
+ 
+ void displayError(gchar* msg) {
+     GtkWidget *dialog;
+-    dialog = gtk_message_dialog_new(GTK_WINDOW(windowMain),
++    dialog = gtk_message_dialog_new(GTK_WINDOW(windowMain1),
+             GTK_DIALOG_DESTROY_WITH_PARENT,
+             GTK_MESSAGE_ERROR,
+             GTK_BUTTONS_OK,
+@@ -2378,7 +2378,7 @@
+ 
+ void displayInformation(gchar* msg) {
+     GtkWidget *dialog;
+-    dialog = gtk_message_dialog_new(GTK_WINDOW(windowMain),
++    dialog = gtk_message_dialog_new(GTK_WINDOW(windowMain1),
+             GTK_DIALOG_DESTROY_WITH_PARENT,
+             GTK_MESSAGE_INFO,
+             GTK_BUTTONS_OK,
+@@ -2395,7 +2395,7 @@
+ gchar* displayFolderNewDialog(void) {
+     GtkWidget *dialog, *hbox, *label, *textbox;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("New Folder"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("New Folder"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+@@ -2450,7 +2450,7 @@
+ gchar* displayChangeDeviceNameDialog(gchar* devicename) {
+     GtkWidget *dialog, *hbox, *label, *textbox;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Change Device Name"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Change Device Name"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+@@ -2508,7 +2508,7 @@
+ gchar* displayRenameFileDialog(gchar* currentfilename) {
+     GtkWidget *dialog, *hbox, *label, *textbox;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Rename File/Folder"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Rename File/Folder"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+@@ -2568,7 +2568,7 @@
+     gchar *tmp_string = NULL;
+     gint dialog_selection = -1;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Connect to which device?"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Connect to which device?"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             NULL);
+@@ -2648,7 +2648,7 @@
+ 
+     devicestorage = DeviceMgr.device->storage;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Connect to which storage device?"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Connect to which storage device?"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             NULL);
+@@ -2717,7 +2717,7 @@
+ 
+ gint displayFileOverwriteDialog(gchar *filename) {
+     GtkWidget *dialog;
+-    dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(windowMain),
++    dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             GTK_MESSAGE_WARNING,
+             GTK_BUTTONS_NONE,
+@@ -3008,7 +3008,7 @@
+     tooltips = gtk_tooltips_new();
+ #endif
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Playlists"), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Playlists"), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+@@ -3138,7 +3138,7 @@
+     } else {
+         winTitle = g_strconcat(foldername, " - ", PACKAGE_NAME, NULL);
+     }
+-    gtk_window_set_title(GTK_WINDOW(windowMain), (winTitle));
++    gtk_window_set_title(GTK_WINDOW(windowMain1), (winTitle));
+     g_free(winTitle);
+ }
+ 
+@@ -3192,7 +3192,7 @@
+     GtkTreeIter childiter;
+     uint32_t objectID = 0;
+ 
+-    dialog = gtk_dialog_new_with_buttons(_("Move To..."), GTK_WINDOW(windowMain),
++    dialog = gtk_dialog_new_with_buttons(_("Move To..."), GTK_WINDOW(windowMain1),
+             (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+             _("_OK"), GTK_RESPONSE_OK,
+             _("_Cancel"), GTK_RESPONSE_CANCEL,
+--- gmtp-1.3.11/src/mtp.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/mtp.h	2022-11-20 19:58:26.064163160 +0000
+@@ -42,7 +42,7 @@
+ 
+ #define MTP_DEVICE_SINGLE_STORAGE -1
+ 
+-    gboolean AlbumErrorIgnore;
++    extern gboolean AlbumErrorIgnore;
+ 
+     typedef struct {
+         gchar* file_extension;
+--- gmtp-1.3.11/src/interface.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/interface.h	2022-11-20 19:57:31.266165774 +0000
+@@ -1,4 +1,4 @@
+-/* 
++/*
+  *
+  *   File: interface.h
+  *
+@@ -21,7 +21,7 @@
+ 
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+-#endif    
++#endif
+ 
+ #include <glib.h>
+ #include <gtk/gtk.h>
+@@ -108,12 +108,12 @@
+     };
+ 
+     // Main Window widgets
+-    GtkListStore *fileList;
+-    GtkTreeStore *folderList;
+-    GtkTreeSelection *fileSelection;
+-    GtkTreeSelection *folderSelection;
+-    gulong folderSelectHandler;
+-    gulong fileSelectHandler;
++    extern GtkListStore *fileList;
++    extern GtkTreeStore *folderList;
++    extern GtkTreeSelection *fileSelection;
++    extern GtkTreeSelection *folderSelection;
++    extern gulong folderSelectHandler;
++    extern gulong fileSelectHandler;
+ 
+ 
+     /**
+@@ -252,22 +252,22 @@
+     void __fileMove(GtkTreeRowReference *Row);
+ 
+     // Flags for overwriting files of host PC and device.
+-    gint fileoverwriteop;
++    extern gint fileoverwriteop;
+     // Flag to allow overwrite of files on device.
+-    gint deviceoverwriteop;
++    extern gint deviceoverwriteop;
+ 
+     // Find options and variables.
+-    gboolean inFindMode;
+-    GSList *searchList;
++    extern gboolean inFindMode;
++    extern GSList *searchList;
+ 
+     /**
+      * Destroys a file listing object.
+      * @param file - pointer to the FileListStruc object.
+      */
+     void g_free_search(FileListStruc *file);
+-    GtkWidget *FindToolbar_entry_FindText;
+-    GtkWidget *FindToolbar_checkbutton_FindFiles;
+-    GtkWidget *FindToolbar_checkbutton_TrackInformation;
++    extern GtkWidget *FindToolbar_entry_FindText;
++    extern GtkWidget *FindToolbar_checkbutton_FindFiles;
++    extern GtkWidget *FindToolbar_checkbutton_TrackInformation;
+ 
+     /**
+      * Add an individual file to the device.
+@@ -275,7 +275,7 @@
+      */
+     void __filesAdd(gchar* filename);
+     /**
+-     * Get a string representation of the size 
++     * Get a string representation of the size
+      * @param value The value to convert to a string.
+      * @return A string that represents the size in a friendly manner.
+      */
+@@ -329,77 +329,77 @@
+     int32_t displayAddTrackPlaylistDialog(gboolean showNew /* = TRUE */);
+ 
+     // Widget for find toolbar
+-    GtkWidget *findToolbar;
++    extern GtkWidget *findToolbar;
+ 
+     // Parent container for the main toolbar.
+-    GtkWidget *handlebox1;
+-    GtkWidget *toolbarMain;
++    extern GtkWidget *handlebox1;
++    extern GtkWidget *toolbarMain;
+ 
+     // Widgets for menu items;
+-    GtkWidget *fileConnect;
+-    GtkWidget *fileAdd;
+-    GtkWidget *fileDownload;
+-    GtkWidget *fileRemove;
+-    GtkWidget *fileRename;
+-    GtkWidget *fileMove;
+-    GtkWidget *fileNewFolder;
+-    GtkWidget *fileRemoveFolder;
+-    GtkWidget *fileRescan;
+-    GtkWidget *editDeviceName;
+-    GtkWidget *editFormatDevice;
+-    GtkWidget *editAddAlbumArt;
+-    GtkWidget *editFind;
+-    GtkWidget *editSelectAll;
+-    GtkWidget *contextMenu;
+-    GtkWidget *contextMenuColumn;
+-    GtkWidget *contestMenuFolder;
+-    GtkWidget* cfileAdd;
+-    GtkWidget* cfileNewFolder;
+-    GtkWidget *toolbuttonAddFile;
++    extern GtkWidget *fileConnect;
++    extern GtkWidget *fileAdd;
++    extern GtkWidget *fileDownload;
++    extern GtkWidget *fileRemove;
++    extern GtkWidget *fileRename;
++    extern GtkWidget *fileMove;
++    extern GtkWidget *fileNewFolder;
++    extern GtkWidget *fileRemoveFolder;
++    extern GtkWidget *fileRescan;
++    extern GtkWidget *editDeviceName;
++    extern GtkWidget *editFormatDevice;
++    extern GtkWidget *editAddAlbumArt;
++    extern GtkWidget *editFind;
++    extern GtkWidget *editSelectAll;
++    extern GtkWidget *contextMenu;
++    extern GtkWidget *contextMenuColumn;
++    extern GtkWidget *contestMenuFolder;
++    extern GtkWidget* cfileAdd;
++    extern GtkWidget* cfileNewFolder;
++    extern GtkWidget *toolbuttonAddFile;
+ #if HAVE_GTK3 == 0
+-    GtkTooltips *tooltipsToolbar;
++    extern GtkTooltips *tooltipsToolbar;
+ #endif
+ 
+     // Columns in main file view;
+-    GtkTreeViewColumn *column_Size;
+-    GtkTreeViewColumn *column_Type;
+-    GtkTreeViewColumn *column_Track_Number;
+-    GtkTreeViewColumn *column_Title;
+-    GtkTreeViewColumn *column_Artist;
+-    GtkTreeViewColumn *column_Album;
+-    GtkTreeViewColumn *column_Year;
+-    GtkTreeViewColumn *column_Genre;
+-    GtkTreeViewColumn *column_Duration;
+-    GtkTreeViewColumn *column_Location;
++    extern GtkTreeViewColumn *column_Size;
++    extern GtkTreeViewColumn *column_Type;
++    extern GtkTreeViewColumn *column_Track_Number;
++    extern GtkTreeViewColumn *column_Title;
++    extern GtkTreeViewColumn *column_Artist;
++    extern GtkTreeViewColumn *column_Album;
++    extern GtkTreeViewColumn *column_Year;
++    extern GtkTreeViewColumn *column_Genre;
++    extern GtkTreeViewColumn *column_Duration;
++    extern GtkTreeViewColumn *column_Location;
+ 
+     // Main menu widgets
+-    GtkWidget *menu_view_filesize;
+-    GtkWidget *menu_view_filetype;
+-    GtkWidget *menu_view_track_number;
+-    GtkWidget *menu_view_title;
+-    GtkWidget *menu_view_artist;
+-    GtkWidget *menu_view_album;
+-    GtkWidget *menu_view_year;
+-    GtkWidget *menu_view_genre;
+-    GtkWidget *menu_view_duration;
+-    GtkWidget *menu_view_folders;
+-    GtkWidget *menu_view_toolbar;
++    extern GtkWidget *menu_view_filesize;
++    extern GtkWidget *menu_view_filetype;
++    extern GtkWidget *menu_view_track_number;
++    extern GtkWidget *menu_view_title;
++    extern GtkWidget *menu_view_artist;
++    extern GtkWidget *menu_view_album;
++    extern GtkWidget *menu_view_year;
++    extern GtkWidget *menu_view_genre;
++    extern GtkWidget *menu_view_duration;
++    extern GtkWidget *menu_view_folders;
++    extern GtkWidget *menu_view_toolbar;
+ 
+     // Column view context menu;
+-    GtkWidget* cViewSize;
+-    GtkWidget* cViewType;
+-    GtkWidget* cViewTrackName;
+-    GtkWidget* cViewTrackNumber;
+-    GtkWidget* cViewArtist;
+-    GtkWidget* cViewAlbum;
+-    GtkWidget* cViewYear;
+-    GtkWidget* cViewGenre;
+-    GtkWidget* cViewDuration;
++    extern GtkWidget* cViewSize;
++    extern GtkWidget* cViewType;
++    extern GtkWidget* cViewTrackName;
++    extern GtkWidget* cViewTrackNumber;
++    extern GtkWidget* cViewArtist;
++    extern GtkWidget* cViewAlbum;
++    extern GtkWidget* cViewYear;
++    extern GtkWidget* cViewGenre;
++    extern GtkWidget* cViewDuration;
+ 
+     // Combobox used in AddTrackPlaylist feature.
+-    GtkWidget *combobox_AddTrackPlaylist;
++    extern GtkWidget *combobox_AddTrackPlaylist;
+ 
+-    int64_t fileMoveTargetFolder;
++    extern int64_t fileMoveTargetFolder;
+ 
+ #ifdef  __cplusplus
+ }
+--- gmtp-1.3.11/src/main.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/main.h	2022-11-20 19:50:35.669185604 +0000
+@@ -1,4 +1,4 @@
+-/* 
++/*
+  *
+  *   File: main.h
+  *
+@@ -17,7 +17,7 @@
+ 
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+-#endif 
++#endif
+ 
+ #include <glib.h>
+ #include <gtk/gtk.h>
+@@ -68,60 +68,60 @@
+     } Device_Struct;
+ 
+     // Main Window Widgets.
+-    GtkWidget *windowMain;
+-    GtkWidget *scrolledwindowMain;
++    extern GtkWidget *windowMain;
++    extern GtkWidget *scrolledwindowMain;
+ 
+-    GtkWidget *windowStatusBar;
+-    GtkWidget *toolbuttonConnect;
+-    GtkWidget *treeviewFiles;
+-    GtkWidget *treeviewFolders;
++    extern GtkWidget *windowStatusBar;
++    extern GtkWidget *toolbuttonConnect;
++    extern GtkWidget *treeviewFiles;
++    extern GtkWidget *treeviewFolders;
+     // Folder view;
+-    GtkWidget *scrolledwindowFolders;
+-    GtkTreeSelection *folderSelection;
++    extern GtkWidget *scrolledwindowFolders;
++    extern GtkTreeSelection *folderSelection;
+ 
+     // Device information struct
+-    Device_Struct DeviceMgr;
++    extern Device_Struct DeviceMgr;
+ 
+     // File/Folder/Track/Playlist pointers
+-    LIBMTP_file_t *deviceFiles;
+-    LIBMTP_folder_t *deviceFolders;
+-    LIBMTP_track_t *deviceTracks;
+-    LIBMTP_playlist_t *devicePlayLists;
+-    uint32_t currentFolderID; // This is the ID of the current folder....
+-    int32_t addTrackPlaylistID;
++    extern LIBMTP_file_t *deviceFiles;
++    extern LIBMTP_folder_t *deviceFolders;
++    extern LIBMTP_track_t *deviceTracks;
++    extern LIBMTP_playlist_t *devicePlayLists;
++    extern uint32_t currentFolderID; // This is the ID of the current folder....
++    extern int32_t addTrackPlaylistID;
+ 
+-    GQueue *stackFolderIDs;
+-    GQueue *stackFolderNames;
++    extern GQueue *stackFolderIDs;
++    extern GQueue *stackFolderNames;
+ 
+     // Icon file locations.
+-    gchar *file_logo_png;
+-    gchar *file_icon48_png;
+-    gchar *file_icon16_png;
+-    gchar *file_about_png;
+-    gchar *file_format_png;
++    extern gchar *file_logo_png;
++    extern gchar *file_icon48_png;
++    extern gchar *file_icon16_png;
++    extern gchar *file_about_png;
++    extern gchar *file_format_png;
+     // File view Icons
+-    gchar *file_audio_png;
+-    gchar *file_video_png;
+-    gchar *file_playlist_png;
+-    gchar *file_album_png;
+-    gchar *file_textfile_png;
+-    gchar *file_generic_png;
+-    gchar *file_folder_png;
+-    gchar *file_image_png;
++    extern gchar *file_audio_png;
++    extern gchar *file_video_png;
++    extern gchar *file_playlist_png;
++    extern gchar *file_album_png;
++    extern gchar *file_textfile_png;
++    extern gchar *file_generic_png;
++    extern gchar *file_folder_png;
++    extern gchar *file_image_png;
+ 
+     /**
+      * setFilePaths - set paths for image used within gMTP
+      * @param argc
+      * @param argv
+      */
+-    gchar * setFilePaths(int argc, char *argv[]);
++    extern gchar * setFilePaths(int argc, char *argv[]);
+     /**
+      * getRuntimePath - Returns the path which the application was run from
+      * @param argc
+      * @param argv
+      * @return pointer to string with location of the binary.
+      */
+-    gchar *getRuntimePath(int argc, char *argv[]);
++    extern gchar *getRuntimePath(int argc, char *argv[]);
+ 
+     // Common magic numbers.
+ 
+--- gmtp-1.3.11/src/preferences.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/preferences.h	2022-11-20 19:55:55.548170341 +0000
+@@ -1,4 +1,4 @@
+-/* 
++/*
+  *
+  *   File: preferences.h
+  *
+@@ -22,28 +22,28 @@
+ 
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+-#endif 
++#endif
+ 
+ #include <glib.h>
+ #include <gtk/gtk.h>
+ 
+     // Main preferences dialog if present.
+-    GtkWidget *windowPrefsDialog;
++    extern GtkWidget *windowPrefsDialog;
+ 
+     // Widgets for preferences buttons;
+-    GtkWidget *comboboxToolbarStyle;
+-    GtkWidget *checkbuttonDeviceConnect;
+-    GtkWidget *entryDownloadPath;
+-    GtkWidget *entryUploadPath;
+-    GtkWidget *checkbuttonDownloadPath;
+-    GtkWidget *checkbuttonConfirmFileOp;
+-    GtkWidget *checkbuttonConfirmOverWriteFileOp;
+-    GtkWidget *checkbuttonAutoAddTrackPlaylist;
+-    GtkWidget *checkbuttonIgnorePathInPlaylist;
+-    GtkWidget *checkbuttonSuppressAlbumErrors;
+-    GtkWidget *checkbuttonAltAccessMethod;
+-    GtkWidget *checkbuttonAllMediaAsFiles;
+-    GtkWidget *checkbuttonRetainTimeStamp;
++    extern GtkWidget *comboboxToolbarStyle;
++    extern GtkWidget *checkbuttonDeviceConnect;
++    extern GtkWidget *entryDownloadPath;
++    extern GtkWidget *entryUploadPath;
++    extern GtkWidget *checkbuttonDownloadPath;
++    extern GtkWidget *checkbuttonConfirmFileOp;
++    extern GtkWidget *checkbuttonConfirmOverWriteFileOp;
++    extern GtkWidget *checkbuttonAutoAddTrackPlaylist;
++    extern GtkWidget *checkbuttonIgnorePathInPlaylist;
++    extern GtkWidget *checkbuttonSuppressAlbumErrors;
++    extern GtkWidget *checkbuttonAltAccessMethod;
++    extern GtkWidget *checkbuttonAllMediaAsFiles;
++    extern GtkWidget *checkbuttonRetainTimeStamp;
+ 
+     /**
+      * Callback to show the Preferences Dialog Box.
+--- gmtp-1.3.11/src/progress.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/progress.h	2022-11-20 19:59:02.081161441 +0000
+@@ -27,7 +27,7 @@
+ #include <gtk/gtk.h>
+ #include <stdint.h>
+ 
+-    gboolean progressDialog_killed;
++    extern gboolean progressDialog_killed;
+ 
+     /**
+      * Create a Upload/Download Progress Window.
+--- gmtp-1.3.11/src/dnd.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/dnd.h	2022-11-20 22:06:46.859994043 +0000
+@@ -35,7 +35,7 @@
+     };
+ 
+     /* Drag data format listing for gtk_drag_dest_set() */
+-   GtkTargetEntry _gmtp_drop_types[3];
++   extern GtkTargetEntry _gmtp_drop_types[3];
+ 
+ #define gmtp_drag_dest_set(widget) gtk_drag_dest_set(widget, \
+ 		GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP, \
+--- gmtp-1.3.11/src/prefs.h.orig	2016-02-07 09:11:59.000000000 +0000
++++ gmtp-1.3.11/src/prefs.h	2022-11-20 20:00:40.029156768 +0000
+@@ -61,7 +61,7 @@
+         gboolean retain_timestamp;
+     } Preferences_Struct;
+ 
+-    Preferences_Struct Preferences;
++    extern Preferences_Struct Preferences;
+ 
+     /**
+      * Set some default values for the application prefences.
+@@ -90,7 +90,7 @@
+      */
+     void gconf_callback_func(GConfClient *client, guint cnxn_id, GConfEntry *entry, gpointer user_data);
+ #else
+-    GSettings *gsettings_connect;
++    extern GSettings *gsettings_connect;
+     /**
+      * The callback for the GSettings database.
+      */

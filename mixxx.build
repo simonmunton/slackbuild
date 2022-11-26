@@ -3,13 +3,13 @@
 . build_funcs
 
 TARNAME=mixxx
-TARNAMEEXTRA=-release
+TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=2.2.4
+VERSION=2.3.3
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
 WEBPAGE="http://www.mixxx.org/"
 
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/mixxx-2.2.4.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,23 +55,47 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-export QTDIR=/usr/lib${LIBDIRSUFFIX}/qt5
-PATH=/usr/lib/qt5/bin:$PATH
+mkdir _BuilD_
+cd _BuilD_
 
-export CXXFLAGS="-std=c++11"
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-:
-sed -i -e "/unix_lib_path = / s@'lib.*'@'lib${LIBDIRSUFFIX}'@" src/SConscript
-sed -i -e "s@'lib.*/mixxx'@'lib${LIBDIRSUFFIX}/mixxx'@" build/depends.py
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
-export LIBDIR=/usr/lib${LIBDIRSUFFIX}
+fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-scons ${NUM_JOBS} prefix=/usr qtdir=${QTDIR} script=1 qt5=1 || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -79,17 +103,16 @@ then
   exit
 fi
 
-scons install prefix=/usr install_root=${PKG}/usr qtdir=${QTDIR} script=1 qt5=1
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
 
 strip_binaries
-
-#mv ${PKG}/usr/bin/mixxx ${PKG}/usr/bin/mixxx.bin
-#cat >  ${PKG}/usr/bin/mixxx << EOF
-##!/bin/sh
-#LD_LIBRARY_PATH=${QTDIR}/lib mixxx.bin "\$@"
-#EOF
-#chmod +x ${PKG}/usr/bin/mixxx
-
 
 fix_links
 
@@ -104,8 +127,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF
 make_slack_desc << EOF "open source DJ software"
-Mixxx is free, open source DJ software that gives you everything you 
+Mixxx is free, open source DJ software that gives you everything you
 need to perform live mixes.
 
 EOF

@@ -1,0 +1,141 @@
+--- libopenshot-0.2.7/src/FFmpegWriter.cpp.orig	2021-09-04 23:50:36.000000000 +0100
++++ libopenshot-0.2.7/src/FFmpegWriter.cpp	2022-11-23 21:01:24.824374115 +0000
+@@ -123,11 +123,16 @@
+ 
+ // auto detect format (from path)
+ void FFmpegWriter::auto_detect_format() {
++	static AVOutputFormat outfmt;
+ 	// Auto detect the output format from the name. default is mpeg.
+-	fmt = av_guess_format(NULL, path.c_str(), NULL);
+-	if (!fmt)
++	const AVOutputFormat *ofmt;
++	ofmt = av_guess_format(NULL, path.c_str(), NULL);
++	if (!ofmt)
+ 		throw InvalidFormat("Could not deduce output format from file extension.", path);
+ 
++	outfmt = *ofmt;
++	fmt = &outfmt;
++
+ 	// Allocate the output media context
+ 	AV_OUTPUT_CONTEXT(&oc, path.c_str());
+ 	if (!oc)
+@@ -166,7 +171,7 @@
+ void FFmpegWriter::SetVideoOptions(bool has_video, std::string codec, Fraction fps, int width, int height, Fraction pixel_ratio, bool interlaced, bool top_field_first, int bit_rate) {
+ 	// Set the video options
+ 	if (codec.length() > 0) {
+-		AVCodec *new_codec;
++		const AVCodec *new_codec;
+ 		// Check if the codec selected is a hardware accelerated codec
+ #if USE_HW_ACCEL
+ #if defined(__linux__)
+@@ -288,7 +293,7 @@
+ void FFmpegWriter::SetAudioOptions(bool has_audio, std::string codec, int sample_rate, int channels, ChannelLayout channel_layout, int bit_rate) {
+ 	// Set audio options
+ 	if (codec.length() > 0) {
+-		AVCodec *new_codec = avcodec_find_encoder_by_name(codec.c_str());
++		const AVCodec *new_codec = avcodec_find_encoder_by_name(codec.c_str());
+ 		if (new_codec == NULL)
+ 			throw InvalidCodec("A valid audio codec could not be found for this file.", path);
+ 		else {
+@@ -1048,7 +1053,7 @@
+ 	AVStream *st;
+ 
+ 	// Find the audio codec
+-	AVCodec *codec = avcodec_find_encoder_by_name(info.acodec.c_str());
++	const AVCodec *codec = avcodec_find_encoder_by_name(info.acodec.c_str());
+ 	if (codec == NULL)
+ 		throw InvalidCodec("A valid audio codec could not be found for this file.", path);
+ 
+@@ -1133,7 +1138,7 @@
+ 	AVStream *st;
+ 
+ 	// Find the video codec
+-	AVCodec *codec = avcodec_find_encoder_by_name(info.vcodec.c_str());
++	const AVCodec *codec = avcodec_find_encoder_by_name(info.vcodec.c_str());
+ 	if (codec == NULL)
+ 		throw InvalidCodec("A valid video codec could not be found for this file.", path);
+ 
+@@ -1245,7 +1250,7 @@
+ 	st->avg_frame_rate = av_inv_q(c->time_base);
+ 	st->time_base.num = info.video_timebase.num;
+ 	st->time_base.den = info.video_timebase.den;
+-#if (LIBAVFORMAT_VERSION_MAJOR >= 58)
++#if (LIBAVFORMAT_VERSION_MAJOR == 58)
+ 	#pragma GCC diagnostic push
+ 	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+ 	st->codec->time_base.num = info.video_timebase.num;
+@@ -1313,7 +1318,7 @@
+ 
+ // open audio codec
+ void FFmpegWriter::open_audio(AVFormatContext *oc, AVStream *st) {
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AV_GET_CODEC_FROM_STREAM(st, audio_codec_ctx)
+ 
+ 	// Set number of threads equal to number of processors (not to exceed 16)
+@@ -1384,7 +1389,7 @@
+ 
+ // open video codec
+ void FFmpegWriter::open_video(AVFormatContext *oc, AVStream *st) {
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AV_GET_CODEC_FROM_STREAM(st, video_codec_ctx)
+ 
+ 	// Set number of threads equal to number of processors (not to exceed 16)
+@@ -2021,26 +2026,27 @@
+ 	if (oc->oformat->flags & AVFMT_RAWPICTURE) {
+ #endif
+ 		// Raw video case.
+-		AVPacket pkt;
+-		av_init_packet(&pkt);
++		AVPacket *pkt;
++
++		av_packet_from_data(
++			pkt, frame_final->data[0],
++			frame_final->linesize[0] * frame_final->height);
+ 
+-		pkt.flags |= AV_PKT_FLAG_KEY;
+-		pkt.stream_index = video_st->index;
+-		pkt.data = (uint8_t *) frame_final->data;
+-		pkt.size = sizeof(AVPicture);
++		pkt->flags |= AV_PKT_FLAG_KEY;
++		pkt->stream_index = video_st->index;
+ 
+ 		// Set PTS (in frames and scaled to the codec's timebase)
+-		pkt.pts = video_timestamp;
++		pkt->pts = video_timestamp;
+ 
+ 		/* write the compressed frame in the media file */
+-		int error_code = av_interleaved_write_frame(oc, &pkt);
++		int error_code = av_interleaved_write_frame(oc, pkt);
+ 		if (error_code < 0) {
+ 			ZmqLogger::Instance()->AppendDebugMethod("FFmpegWriter::write_video_packet ERROR [" + av_err2string(error_code) + "]", "error_code", error_code);
+ 			return false;
+ 		}
+ 
+ 		// Deallocate packet
+-		AV_FREE_PACKET(&pkt);
++		AV_FREE_PACKET(pkt);
+ 
+ 	} else
+ 	{
+--- libopenshot-0.2.7/src/FFmpegReader.cpp.orig	2021-09-04 23:50:36.000000000 +0100
++++ libopenshot-0.2.7/src/FFmpegReader.cpp	2022-11-23 20:06:48.037983275 +0000
+@@ -258,7 +258,7 @@
+ 			AVCodecID codecId = AV_FIND_DECODER_CODEC_ID(pStream);
+ 
+ 			// Get codec and codec context from stream
+-			AVCodec *pCodec = avcodec_find_decoder(codecId);
++			const AVCodec *pCodec = avcodec_find_decoder(codecId);
+ 			AVDictionary *opts = NULL;
+ 			int retry_decode_open = 2;
+ 			// If hw accel is selected but hardware cannot handle repeat with software decoding
+@@ -512,7 +512,7 @@
+ 			AVCodecID codecId = AV_FIND_DECODER_CODEC_ID(aStream);
+ 
+ 			// Get codec and codec context from stream
+-			AVCodec *aCodec = avcodec_find_decoder(codecId);
++			const AVCodec *aCodec = avcodec_find_decoder(codecId);
+ 			aCodecCtx = AV_GET_CODEC_CONTEXT(aStream, aCodec);
+ 
+ 			// Set number of threads equal to number of processors (not to exceed 16)

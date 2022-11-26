@@ -1,0 +1,42 @@
+--- minidlna-1.2.1/image_utils.c.orig	2017-08-24 18:28:25.000000000 +0100
++++ minidlna-1.2.1/image_utils.c	2022-11-21 16:30:12.015777794 +0000
+@@ -190,7 +190,7 @@
+ 	src->pub.bytes_in_buffer = bufsize;
+ }
+ 
+-jmp_buf setjmp_buffer;
++static jmp_buf setjmp_buffer;
+ /* Don't exit on error like libjpeg likes to do */
+ static void
+ libjpeg_error_handler(j_common_ptr cinfo)
+--- minidlna-1.2.1/scanner.c.orig	2017-08-24 18:28:25.000000000 +0100
++++ minidlna-1.2.1/scanner.c	2022-11-21 16:34:25.970765677 +0000
+@@ -901,7 +901,6 @@
+ 		DPRINTF(E_WARN, L_INOTIFY,  "Failed to reduce scanner thread priority\n");
+ 
+ 	setlocale(LC_COLLATE, "");
+-	av_register_all();
+ 	av_log_set_level(AV_LOG_PANIC);
+ 
+ 	if( GETFLAG(RESCAN_MASK) )
+--- minidlna-1.2.1/monitor.c.orig	2017-08-24 18:28:25.000000000 +0100
++++ minidlna-1.2.1/monitor.c	2022-11-21 16:34:14.205766238 +0000
+@@ -632,7 +632,6 @@
+ 	if (setpriority(PRIO_PROCESS, 0, 19) == -1)
+ 		DPRINTF(E_WARN, L_INOTIFY,  "Failed to reduce inotify thread priority\n");
+ 	sqlite3_release_memory(1<<31);
+-	av_register_all();
+ 
+ 	while( !quitting )
+ 	{
+--- minidlna-1.2.1/metadata.c.orig	2017-08-24 18:28:25.000000000 +0100
++++ minidlna-1.2.1/metadata.c	2022-11-21 16:30:26.530777101 +0000
+@@ -484,7 +484,7 @@
+ }
+ 
+ /* For libjpeg error handling */
+-jmp_buf setjmp_buffer;
++static jmp_buf setjmp_buffer;
+ static void
+ libjpeg_error_handler(j_common_ptr cinfo)
+ {
