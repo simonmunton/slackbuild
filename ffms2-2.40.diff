@@ -1,0 +1,61 @@
+--- ffms2-2.40/src/core/indexing.cpp.orig	2020-08-22 12:28:06.000000000 +0100
++++ ffms2-2.40/src/core/indexing.cpp	2022-11-27 21:34:08.415981706 +0000
+@@ -384,7 +384,7 @@
+ }
+ 
+ const char *FFMS_Indexer::GetTrackCodec(int Track) {
+-    AVCodec *codec = avcodec_find_decoder(FormatContext->streams[Track]->codecpar->codec_id);
++    const AVCodec *codec = avcodec_find_decoder(FormatContext->streams[Track]->codecpar->codec_id);
+     return codec ? codec->name : nullptr;
+ }
+ 
+@@ -402,7 +402,7 @@
+             UseDTS);
+ 
+         if (IndexMask.count(i) && FormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+-            AVCodec *VideoCodec = avcodec_find_decoder(FormatContext->streams[i]->codecpar->codec_id);
++            const AVCodec *VideoCodec = avcodec_find_decoder(FormatContext->streams[i]->codecpar->codec_id);
+             if (!VideoCodec) {
+                 FormatContext->streams[i]->discard = AVDISCARD_ALL;
+                 IndexMask.erase(i);
+@@ -433,7 +433,7 @@
+                 IndexMask.insert(i);
+             }
+         } else if (IndexMask.count(i) && FormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+-            AVCodec *AudioCodec = avcodec_find_decoder(FormatContext->streams[i]->codecpar->codec_id);
++            const AVCodec *AudioCodec = avcodec_find_decoder(FormatContext->streams[i]->codecpar->codec_id);
+             if (AudioCodec == nullptr)
+                 throw FFMS_Exception(FFMS_ERROR_CODEC, FFMS_ERROR_UNSUPPORTED,
+                     "Audio codec not found");
+--- ffms2-2.40/src/core/audiosource.cpp.orig	2020-08-22 12:28:06.000000000 +0100
++++ ffms2-2.40/src/core/audiosource.cpp	2022-11-27 21:35:30.114977808 +0000
+@@ -463,7 +463,7 @@
+ 
+     LAVFOpenFile(SourceFile.c_str(), FormatContext, TrackNumber);
+ 
+-    AVCodec *Codec = avcodec_find_decoder(FormatContext->streams[TrackNumber]->codecpar->codec_id);
++    const AVCodec *Codec = avcodec_find_decoder(FormatContext->streams[TrackNumber]->codecpar->codec_id);
+     if (Codec == nullptr)
+         throw FFMS_Exception(FFMS_ERROR_DECODING, FFMS_ERROR_CODEC,
+             "Audio codec not found");
+--- ffms2-2.40/src/core/videosource.cpp.orig	2020-08-22 12:28:06.000000000 +0100
++++ ffms2-2.40/src/core/videosource.cpp	2022-11-27 21:35:12.233978661 +0000
+@@ -171,7 +171,7 @@
+ 
+         LAVFOpenFile(SourceFile, FormatContext, VideoTrack);
+ 
+-        AVCodec *Codec = avcodec_find_decoder(FormatContext->streams[VideoTrack]->codecpar->codec_id);
++        const AVCodec *Codec = avcodec_find_decoder(FormatContext->streams[VideoTrack]->codecpar->codec_id);
+         if (Codec == nullptr)
+             throw FFMS_Exception(FFMS_ERROR_DECODING, FFMS_ERROR_CODEC,
+                 "Video codec not found");
+--- ffms2-2.40/configure.ac.orig	2020-08-22 12:28:06.000000000 +0100
++++ ffms2-2.40/configure.ac	2022-11-21 22:40:07.935934971 +0000
+@@ -105,7 +105,6 @@
+             #include <libavcodec/avcodec.h>
+             #include <libswscale/swscale.h>
+             ]],[[
+-                avcodec_register_all();
+                 swscale_version();
+             ]])], [eval $1=yes], [eval $1=no])
+         ])
