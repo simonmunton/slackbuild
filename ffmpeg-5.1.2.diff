@@ -1,0 +1,117 @@
+--- ffmpeg-5.1.2/doc/t2h.pm.orig	2022-07-22 18:58:38.000000000 +0100
++++ ffmpeg-5.1.2/doc/t2h.pm	2022-12-23 10:52:10.156685126 +0000
+@@ -21,7 +21,7 @@
+ # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ 
+ # no navigation elements
+-set_from_init_file('HEADERS', 0);
++texinfo_set_from_init_file('HEADERS', 0);
+ 
+ sub ffmpeg_heading_command($$$$$)
+ {
+@@ -55,7 +55,7 @@
+         $element = $command->{'parent'};
+     }
+     if ($element) {
+-        $result .= &{$self->{'format_element_header'}}($self, $cmdname,
++        $result .= &{$self->formatting_function('format_element_header')}($self, $cmdname,
+                                                        $command, $element);
+     }
+ 
+@@ -112,8 +112,9 @@
+                 $cmdname
+                     = $Texinfo::Common::level_to_structuring_command{$cmdname}->[$heading_level];
+             }
+-            $result .= &{$self->{'format_heading_text'}}(
+-                        $self, $cmdname, $heading,
++            @c = ( $heading );
++            $result .= &{$self->formatting_function('format_heading_text')}(
++                        $self, $cmdname, \@c,
+                         $heading_level +
+                         $self->get_conf('CHAPTER_HEADER_LEVEL') - 1, $command);
+         }
+@@ -127,22 +128,22 @@
+ }
+ 
+ # determine if texinfo is at least version 6.8
+-my $program_version_num = version->declare(get_conf('PACKAGE_VERSION'))->numify;
++my $program_version_num = version->declare(texinfo_get_conf('PACKAGE_VERSION'))->numify;
+ my $program_version_6_8 = $program_version_num >= 6.008000;
+ 
+ # print the TOC where @contents is used
+ if ($program_version_6_8) {
+-    set_from_init_file('CONTENTS_OUTPUT_LOCATION', 'inline');
++    texinfo_set_from_init_file('CONTENTS_OUTPUT_LOCATION', 'inline');
+ } else {
+-    set_from_init_file('INLINE_CONTENTS', 1);
++    texinfo_set_from_init_file('INLINE_CONTENTS', 1);
+ }
+ 
+ # make chapters <h2>
+-set_from_init_file('CHAPTER_HEADER_LEVEL', 2);
++texinfo_set_from_init_file('CHAPTER_HEADER_LEVEL', 2);
+ 
+ # Do not add <hr>
+-set_from_init_file('DEFAULT_RULE', '');
+-set_from_init_file('BIG_RULE', '');
++texinfo_set_from_init_file('DEFAULT_RULE', '');
++texinfo_set_from_init_file('BIG_RULE', '');
+ 
+ # Customized file beginning
+ sub ffmpeg_begin_file($$$)
+@@ -159,7 +160,7 @@
+     my ($title, $description, $encoding, $date, $css_lines,
+         $doctype, $bodytext, $copying_comment, $after_body_open,
+         $extra_head, $program_and_version, $program_homepage,
+-        $program, $generator) = $self->_file_header_informations($command);
++        $program, $generator) = $self->_file_header_information($command);
+ 
+     my $links = $self->_get_links ($filename, $element);
+ 
+@@ -223,7 +224,7 @@
+ sub ffmpeg_end_file($)
+ {
+     my $self = shift;
+-    my $program_string = &{$self->{'format_program_string'}}($self);
++    my $program_string = &{$self->formatting_function('format_program_string')}($self);
+     my $program_text = <<EOT;
+       <p style="font-size: small;">
+         $program_string
+@@ -244,7 +245,7 @@
+ 
+ # Dummy title command
+ # Ignore title. Title is handled through ffmpeg_begin_file().
+-set_from_init_file('USE_TITLEPAGE_FOR_TITLE', 1);
++texinfo_set_from_init_file('USE_TITLEPAGE_FOR_TITLE', 1);
+ sub ffmpeg_title($$$$)
+ {
+     return '';
+@@ -262,7 +263,7 @@
+     my $args = shift;
+     my $content = shift;
+ 
+-    my ($caption, $prepended) = Texinfo::Common::float_name_caption($self,
++    my ($caption, $prepended) = Texinfo::Convert::Converter::float_name_caption($self,
+                                                                 $command);
+     my $caption_text = '';
+     my $prepended_text;
+@@ -335,7 +336,8 @@
+             $caption->{'args'}->[0], 'float caption');
+     }
+     if ($prepended_text.$caption_text ne '') {
+-        $prepended_text = $self->_attribute_class('div','float-caption'). '>'
++        @c = ('float-caption');
++        $prepended_text = $self->html_attribute_class('div',\@c). '>'
+                 . $prepended_text;
+         $caption_text .= '</div>';
+     }
+@@ -349,7 +351,8 @@
+         $prepended_text = '';
+         $caption_text   = '';
+     }
+-    return $self->_attribute_class('div', $html_class). '>' . "\n" .
++    @c1 = ( $html_class );
++    return $self->html_attribute_class('div', \@c1). '>' . "\n" .
+         $prepended_text . $caption_text . $content . '</div>';
+ }
+ 
