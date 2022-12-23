@@ -1,0 +1,40 @@
+--- leptonica-1.83.0/CMakeLists.txt.orig	2022-12-22 21:33:55.647919096 +0000
++++ leptonica-1.83.0/CMakeLists.txt	2022-12-22 21:35:17.464915192 +0000
+@@ -60,7 +60,7 @@
+ option(OPENJPEG_SUPPORT "Build with OpenJPEG support" ON)
+ 
+ set(leptonica_INSTALL_CMAKE_DIR
+-    "lib/cmake/leptonica"
++    "lib${LIB_SUFFIX}/cmake/leptonica"
+     CACHE STRING "Install destination for CMake package files")
+ 
+ if(NOT SW_BUILD)
+@@ -307,7 +307,7 @@
+   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/LeptonicaConfig.cmake.in
+   ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake @ONLY)
+ 
+-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept.pc DESTINATION lib/pkgconfig)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig-version.cmake
+         DESTINATION ${leptonica_INSTALL_CMAKE_DIR})
+--- leptonica-1.83.0/src/CMakeLists.txt.orig	2022-04-30 07:51:30.000000000 +0100
++++ leptonica-1.83.0/src/CMakeLists.txt	2022-12-22 21:33:55.647919096 +0000
+@@ -70,7 +70,7 @@
+             ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:leptonica>" ${old_target}
+             DEPENDS ${PROJECT_NAME}
+             COMMENT "Creating lept symlink")
+-        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib)
++        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib${LIB_SUFFIX})
+     endif(SYM_LINK)
+ endif()
+ 
+@@ -89,7 +89,7 @@
+     export(TARGETS leptonica APPEND FILE ${CMAKE_BINARY_DIR}/LeptonicaTargets.cmake)
+ endif()
+ 
+-install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
++install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib${LIB_SUFFIX} ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ install(EXPORT LeptonicaTargets DESTINATION  ${leptonica_INSTALL_CMAKE_DIR})
+ install(FILES
+     ${hdr}
