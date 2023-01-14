@@ -1,0 +1,265 @@
+From 38cbd621d0632895e1bed04841a612f97f574abc Mon Sep 17 00:00:00 2001
+From: Markus Vieth <mvieth@techfak.uni-bielefeld.de>
+Date: Sat, 31 Dec 2022 15:09:57 +0100
+Subject: [PATCH] Make apps Qt6 compatible
+
+---
+ apps/cloud_composer/src/cloud_composer.cpp                 | 1 +
+ apps/in_hand_scanner/CMakeLists.txt                        | 7 +++++++
+ .../include/pcl/apps/in_hand_scanner/opengl_viewer.h       | 4 ++--
+ apps/in_hand_scanner/src/offline_integration.cpp           | 1 +
+ apps/in_hand_scanner/src/opengl_viewer.cpp                 | 7 ++++---
+ apps/modeler/src/main_window.cpp                           | 2 +-
+ apps/point_cloud_editor/CMakeLists.txt                     | 3 +++
+ .../pcl/apps/point_cloud_editor/cloudEditorWidget.h        | 4 ++--
+ .../include/pcl/apps/point_cloud_editor/select2DTool.h     | 2 +-
+ apps/point_cloud_editor/src/cloud.cpp                      | 1 -
+ apps/point_cloud_editor/src/cloudEditorWidget.cpp          | 6 +-----
+ apps/point_cloud_editor/src/select1DTool.cpp               | 1 -
+ cmake/pcl_find_qt.cmake                                    | 2 +-
+ 13 files changed, 24 insertions(+), 17 deletions(-)
+
+diff --git a/apps/cloud_composer/src/cloud_composer.cpp b/apps/cloud_composer/src/cloud_composer.cpp
+index 8529a667827..1302b59819c 100644
+--- a/apps/cloud_composer/src/cloud_composer.cpp
++++ b/apps/cloud_composer/src/cloud_composer.cpp
+@@ -10,6 +10,7 @@
+ #include <pcl/apps/cloud_composer/signal_multiplexer.h>
+ #include <pcl/apps/cloud_composer/point_selectors/interactor_style_switch.h>
+ 
++#include <QActionGroup>
+ #include <QMessageBox>
+ #include <QPluginLoader>
+ #include <QUndoGroup>
+diff --git a/apps/in_hand_scanner/CMakeLists.txt b/apps/in_hand_scanner/CMakeLists.txt
+index 24d56ba65fb..5c3350ff43b 100644
+--- a/apps/in_hand_scanner/CMakeLists.txt
++++ b/apps/in_hand_scanner/CMakeLists.txt
+@@ -91,7 +91,11 @@ PCL_ADD_EXECUTABLE(
+     ${IMPL_INCS}
+     ${UI}
+   BUNDLE)
++
+ target_link_libraries("${EXE_NAME}" ${SUBSUBSYS_LIBS} ${OPENGL_LIBRARIES} ${QTX}::Concurrent ${QTX}::Widgets ${QTX}::OpenGL)
++if (${QTX} MATCHES "Qt6")
++  target_link_libraries("${EXE_NAME}" ${QTX}::OpenGLWidgets)
++endif()
+ 
+ pcl_add_includes("${SUBSUBSYS_NAME}" "${SUBSUBSYS_NAME}" ${INCS})
+ pcl_add_includes("${SUBSUBSYS_NAME}" "${SUBSUBSYS_NAME}/impl" ${IMPL_INCS})
+@@ -108,6 +112,9 @@ PCL_ADD_EXECUTABLE(
+   BUNDLE)
+ 
+ target_link_libraries(pcl_offline_integration ${SUBSUBSYS_LIBS} ${OPENGL_LIBRARIES} ${QTX}::Concurrent ${QTX}::Widgets ${QTX}::OpenGL)
++if (${QTX} MATCHES "Qt6")
++  target_link_libraries(pcl_offline_integration ${QTX}::OpenGLWidgets)
++endif()
+ 
+ # Add to the compound apps target
+ list(APPEND PCL_APPS_ALL_TARGETS ${PCL_IN_HAND_SCANNER_ALL_TARGETS})
+diff --git a/apps/in_hand_scanner/include/pcl/apps/in_hand_scanner/opengl_viewer.h b/apps/in_hand_scanner/include/pcl/apps/in_hand_scanner/opengl_viewer.h
+index d9b94d72fe8..ee0dd8d0b72 100644
+--- a/apps/in_hand_scanner/include/pcl/apps/in_hand_scanner/opengl_viewer.h
++++ b/apps/in_hand_scanner/include/pcl/apps/in_hand_scanner/opengl_viewer.h
+@@ -46,7 +46,7 @@
+ #include <pcl/pcl_exports.h>
+ #include <pcl/pcl_macros.h>
+ 
+-#include <QGLWidget>
++#include <QOpenGLWidget>
+ 
+ #include <iomanip>
+ #include <mutex>
+@@ -102,7 +102,7 @@ class FaceVertexMesh {
+  * \note Currently you have to derive from this class to use it. Implement the
+  * paintEvent: Call the paint event of this class and declare a QPainter.
+  */
+-class PCL_EXPORTS OpenGLViewer : public QGLWidget {
++class PCL_EXPORTS OpenGLViewer : public QOpenGLWidget {
+   Q_OBJECT
+ 
+ public:
+diff --git a/apps/in_hand_scanner/src/offline_integration.cpp b/apps/in_hand_scanner/src/offline_integration.cpp
+index f025e91a669..113a499274e 100644
+--- a/apps/in_hand_scanner/src/offline_integration.cpp
++++ b/apps/in_hand_scanner/src/offline_integration.cpp
+@@ -50,6 +50,7 @@
+ #include <QApplication>
+ #include <QFileDialog>
+ #include <QKeyEvent>
++#include <QPainter>
+ #include <QtConcurrent>
+ #include <QtCore>
+ 
+diff --git a/apps/in_hand_scanner/src/opengl_viewer.cpp b/apps/in_hand_scanner/src/opengl_viewer.cpp
+index 48320e911aa..2002d50276a 100644
+--- a/apps/in_hand_scanner/src/opengl_viewer.cpp
++++ b/apps/in_hand_scanner/src/opengl_viewer.cpp
+@@ -56,6 +56,7 @@
+ #include <pcl/common/centroid.h>
+ #include <pcl/common/impl/centroid.hpp> // TODO: PointIHS is not registered
+ 
++#include <QApplication>
+ #include <QtOpenGL>
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+@@ -101,7 +102,7 @@ pcl::ihs::detail::FaceVertexMesh::FaceVertexMesh(const Mesh& mesh,
+ ////////////////////////////////////////////////////////////////////////////////
+ 
+ pcl::ihs::OpenGLViewer::OpenGLViewer(QWidget* parent)
+-: QGLWidget(parent)
++: QOpenGLWidget(parent)
+ , timer_vis_(new QTimer(this))
+ , colormap_(Colormap::Constant(255))
+ , vis_conf_norm_(1)
+@@ -1195,8 +1196,8 @@ pcl::ihs::OpenGLViewer::wheelEvent(QWheelEvent* event)
+         std::max((cam_pivot_ - R_cam_ * o - t_cam_).norm(), .1 / scaling_factor_) / d;
+ 
+     // http://doc.qt.digia.com/qt/qwheelevent.html#delta
+-    t_cam_ +=
+-        scale * Eigen::Vector3d(R_cam_ * (ez * static_cast<double>(event->delta())));
++    t_cam_ += scale * Eigen::Vector3d(
++                          R_cam_ * (ez * static_cast<double>(event->angleDelta().y())));
+   }
+ }
+ 
+diff --git a/apps/modeler/src/main_window.cpp b/apps/modeler/src/main_window.cpp
+index b674cadf182..85381af7313 100755
+--- a/apps/modeler/src/main_window.cpp
++++ b/apps/modeler/src/main_window.cpp
+@@ -282,7 +282,7 @@ pcl::modeler::MainWindow::updateRecentActions(
+   }
+ 
+   recent_items.removeDuplicates();
+-  int recent_number = std::min(int(MAX_RECENT_NUMBER), recent_items.size());
++  int recent_number = std::min<int>(int(MAX_RECENT_NUMBER), recent_items.size());
+   for (int i = 0; i < recent_number; ++i) {
+     QString text = tr("%1 %2").arg(i + 1).arg(recent_items[i]);
+     recent_actions[i]->setText(text);
+diff --git a/apps/point_cloud_editor/CMakeLists.txt b/apps/point_cloud_editor/CMakeLists.txt
+index d46b49f53d2..7374b72e0d7 100644
+--- a/apps/point_cloud_editor/CMakeLists.txt
++++ b/apps/point_cloud_editor/CMakeLists.txt
+@@ -87,6 +87,9 @@ PCL_ADD_EXECUTABLE(
+     ${INCS})
+ 
+ target_link_libraries("${EXE_NAME}" ${QTX}::Widgets ${QTX}::OpenGL ${OPENGL_LIBRARIES} ${BOOST_LIBRARIES} pcl_common pcl_io pcl_filters)
++if (${QTX} MATCHES "Qt6")
++  target_link_libraries("${EXE_NAME}" ${QTX}::OpenGLWidgets)
++endif()
+ 
+ PCL_ADD_INCLUDES("${SUBSUBSYS_NAME}" "${SUBSYS_NAME}/${SUBSUBSYS_NAME}" ${INCS})
+ PCL_MAKE_PKGCONFIG(${EXE_NAME} COMPONENT ${SUBSUBSYS_NAME} DESC ${SUBSUBSYS_DESC})
+diff --git a/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/cloudEditorWidget.h b/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/cloudEditorWidget.h
+index 7630d224e12..e8fdb0e9280 100644
+--- a/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/cloudEditorWidget.h
++++ b/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/cloudEditorWidget.h
+@@ -49,7 +49,7 @@
+ 
+ #include <pcl/memory.h>  // for pcl::shared_ptr
+ 
+-#include <QGLWidget>
++#include <QOpenGLWidget>
+ 
+ #include <functional>
+ 
+@@ -57,7 +57,7 @@ class Selection;
+ 
+ /// @brief class declaration for the widget for editing and viewing
+ /// point clouds.
+-class CloudEditorWidget : public QGLWidget
++class CloudEditorWidget : public QOpenGLWidget
+ {
+   Q_OBJECT
+   public:
+diff --git a/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/select2DTool.h b/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/select2DTool.h
+index 985ec4e1469..f48e354552c 100644
+--- a/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/select2DTool.h
++++ b/apps/point_cloud_editor/include/pcl/apps/point_cloud_editor/select2DTool.h
+@@ -40,7 +40,7 @@
+ 
+ #pragma once
+ 
+-#include <qgl.h>
++#include <qopengl.h>
+ #include <pcl/apps/point_cloud_editor/toolInterface.h>
+ #include <pcl/apps/point_cloud_editor/localTypes.h>
+ 
+diff --git a/apps/point_cloud_editor/src/cloud.cpp b/apps/point_cloud_editor/src/cloud.cpp
+index 61e82e589f0..5a169e88458 100644
+--- a/apps/point_cloud_editor/src/cloud.cpp
++++ b/apps/point_cloud_editor/src/cloud.cpp
+@@ -38,7 +38,6 @@
+ /// @author  Yue Li and Matthew Hielsberg
+ 
+ #include <algorithm>
+-#include <qgl.h>
+ #include <pcl/apps/point_cloud_editor/cloud.h>
+ #include <pcl/apps/point_cloud_editor/selection.h>
+ #include <pcl/apps/point_cloud_editor/localTypes.h>
+diff --git a/apps/point_cloud_editor/src/cloudEditorWidget.cpp b/apps/point_cloud_editor/src/cloudEditorWidget.cpp
+index 6a8d50f692f..7ba8089f176 100644
+--- a/apps/point_cloud_editor/src/cloudEditorWidget.cpp
++++ b/apps/point_cloud_editor/src/cloudEditorWidget.cpp
+@@ -41,8 +41,6 @@
+ #include <QMessageBox>
+ #include <QMouseEvent>
+ #include <QApplication>
+-#include <QDesktopWidget>
+-#include <qgl.h>
+ 
+ #include <pcl/pcl_config.h>
+ 
+@@ -72,8 +70,7 @@
+ #include <pcl/apps/point_cloud_editor/mainWindow.h>
+ 
+ CloudEditorWidget::CloudEditorWidget (QWidget *parent)
+-  : QGLWidget(QGLFormat(QGL::DoubleBuffer | QGL::DepthBuffer |
+-                        QGL::Rgba | QGL::StencilBuffer), parent),
++  : QOpenGLWidget(parent),
+     point_size_(2.0f), selected_point_size_(4.0f),
+     cam_fov_(60.0), cam_aspect_(1.0), cam_near_(0.0001), cam_far_(100.0),
+     color_scheme_(COLOR_BY_PURE), is_colored_(false)
+@@ -116,7 +113,6 @@ CloudEditorWidget::load ()
+                              tr("Can not load %1.").arg(file_path));
+   }
+   update();
+-  updateGL();
+ }
+ 
+ void
+diff --git a/apps/point_cloud_editor/src/select1DTool.cpp b/apps/point_cloud_editor/src/select1DTool.cpp
+index cdcf5ceff9e..b60d7ee3509 100644
+--- a/apps/point_cloud_editor/src/select1DTool.cpp
++++ b/apps/point_cloud_editor/src/select1DTool.cpp
+@@ -38,7 +38,6 @@
+ /// @author  Yue Li and Matthew Hielsberg
+ 
+ #include <algorithm>
+-#include <qgl.h>
+ #include <pcl/apps/point_cloud_editor/select1DTool.h>
+ #include <pcl/apps/point_cloud_editor/cloud.h>
+ #include <pcl/apps/point_cloud_editor/selection.h>
+diff --git a/cmake/pcl_find_qt.cmake b/cmake/pcl_find_qt.cmake
+index 09192e30d1b..b88758fc396 100644
+--- a/cmake/pcl_find_qt.cmake
++++ b/cmake/pcl_find_qt.cmake
+@@ -25,7 +25,7 @@ if(NOT WITH_QT_STR MATCHES "^(AUTO|YES|QT6|QT5)$")
+ endif()
+ 
+ if(WITH_QT_STR MATCHES "^(AUTO|YES|QT6)$")
+-  find_package(Qt6 QUIET COMPONENTS Concurrent OpenGL Widgets)
++  find_package(Qt6 QUIET COMPONENTS Concurrent OpenGL Widgets OpenGLWidgets)
+   set(QT6_FOUND ${Qt6_FOUND})
+   set(QT_FOUND ${QT6_FOUND})
+   if (QT6_FOUND)
+--- pcl-1.13.0/apps/cloud_composer/include/pcl/apps/cloud_composer/signal_multiplexer.h.orig	2022-12-10 13:49:33.000000000 +0000
++++ pcl-1.13.0/apps/cloud_composer/include/pcl/apps/cloud_composer/signal_multiplexer.h	2023-01-08 09:41:01.296462917 +0000
+@@ -42,6 +42,7 @@
+ 
+ #pragma once
+ 
++#include <QObject>
+ #include <QPointer>
+ 
+ namespace pcl
