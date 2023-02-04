@@ -1,3 +1,321 @@
+--- jbig2enc-0.29/src/jbig2enc.cc.orig	2017-01-30 17:27:36.000000000 +0000
++++ jbig2enc-0.29/src/jbig2enc.cc	2022-12-23 14:58:26.112221646 +0000
+@@ -199,14 +199,14 @@
+     }
+ 
+     // reindexing
+-    for (int i = 0; i < ctx->classer->naclass->n; i++) {
++    for (int i = 0; i < numaGetCount(ctx->classer->naclass); i++) {
+       int n;
+       numaGetIValue(ctx->classer->naclass, i, &n);
+       if (n == second_template) {
+         numaSetValue(ctx->classer->naclass, i, new_representant);
+       }
+     }
+-    pixChangeRefcount(ctx->classer->pixat->pix[new_representant],pixGetRefcount(ctx->classer->pixat->pix[second_template]));
++    // ?? pixChangeRefcount(pixaGetPixArray(ctx->classer->pixat)[new_representant],pixGetRefcount(pixaGetPixArray(ctx->classer->pixat)[second_template]));
+   }
+   return 0;
+ }
+@@ -237,7 +237,7 @@
+   // it: represents pointer to actual representant in list which should be
+   //     removed.
+   int last = templates_to_remove.back();
+-  for (int index = (pixat->n - 1); ((it != templates_to_remove.end()) && (index >= (*it))); index--) {
++  for (int index = (pixaGetCount(pixat) - 1); ((it != templates_to_remove.end()) && (index >= (*it))); index--) {
+     // check if we assign PIX which should not be removed
+     if (index == last) {
+       templates_to_remove.pop_back();
+@@ -248,20 +248,24 @@
+       BOXA * boxa;
+       int newIndex = (*it);
+       if (index != newIndex) {
+-        end_pix = ctx->classer->pixat->pix[index];
++        end_pix = pixaGetPixArray(ctx->classer->pixat)[index];
+         copied_pix = pixCopy(NULL, end_pix);
+-        boxa = ctx->classer->pixat->boxa;
++        boxa = pixaGetBoxa(ctx->classer->pixat, L_CLONE);
+         l_int32 nbox = boxaGetCount(boxa);
+         BOX * box = NULL;
+         if (index < nbox) {
+-          box = boxa->box[index];
++          box = boxaGetBox(boxa,index,L_CLONE);
+         }
+         if (pixaReplacePix(ctx->classer->pixat, newIndex, copied_pix, box)) {
++          boxDestroy(&box);
+           fprintf(stderr, "uniting - unable to replace pix %d in pixat\n", newIndex);
+           return 2;
+         }
++        boxDestroy(&box);
++        boxaDestroy(&boxa);
++
+         // reindexing
+-        for (int i = 0; i < ctx->classer->naclass->n; i++) {
++        for (int i = 0; i < numaGetCount(ctx->classer->naclass); i++) {
+           int n;
+           numaGetIValue(ctx->classer->naclass, i, &n);
+           if (n == index) {
+@@ -292,14 +296,14 @@
+     return 1;
+   }
+ 
+-  if ((ctx->classer->pixat->n < firstTemplateIndex) ||
+-      (ctx->classer->pixat->n < second_template_index)) {
++  if ((pixaGetCount(ctx->classer->pixat) < firstTemplateIndex) ||
++      (pixaGetCount(ctx->classer->pixat) < second_template_index)) {
+     fprintf(stderr, "index doesn't point to templates array");
+     return 1;
+   }
+ 
+   // reindexing
+-  for (int i = 0; i < ctx->classer->naclass->n; i++) {
++  for (int i = 0; i < numaGetCount(ctx->classer->naclass); i++) {
+     int n;
+     numaGetIValue(ctx->classer->naclass, i, &n);
+     if (n == second_template_index) {
+@@ -312,21 +316,24 @@
+   BOXA * boxa;
+   int index = pixaGetCount(ctx->classer->pixat) - 1;
+   if (index != second_template_index) {
+-    end_pix = ctx->classer->pixat->pix[index];
++    end_pix = pixaGetPixArray(ctx->classer->pixat)[index];
+     copied_pix = pixCopy(NULL, end_pix);
+-    boxa = ctx->classer->pixat->boxa;
++    boxa = pixaGetBoxa(ctx->classer->pixat, L_CLONE);
+     l_int32 nbox = boxaGetCount(boxa);
+     BOX *box = NULL;
+     if (index < nbox) {
+-      box = boxa->box[index];
++      box = boxaGetBox(boxa,index,L_CLONE);
+     }
+     if (pixaReplacePix(ctx->classer->pixat, second_template_index, copied_pix, box)) {
++      boxDestroy(&box);
+       fprintf(stderr, "uniting - unable to replace pix %d\n", second_template_index);
+       return 2;
+     }
++    boxDestroy(&box);
++    boxaDestroy(&boxa);
+ 
+     // reindexing
+-    for (int i = 0; i < ctx->classer->naclass->n; i++) {
++    for (int i = 0; i < numaGetCount(ctx->classer->naclass); i++) {
+       int n;
+       numaGetIValue(ctx->classer->naclass, i, &n);
+       if (n == index) {
+@@ -354,16 +361,20 @@
+ 
+   PIXA *pixa = ctx->classer->pixat;
+   for (int i = 0; i < pixaGetCount(pixa); i++) {
+-    PIX *pix = pixa->pix[i];
++    PIX *pix = pixaGetPix(pixa, i, L_CLONE);
+ 
+     // The code only looks forward because jbig2enc_are_equivalent is
+     // symmetric.
+     for (int j = i+1; j < pixaGetCount(pixa); j++) {
+-      if (jbig2enc_are_equivalent(pix, pixa->pix[j])) {
++      PIX *pix1 = pixaGetPix(pixa, j, L_CLONE);
++      if (jbig2enc_are_equivalent(pix, pix1)) {
+         unite_templates_with_indexes(ctx, i, j);
+         j--;
+       }
++      pixDestroy(&pix1);
+     }
++
++    pixDestroy(&pix);
+   }
+ }
+ 
+@@ -427,7 +438,9 @@
+ 
+   PIXA *pixa = ctx->classer->pixat;
+   for (int i = 0; i < pixaGetCount(pixa); i++) {
+-    count_hash(pixa->pix[i], hashed_templates, i);
++    PIX * pix = pixaGetPix(pixa, i, L_CLONE);
++    count_hash(pix, hashed_templates, i);
++    pixDestroy(&pix);
+   }
+ 
+   #ifdef HASH_DEBUGING
+@@ -450,7 +463,9 @@
+       second_template_it = first_template_it;
+ 
+       for (++second_template_it; second_template_it != it->second.end();) {
+-        if (jbig2enc_are_equivalent(pixa->pix[(*first_template_it)], pixa->pix[(*second_template_it)])) {
++        PIX *pix1 = pixaGetPix(pixa, (*first_template_it), L_CLONE);
++        PIX *pix2 = pixaGetPix(pixa, (*second_template_it), L_CLONE);
++        if (jbig2enc_are_equivalent(pix1, pix2)) {
+           // unite templates without removing (just reindexing) but add to
+           // array for later removal.
+           templates.push_back(*second_template_it);
+@@ -458,6 +473,8 @@
+         } else {
+           second_template_it++;
+         }
++        pixDestroy(&pix1);
++        pixDestroy(&pix2);
+       }
+       if (!templates.empty()) {
+         new_representants.insert(std::pair<unsigned int, std::list<int> >((*first_template_it), templates));
+@@ -502,10 +519,10 @@
+   }
+ 
+   jbAddPage(ctx->classer, bw);
+-  ctx->page_width.push_back(bw->w);
+-  ctx->page_height.push_back(bw->h);
+-  ctx->page_xres.push_back(bw->xres);
+-  ctx->page_yres.push_back(bw->yres);
++  ctx->page_width.push_back(pixGetWidth(bw));
++  ctx->page_height.push_back(pixGetHeight(bw));
++  ctx->page_xres.push_back(pixGetXRes(bw));
++  ctx->page_yres.push_back(pixGetYRes(bw));
+ 
+   if (ctx->refinement) {
+     // This code is broken by (my) recent changes to Leptonica. Needs to be
+@@ -579,8 +596,8 @@
+   // pixat->n is the number of symbols
+   // naclass->n is the number of connected components
+ 
+-  std::vector<unsigned> symbol_used(ctx->classer->pixat->n);
+-  for (int i = 0; i < ctx->classer->naclass->n; ++i) {
++  std::vector<unsigned> symbol_used(pixaGetCount(ctx->classer->pixat));
++  for (int i = 0; i < numaGetCount(ctx->classer->naclass); ++i) {
+     int n;
+     numaGetIValue(ctx->classer->naclass, i, &n);
+     symbol_used[n]++;
+@@ -588,7 +605,7 @@
+ 
+   // the multiuse symbols are the ones which go into the global dictionary
+   std::vector<unsigned> multiuse_symbols;
+-  for (int i = 0; i < ctx->classer->pixat->n; ++i) {
++  for (int i = 0; i < pixaGetCount(ctx->classer->pixat); ++i) {
+     if (symbol_used[i] == 0) abort();
+     if (symbol_used[i] > 1 || single_page) multiuse_symbols.push_back(i);
+   }
+@@ -597,7 +614,7 @@
+   // build the pagecomps map: a map from page number to the list of connected
+   // components for that page. The classer gives us an array from connected
+   // component number to page number - we just have to reverse it
+-  for (int i = 0; i < ctx->classer->napage->n; ++i) {
++  for (int i = 0; i < numaGetCount(ctx->classer->napage); ++i) {
+     int page_num;
+     numaGetIValue(ctx->classer->napage, i, &page_num);
+     ctx->pagecomps[page_num].push_back(i);
+@@ -620,7 +637,7 @@
+ 
+ #ifdef SYMBOL_COMPRESSION_DEBUGGING
+   std::map<int, int> usecount;
+-  for (int i = 0; i < ctx->classer->naclass->n; ++i) {
++  for (int i = 0; i < numaGetCount(ctx->classer->naclass); ++i) {
+     usecount[(int)ctx->classer->naclass->array[i]]++;
+   }
+ 
+@@ -648,12 +665,12 @@
+   char filenamebuf[128];
+   for (int i = 0; i < ctx->classer->pixat->n; ++i) {
+     sprintf(filenamebuf, "sym-%d.png", i);
+-    pixWrite(filenamebuf, ctx->classer->pixat->pix[i], IFF_PNG);
++    pixWrite(filenamebuf, pixaGetPixArray(ctx->classer->pixat)[i], IFF_PNG);
+   }
+ #endif
+   fprintf(stderr, "JBIG2 compression complete. pages:%d symbols:%d log2:%d\n",
+-          ctx->classer->npages, ctx->classer->pixat->n,
+-          log2up(ctx->classer->pixat->n));
++          ctx->classer->npages, pixaGetCount(ctx->classer->pixat),
++          log2up(pixaGetCount(ctx->classer->pixat)));
+ 
+   jbGetLLCorners(ctx->classer);
+ 
+@@ -918,17 +935,17 @@
+   seg.type = segment_page_information;
+   seg.page = 1;
+   seg.len = sizeof(struct jbig2_page_info);
+-  pageinfo.width = htonl(bw->w);
+-  pageinfo.height = htonl(bw->h);
+-  pageinfo.xres = htonl(xres ? xres : bw->xres);
+-  pageinfo.yres = htonl(yres ? yres : bw->yres);
++  pageinfo.width = htonl(pixGetWidth(bw));
++  pageinfo.height = htonl(pixGetHeight(bw));
++  pageinfo.xres = htonl(xres ? xres : pixGetXRes(bw));
++  pageinfo.yres = htonl(yres ? yres : pixGetYRes(bw));
+   pageinfo.is_lossless = 1;
+ 
+ #ifdef SURPRISE_MAP
+-  dprintf(3, "P5\n%d %d 255\n", bw->w, bw->h);
++  dprintf(3, "P5\n%d %d 255\n", pixGetWidth(bw), pixGetHeight(bw));
+ #endif
+ 
+-  jbig2enc_bitimage(&ctx, (u8 *) bw->data, bw->w, bw->h, duplicate_line_removal);
++  jbig2enc_bitimage(&ctx, (u8 *) pixGetData(bw), pixGetWidth(bw), pixGetHeight(bw), duplicate_line_removal);
+   jbig2enc_final(&ctx);
+   const int datasize = jbig2enc_datasize(&ctx);
+ 
+@@ -942,8 +959,8 @@
+   segnum++;
+   endseg.page = 1;
+ 
+-  genreg.width = htonl(bw->w);
+-  genreg.height = htonl(bw->h);
++  genreg.width = htonl(pixGetWidth(bw));
++  genreg.height = htonl(pixGetHeight(bw));
+   if (duplicate_line_removal) {
+     genreg.tpgdon = true;
+   }
+--- jbig2enc-0.29/src/jbig2.cc.orig	2017-01-30 17:27:36.000000000 +0000
++++ jbig2enc-0.29/src/jbig2.cc	2022-12-23 14:36:10.943509644 +0000
+@@ -70,8 +70,8 @@
+     fprintf(stderr, "NULL pointer!\n");
+     return;
+   }
+-  fprintf(stderr, "%u x %u (%d bits) %udpi x %udpi, refcount = %u\n",
+-          pix->w, pix->h, pix->d, pix->xres, pix->yres, pix->refcount);
++  fprintf(stderr, "%u x %u (%d bits) %udpi x %udpi\n",
++          pixGetWidth(pix), pixGetHeight(pix), pixGetDepth(pix), pixGetXRes(pix), pixGetYRes(pix));
+ }
+ 
+ #ifdef WIN32
+@@ -169,18 +169,18 @@
+   }
+ 
+   PIX *piximg1;
+-  if (piximg->d == 1 || piximg->d == 8 || piximg->d == 32) {
++  if (pixGetDepth(piximg) == 1 || pixGetDepth(piximg) == 8 || pixGetDepth(piximg) == 32) {
+     piximg1 = pixClone(piximg);
+-  } else if (piximg->d > 8) {
++  } else if (pixGetDepth(piximg) > 8) {
+     piximg1 = pixConvertTo32(piximg);
+   } else {
+     piximg1 = pixConvertTo8(piximg, FALSE);
+   }
+ 
+   PIX *pixd1;
+-  if (piximg1->d == 32) {
++  if (pixGetDepth(piximg1) == 32) {
+     pixd1 = pixConvertTo32(pixd);
+-  } else if (piximg1->d == 8) {
++  } else if (pixGetDepth(piximg1) == 8) {
+     pixd1 = pixConvertTo8(pixd, FALSE);
+   } else {
+     pixd1 = pixClone(pixd);
+@@ -414,8 +414,8 @@
+     pixDestroy(&source);
+     pageno++;
+ 
+-    if (pixl->d > 1) {
+-      if (pixl->d > 8) {
++    if (pixGetDepth(pixl) > 1) {
++      if (pixGetDepth(pixl) > 8) {
+         gray = pixConvertRGBToGrayFast(pixl);
+         if (!gray) return 1;
+       } else {
+@@ -439,7 +439,7 @@
+       pixWrite(output_threshold, pixt, IFF_PNG);
+     }
+ 
+-    if (segment && pixl->d > 1) {
++    if (segment && pixGetDepth(pixl) > 1) {
+       PIX *graphics = segment_image(pixt, pixl);
+       if (graphics) {
+         if (verbose)
 --- jbig2enc-0.29/configure.ac.orig	2017-01-30 17:27:36.000000000 +0000
 +++ jbig2enc-0.29/configure.ac	2021-03-20 20:53:00.515428817 +0000
 @@ -1,5 +1,5 @@
