@@ -1,0 +1,61 @@
+--- kicad-7.0.0/common/gal/opengl/opengl_gal.cpp.orig	2023-02-11 16:03:39.000000000 +0000
++++ kicad-7.0.0/common/gal/opengl/opengl_gal.cpp	2023-02-13 19:51:54.593185744 +0000
+@@ -2551,7 +2551,7 @@
+ 
+     GLenum err = glewInit();
+ 
+-    if( GLEW_OK != err )
++    if( GLEW_OK != err && GLEW_ERROR_NO_GLX_DISPLAY != err)
+         throw std::runtime_error( (const char*) glewGetErrorString( err ) );
+ 
+     // Check the OpenGL version (minimum 2.1 is required)
+--- kicad-7.0.0/CMakeLists.txt.orig	2023-02-11 16:03:39.000000000 +0000
++++ kicad-7.0.0/CMakeLists.txt	2023-02-13 21:13:04.231591891 +0000
+@@ -40,6 +40,8 @@
+ 
+ project( kicad )
+ 
++set(CMAKE_CXX_STANDARD 14)
++
+ # Create a default build type for our QA that doesn't include `NDEBUG`
+ set(CMAKE_CXX_FLAGS_QABUILD "-Os -g1 -ggdb1")
+ 
+--- kicad-7.0.0/thirdparty/nanodbc/CMakeLists.txt.orig	2023-02-11 16:03:39.000000000 +0000
++++ kicad-7.0.0/thirdparty/nanodbc/CMakeLists.txt	2023-02-14 20:43:08.143977091 +0000
+@@ -86,7 +86,7 @@
+ ########################################
+ if(UNIX)
+   # Try to find unixODBC first via odbc_config program.
+-  find_program(ODBC_CONFIG odbc_config
++  find_program(ODBC_CONFIG odbc_config NO_CACHE
+     PATHS $ENV{ODBC_PATH}/bin /usr/bin /usr/local/bin)
+   if(ODBC_CONFIG)
+     message(STATUS "nanodbc build: ODBC on Unix - unixODBC")
+@@ -118,7 +118,7 @@
+ 
+   # Fallback to using iODBC
+   if(NOT ODBC_CONFIG)
+-    find_program(ODBC_CONFIG iodbc-config
++    find_program(ODBC_CONFIG iodbc-config NO_CACHE
+       PATHS $ENV{ODBC_PATH}/bin /usr/bin /usr/local/bin)
+     if(ODBC_CONFIG)
+       message(STATUS "nanodbc build: ODBC on Unix - iODBC")
+@@ -129,7 +129,9 @@
+       execute_process(COMMAND ${ODBC_CONFIG} --libs
+         OUTPUT_VARIABLE ODBC_LINK_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+       if(NANODBC_ENABLE_UNICODE)
+-        add_definitions(-DNANODBC_USE_IODBC_WIDE_STRINGS)
++#        add_definitions(-DNANODBC_USE_IODBC_WIDE_STRINGS)
++        set(NANODBC_USE_IODBC_WIDE_STRINGS 1)
++        add_compile_definitions(NANODBC_USE_IODBC_WIDE_STRINGS)
+       endif()
+     endif()
+   endif()
+@@ -193,3 +195,7 @@
+   add_compile_definitions(NANODBC_ENABLE_UNICODE)
+   target_compile_definitions(nanodbc PUBLIC NANODBC_ENABLE_UNICODE)
+ endif()
++
++if(NANODBC_USE_IODBC_WIDE_STRINGS)
++  target_compile_definitions(nanodbc PUBLIC NANODBC_USE_IODBC_WIDE_STRINGS)
++endif()
