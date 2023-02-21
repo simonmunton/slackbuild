@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/c
 #TAR_EXT=.tar.gz
-VERSION=6.11.0
+VERSION=6.13.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -48,10 +48,10 @@ fi
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/calibre-5.23.0.diff
 
- if [ $ARCH = "x86_64" ]
- then
-   patch -p1 -b -z .orig < ${CWD}/calibre-6.2.1-x86_64.diff
- fi
+# if [ $ARCH = "x86_64" ]
+# then
+#   patch -p1 -b -z .orig < ${CWD}/calibre-6.2.1-x86_64.diff
+# fi
 )
 fi
 
@@ -62,6 +62,7 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+export PODOFO_LIB_DIR=/usr/lib${LIBDIRSUFFIX}
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -89,6 +90,7 @@ export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
+python3 setup.py bootstrap --ephemeral || exit
 python3 setup.py build || exit
 fi
 
