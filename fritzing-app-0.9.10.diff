@@ -1,17 +1,39 @@
+--- fritzing-app-0.9.10/phoenix.pro.orig	2022-07-14 22:36:06.000000000 +0100
++++ fritzing-app-0.9.10/phoenix.pro	2023-02-25 21:42:11.587943146 +0000
+@@ -173,7 +173,7 @@
+ RESOURCES += phoenixresources.qrc
+ 
+ # Disable this if you have (and want) libgit2 dynamically
+-LIBGIT_STATIC = true
++#LIBGIT_STATIC = true
+ include(pri/libgit2detect.pri)
+ include(pri/boostdetect.pri)
+ include(pri/spicedetect.pri)
 --- fritzing-app-0.9.10/pri/libgit2detect.pri.orig	2022-07-14 22:32:23.000000000 +0100
-+++ fritzing-app-0.9.10/pri/libgit2detect.pri	2022-07-14 22:37:03.874473697 +0100
-@@ -14,10 +14,7 @@
- # ********************************************************************
++++ fritzing-app-0.9.10/pri/libgit2detect.pri	2023-02-25 21:37:26.852956731 +0000
+@@ -15,6 +15,14 @@
  
  
--packagesExist(libgit2) {
--} else {
--    LIBGIT_STATIC = true
--}
-+LIBGIT_STATIC = !packagesExist(libgit2) 
- 
- if ($$LIBGIT_STATIC) {
-     LIBGIT2INCLUDE = "$$_PRO_FILE_PWD_/../libgit2/include"
+ packagesExist(libgit2) {
++  LIBGIT_PC = libgit2
++}
++
++packagesExist(git2) {
++  LIBGIT_PC = git2
++}
++
++packagesExist(libgit2)|packagesExist(git2) {
+ } else {
+     LIBGIT_STATIC = true
+ }
+@@ -66,6 +74,6 @@
+     } else {
+         !build_pass:warning("Using dynamic linking for libgit2.")
+         #message("Enabled dynamic linking of libgit2")
+-        PKGCONFIG += libgit2
++        PKGCONFIG += $$LIBGIT_PC
+     }
+ }
 --- fritzing-app-0.9.10/pri/quazipdetect.pri.orig	2022-07-14 22:36:06.000000000 +0100
 +++ fritzing-app-0.9.10/pri/quazipdetect.pri	2022-07-17 11:09:33.627766862 +0100
 @@ -5,6 +5,9 @@
