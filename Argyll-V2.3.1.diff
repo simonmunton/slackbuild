@@ -1,0 +1,50 @@
+--- Argyll-V2.1.2/Jambase.orig	2020-01-19 01:38:04.000000000 +0000
++++ Argyll-V2.1.2/Jambase	2021-01-26 17:47:23.228964706 +0000
+@@ -967,7 +967,7 @@
+ 
+ 	# UNIX defaults
+ 
+-	CCFLAGS			?= -DUNIX -D_THREAD_SAFE -pipe ;
++	CCFLAGS			?= $(CPPFLAGS) -DUNIX -D_THREAD_SAFE -pipe -fPIC ;
+ 	CCOPTFLAG		?= -O2 ;		
+ 	CCDEBUGFLAG		?= -g ;		
+ 	CCPROFFLAG		?= ;		
+@@ -977,7 +977,7 @@
+ 	CHGRP			?= chgrp ;
+ 	CHOWN			?= chown ;
+ 	LEX				?= lex ;
+-	LINKFLAGS		?= ;
++	LINKFLAGS		?= $(LDFLAGS) ;
+ 	LINKOPTFLAG		?= -O ;				# Affects creating .so's
+ 	LINKSTRIPFLAG	?= -s ;
+ 	LINKDEBUGFLAG	?= ;
+@@ -1076,7 +1076,7 @@
+ 	RMDIR			?= $(RM) ;
+ 	RSH				?= rsh ;
+ 	SED				?= sed ;
+-	SHELLHEADER		?= "#!/bin/sh" ;
++	SHELLHEADER		?= "#!/bin/bash" ;
+ 	SHELLMODE		?= 755 ;
+ 	SLASH			?= / ;
+ 	STDHDRS			?= /usr/include ;
+--- Argyll-V2.1.2/Jamtop.orig	2020-01-19 01:38:05.000000000 +0000
++++ Argyll-V2.1.2/Jamtop	2021-01-26 17:47:51.871634851 +0000
+@@ -23,6 +23,7 @@
+ # Should we also allow CFLAGS, CXXFLAGS, CPPFLAGS & LDFLAGS env. variables
+ # to have effect ?
+ 
++BUILD_SHARED_LIB = 1 ;
+ 
+ # Tell standalone libraries that they are part of Argyll:
+ DEFINES += ARGYLLCMS ;
+@@ -94,8 +95,8 @@
+ 		}
+ 
+ 		if $(HOST64) {
+-			if [ GLOB /usr/X11R6/lib : libX11.so libX11.a ] {
+-				LibWinD = /usr/X11R6/lib ;
++			if [ GLOB /usr/X11R6/lib64 : libX11.so libX11.a ] {
++				LibWinD = /usr/X11R6/lib64 ;
+ 			} else if [ GLOB /usr/lib/x86_64-linux-gnu : libX11.so libX11.a ] {
+ 				LibWinD = /usr/lib/x86_64-linux-gnu ;
+ 			} else if [ GLOB /usr/lib64 : libX11.so libX11.a ] {
