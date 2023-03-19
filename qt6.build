@@ -8,7 +8,7 @@ TARNAME=qt-everywhere-src
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/q
 #TAR_EXT=.tar.gz
-VERSION=6.4.2
+VERSION=6.4.3
 VERSIONEXTRA=
 BUILD=1
 
@@ -131,6 +131,8 @@ OPENSOURCE_CXXFLAGS="${SLKCFLAGS}" \
             -system-pcre \
             -plugin-sql-odbc \
             -qt-quick3d-assimp \
+            -- \
+            -DCMAKE_JOB_POOLS:STRING="compile=4;link=2" \
             2>&1 | tee _Build_config.log
 
 
@@ -149,15 +151,18 @@ OPENSOURCE_CXXFLAGS="${SLKCFLAGS}" \
 #           -release \
 fi
 
-NUM_JOBS="-j 2"
+export NINJAFLAGS="-j4 -l4"
+
+# fixup the ninja build file
+sed -i "s/ninja -C/ninja ${NINJAFLAGS} -C/" build.ninja
+
+NUM_JOBS="-j 4"
 
 #export NINJAJOBS="-j2"
 
-export NINJAFLAGS="-j2 -l3"
-
 if [ ${DO_MAKE} == "yes" ]
 then
-ninja -j 2 -l 3 || exit
+ninja ${NINJAFLAGS} || exit
 #cmake --build . --parallel 2 || exit
 #make ${NUM_JOBS} || exit
 fi
