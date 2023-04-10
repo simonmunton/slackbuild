@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libopenshot-audio
+TARNAME=bpftrace
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.3.1
+VERSION=0.17.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.openshot.org/"
+WEBPAGE="https://github.com/iovisor/bpftrace"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/bpftrace-0.17.0.diff
 )
 fi
 
@@ -55,10 +55,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 mkdir _BuilD_
 cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -80,14 +80,23 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DUSE_SYSTEM_BPF_BCC=1 \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,7 +104,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
 
@@ -114,11 +128,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenShot Audio Library"
-OpenShot Audio Library (libopenshot-audio) is a program that allows 
-the high-quality editing and playback of audio, and is based on the 
-amazing JUCE library. For more information visit 
-<http://www.openshot.org/>
+make_slack_desc << EOF "bpftrace is a high-level tracing language for Linux eBPF"
+bpftrace is a high-level tracing language for Linux enhanced Berkeley
+Packet Filter (eBPF) available in recent Linux kernels (4.x).
+bpftrace uses LLVM as a backend to compile scripts to BPF-bytecode
+and makes use of BCC for interacting with the Linux BPF system, as
+well as existing Linux tracing capabilities: kernel dynamic tracing
+(kprobes), user-level dynamic tracing (uprobes), and tracepoints.
 
 EOF
 

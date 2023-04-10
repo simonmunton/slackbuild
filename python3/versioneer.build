@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=libopenshot-audio
+TARNAME=versioneer
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/l
+TARDIR=~/tmp/new/v
 #TAR_EXT=.tar.gz
-VERSION=0.3.1
+VERSION=0.28
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.openshot.org/"
+WEBPAGE="https://pypi.org/project/versioneer/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=versioneer-py3
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -57,37 +57,32 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
-mkdir _BuilD_
-cd _BuilD_
-
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-fi
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+#make ${NUM_JOBS} || exit
+python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,9 +90,9 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
-
-cd ..
+#make install DESTDIR=${PKG}
+python3 setup.py install --root=${PKG}
+##python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
 
 strip_binaries
 
@@ -114,11 +109,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenShot Audio Library"
-OpenShot Audio Library (libopenshot-audio) is a program that allows 
-the high-quality editing and playback of audio, and is based on the 
-amazing JUCE library. For more information visit 
-<http://www.openshot.org/>
+make_slack_desc << EOF "Easy VCS-based management of project version strings"
+Easy VCS-based management of project version strings.
 
 EOF
 

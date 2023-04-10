@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=libopenshot-audio
+TARNAME=libbpf
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.3.1
+VERSION=1.1.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.openshot.org/"
+WEBPAGE="https://github.com/libbpf/libbpf"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,10 +55,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+#mkdir _BuilD_
+#cd _BuilD_
 
-mkdir _BuilD_
-cd _BuilD_
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -81,13 +81,23 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
+
+cd src
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,7 +105,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
 
@@ -114,11 +129,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenShot Audio Library"
-OpenShot Audio Library (libopenshot-audio) is a program that allows 
-the high-quality editing and playback of audio, and is based on the 
-amazing JUCE library. For more information visit 
-<http://www.openshot.org/>
+make_slack_desc << EOF "libbpf"
+libbpf is a C-based library containing a BPF loader that takes
+compiled BPF object files and prepares and loads them into the Linux
+kernel. libbpf takes the heavy lifting of loading, verifying, and
+attaching BPF programs to various kernel hooks, allowing BPF
+application developers to focus only on BPF program correctness and
+performance.
 
 EOF
 
