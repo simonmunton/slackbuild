@@ -1,0 +1,93 @@
+--- R-4.2.3/m4/R.m4.orig	2022-11-01 23:15:01.000000000 +0000
++++ R-4.2.3/m4/R.m4	2023-04-16 17:09:52.231006910 +0100
+@@ -4300,7 +4300,7 @@
+ AC_CHECK_HEADERS(curl/curl.h, [have_libcurl=yes], [have_libcurl=no])
+ 
+ if test "x${have_libcurl}" = "xyes"; then
+-AC_CACHE_CHECK([if libcurl is version 7 and >= 7.28.0], [r_cv_have_curl728],
++AC_CACHE_CHECK([if libcurl is >= 7.28.0], [r_cv_have_curl728],
+ [AC_RUN_IFELSE([AC_LANG_SOURCE([[
+ #include <stdlib.h>
+ #include <curl/curl.h>
+@@ -4308,7 +4308,7 @@
+ {
+ #ifdef LIBCURL_VERSION_MAJOR
+ #if LIBCURL_VERSION_MAJOR > 7
+-  exit(1);
++  exit(0);
+ #elif LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 28
+   exit(0);
+ #else
+--- R-4.2.3/src/modules/internet/libcurl.c.orig	2022-08-05 23:15:01.000000000 +0100
++++ R-4.2.3/src/modules/internet/libcurl.c	2023-04-16 17:13:05.203997703 +0100
+@@ -57,7 +57,7 @@
+ 
+ static int current_timeout = 0;
+ 
+-# if (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR < 28)
++# if (LIBCURL_VERSION_MAJOR > 7) && (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR < 28)
+ 
+ // curl/curl.h includes <sys/select.h> and headers it requires.
+ 
+@@ -584,7 +584,7 @@
+ 	/* Users will normally expect to follow redirections, although
+ 	   that is not the default in either curl or libcurl. */
+ 	curlCommon(hnd[i], 1, 1);
+-#if (LIBCURL_VERSION_MINOR >= 25)
++#if (LIBCURL_VERSION_MAJOR > 7) || (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 25)
+ 	curl_easy_setopt(hnd[i], CURLOPT_TCP_KEEPALIVE, 1L);
+ #endif
+ 	curl_easy_setopt(hnd[i], CURLOPT_HTTPHEADER, headers);
+@@ -894,7 +894,7 @@
+     curl_easy_setopt(ctxt->hnd, CURLOPT_FAILONERROR, 1L);
+     curlCommon(ctxt->hnd, 1, 1);
+     curl_easy_setopt(ctxt->hnd, CURLOPT_NOPROGRESS, 1L);
+-#if (LIBCURL_VERSION_MINOR >= 25)
++#if LIBCURL_VERSION_MAJOR > 7 || (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 25)
+     curl_easy_setopt(ctxt->hnd, CURLOPT_TCP_KEEPALIVE, 1L);
+ #endif
+ 
+--- R-4.2.3/doc/manual/R-admin.texi.orig	2023-04-16 17:09:52.230006910 +0100
++++ R-4.2.3/doc/manual/R-admin.texi	2023-04-16 17:15:20.724991237 +0100
+@@ -3314,13 +3314,12 @@
+ @c   end-of-life May 2018. 
+ @c libcurl 7.28.0 was released in Oct 2012
+ @c Ubuntu 16.04LTS has 7.47.0
+-Library @code{libcurl} (version 7.28.0 or later@footnote{but not a major
+-version greater than 7 should there ever be one: the major version has
+-been 7 since 2000.}) is required.  Information on @code{libcurl} is
+-found from the @command{curl-config} script: if that is missing or needs
+-to be overridden@footnote{for example to specify static linking with a
+-build which has both shared and static libraries.} there are macros to
+-do so described in file @file{config.site}.
++Library @code{libcurl} (version 7.28.0 or later) is required.
++Information on @code{libcurl} is found from the @command{curl-config}
++script: if that is missing or needs to be overridden@footnote{for
++example to specify static linking with a build which has both shared and
++static libraries.} there are macros to do so described in file
++@file{config.site}.
+ 
+ A @command{tar} program is needed to unpack the sources and packages
+ (including the recommended packages).  A version@footnote{Such as
+--- R-4.2.3/configure.orig	2023-03-07 23:16:14.000000000 +0000
++++ R-4.2.3/configure	2023-04-16 17:09:52.228006910 +0100
+@@ -47587,8 +47587,8 @@
+ done
+ 
+ if test "x${have_libcurl}" = "xyes"; then
+-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if libcurl is version 7 and >= 7.28.0" >&5
+-printf %s "checking if libcurl is version 7 and >= 7.28.0... " >&6; }
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if libcurl is >= 7.28.0" >&5
++printf %s "checking if libcurl is >= 7.28.0... " >&6; }
+ if test ${r_cv_have_curl728+y}
+ then :
+   printf %s "(cached) " >&6
+@@ -47606,7 +47606,7 @@
+ {
+ #ifdef LIBCURL_VERSION_MAJOR
+ #if LIBCURL_VERSION_MAJOR > 7
+-  exit(1);
++  exit(0);
+ #elif LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 28
+   exit(0);
+ #else
