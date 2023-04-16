@@ -1,5 +1,9 @@
 #!/bin/bash
 #
+
+# shiboken has problem with an enum (QEvent) defined in a base classes base class. See pyside-qt5.diff
+# for typical changes to qt header files
+
 . build_funcs
 
 TARNAME=pyside-setup-opensource-src
@@ -7,9 +11,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/p
 #TAR_EXT=.tar.gz
-VERSION=5.15.8
+VERSION=5.15.9
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="https://download.qt.io/official_releases/QtForPython/pyside2/"
 
@@ -45,9 +49,27 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/pyside2_libpyside_pysideproperty.cpp.patch
+# patch -p1 -b -z .orig < ${CWD}/pyside2_libpyside_pysideproperty.cpp.patch
  patch -p0 -b -z .orig < ${CWD}/pyside-libshiboken-numpy-1.23.compat.patch
- patch -p0 -b -z .orig < ${CWD}/pyside-libshiboken2-python10-compat.patch
+# patch -p0 -b -z .orig < ${CWD}/pyside-libshiboken2-python10-compat.patch
+
+
+ patch -p1 -b -z .orig < ${CWD}/pyside-update-sip-import.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-fix-spelling-errors.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-blacklist-failing-tests.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-test-with-current-interpreter.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-libshiboken-Fix-a-crash-in-Shiboken-Object-isValid.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-Fix-usage-of-Py_TYPE-for-Python-3.11.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-libshiboken-Fix-crashes-with-static-strings-in-Python-3.11.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-Shiboken-Fix-the-oldest-shiboken-bug-ever.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-PyEnum-make-forgiving-duplicates-work-with-Python-3.11.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-Fix-Property-GC-tracking-for-Python-3.11.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-make-wheels-compatible-with-Python-3.11.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-Revert-removal-of-version-check.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-importlib-machinery.patch
+ patch -p1 -b -z .orig < ${CWD}/pyside-Fix-GLES-builds.patch
+
+
 )
 fi
 
@@ -153,8 +175,8 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "Qt For Python"
-Qt For Python is the [Python Qt bindings
-project](http://wiki.qt.io/PySide2), providing access to the complete
+Qt For Python is the [Python Qt bindings project]
+(http://wiki.qt.io/PySide2), providing access to the complete
 Qt 5.x framework as well as to generator tools for rapidly generating
 bindings for any C++ libraries.
 

@@ -1,0 +1,35 @@
+From: Friedemann Kleint <Friedemann.Kleint@qt.io>
+Date: Thu, 9 Jun 2022 16:50:41 +0200
+Subject: libshiboken: Fix a crash in Shiboken::Object::isValid() for Python
+ 3.11
+
+The function is passed type objects for class methods, which caused
+it to crash.
+
+The first clause did not catch this, and so it was cast to SbkObject
+below.
+
+Add a type check to prevent this.
+
+Pick-to: 6.3 6.2 5.15
+Task-number: PYSIDE-1960
+Change-Id: Icfdd6fefb7156ac5961444bd5395109849a1d66e
+Reviewed-by: Christian Tismer <tismer@stackless.com>
+Reviewed-by: Qt CI Bot <qt_ci_bot@qt-project.org>
+(cherry picked from commit 52df3b8f64d08f412d7f8b12d82fc0ae6f3c741d)
+---
+ sources/shiboken2/libshiboken/basewrapper.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sources/shiboken2/libshiboken/basewrapper.cpp b/sources/shiboken2/libshiboken/basewrapper.cpp
+index 7ac7fad..917b743 100644
+--- a/sources/shiboken2/libshiboken/basewrapper.cpp
++++ b/sources/shiboken2/libshiboken/basewrapper.cpp
+@@ -1525,6 +1525,7 @@ bool setCppPointer(SbkObject *sbkObj, PyTypeObject *desiredType, void *cptr)
+ bool isValid(PyObject *pyObj)
+ {
+     if (!pyObj || pyObj == Py_None
++        || PyType_Check(pyObj) != 0
+         || Py_TYPE(Py_TYPE(pyObj)) != SbkObjectType_TypeF()) {
+         return true;
+     }

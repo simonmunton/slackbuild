@@ -1,0 +1,22 @@
+From: Dmitry Shachnev <mitya57@debian.org>
+Date: Thu, 5 Jan 2023 00:08:32 +0400
+Subject: Revert removal of version check
+
+It broke build without limited API.
+---
+ sources/shiboken2/libshiboken/pep384impl.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sources/shiboken2/libshiboken/pep384impl.cpp b/sources/shiboken2/libshiboken/pep384impl.cpp
+index 66df0fd..a723303 100644
+--- a/sources/shiboken2/libshiboken/pep384impl.cpp
++++ b/sources/shiboken2/libshiboken/pep384impl.cpp
+@@ -751,7 +751,7 @@ _Pep_PrivateMangle(PyObject *self, PyObject *name)
+ #endif // IS_PY2
+     Shiboken::AutoDecRef privateobj(PyObject_GetAttr(
+         reinterpret_cast<PyObject *>(Py_TYPE(self)), Shiboken::PyMagicName::name()));
+-#ifndef Py_LIMITED_API
++#if !defined(Py_LIMITED_API) && PY_VERSION_HEX < 0x03010000
+     return _Py_Mangle(privateobj, name);
+ #else
+     // PYSIDE-1436: _Py_Mangle is no longer exposed; implement it always.

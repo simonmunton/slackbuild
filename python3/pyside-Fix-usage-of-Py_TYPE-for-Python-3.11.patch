@@ -1,0 +1,94 @@
+From: Friedemann Kleint <Friedemann.Kleint@qt.io>
+Date: Thu, 9 Jun 2022 13:45:07 +0200
+Subject: Fix usage of Py_TYPE() for Python 3.11
+
+The macro was changed to a function, no longer allowing for assignment.
+
+Pick-to: 6.3 6.2 5.15
+Task-number: PYSIDE-1960
+Change-Id: I4bc0e9a5c1f3dc70d59628e63b7b9d47ea449992
+Reviewed-by: Cristian Maureira-Fredes <cristian.maureira-fredes@qt.io>
+Reviewed-by: Christian Tismer <tismer@stackless.com>
+(cherry picked from commit 73adefe22ffbfabe0ef213e9c2fe2c56efdd7488)
+---
+ sources/pyside2/libpyside/pysideqflags.cpp    | 2 +-
+ sources/pyside2/libpyside/pysidesignal.cpp    | 2 +-
+ sources/pyside2/libpyside/pysideweakref.cpp   | 2 +-
+ sources/shiboken2/libshiboken/basewrapper.cpp | 4 ++--
+ sources/shiboken2/libshiboken/sbkenum.cpp     | 2 +-
+ 5 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/sources/pyside2/libpyside/pysideqflags.cpp b/sources/pyside2/libpyside/pysideqflags.cpp
+index 8b224f2..784082a 100644
+--- a/sources/pyside2/libpyside/pysideqflags.cpp
++++ b/sources/pyside2/libpyside/pysideqflags.cpp
+@@ -192,7 +192,7 @@ namespace QFlags
+         }
+         newspec.slots = SbkNewQFlagsType_spec.slots;
+         PyTypeObject *type = (PyTypeObject *)SbkType_FromSpec(&newspec);
+-        Py_TYPE(type) = &PyType_Type;
++        Py_SET_TYPE(type, &PyType_Type);
+ 
+         PySideQFlagsType *flagsType = reinterpret_cast<PySideQFlagsType *>(type);
+         PepType_PFTP(flagsType)->converterPtr = &PepType_PFTP(flagsType)->converter;
+diff --git a/sources/pyside2/libpyside/pysidesignal.cpp b/sources/pyside2/libpyside/pysidesignal.cpp
+index b5069a0..ce89a9d 100644
+--- a/sources/pyside2/libpyside/pysidesignal.cpp
++++ b/sources/pyside2/libpyside/pysidesignal.cpp
+@@ -162,7 +162,7 @@ PyTypeObject *PySideSignalTypeF(void)
+     if (!type) {
+         type = reinterpret_cast<PyTypeObject *>(SbkType_FromSpec(&PySideSignalType_spec));
+         PyTypeObject *hold = Py_TYPE(type);
+-        Py_TYPE(type) = PySideMetaSignalTypeF();
++        Py_SET_TYPE(type, PySideMetaSignalTypeF());
+         Py_INCREF(Py_TYPE(type));
+         Py_DECREF(hold);
+     }
+diff --git a/sources/pyside2/libpyside/pysideweakref.cpp b/sources/pyside2/libpyside/pysideweakref.cpp
+index cd90634..730990f 100644
+--- a/sources/pyside2/libpyside/pysideweakref.cpp
++++ b/sources/pyside2/libpyside/pysideweakref.cpp
+@@ -90,7 +90,7 @@ PyObject *create(PyObject *obj, PySideWeakRefFunction func, void *userData)
+ 
+     if (Py_TYPE(PySideCallableObjectTypeF()) == 0)
+     {
+-        Py_TYPE(PySideCallableObjectTypeF()) = &PyType_Type;
++        Py_SET_TYPE(PySideCallableObjectTypeF(), &PyType_Type);
+         PyType_Ready(PySideCallableObjectTypeF());
+     }
+ 
+diff --git a/sources/shiboken2/libshiboken/basewrapper.cpp b/sources/shiboken2/libshiboken/basewrapper.cpp
+index 917b743..e2eccd0 100644
+--- a/sources/shiboken2/libshiboken/basewrapper.cpp
++++ b/sources/shiboken2/libshiboken/basewrapper.cpp
+@@ -377,7 +377,7 @@ SbkObjectType *SbkObject_TypeF(void)
+     static PyTypeObject *type = nullptr;
+     if (!type) {
+         type = reinterpret_cast<PyTypeObject *>(SbkType_FromSpec(&SbkObject_Type_spec));
+-        Py_TYPE(type) = SbkObjectType_TypeF();
++        Py_SET_TYPE(type, SbkObjectType_TypeF());
+         Py_INCREF(Py_TYPE(type));
+         type->tp_weaklistoffset = offsetof(SbkObject, weakreflist);
+         type->tp_dictoffset = offsetof(SbkObject, ob_dict);
+@@ -1160,7 +1160,7 @@ introduceWrapperType(PyObject *enclosingObject,
+     typeSpec->slots[0].pfunc = reinterpret_cast<void *>(baseType ? baseType : SbkObject_TypeF());
+ 
+     PyObject *heaptype = SbkType_FromSpecWithBases(typeSpec, baseTypes);
+-    Py_TYPE(heaptype) = SbkObjectType_TypeF();
++    Py_SET_TYPE(heaptype, SbkObjectType_TypeF());
+     Py_INCREF(Py_TYPE(heaptype));
+     auto *type = reinterpret_cast<SbkObjectType *>(heaptype);
+ #if PY_VERSION_HEX < 0x03000000
+diff --git a/sources/shiboken2/libshiboken/sbkenum.cpp b/sources/shiboken2/libshiboken/sbkenum.cpp
+index 7dc73df..9459e42 100644
+--- a/sources/shiboken2/libshiboken/sbkenum.cpp
++++ b/sources/shiboken2/libshiboken/sbkenum.cpp
+@@ -754,7 +754,7 @@ newTypeWithName(const char *name,
+     PyTuple_SetItem(bases, 0, reinterpret_cast<PyObject *>(basetype));
+     auto *type = reinterpret_cast<PyTypeObject *>(SbkType_FromSpecWithBases(&newspec, bases));
+     PyErr_Print();
+-    Py_TYPE(type) = SbkEnumType_TypeF();
++    Py_SET_TYPE(type, SbkEnumType_TypeF());
+ 
+     auto *enumType = reinterpret_cast<SbkEnumType *>(type);
+     PepType_SETP(enumType)->cppName = cppName;
