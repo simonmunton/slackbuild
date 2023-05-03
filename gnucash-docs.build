@@ -6,7 +6,7 @@ TARNAME=gnucash-docs
 TARNAMEEXTRA=
 TARDIR=~/tmp/new/g
 #TAR_EXT=.tar.gz
-VERSION=4.14
+VERSION=5.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -80,6 +80,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DWITH_HTML_INSTALL=on \
+      -DCMAKE_INSTALL_DOCDIR=/usr/share/doc/HTML \
       ..
 elif [ -f ../meson.build ]
 then
@@ -94,7 +96,7 @@ if [ -f ../meson.build ]
 then
   ninja || exit
 else
-  make ${NUM_JOBS} || exit
+  make ${NUM_JOBS} all html || exit
 fi
 fi
 
@@ -111,6 +113,21 @@ else
 fi
 
 cd ..
+
+#mkdir -p ${PKG}/usr/share/doc/HTML
+#(cd ${PKG}/usr/share/doc/HTML
+#  for d in `ls ../../help`
+#  do
+#    mkdir $d
+#    cd $d
+#    ln -s ../../../help/$d/* .
+#    cd ..
+#  done
+#
+#  mv C en
+#)
+
+mv ${PKG}/usr/share/doc/HTML/C ${PKG}/usr/share/doc/HTML/en
 
 #strip_binaries
 
