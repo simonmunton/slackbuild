@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=aegisub
+TARNAME=Aegisub
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/a
 #TAR_EXT=.tar.gz
-VERSION=20201031
+VERSION=3.3.3
 VERSIONEXTRA=
-BUILD=15
+BUILD=1
 
-WEBPAGE="http://www.aegisub.org"
+WEBPAGE=https://github.com/wangqr/Aegisub
+#"http://www.aegisub.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=aegisub
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,12 +46,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/aegisub-20201031.diff
+ patch -p1 < ${CWD}/Aegisub-3.3.3.diff
 
- if [ ! -e configure ]
- then
-  ./autogen.sh
- fi
+# if [ ! -e configure ]
+# then
+#  ./autogen.sh
+# fi
 )
 fi
 
@@ -61,6 +62,11 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
+export FORCE_GIT_VERSION=${VERSION}
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -73,7 +79,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -82,7 +88,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
 elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
@@ -111,6 +117,8 @@ then
 else
   make install DESTDIR=${PKG}
 fi
+
+cd ..
 
 strip_binaries
 
