@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.7.34
+VERSION=23.04
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://mediainfo.sourceforge.net/en"
+WEBPAGE="https://mediaarea.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv MediaInfoLib ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,43 +55,48 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-pushd Project/GNU/Library
- chmod +x autogen
- ./autogen
-
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared
-popd
-
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+	    --mandir=/usr/man
+elif [ -f ../Project/CMake/CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_SHARED_LIBS=on \
+      ../Project/CMake
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd Project/GNU/Library
-make ${NUM_JOBS} || exit
-popd
-
-pushd Source/Doc/
-  doxygen Doxyfile
-popd
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -99,21 +104,14 @@ then
   exit
 fi
 
-pushd Project/GNU/Library
-make install DESTDIR=${PKG}
-popd
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-# MediaInfoDLL headers and MediaInfo-config
-mkdir -p ${PKG}/usr/include/MediaInfo
-cp Source/MediaInfo/{MediaInfo.h,MediaInfoList.h,MediaInfo_Const.h,MediaInfo_Events.h} ${PKG}/usr/include/MediaInfo
-mkdir -p ${PKG}/usr/include/MediaInfoDLL
-cp Source/MediaInfoDLL/{MediaInfoDLL.cs,MediaInfoDLL.h,MediaInfoDLL_Static.h,MediaInfoDLL.JNA.java,MediaInfoDLL.JNative.java,MediaInfoDLL.py,MediaInfoDLL3.py} \
-  ${PKG}/usr/include/MediaInfoDLL
-
-chmod -R -x,+X  ${PKG}/usr/include
-
-mkdir -p ${PKG}/usr/lib/pkgconfig
-sed -e "s|Version: |Version: ${VERSION}|g" Project/GNU/Library/libmediainfo.pc > ${PKG}/usr/lib/pkgconfig/libmediainfo.pc
+cd ..
 
 strip_binaries
 
@@ -124,15 +122,15 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO Read* Doc \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Supplies technical and tag information about a video or audio file"
-MediaInfo supplies technical and tag information about a video or
-audio file.
+make_slack_desc << EOF "libmediainfo"
+Convenient unified display of the most relevant technical and tag 
+data for video and audio files. 
 
 EOF
 

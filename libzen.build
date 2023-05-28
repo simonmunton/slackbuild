@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="_"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=0.4.15
+VERSION=0.4.41
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://mediainfo.sourceforge.net/en"
+WEBPAGE="https://mediaarea.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 mv ZenLib ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,43 +55,47 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-pushd Project/GNU/Library
-chmod +x autogen
-./autogen
-
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-shared
-
-popd
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
+	    --mandir=/usr/man
+elif [ -f ../Project/CMake/CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ../Project/CMake
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-pushd Source/Doc/
-  doxygen Doxyfile
-popd
-
-pushd Project/GNU/Library
-make ${NUM_JOBS} || exit
-popd
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -99,24 +103,14 @@ then
   exit
 fi
 
-pushd Project/GNU/Library
-make install DESTDIR=${PKG}
-popd
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-# Zenlib headers and ZenLib-config
-mkdir -p ${PKG}/usr/include/ZenLib
-cp Source/ZenLib/*.h ${PKG}/usr/include/ZenLib
-
-for i in Base64 HTTP_Client Format/Html Format/Http TinyXml
-do
-  mkdir -p ${PKG}/usr/include/ZenLib/$i
-  cp Source/ZenLib/$i/*.h ${PKG}/usr/include/ZenLib/$i
-done
-
-chmod -R -x,+X  ${PKG}/usr/include/ZenLib
-
-mkdir -p ${PKG}/usr/lib/pkgconfig
-sed -e "s|Version: |Version: ${VERSION}|g" Project/GNU/Library/libzen.pc > ${PKG}/usr/lib/pkgconfig/libzen.pc
+cd ..
 
 strip_binaries
 
@@ -127,14 +121,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ReadMe.txt Doc License.txt \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Shared library for libmediainfo and medianfo*"
-Shared library for libmediainfo and medianfo-*.
+make_slack_desc << EOF "Small C++ derivate classes to have an easier life"
+Small C++ derivate classes to have an easier life
 
 EOF
 
