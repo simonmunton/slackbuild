@@ -1,0 +1,85 @@
+--- krename-5.0.2/CMakeLists.txt.orig	2022-08-31 22:22:38.000000000 +0100
++++ krename-5.0.2/CMakeLists.txt	2023-05-29 19:36:04.578982223 +0100
+@@ -7,6 +7,8 @@
+ find_package(ECM 0.0.11 REQUIRED NO_MODULE)
+ set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+ 
++set(CMAKE_CXX_STANDARD 17)
++
+ include(KDEInstallDirs)
+ include(ECMInstallIcons)
+ include(KDECMakeSettings)
+--- krename-5.0.2/src/podofoplugin.cpp.orig	2022-08-31 22:22:21.000000000 +0100
++++ krename-5.0.2/src/podofoplugin.cpp	2023-05-29 19:56:04.214191509 +0100
+@@ -61,22 +61,22 @@
+     try {
+         PdfMemDocument doc;
+         doc.Load(filename.toUtf8().data());
+-        PdfInfo *info = doc.GetInfo();
++        const PdfInfo *info = doc.GetInfo();
+ 
+         if (token == "pdfauthor") {
+-            return QString::fromUtf8(info->GetAuthor().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetAuthor()->GetString().c_str());
+         } else if (token == "pdfcreator") {
+-            return QString::fromUtf8(info->GetCreator().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetCreator()->GetString().c_str());
+         } else if (token == "pdfkeywords") {
+-            return QString::fromUtf8(info->GetKeywords().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetKeywords()->GetString().c_str());
+         } else if (token == "pdfsubject") {
+-            return QString::fromUtf8(info->GetSubject().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetSubject()->GetString().c_str());
+         } else if (token == "pdftitle") {
+-            return QString::fromUtf8(info->GetTitle().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetTitle()->GetString().c_str());
+         } else if (token == "pdfproducer") {
+-            return QString::fromUtf8(info->GetProducer().GetStringUtf8().c_str());
++            return QString::fromUtf8(info->GetProducer()->GetString().c_str());
+         } else if (token == "pdfpages") {
+-            return QString::number(doc.GetPageCount());
++            return QString::number(doc.GetPages().GetCount());
+         }
+     } catch (PdfError &error) {
+         return QString::fromUtf8(error.what());
+--- krename-5.0.2/cmake/modules/FindPoDoFo.cmake.orig	2022-08-31 22:22:21.000000000 +0100
++++ krename-5.0.2/cmake/modules/FindPoDoFo.cmake	2023-05-29 20:03:37.679169873 +0100
+@@ -65,21 +65,23 @@
+   # header. The fix is in https://sourceforge.net/p/podofo/code/1830/ and will
+   # hopefully be released soon with 0.9.6. Note that krename doesn't use
+   # OpenSSL in any way.
+-  file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_MAJOR_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_MAJOR[ \t]+[0-9]+$")
+-  file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_MINOR_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_MINOR[ \t]+[0-9]+$")
+-  file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_PATCH_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_PATCH[ \t]+[0-9]+$")
+-  string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_MAJOR[ \t]+([0-9]+)$" "\\1" PoDoFo_MAJOR_VER "${PoDoFo_MAJOR_VER_LINE}")
+-  string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_MINOR[ \t]+([0-9]+)$" "\\1" PoDoFo_MINOR_VER "${PoDoFo_MINOR_VER_LINE}")
+-  string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_PATCH[ \t]+([0-9]+)$" "\\1" PoDoFo_PATCH_VER "${PoDoFo_PATCH_VER_LINE}")
+-  set(PoDoFo_VERSION "${PoDoFo_MAJOR_VER}.${PoDoFo_MINOR_VER}.${PoDoFo_PATCH_VER}")
+-  if(PoDoFo_VERSION VERSION_EQUAL "0.9.5")
+-    find_package(OpenSSL)
+-    if (OpenSSL_FOUND)
+-      message("OpenSSL found, which is required for this version of PoDofo (0.9.5)")
+-      set(PoDoFo_INCLUDE_DIRS ${PoDoFo_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+-    else()
+-      unset(PoDoFo_FOUND)
+-      message("OpenSSL NOT found, which is required for this version of PoDofo (0.9.5)")
++  if (EXISTS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h")
++    file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_MAJOR_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_MAJOR[ \t]+[0-9]+$")
++    file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_MINOR_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_MINOR[ \t]+[0-9]+$")
++    file(STRINGS "${PoDoFo_INCLUDE_DIRS}/podofo/base/podofo_config.h" PoDoFo_PATCH_VER_LINE REGEX "^#define[ \t]+PODOFO_VERSION_PATCH[ \t]+[0-9]+$")
++    string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_MAJOR[ \t]+([0-9]+)$" "\\1" PoDoFo_MAJOR_VER "${PoDoFo_MAJOR_VER_LINE}")
++    string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_MINOR[ \t]+([0-9]+)$" "\\1" PoDoFo_MINOR_VER "${PoDoFo_MINOR_VER_LINE}")
++    string(REGEX REPLACE "^#define[ \t]+PODOFO_VERSION_PATCH[ \t]+([0-9]+)$" "\\1" PoDoFo_PATCH_VER "${PoDoFo_PATCH_VER_LINE}")
++    set(PoDoFo_VERSION "${PoDoFo_MAJOR_VER}.${PoDoFo_MINOR_VER}.${PoDoFo_PATCH_VER}")
++    if(PoDoFo_VERSION VERSION_EQUAL "0.9.5")
++      find_package(OpenSSL)
++      if (OpenSSL_FOUND)
++        message("OpenSSL found, which is required for this version of PoDofo (0.9.5)")
++        set(PoDoFo_INCLUDE_DIRS ${PoDoFo_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
++      else()
++        unset(PoDoFo_FOUND)
++        message("OpenSSL NOT found, which is required for this version of PoDofo (0.9.5)")
++      endif()
+     endif()
+   endif()
+ endif()
