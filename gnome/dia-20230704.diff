@@ -1,0 +1,92 @@
+--- dia-20230704/plug-ins/pdf/pdf-import.cpp.orig	2023-07-04 21:57:22.000000000 +0100
++++ dia-20230704/plug-ins/pdf/pdf-import.cpp	2023-07-06 16:51:54.368596455 +0100
+@@ -159,7 +159,7 @@
+     int dashLength;
+     double dashStart;
+ 
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 9)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 9)
+     std::vector<double> dashPattern = state->getLineDash(&dashStart);
+     dashLength = dashPattern.size();
+ #else
+@@ -322,7 +322,7 @@
+     DiaFont *font;
+ 
+     // without a font it wont make sense
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+     if (!state->getFont().get())
+ #else
+     if (!state->getFont())
+@@ -331,7 +331,7 @@
+     //FIXME: Dia is really unhappy about zero size fonts
+     if (!(state->getFontSize() > 0.0))
+       return;
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+     GfxFont *f = state->getFont().get();
+ #else
+     GfxFont *f = state->getFont();
+@@ -412,7 +412,7 @@
+   void fill (GfxState *state);
+   void eoFill (GfxState *state);
+ 
+-  void drawString(GfxState *, GooString *);
++  void drawString(GfxState *, const GooString *);
+ 
+   void drawImage(GfxState *state, Object *ref, Stream *str,
+ 		 int width, int height, GfxImageColorMap *colorMap,
+@@ -722,7 +722,7 @@
+  * \todo Check alignment options - it's just guessed yet.
+  */
+ void
+-DiaOutputDev::drawString(GfxState *state, GooString *s)
++DiaOutputDev::drawString(GfxState *state, const GooString *s)
+ {
+   Color text_color = this->fill_color;
+   int len = s->getLength();
+@@ -734,7 +734,7 @@
+   if (len == 0)
+     return;
+   // get the font
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+   if (!state->getFont().get())
+ #else
+   if (!state->getFont())
+@@ -742,7 +742,7 @@
+     return;
+   if (!(state->getFontSize() > 0.0))
+     return;
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+   font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont().get());
+ #else
+   font = (DiaFont *)g_hash_table_lookup (this->font_map, state->getFont());
+@@ -750,7 +750,7 @@
+ 
+   // we have to decode the string data first
+   {
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+     GfxFont *f = state->getFont().get();
+ #else
+     GfxFont *f = state->getFont();
+@@ -784,7 +784,7 @@
+   double ty = state->getCurY();
+   int rot = state->getRotate();
+   if (rot == 0)
+-    obj = create_standard_text (tx * scale, page_height - ty * scale);
++    obj = create_standard_text (tx * scale, ty * scale);
+   else /* XXX: at least for rot==90 */
+     obj = create_standard_text (ty * scale, tx * scale);
+   //not applyStyle (obj, TEXT);
+@@ -899,7 +899,7 @@
+   std::unique_ptr<PDFDoc> doc;
+   GooString *fileName = new GooString(filename);
+   // no passwords yet
+-#if POPLLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
++#if POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 6)
+   std::optional<GooString> ownerPW;
+   std::optional<GooString> userPW;
+ #else
