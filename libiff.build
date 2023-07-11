@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=qemu
+TARNAME=libiff
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q/qemu
+TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=8.0.3
+VERSION=20230711
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.qemu.org/"
+WEBPAGE="https://github.com/svanderburg/libiff"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,18 +34,20 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/libiff-20230711.diff
+
+ ./bootstrap
 )
 fi
 
@@ -69,7 +71,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 ../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
+            --localstatedir=/var/lib \
 	    --mandir=/usr/man
 elif [ -f ../CMakeLists.txt ]
 then
@@ -81,13 +83,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,7 +105,12 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
 
@@ -114,8 +129,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "QEMU the FAST! processor emulator"
-QEMU is a generic and open source machine emulator and virtualizer.
+make_slack_desc << EOF "Portable, extensible parser for the Interchange File Format (IFF)"
+libiff is a portable, extensible parser library implemented in ANSI C,
+for EA-IFF 85: Electronic Arts' Interchange File Format (IFF).
 
 EOF
 

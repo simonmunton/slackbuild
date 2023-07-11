@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=qemu
+TARNAME=sleef
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=~/tmp/new/q/qemu
+TARDIR=~/tmp/new/s
 #TAR_EXT=.tar.gz
-VERSION=8.0.3
+VERSION=3.5.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.qemu.org/"
+WEBPAGE="https://github.com/shibatch/sleef"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -69,7 +69,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 ../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var \
+            --localstatedir=/var/lib \
 	    --mandir=/usr/man
 elif [ -f ../CMakeLists.txt ]
 then
@@ -80,14 +80,23 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_TESTS=off \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,9 +104,26 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
+
+cat << EOF > ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/sleefdft.pc
+prefix=/usr/
+libdir=/usr/lib${LIBDIRSUFFIX}
+includedir=/usr/include
+
+Name: SLEEFDFT
+Description: SIMD Library for Evaluating Elementary Functions, vectorized libm and DFT (DFT)
+Version: ${VERSION}
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lsleefdft
+EOF
 
 strip_binaries
 
@@ -114,8 +140,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "QEMU the FAST! processor emulator"
-QEMU is a generic and open source machine emulator and virtualizer.
+make_slack_desc << EOF "SIMD Library for Evaluating Elementary Functions, vectorized libm and DFT"
+SLEEF is a library that implements vectorized versions of C standard 
+math functions. This library also includes DFT subroutines.
 
 EOF
 
