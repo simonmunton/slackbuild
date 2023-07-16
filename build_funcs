@@ -584,6 +584,9 @@ then
 #
 /usr/bin/update-desktop-database
 EOF
+
+# remove this as it will be updated by update-desktop-database
+[ -e ${PKG}/usr/share/applications/mimeinfo.cache ] && rm ${PKG}/usr/share/applications/mimeinfo.cache
 fi
 
 ##############################################################
@@ -595,6 +598,12 @@ then
 #
 /usr/bin/update-mime-database /usr/share/mime
 EOF
+
+# remove these as they will be updated by update-mime-database
+for f in XMLnamespaces aliases generic-icons globs globs2 icons magic mime.cache subclasses treemagic types version
+do
+  [ -e ${PKG}/usr/share/mime/$f ] && rm ${PKG}/usr/share/mime/$f
+done
 fi
 
 ##############################################################
@@ -613,6 +622,12 @@ do
 done
 EOF
   fi
+
+  # remove these as they will be updated by gtk-update-icon-cache
+  for n in ${icons}
+  do
+    [ -e ${PKG}/usr/share/icons/$n/icon-theme.cache ] && rm ${PKG}/usr/share/icons/$n/icon-theme.cache
+  done
 fi
 
 ##############################################################
@@ -688,6 +703,10 @@ if [ -x /usr/bin/glib-compile-schemas ]; then
   /usr/bin/glib-compile-schemas usr/share/glib-2.0/schemas
 fi
 EOF
+
+# remove this as it will be updated by glib-compile-schemas
+[ -e ${PKG}/usr/share/glib-2.0/schemas/gschemas.compiled ] && rm ${PKG}/usr/share/glib-2.0/schemas/gschemas.compiled
+
 fi
 
 ##############################################################
