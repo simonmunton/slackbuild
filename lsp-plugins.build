@@ -2,12 +2,12 @@
 #
 . build_funcs
 
-TARNAME=lsp-plugins-src
-TARNAMEEXTRA=
+TARNAME=lsp-plugins
+TARNAMEEXTRA=-src
 TARSEP="-"
 TARDIR=~/tmp/new/l
 #TAR_EXT=.tar.gz
-VERSION=1.1.31
+VERSION=1.2.7
 VERSIONEXTRA=
 BUILD=1
 
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then
@@ -86,6 +86,7 @@ then
   meson --prefix=/usr . ..
 fi
 
+  make config PREFIX=/usr LIBDIR=/usr/lib64
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -94,7 +95,8 @@ if [ -f ../meson.build ]
 then
   ninja || exit
 else
-  make ${NUM_JOBS} BUILD_PROFILE=${ARCH} PREFIX=/usr LIB_PATH=/usr/lib${LIBDIRSUFFIX} || exit
+#  make ${NUM_JOBS} BUILD_PROFILE=${ARCH} PREFIX=/usr LIB_PATH=/usr/lib${LIBDIRSUFFIX} || exit
+   make ${NUM_JOBS} || exit
 fi
 fi
 

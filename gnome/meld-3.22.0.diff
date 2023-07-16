@@ -1,0 +1,14 @@
+--- meld-3.22.0/meson_post_install.py.orig	2022-09-04 05:26:14.000000000 +0100
++++ meld-3.22.0/meson_post_install.py	2023-07-16 14:55:25.553863813 +0100
+@@ -15,8 +15,10 @@
+     print("Updating desktop database")
+     call(["update-desktop-database", path.join(DATA_DIR, 'applications')])
+ 
++DD = environ.get('DESTDIR', '')
++
+ # Byte-compilation is enabled by passing the site-packages path to this script
+ if len(sys.argv) > 1:
+     print('Byte-compiling Python module...')
+-    python_source_install_path = sys.argv[1]
++    python_source_install_path = DD + sys.argv[1]
+     compile_dir(path.join(python_source_install_path, 'meld'), optimize=1)
