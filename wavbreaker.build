@@ -4,9 +4,10 @@
 
 TARNAME=wavbreaker
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/w
 #TAR_EXT=.tar.gz
-VERSION=0.11
+VERSION=0.16
 VERSIONEXTRA=
 BUILD=1
 
@@ -20,7 +21,7 @@ WEBPAGE="http://wavbreaker.sourceforge.net/index.html"
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -33,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -54,20 +55,47 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -75,9 +103,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-#strip_binaries
+cd ..
+
+strip_binaries
 
 fix_links
 
@@ -92,10 +127,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF
+make_slack_desc << EOF "Gtk3-based cross-platform GUI tool to split audio files into multiple parts. "
 wavbreaker is a graphical tool to split wave files into multiple
-chunks. You can start wavbreaker without any command line arguments 
-or specify the filename of a single wave file, which will then be 
+chunks. You can start wavbreaker without any command line arguments
+or specify the filename of a single wave file, which will then be
 loaded on startup.
 
 EOF
