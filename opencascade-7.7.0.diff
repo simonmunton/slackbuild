@@ -1,0 +1,75 @@
+--- opencascade-7.7.0/CMakeLists.txt.orig	2022-11-11 23:36:01.000000000 +0000
++++ opencascade-7.7.0/CMakeLists.txt	2023-07-20 17:08:23.545599200 +0100
+@@ -275,7 +275,7 @@
+ # place the libraries to <prefix>/lib folder for unix and leave old structure for windows
+ if (NOT DEFINED INSTALL_DIR_LIB)
+   if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+-    set (INSTALL_DIR_LIB "lib" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
++    set (INSTALL_DIR_LIB "lib${LIB_SUFFIX}" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
+   else()
+     set (INSTALL_DIR_LIB "${OS_WITH_BIT}/${COMPILER}/lib" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
+   endif()
+@@ -359,9 +359,9 @@
+ if (NOT DEFINED INSTALL_DIR_CMAKE)
+   if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+     if (INSTALL_DIR_WITH_VERSION)
+-      set (INSTALL_DIR_CMAKE "lib/cmake/opencascade-${OCC_VERSION_STRING_EXT}" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
++      set (INSTALL_DIR_CMAKE "lib${LIB_SUFFIX}/cmake/opencascade-${OCC_VERSION_STRING_EXT}" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
+     else()
+-      set (INSTALL_DIR_CMAKE "lib/cmake/opencascade" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
++      set (INSTALL_DIR_CMAKE "lib${LIB_SUFFIX}/cmake/opencascade" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
+     endif()
+   else()
+     set (INSTALL_DIR_CMAKE "cmake" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
+--- opencascade-7.7.0/src/ViewerTest/ViewerTest_CmdParser.cxx.orig	2022-11-11 23:36:10.000000000 +0000
++++ opencascade-7.7.0/src/ViewerTest/ViewerTest_CmdParser.cxx	2023-07-20 16:52:47.806643847 +0100
+@@ -21,6 +21,7 @@
+ 
+ #include <algorithm>
+ #include <iostream>
++#include <limits>
+ 
+ namespace
+ {
+--- opencascade-7.7.0/adm/templates/OpenCASCADEConfig.cmake.in.orig	2022-11-11 23:36:02.000000000 +0000
++++ opencascade-7.7.0/adm/templates/OpenCASCADEConfig.cmake.in	2023-07-20 17:11:18.640590846 +0100
+@@ -27,7 +27,7 @@
+ if (OpenCASCADE_INSTALL_PREFIX MATCHES "/cmake$")
+   get_filename_component (OpenCASCADE_INSTALL_PREFIX "${OpenCASCADE_INSTALL_PREFIX}" PATH)
+ endif()
+-if (OpenCASCADE_INSTALL_PREFIX MATCHES "/lib$")
++if (OpenCASCADE_INSTALL_PREFIX MATCHES "/lib@LIB_SUFFIX@$")
+   get_filename_component (OpenCASCADE_INSTALL_PREFIX "${OpenCASCADE_INSTALL_PREFIX}" PATH)
+ endif()
+ if (OpenCASCADE_INSTALL_PREFIX MATCHES "/libs/${CMAKE_ANDROID_ARCH_ABI}$")
+--- opencascade-7.7.0/adm/cmake/occt_macros.cmake.orig	2022-11-11 23:36:02.000000000 +0000
++++ opencascade-7.7.0/adm/cmake/occt_macros.cmake	2023-07-20 17:19:39.520566947 +0100
+@@ -590,17 +590,17 @@
+     OCCT_INSERT_CODE_FOR_TARGET ()
+   endif()
+ 
+-  install (CODE
+-  "string (TOLOWER \"\${CMAKE_INSTALL_CONFIG_NAME}\" CMAKE_INSTALL_CONFIG_NAME_LOWERCASE)
+-  file (GLOB ALL_OCCT_TARGET_FILES \"${INSTALL_DIR}/${INSTALL_DIR_CMAKE}/OpenCASCADE*Targets-\${CMAKE_INSTALL_CONFIG_NAME_LOWERCASE}.cmake\")
+-  foreach(TARGET_FILENAME \${ALL_OCCT_TARGET_FILES})
+-    file (STRINGS \"\${TARGET_FILENAME}\" TARGET_FILE_CONTENT)
+-    file (REMOVE \"\${TARGET_FILENAME}\")
+-    foreach (line IN LISTS TARGET_FILE_CONTENT)
+-      string (REGEX REPLACE \"[\\\\]?[\\\$]{OCCT_INSTALL_BIN_LETTER}\" \"\${OCCT_INSTALL_BIN_LETTER}\" line \"\${line}\")
+-      file (APPEND \"\${TARGET_FILENAME}\" \"\${line}\\n\")
+-    endforeach()
+-  endforeach()")
++#  install (CODE
++#  "string (TOLOWER \"\${CMAKE_INSTALL_CONFIG_NAME}\" CMAKE_INSTALL_CONFIG_NAME_LOWERCASE)
++#  file (GLOB ALL_OCCT_TARGET_FILES \"${INSTALL_DIR}/${INSTALL_DIR_CMAKE}/OpenCASCADE*Targets-\${CMAKE_INSTALL_CONFIG_NAME_LOWERCASE}.cmake\")
++#  foreach(TARGET_FILENAME \${ALL_OCCT_TARGET_FILES})
++#    file (STRINGS \"\${TARGET_FILENAME}\" TARGET_FILE_CONTENT)
++#    file (REMOVE \"\${TARGET_FILENAME}\")
++#    foreach (line IN LISTS TARGET_FILE_CONTENT)
++#      string (REGEX REPLACE \"[\\\\]?[\\\$]{OCCT_INSTALL_BIN_LETTER}\" \"\${OCCT_INSTALL_BIN_LETTER}\" line \"\${line}\")
++#      file (APPEND \"\${TARGET_FILENAME}\" \"\${line}\\n\")
++#    endforeach()
++#  endforeach()")
+ endmacro()
+ 
+ macro (OCCT_INSERT_CODE_FOR_TARGET)
