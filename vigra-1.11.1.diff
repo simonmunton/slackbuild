@@ -1,3 +1,17 @@
+--- vigra-1.11.1/src/impex/hdf5impex.cxx.orig	2017-05-19 16:01:08.000000000 +0100
++++ vigra-1.11.1/src/impex/hdf5impex.cxx	2023-07-22 16:38:53.492909472 +0100
+@@ -190,7 +190,11 @@
+ {
+     // get information about object
+     H5O_info_t infobuf;
++#if H5Oget_info_by_name_vers >= 3
++    H5Oget_info_by_name(loc_id, name, &infobuf, H5O_INFO_BASIC, H5P_DEFAULT);
++#else
+     H5Oget_info_by_name(loc_id, name, &infobuf, H5P_DEFAULT);
++#endif
+     return infobuf.type;
+ }
+ 
 --- vigra-1.11.1/config/FindOpenEXR.cmake.orig	2017-05-19 16:01:08.000000000 +0100
 +++ vigra-1.11.1/config/FindOpenEXR.cmake	2022-09-17 10:48:56.895276941 +0100
 @@ -24,11 +24,12 @@
