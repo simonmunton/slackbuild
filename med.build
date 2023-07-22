@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
 VERSION=4.1.0+repack
 VERSIONEXTRA=
-BUILD=1
+BUILD=3
 
 WEBPAGE="https://launchpad.net/ubuntu/+source/med-fichier/"
 #https://www.salome-platform.org/downloads/current-version
@@ -47,6 +47,7 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  patch -p1 < ${CWD}/med-check_hdf5.patch
+ patch -p1 < ${CWD}/med-tests-fix-diff-filters.patch
 
 # patch -p1 < ${CWD}/med-ppc64el-support.patch
 # patch -p1 < ${CWD}/med-hdf5_link.patch
@@ -73,13 +74,16 @@ if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
+LDFLAGS="-lz" \
 PYTHON_VERSION=3 \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man \
-	    --disable-dependency-tracking
+	    --disable-dependency-tracking \
+	    --with-hdf5=/opt/hdf5-1.10 \
+	    --with-hdf5-lib=/opt/hdf5-1.10/lib${LIBDIRSUFFIX}
 
 #	    --with-hdf5-lib=/usr/lib${LIBDIRSUFFIX} \
 #	    --with-hdf5-include=/usr/include \
