@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/b
 #TAR_EXT=.tar.gz
-VERSION=0.27.0
+VERSION=0.28.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -111,6 +111,21 @@ else
 fi
 
 cd ..
+
+(
+  cd ${PKG}/usr/share/bcc
+  find . -type f | while read f
+  do
+    if grep -q "#!/usr/bin/python" $f 
+    then
+      sed -i -e "s@#!/usr/bin/python@#!/usr/bin/python3@" $f
+    fi
+    if grep -q "#!/usr/bin/env python" $f 
+    then
+      sed -i -e "s@#!/usr/bin/env python@#!/usr/bin/env python3@" $f
+    fi
+  done
+)
 
 strip_binaries
 
