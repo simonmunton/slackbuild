@@ -1,0 +1,82 @@
+--- qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/clientdeclarationprinter.cpp.orig	2023-07-07 13:29:20.000000000 +0100
++++ qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/clientdeclarationprinter.cpp	2023-08-06 11:03:23.534290658 +0100
+@@ -8,7 +8,7 @@
+ #include <google/protobuf/io/printer.h>
+ #include <google/protobuf/io/zero_copy_stream.h>
+ #include <google/protobuf/stubs/common.h>
+-#include <google/protobuf/stubs/logging.h>
++//#include <google/protobuf/stubs/logging.h>
+ 
+ #include <string>
+ #include <unordered_set>
+--- qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/qgrpcgenerator.cpp.orig	2023-07-07 13:29:20.000000000 +0100
++++ qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/qgrpcgenerator.cpp	2023-08-06 11:35:38.677198327 +0100
+@@ -12,11 +12,12 @@
+ 
+ #include <set>
+ #include <google/protobuf/compiler/code_generator.h>
+-#include <google/protobuf/stubs/logging.h>
++//#include <google/protobuf/stubs/logging.h>
+ #include <google/protobuf/stubs/common.h>
+ #include <google/protobuf/io/printer.h>
+ #include <google/protobuf/io/zero_copy_stream.h>
+ #include <google/protobuf/descriptor.h>
++#include <google/protobuf/descriptor_legacy.h>
+ 
+ using namespace ::QtGrpc;
+ using namespace ::qtprotoccommon;
+@@ -35,7 +36,7 @@
+                               std::string *error) const
+ {
+     assert(file != nullptr && generatorContext != nullptr);
+-    if (file->syntax() != FileDescriptor::SYNTAX_PROTO3) {
++    if (FileDescriptorLegacy(file).syntax() != FileDescriptorLegacy::SYNTAX_PROTO3) {
+         *error = "Invalid proto used. qtgrpcgen only supports 'proto3' syntax";
+         return false;
+     }
+--- qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/qgrpcgenerator.h.orig	2023-07-07 13:29:20.000000000 +0100
++++ qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtgrpcgen/qgrpcgenerator.h	2023-08-06 11:37:15.735193696 +0100
+@@ -5,6 +5,7 @@
+ #define QGRPCGENERATOR_H
+ 
+ #include <memory>
++#include <set>
+ #include "generatorbase.h"
+ 
+ namespace google::protobuf {
+--- qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtprotobufgen/qprotobufgenerator.cpp.orig	2023-07-07 13:29:20.000000000 +0100
++++ qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtprotobufgen/qprotobufgenerator.cpp	2023-08-06 11:29:45.974215155 +0100
+@@ -17,11 +17,12 @@
+ #include <array>
+ #include <numeric>
+ #include <set>
+-#include <google/protobuf/stubs/logging.h>
++//#include <google/protobuf/stubs/logging.h>
+ #include <google/protobuf/stubs/common.h>
+ #include <google/protobuf/io/printer.h>
+ #include <google/protobuf/io/zero_copy_stream.h>
+ #include <google/protobuf/descriptor.h>
++#include <google/protobuf/descriptor_legacy.h>
+ 
+ using namespace ::QtProtobuf;
+ using namespace ::qtprotoccommon;
+@@ -41,7 +42,7 @@
+ {
+     assert(file != nullptr && generatorContext != nullptr);
+ 
+-    if (file->syntax() != FileDescriptor::SYNTAX_PROTO3) {
++    if (FileDescriptorLegacy(file).syntax() != FileDescriptorLegacy::SYNTAX_PROTO3) {
+         *error = "Invalid proto used. qtprotobufgen only supports 'proto3' syntax";
+         return false;
+     }
+--- qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtprotoccommon/generatorbase.cpp.orig	2023-07-07 13:29:20.000000000 +0100
++++ qt-everywhere-src-6.5.2/qtgrpc/src/tools/qtprotoccommon/generatorbase.cpp	2023-08-06 11:04:34.954287250 +0100
+@@ -5,7 +5,7 @@
+ #include "generatorbase.h"
+ 
+ #include <google/protobuf/descriptor.h>
+-#include <google/protobuf/stubs/logging.h>
++//#include <google/protobuf/stubs/logging.h>
+ #include <google/protobuf/stubs/common.h>
+ #include <google/protobuf/io/printer.h>
+ #include <google/protobuf/io/zero_copy_stream.h>
