@@ -44,49 +44,238 @@
    EXPORT aliceVision-targets
  )
  
+--- AliceVision-20220505.156c632/src/software/utils/main_rigTransform.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/utils/main_rigTransform.cpp	2023-08-13 12:08:17.759028809 +0100
+@@ -13,7 +13,7 @@
+ #include <aliceVision/system/main.hpp>
+ 
+ #include <boost/program_options.hpp> 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <iostream>
+ #include <string>
+--- AliceVision-20220505.156c632/src/software/utils/sfmColorHarmonize/colorHarmonizeEngineGlobal.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/utils/sfmColorHarmonize/colorHarmonizeEngineGlobal.cpp	2023-08-13 12:08:29.024028272 +0100
+@@ -30,7 +30,7 @@
+ 
+ #include <dependencies/vectorGraphics/svgDrawer.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <numeric>
+ #include <iomanip>
+@@ -390,7 +390,7 @@
+   std::cout << "\n\nThere is :\n" << set_indeximage.size() << " images to transform." << std::endl;
+ 
+   //-> convert solution to gain offset and creation of the LUT per image
+-  boost::progress_display my_progress_bar( set_indeximage.size() );
++  boost::timer::progress_display my_progress_bar( set_indeximage.size() );
+   for (std::set<size_t>::const_iterator iterSet = set_indeximage.begin();
+     iterSet != set_indeximage.end(); ++iterSet, ++my_progress_bar)
+   {
+--- AliceVision-20220505.156c632/src/software/export/main_exportMeshroomMaya.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/export/main_exportMeshroomMaya.cpp	2023-08-13 12:10:56.431021239 +0100
+@@ -11,7 +11,7 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <OpenImageIO/imagebufalgo.h>
+ 
+@@ -103,7 +103,7 @@
+   sfmDataIO::Save(sfmData, outputFolder + "/scene.abc", sfmDataIO::ESfMData::ALL);
+ 
+   // export undistorted images and thumbnail images
+-  boost::progress_display progressBar(sfmData.getViews().size(), std::cout, "Exporting Images for MeshroomMaya\n");
++  boost::timer::progress_display progressBar(sfmData.getViews().size(), std::cout, "Exporting Images for MeshroomMaya\n");
+   for(auto& viewPair : sfmData.getViews())
+   {
+     const sfmData::View& view = *viewPair.second;
+--- AliceVision-20220505.156c632/src/software/export/main_exportMatches.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/export/main_exportMatches.cpp	2023-08-13 12:10:56.411021240 +0100
+@@ -21,7 +21,7 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <cstdlib>
+ #include <string>
+@@ -182,7 +182,7 @@
+   fs::create_directory(outputFolder);
+   ALICEVISION_LOG_INFO("Export pairwise matches");
+   const PairSet pairs = matching::getImagePairs(pairwiseMatches);
+-  boost::progress_display myProgressBar(pairs.size());
++  boost::timer::progress_display myProgressBar(pairs.size());
+   for (PairSet::const_iterator iter = pairs.begin(); iter != pairs.end(); ++iter, ++myProgressBar)
+   {
+     const std::size_t I = iter->first;
 --- AliceVision-20220505.156c632/src/software/export/main_exportMatlab.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/software/export/main_exportMatlab.cpp	2022-05-05 09:07:53.795378423 +0100
-@@ -14,6 +14,7 @@
++++ AliceVision-20220505.156c632/src/software/export/main_exportMatlab.cpp	2023-08-13 12:10:56.415021240 +0100
+@@ -12,8 +12,9 @@
+ 
+ #include <boost/program_options.hpp>
  #include <boost/filesystem.hpp>
- #include <boost/progress.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
  
 +#include <fstream>
  #include <stdlib.h>
  #include <stdio.h>
  #include <cmath>
+--- AliceVision-20220505.156c632/src/software/export/main_exportAnimatedCamera.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/export/main_exportAnimatedCamera.cpp	2023-08-13 12:10:56.393021241 +0100
+@@ -16,7 +16,7 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <cstdlib>
+ #include <limits>
+@@ -331,7 +331,7 @@
+   ALICEVISION_LOG_INFO("Build animated camera(s)...");
+ 
+   image::Image<image::RGBfColor> image, image_ud;
+-  boost::progress_display progressBar(sfmDataExport.getViews().size());
++  boost::timer::progress_display progressBar(sfmDataExport.getViews().size());
+ 
+   for(const auto& viewPair : sfmDataExport.getViews())
+   {
 --- AliceVision-20220505.156c632/src/software/export/main_exportPMVS.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/software/export/main_exportPMVS.cpp	2022-05-05 09:06:11.552383301 +0100
-@@ -14,6 +14,7 @@
++++ AliceVision-20220505.156c632/src/software/export/main_exportPMVS.cpp	2023-08-13 12:10:56.431021239 +0100
+@@ -12,8 +12,9 @@
+ 
+ #include <boost/program_options.hpp>
  #include <boost/filesystem.hpp>
- #include <boost/progress.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
  
 +#include <fstream>
  #include <stdlib.h>
  #include <stdio.h>
  #include <cmath>
+@@ -67,7 +68,7 @@
+ 
+   if (bOk)
+   {
+-    boost::progress_display my_progress_bar( sfm_data.getViews().size()*2 );
++    boost::timer::progress_display my_progress_bar( sfm_data.getViews().size()*2 );
+ 
+     // Since PMVS requires contiguous camera index, and that some views can have some missing poses,
+     // we reindex the poses to ensure a contiguous pose list.
+--- AliceVision-20220505.156c632/src/software/export/main_exportTracks.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/export/main_exportTracks.cpp	2023-08-13 12:10:56.431021239 +0100
+@@ -26,7 +26,7 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ // These constants define the current software version.
+ // They must be updated when the command line is changed.
+@@ -169,7 +169,7 @@
+ 
+   // for each pair, export the matches
+   fs::create_directory(outputFolder);
+-  boost::progress_display myProgressBar( (viewCount*(viewCount-1)) / 2.0 , std::cout, "Export pairwise tracks\n");
++  boost::timer::progress_display myProgressBar( (viewCount*(viewCount-1)) / 2.0 , std::cout, "Export pairwise tracks\n");
+ 
+   for(std::size_t I = 0; I < viewCount; ++I)
+   {
 --- AliceVision-20220505.156c632/src/software/export/main_exportMVE2.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/software/export/main_exportMVE2.cpp	2022-05-05 09:07:06.325380688 +0100
-@@ -14,6 +14,7 @@
++++ AliceVision-20220505.156c632/src/software/export/main_exportMVE2.cpp	2023-08-13 12:10:56.431021239 +0100
+@@ -12,8 +12,9 @@
+ 
+ #include <boost/program_options.hpp>
  #include <boost/filesystem.hpp>
- #include <boost/progress.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
  
 +#include <fstream>
  #include <stdlib.h>
  #include <stdio.h>
  #include <cmath>
---- AliceVision-20220505.156c632/src/software/pipeline/main_featureExtraction.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/software/pipeline/main_featureExtraction.cpp	2022-11-09 16:31:52.761689889 +0000
-@@ -27,6 +27,7 @@
+@@ -104,7 +105,7 @@
+     out << cameraCount << " " << featureCount << "\n";
+ 
+     // Export (calibrated) views as undistorted images
+-    boost::progress_display my_progress_bar(sfm_data.getViews().size());
++    boost::timer::progress_display my_progress_bar(sfm_data.getViews().size());
+     std::pair<int,int> w_h_image_size;
+     Image<RGBColor> image, image_ud, thumbnail;
+     std::string sOutViewIteratorDirectory;
+--- AliceVision-20220505.156c632/src/software/export/main_exportKeypoints.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/export/main_exportKeypoints.cpp	2023-08-13 12:10:56.411021240 +0100
+@@ -20,7 +20,7 @@
+ 
+ #include <boost/program_options.hpp>
  #include <boost/filesystem.hpp>
- #include <boost/progress.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <cstdlib>
+ #include <string>
+@@ -140,7 +140,7 @@
+ 
+   fs::create_directory(outputFolder);
+   ALICEVISION_LOG_INFO("Export extracted keypoints for all images");
+-  boost::progress_display myProgressBar(sfmData.views.size());
++  boost::timer::progress_display myProgressBar(sfmData.views.size());
+   for(const auto &iterViews : sfmData.views)
+   {
+     const View * view = iterViews.second.get();
+--- AliceVision-20220505.156c632/src/software/pipeline/main_cameraLocalization.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/pipeline/main_cameraLocalization.cpp	2023-08-13 12:09:29.934025366 +0100
+@@ -24,7 +24,7 @@
+ #include <aliceVision/system/cmdline.hpp>
+ 
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/program_options.hpp> 
+ #include <boost/accumulators/accumulators.hpp>
+ #include <boost/accumulators/statistics/stats.hpp>
+--- AliceVision-20220505.156c632/src/software/pipeline/main_rigLocalization.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/pipeline/main_rigLocalization.cpp	2023-08-13 12:09:29.989025363 +0100
+@@ -21,7 +21,7 @@
+ #include <aliceVision/system/main.hpp>
+ 
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/program_options.hpp> 
+ #include <boost/accumulators/accumulators.hpp>
+ #include <boost/accumulators/statistics/stats.hpp>
+--- AliceVision-20220505.156c632/src/software/pipeline/main_featureExtraction.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/pipeline/main_featureExtraction.cpp	2023-08-13 12:09:29.955025365 +0100
+@@ -25,8 +25,9 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
  
 +#include <iomanip>
  #include <string>
  #include <fstream>
  #include <sstream>
 --- AliceVision-20220505.156c632/src/software/pipeline/main_prepareDenseScene.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/software/pipeline/main_prepareDenseScene.cpp	2022-05-05 08:57:06.191409322 +0100
-@@ -20,6 +20,7 @@
++++ AliceVision-20220505.156c632/src/software/pipeline/main_prepareDenseScene.cpp	2023-08-13 12:09:29.969025364 +0100
+@@ -15,11 +15,12 @@
+ 
+ #include <boost/program_options.hpp>
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
  #include <stdlib.h>
  #include <stdio.h>
  #include <cmath>
@@ -94,6 +283,15 @@
  #include <vector>
  #include <set>
  #include <iterator>
+@@ -137,7 +138,7 @@
+                             "Choose '.exr' file type if you want AliceVision custom metadata");
+ 
+   // export data
+-  boost::progress_display progressBar(viewIds.size(), std::cout, "Exporting Scene Undistorted Images\n");
++  boost::timer::progress_display progressBar(viewIds.size(), std::cout, "Exporting Scene Undistorted Images\n");
+ 
+   // for exposure correction
+   const double medianCameraExposure = sfmData.getMedianCameraExposureSetting().getExposure();
 --- AliceVision-20220505.156c632/src/software/pipeline/main_LdrToHdrMerge.cpp.orig	2022-05-05 08:19:11.000000000 +0100
 +++ AliceVision-20220505.156c632/src/software/pipeline/main_LdrToHdrMerge.cpp	2022-11-09 16:30:31.246693778 +0000
 @@ -24,6 +24,7 @@
@@ -104,6 +302,17 @@
  
  // These constants define the current software version.
  // They must be updated when the command line is changed.
+--- AliceVision-20220505.156c632/src/software/pipeline/main_rigCalibration.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/pipeline/main_rigCalibration.cpp	2023-08-13 12:09:29.969025364 +0100
+@@ -21,7 +21,7 @@
+ #include <aliceVision/system/main.hpp>
+ 
+ #include <boost/filesystem.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/program_options.hpp> 
+ #include <boost/accumulators/accumulators.hpp>
+ #include <boost/accumulators/statistics/stats.hpp>
 --- AliceVision-20220505.156c632/src/software/pipeline/main_LdrToHdrSampling.cpp.orig	2022-05-05 08:19:11.000000000 +0100
 +++ AliceVision-20220505.156c632/src/software/pipeline/main_LdrToHdrSampling.cpp	2022-05-05 09:00:51.326398580 +0100
 @@ -33,6 +33,7 @@
@@ -124,6 +333,27 @@
  #include <sstream>
  
  
+--- AliceVision-20220505.156c632/src/software/convert/main_convertFloatDescriptorToUchar.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/software/convert/main_convertFloatDescriptorToUchar.cpp	2023-08-13 12:09:46.008024599 +0100
+@@ -9,7 +9,7 @@
+ #include <aliceVision/system/cmdline.hpp>
+ #include <aliceVision/system/main.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/filesystem.hpp>
+ #include <boost/program_options.hpp> 
+ #include <boost/algorithm/string/case_conv.hpp> 
+--- AliceVision-20220505.156c632/src/aliceVision/keyframe/SharpnessSelectionPreset.hpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/keyframe/SharpnessSelectionPreset.hpp	2023-08-13 11:10:39.637579452 +0100
+@@ -10,6 +10,7 @@
+ #include <iostream>
+ #include <algorithm>
+ #include <stdexcept>
++#include <cstdint>
+ 
+ namespace aliceVision {
+ namespace keyframe {
 --- AliceVision-20220505.156c632/src/aliceVision/keyframe/KeyframeSelector.cpp.orig	2022-05-05 08:19:11.000000000 +0100
 +++ AliceVision-20220505.156c632/src/aliceVision/keyframe/KeyframeSelector.cpp	2022-11-09 16:29:31.961696607 +0000
 @@ -12,6 +12,7 @@
@@ -134,8 +364,400 @@
  #include <random>
  #include <tuple>
  #include <cassert>
+--- AliceVision-20220505.156c632/src/aliceVision/localization/VoctreeLocalizer.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/localization/VoctreeLocalizer.cpp	2023-08-13 12:03:47.044041726 +0100
+@@ -25,7 +25,7 @@
+ #include <aliceVision/system/Logger.hpp>
+ #include <aliceVision/system/Timer.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/filesystem.hpp>
+ 
+ #include <algorithm>
+@@ -302,7 +302,7 @@
+   // add its visual words to the database.
+   // then only store the feature and descriptors that have a 3D point associated
+   ALICEVISION_LOG_DEBUG("Build observations per view");
+-  boost::progress_display my_progress_bar(_sfm_data.getViews().size(),
++  boost::timer::progress_display my_progress_bar(_sfm_data.getViews().size(),
+                                      std::cout, "\n- Load Features and Descriptors per view -\n");
+ 
+   // Build observations per view
+--- AliceVision-20220505.156c632/src/aliceVision/localization/CCTagLocalizer.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/localization/CCTagLocalizer.cpp	2023-08-13 12:03:47.024041727 +0100
+@@ -21,7 +21,7 @@
+ 
+ #include <cctag/ICCTag.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/filesystem.hpp>
+ 
+ #include <algorithm>
+--- AliceVision-20220505.156c632/src/aliceVision/voctree/Database.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/voctree/Database.cpp	2023-08-13 11:51:04.796506761 +0100
+@@ -7,7 +7,7 @@
+ #include "Database.hpp"
+ #include <boost/accumulators/accumulators.hpp>
+ #include <boost/accumulators/statistics/tail.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <cmath>
+ #include <fstream>
+ #include <stdexcept>
+@@ -69,7 +69,7 @@
+   matches.clear();
+   // since we already know the size of the vectors, in order to parallelize the 
+   // query allocate the whole memory
+-  boost::progress_display display(database_.size());
++  boost::timer::progress_display display(database_.size());
+   
+   //#pragma omp parallel for default(none) shared(database_)
+   for(const auto &doc : database_)
+--- AliceVision-20220505.156c632/src/aliceVision/voctree/databaseIO.tcc.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/voctree/databaseIO.tcc	2023-08-13 12:07:45.789030335 +0100
+@@ -12,7 +12,7 @@
+ 
+ #include <boost/filesystem.hpp>
+ #include <boost/algorithm/string/case_conv.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <exception>
+ #include <iostream>
+@@ -34,7 +34,7 @@
+   
+   // Read the descriptors
+   ALICEVISION_LOG_DEBUG("Reading the descriptors from " << descriptorsFiles.size() <<" files...");
+-  boost::progress_display display(descriptorsFiles.size());
++  boost::timer::progress_display display(descriptorsFiles.size());
+ 
+   // Run through the path vector and read the descriptors
+   for(const auto &currentFile : descriptorsFiles)
+@@ -75,7 +75,7 @@
+ 
+   // Read the descriptors
+   ALICEVISION_LOG_DEBUG("Reading the descriptors from " << descriptorsFiles.size() <<" files...");
+-  boost::progress_display display(descriptorsFiles.size());
++  boost::timer::progress_display display(descriptorsFiles.size());
+ 
+   // Run through the path vector and read the descriptors
+   for(const auto &currentFile : descriptorsFiles)
+@@ -147,7 +147,7 @@
+   
+   // Read the descriptors
+   ALICEVISION_LOG_DEBUG("queryDatabase: Reading the descriptors from " << descriptorsFiles.size() << " files...");
+-  boost::progress_display display(descriptorsFiles.size());
++  boost::timer::progress_display display(descriptorsFiles.size());
+ 
+   #pragma omp parallel for
+   // Run through the path vector and read the descriptors
+--- AliceVision-20220505.156c632/src/aliceVision/voctree/descriptorLoader.tcc.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/voctree/descriptorLoader.tcc	2023-08-13 11:53:59.248069771 +0100
+@@ -9,7 +9,7 @@
+ 
+ #include <boost/filesystem.hpp>
+ #include <boost/algorithm/string/case_conv.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <iostream>
+ #include <fstream>
+@@ -34,7 +34,7 @@
+ 
+   // Display infos and progress bar
+   ALICEVISION_LOG_DEBUG("Pre-computing the memory needed...");
+-  boost::progress_display display(descriptorsFiles.size());
++  boost::timer::progress_display display(descriptorsFiles.size());
+ 
+   // Read all files and get the number of descriptors to load
+   for(const auto &currentFile : descriptorsFiles)
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/sequential/ReconstructionEngine_sequentialSfM.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/sequential/ReconstructionEngine_sequentialSfM.cpp	2023-08-13 12:05:31.360036749 +0100
+@@ -32,7 +32,7 @@
+ 
+ #include <dependencies/htmlDoc/htmlDoc.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/format.hpp>
+ #include <boost/functional/hash.hpp>
+ #include <boost/property_tree/json_parser.hpp>
+@@ -1248,7 +1248,7 @@
+   bestImagePairs.reserve(_pairwiseMatches->size());
+   
+   // Compute the relative pose & the 'baseline score'
+-  boost::progress_display my_progress_bar( _pairwiseMatches->size(),
++  boost::timer::progress_display my_progress_bar( _pairwiseMatches->size(),
+     std::cout,"Automatic selection of an initial pair:\n" );
+ 
+ #pragma omp parallel for schedule(dynamic)
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/regionsIO.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/regionsIO.cpp	2023-08-13 12:06:19.045034474 +0100
+@@ -7,7 +7,7 @@
+ 
+ #include "regionsIO.hpp"
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ #include <boost/filesystem.hpp>
+ 
+ #include <atomic>
+@@ -191,7 +191,7 @@
+   auto last = std::unique(featuresFolders.begin(), featuresFolders.end());
+   featuresFolders.erase(last, featuresFolders.end());
+ 
+-  boost::progress_display progressBar(sfmData.getViews().size() * imageDescriberTypes.size(), std::cout, "Loading regions\n");
++  boost::timer::progress_display progressBar(sfmData.getViews().size() * imageDescriberTypes.size(), std::cout, "Loading regions\n");
+ 
+   std::atomic_bool invalid(false);
+ 
+@@ -239,7 +239,7 @@
+   std::vector<std::string> featuresFolders = sfmData.getFeaturesFolders(); // add sfm features folders
+   featuresFolders.insert(featuresFolders.end(), folders.begin(), folders.end()); // add user features folders
+ 
+-  boost::progress_display progressBar(sfmData.getViews().size(), std::cout, "Loading features\n");
++  boost::timer::progress_display progressBar(sfmData.getViews().size(), std::cout, "Loading features\n");
+ 
+   // read for each view the corresponding features and store them as PointFeatures
+   std::atomic_bool invalid(false);
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/global/ReconstructionEngine_globalSfM.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/global/ReconstructionEngine_globalSfM.cpp	2023-08-13 12:04:53.092038575 +0100
+@@ -20,7 +20,7 @@
+ 
+ #include <dependencies/htmlDoc/htmlDoc.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #ifdef _MSC_VER
+ #pragma warning( once : 4267 ) //warning C4267: 'argument' : conversion from 'size_t' to 'const int', possible loss of data
+@@ -448,7 +448,7 @@
+     poseWiseMatches[Pair(v1->getPoseId(), v2->getPoseId())].insert(pair);
+   }
+ 
+-  boost::progress_display progressBar( poseWiseMatches.size(), std::cout, "\n- Relative pose computation -\n" );
++  boost::timer::progress_display progressBar( poseWiseMatches.size(), std::cout, "\n- Relative pose computation -\n" );
+   #pragma omp parallel for schedule(dynamic)
+   // Compute the relative pose from pairwise point matches:
+   for (int i = 0; i < poseWiseMatches.size(); ++i)
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/global/GlobalSfMTranslationAveragingSolver.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/global/GlobalSfMTranslationAveragingSolver.cpp	2023-08-13 12:04:53.091038575 +0100
+@@ -30,7 +30,7 @@
+ 
+ #include <aliceVision/utils/Histogram.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ namespace aliceVision {
+ namespace sfm {
+@@ -403,7 +403,7 @@
+ 
+     aliceVision::sfm::MutexSet<myEdge> m_mutexSet;
+ 
+-    boost::progress_display my_progress_bar(
++    boost::timer::progress_display my_progress_bar(
+       vec_edges.size(),
+       std::cout,
+       "\nRelative translations computation (edge coverage algorithm)\n");
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/panorama/ReconstructionEngine_panorama.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/panorama/ReconstructionEngine_panorama.cpp	2023-08-13 12:05:48.702035921 +0100
+@@ -37,7 +37,7 @@
+ 
+ #include <dependencies/htmlDoc/htmlDoc.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #ifdef _MSC_VER
+ #pragma warning( once : 4267 ) //warning C4267: 'argument' : conversion from 'size_t' to 'const int', possible loss of data
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/structureFromKnownPoses/StructureEstimationFromKnownPoses.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/pipeline/structureFromKnownPoses/StructureEstimationFromKnownPoses.cpp	2023-08-13 12:06:30.316033936 +0100
+@@ -16,7 +16,7 @@
+ #include <aliceVision/sfm/sfmTriangulation.hpp>
+ #include <aliceVision/config.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ namespace aliceVision {
+ namespace sfm {
+@@ -79,7 +79,7 @@
+   const feature::RegionsPerView& regionsPerView,
+   double geometricErrorMax)
+ {
+-  boost::progress_display my_progress_bar( pairs.size(), std::cout,
++  boost::timer::progress_display my_progress_bar( pairs.size(), std::cout,
+     "Compute pairwise fundamental guided matching:\n" );
+ 
+   #pragma omp parallel
+@@ -182,7 +182,7 @@
+   typedef std::vector< graph::Triplet > Triplets;
+   const Triplets triplets = graph::tripletListing(pairs);
+ 
+-  boost::progress_display my_progress_bar( triplets.size(), std::cout,
++  boost::timer::progress_display my_progress_bar( triplets.size(), std::cout,
+     "Per triplet tracks validation (discard spurious correspondences):\n" );
+   #pragma omp parallel
+   for( Triplets::const_iterator it = triplets.begin(); it != triplets.end(); ++it)
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/FrustumFilter.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/FrustumFilter.cpp	2023-08-13 12:07:07.625032156 +0100
+@@ -13,7 +13,7 @@
+ #include <aliceVision/geometry/HalfPlane.hpp>
+ #include <aliceVision/config.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <fstream>
+ 
+@@ -68,7 +68,7 @@
+   std::transform(z_near_z_far_perView.begin(), z_near_z_far_perView.end(),
+     std::back_inserter(viewIds), stl::RetrieveKey());
+ 
+-  boost::progress_display my_progress_bar(
++  boost::timer::progress_display my_progress_bar(
+     viewIds.size() * (viewIds.size()-1)/2,
+     std::cout, "\nCompute frustum intersection\n");
+ 
+--- AliceVision-20220505.156c632/src/aliceVision/sfm/sfmTriangulation.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfm/sfmTriangulation.cpp	2023-08-13 12:07:07.625032156 +0100
+@@ -10,7 +10,7 @@
+ #include <aliceVision/robustEstimation/randSampling.hpp>
+ #include <aliceVision/config.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <deque>
+ #include <memory>
+@@ -32,9 +32,9 @@
+ void StructureComputation_blind::triangulate(sfmData::SfMData& sfmData, std::mt19937 & randomNumberGenerator) const
+ {
+   std::deque<IndexT> rejectedId;
+-  std::unique_ptr<boost::progress_display> my_progress_bar;
++  std::unique_ptr<boost::timer::progress_display> my_progress_bar;
+   if (_bConsoleVerbose)
+-    my_progress_bar.reset( new boost::progress_display(
++    my_progress_bar.reset( new boost::timer::progress_display(
+     sfmData.structure.size(),
+     std::cout,
+     "Blind triangulation progress:\n" ));
+@@ -118,9 +118,9 @@
+ void StructureComputation_robust::robust_triangulation(sfmData::SfMData& sfmData, std::mt19937 & randomNumberGenerator) const
+ {
+   std::deque<IndexT> rejectedId;
+-  std::unique_ptr<boost::progress_display> my_progress_bar;
++  std::unique_ptr<boost::timer::progress_display> my_progress_bar;
+   if(_bConsoleVerbose)
+-    my_progress_bar.reset( new boost::progress_display(
++    my_progress_bar.reset( new boost::timer::progress_display(
+     sfmData.structure.size(),
+     std::cout,
+     "Robust triangulation progress:\n" ));
+--- AliceVision-20220505.156c632/src/aliceVision/image/cache.hpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/image/cache.hpp	2022-12-22 16:08:58.129267068 +0000
+@@ -18,6 +18,7 @@
+ #include <boost/multi_index/member.hpp>
+ 
+ #include <fstream>
++#include <list>
+ #include <sstream>
+ #include <queue>
+ 
+--- AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/GeometricFilter.hpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/GeometricFilter.hpp	2023-08-13 11:59:05.591055155 +0100
+@@ -13,7 +13,7 @@
+ #include <aliceVision/matching/IndMatch.hpp>
+ #include <aliceVision/matchingImageCollection/GeometricFilterMatrix.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <vector>
+ #include <map>
+@@ -51,7 +51,7 @@
+ {
+   out_geometricMatches.clear();
+ 
+-  boost::progress_display progressBar(putativeMatches.size(), std::cout, "Robust Model Estimation\n");
++  boost::timer::progress_display progressBar(putativeMatches.size(), std::cout, "Robust Model Estimation\n");
+   
+ #pragma omp parallel for schedule(dynamic)
+   for (int i = 0; i < (int)putativeMatches.size(); ++i)
+--- AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/ImageCollectionMatcher_generic.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/ImageCollectionMatcher_generic.cpp	2023-08-13 11:59:55.481052775 +0100
+@@ -13,7 +13,7 @@
+ #include <aliceVision/matchingImageCollection/IImageCollectionMatcher.hpp>
+ #include <aliceVision/config.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ namespace aliceVision {
+ namespace matchingImageCollection {
+@@ -43,7 +43,7 @@
+   const bool b_multithreaded_pair_search = (_matcherType == CASCADE_HASHING_L2);
+   // -> set to true for CASCADE_HASHING_L2, since OpenMP instructions are not used in this matcher
+ 
+-  boost::progress_display my_progress_bar( pairs.size() );
++  boost::timer::progress_display my_progress_bar( pairs.size() );
+ 
+   // Sort pairs according the first index to minimize the MatcherT build operations
+   typedef std::map<size_t, std::vector<size_t> > Map_vectorT;
+--- AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/ImageCollectionMatcher_cascadeHashing.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/matchingImageCollection/ImageCollectionMatcher_cascadeHashing.cpp	2023-08-13 11:59:36.313053689 +0100
+@@ -11,7 +11,7 @@
+ #include <aliceVision/matching/filters.hpp>
+ #include <aliceVision/config.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ namespace aliceVision {
+ namespace matchingImageCollection {
+@@ -40,7 +40,7 @@
+   PairwiseMatches & map_PutativesMatches // the pairwise photometric corresponding points
+ )
+ {
+-  boost::progress_display my_progress_bar( pairs.size() );
++  boost::timer::progress_display my_progress_bar( pairs.size() );
+ 
+   // Collect used view indexes
+   std::set<IndexT> used_index;
+--- AliceVision-20220505.156c632/src/aliceVision/sfmData/colorize.cpp.orig	2022-05-05 08:19:11.000000000 +0100
++++ AliceVision-20220505.156c632/src/aliceVision/sfmData/colorize.cpp	2023-08-13 11:28:52.691527299 +0100
+@@ -12,7 +12,7 @@
+ #include <aliceVision/stl/mapUtils.hpp>
+ #include <aliceVision/image/io.hpp>
+ 
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ #include <map>
+ #include <vector>
+@@ -22,7 +22,7 @@
+ 
+ void colorizeTracks(SfMData& sfmData)
+ {
+-  boost::progress_display progressBar(sfmData.getLandmarks().size(), std::cout, "\nCompute scene structure color\n");
++  boost::timer::progress_display progressBar(sfmData.getLandmarks().size(), std::cout, "\nCompute scene structure color\n");
+ 
+   std::vector<std::reference_wrapper<Landmark>> remainingLandmarksToColor;
+   remainingLandmarksToColor.reserve(sfmData.getLandmarks().size());
 --- AliceVision-20220505.156c632/src/aliceVision/fuseCut/DelaunayGraphCut.cpp.orig	2022-05-05 08:19:11.000000000 +0100
-+++ AliceVision-20220505.156c632/src/aliceVision/fuseCut/DelaunayGraphCut.cpp	2022-11-09 16:34:47.315681561 +0000
++++ AliceVision-20220505.156c632/src/aliceVision/fuseCut/DelaunayGraphCut.cpp	2023-08-13 12:01:52.393047196 +0100
+@@ -34,7 +34,7 @@
+ #include <boost/math/constants/constants.hpp>
+ #include <boost/accumulators/accumulators.hpp>
+ #include <boost/accumulators/statistics.hpp>
+-#include <boost/progress.hpp>
++#include <boost/timer/progress_display.hpp>
+ 
+ namespace aliceVision {
+ namespace fuseCut {
 @@ -1629,7 +1629,7 @@
      Point3d tempIntersectPt;
      const Point2d triangleUv = getLineTriangleIntersectBarycCoords(&tempIntersectPt, A, B, C, &originPt, &DirVec);
@@ -145,6 +767,15 @@
      {
          // This is not suppose to happen in real life, we log a warning instead of raising an exeption if we face a border case
          // ALICEVISION_LOG_WARNING("Invalid/notNormal intersection point found during rayIntersectTriangle.");
+@@ -1874,7 +1874,7 @@
+     GeometriesCount totalGeometriesIntersectedFrontCount;
+     GeometriesCount totalGeometriesIntersectedBehindCount;
+ 
+-    boost::progress_display progressBar(std::min(size_t(100), verticesRandIds.size()), std::cout, "fillGraphPartPtRc\n");
++    boost::timer::progress_display progressBar(std::min(size_t(100), verticesRandIds.size()), std::cout, "fillGraphPartPtRc\n");
+     size_t progressStep = verticesRandIds.size() / 100;
+     progressStep = std::max(size_t(1), progressStep);
+ #pragma omp parallel for reduction(+:totalStepsFront,totalRayFront,totalStepsBehind,totalRayBehind,totalCamHaveVisibilityOnVertex,totalOfVertex,totalIsRealNrc)
 --- AliceVision-20220505.156c632/src/aliceVision/sfmDataIO/middlebury.cpp.orig	2022-05-05 08:19:11.000000000 +0100
 +++ AliceVision-20220505.156c632/src/aliceVision/sfmDataIO/middlebury.cpp	2022-05-05 08:29:11.661548739 +0100
 @@ -8,6 +8,7 @@
