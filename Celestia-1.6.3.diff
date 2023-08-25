@@ -1,0 +1,14 @@
+--- Celestia-1.6.3/src/celestia/celx.cpp.orig	2023-04-13 18:47:06.000000000 +0100
++++ Celestia-1.6.3/src/celestia/celx.cpp	2023-08-21 21:25:17.801984550 +0100
+@@ -673,7 +673,10 @@
+     //if (!lua_checkstack(co, narg))
+     //   luaL_error(L, "too many arguments to resume");
+     lua_xmove(L, co, narg);
+-#if LUA_VERSION_NUM >= 502
++#if LUA_VERSION_NUM >= 504
++    int nresults;
++    status = lua_resume(co, NULL, narg, &nresults);
++#elif LUA_VERSION_NUM >= 502
+     status = lua_resume(co, NULL, narg);
+ #else
+     status = lua_resume(co, narg);
