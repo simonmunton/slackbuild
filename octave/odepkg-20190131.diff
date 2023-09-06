@@ -1,0 +1,1238 @@
+--- odepkg-20190131/src/odepkg_octsolver_radau.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_radau.cc	2023-09-05 17:35:29.488625920 +0100
+@@ -97,7 +97,7 @@
+   varin(0) = X; varin(1) = A;
+   for (octave_idx_type vcnt = 0; vcnt < vradauextarg.length (); vcnt++)
+     varin(vcnt+2) = vradauextarg(vcnt);
+-  octave_value_list vout = feval (vradauodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vradauodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -183,10 +183,10 @@
+   octave_value vy = octave_value (A);
+ 
+   // Check if an 'Events' function has been set by the user
+-  if (!vradauevefun.is_empty ()) {
++  if (!vradauevefun.isempty ()) {
+     vradauevesol = odepkg_auxiliary_evaleventfun 
+       (vradauevefun, vt, vy, vradauextarg, 1);
+-    if (!vradauevesol(0).cell_value ()(0).is_empty ())
++    if (!vradauevesol(0).cell_value ()(0).isempty ())
+       if (vradauevesol(0).cell_value ()(0).int_value () == 1) {
+         ColumnVector vttmp = vradauevesol(0).cell_value ()(2).column_vector_value ();
+         Matrix vrtmp = vradauevesol(0).cell_value ()(3).matrix_value ();
+@@ -202,7 +202,7 @@
+ 
+   // Check if an 'OutputFcn' has been set by the user (including the
+   // values of the options for 'OutputSel' and 'Refine')
+-  if (!vradaupltfun.is_empty ()) {
++  if (!vradaupltfun.isempty ()) {
+     if (vradaurefine.int_value () > 0) {
+       ColumnVector B(N); double vtb = 0.0;
+       for (octave_idx_type vcnt = 1; vcnt < vradaurefine.int_value (); vcnt++) {
+@@ -304,8 +304,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 4) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(3).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(3).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 3; vcnt < nargin; vcnt++){
+         vradauextarg(vcnt-3) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -324,7 +324,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -333,7 +333,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NormCotrol, NonNegative, JPattern, Vectorized, MStateDependence, MVPattern,
+   // MassSingular, InitialSlope, BDF
+@@ -344,7 +344,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ 
+ 
+@@ -367,13 +367,13 @@
+   }
+ 
+   vradaupltfun = vodeopt.contents ("OutputFcn");
+-  if (vradaupltfun.is_empty () && nargout == 0) vradaupltfun = "odeplot";
++  if (vradaupltfun.isempty () && nargout == 0) vradaupltfun = "odeplot";
+ 
+   vradauoutsel = vodeopt.contents ("OutputSel");
+   vradaurefine = vodeopt.contents ("Refine");
+   vradauevefun = vodeopt.contents ("Events");
+ 
+-    if (vodeopt.contents("InitialStep").is_empty ()) {
++    if (vodeopt.contents("InitialStep").isempty ()) {
+     vodeopt.assign("InitialStep", 1.0e-6);
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value %3.1e is used",
+@@ -384,13 +384,13 @@
+   // options can be set by the user to another value than default
+   vradaujacfun = vodeopt.contents ("Jacobian");
+   octave_idx_type vradaujac = 0; // We need to set this if no Jac available
+-  if (!vradaujacfun.is_empty ()) vradaujac = 1;
++  if (!vradaujacfun.isempty ()) vradaujac = 1;
+ 
+   // Implementation of the option 'Mass' has been finished, these
+   // options can be set by the user to another value than default
+   vradaumass = vodeopt.contents ("Mass");
+   octave_idx_type vradaumas = 0;
+-  if (!vradaumass.is_empty ()) {
++  if (!vradaumass.isempty ()) {
+     vradaumas = 1;
+     if (vradaumass.is_function_handle () || vradaumass.is_inline_function ())
+       warning_with_id ("OdePkg:InvalidOption",
+@@ -444,9 +444,9 @@
+   octave_value vtim = args(1).vector_value ()(0);
+   octave_value vsol = args(2);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vradaupltfun.is_empty ()) odepkg_auxiliary_evalplotfun 
++  if (!vradaupltfun.isempty ()) odepkg_auxiliary_evalplotfun 
+     (vradaupltfun, vradauoutsel, args(1), args(2), vradauextarg, 0);
+-  if (!vradauevefun.is_empty ())
++  if (!vradauevefun.isempty ())
+     odepkg_auxiliary_evaleventfun (vradauevefun, vtim, args(2), vradauextarg, 0);
+ 
+   // We are calling the core solver and solve the set of ODEs or DAEs
+@@ -483,9 +483,9 @@
+   octave_value vted = octave_value (XEND);
+   octave_value vfin = octave_value (vlastline);
+ 
+-  if (!vradaupltfun.is_empty ()) odepkg_auxiliary_evalplotfun
++  if (!vradaupltfun.isempty ()) odepkg_auxiliary_evalplotfun
+     (vradaupltfun, vradauoutsel, vted, vfin, vradauextarg, 2);
+-  if (!vradauevefun.is_empty ()) odepkg_auxiliary_evaleventfun
++  if (!vradauevefun.isempty ()) odepkg_auxiliary_evaleventfun
+     (vradauevefun, vted, vfin, vradauextarg, 2);
+   
+   // Get the stats information as an octave_scalar_map if the option 'Stats'
+@@ -511,9 +511,9 @@
+     vretmap.assign ("x", vtres);
+     vretmap.assign ("y", vyres);
+     vretmap.assign ("solver", "ode2r");
+-    if (!vstatinfo.is_empty ()) // Event implementation
++    if (!vstatinfo.isempty ()) // Event implementation
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vradauevefun.is_empty ()) {
++    if (!vradauevefun.isempty ()) {
+       vretmap.assign ("ie", vradauevesol(0).cell_value ()(1));
+       vretmap.assign ("xe", vradauevesol(0).cell_value ()(2));
+       vretmap.assign ("ye", vradauevesol(0).cell_value ()(3));
+@@ -531,7 +531,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vradauevefun.is_empty ()) {
++    if (!vradauevefun.isempty ()) {
+       vretval(2) = vradauevesol(0).cell_value ()(2);
+       vretval(3) = vradauevesol(0).cell_value ()(3);
+       vretval(4) = vradauevesol(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_octsolver_seulex.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_seulex.cc	2023-09-05 17:36:48.859622133 +0100
+@@ -100,7 +100,7 @@
+   varin(0) = X; varin(1) = A;
+   for (octave_idx_type vcnt = 0; vcnt < vseulexextarg.length (); vcnt++)
+     varin(vcnt+2) = vseulexextarg(vcnt);
+-  octave_value_list vout = feval (vseulexodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vseulexodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -188,10 +188,10 @@
+ 
+   vseulexevebrk = false;
+   // Check if an 'Events' function has been set by the user
+-  if (!vseulexevefun.is_empty ()) {
++  if (!vseulexevefun.isempty ()) {
+     vseulexevesol = odepkg_auxiliary_evaleventfun 
+       (vseulexevefun, vt, vy, vseulexextarg, 1);
+-    if (!vseulexevesol(0).cell_value ()(0).is_empty ())
++    if (!vseulexevesol(0).cell_value ()(0).isempty ())
+       if (vseulexevesol(0).cell_value ()(0).int_value () == 1) {
+         ColumnVector vttmp = vseulexevesol(0).cell_value ()(2).column_vector_value ();
+         Matrix vrtmp = vseulexevesol(0).cell_value ()(3).matrix_value ();
+@@ -209,7 +209,7 @@
+   // Check if an 'OutputFcn' has been set by the user (including the
+   // values of the options for 'OutputSel' and 'Refine')
+   vseulexpltbrk = false;
+-  if (!vseulexpltfun.is_empty ()) {
++  if (!vseulexpltfun.isempty ()) {
+     if (vseulexrefine.int_value () > 0) {
+       ColumnVector B(N); double vtb = 0.0;
+       for (octave_idx_type vcnt = 1; vcnt < vseulexrefine.int_value (); vcnt++) {
+@@ -312,8 +312,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 4) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(3).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(3).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 3; vcnt < nargin; vcnt++){
+         vseulexextarg(vcnt-3) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -332,7 +332,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -341,7 +341,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NormCotrol, NonNegative, JPattern, Vetorized, MStateDependence, MVPattern,
+   // MassSingular, InitialSlope, BDF
+@@ -352,7 +352,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ /* Start PREPROCESSING, ie. check which options have been set and
+  * print warnings if there are options that can't be handled by this
+@@ -375,7 +375,7 @@
+   // Implementation of the option OutputFcn has been finished, this
+   // option can be set by the user to another value than default value
+   vseulexpltfun = vodeopt.contents ("OutputFcn");
+-  if (vseulexpltfun.is_empty () && nargout == 0) vseulexpltfun = "odeplot";
++  if (vseulexpltfun.isempty () && nargout == 0) vseulexpltfun = "odeplot";
+ 
+   vseulexoutsel = vodeopt.contents ("OutputSel");
+   vseulexrefine = vodeopt.contents ("Refine");
+@@ -383,7 +383,7 @@
+ 
+   // Implementation of the option InitialStep has been finished, this
+   // option can be set by the user to another value than default value
+-  if (vodeopt.contents("InitialStep").is_empty ()) {
++  if (vodeopt.contents("InitialStep").isempty ()) {
+     vodeopt.assign("InitialStep", 1.0e-6);
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value %3.1e is used",
+@@ -395,13 +395,13 @@
+   // options can be set by the user to another value than default
+   vseulexjacfun = vodeopt.contents ("Jacobian");
+   octave_idx_type vseulexjac = 0; // We need to set this if no Jac available
+-  if (!vseulexjacfun.is_empty ()) vseulexjac = 1;
++  if (!vseulexjacfun.isempty ()) vseulexjac = 1;
+ 
+   // Implementation of the option 'Mass' has been finished, these
+   // options can be set by the user to another value than default
+   vseulexmass = vodeopt.contents ("Mass");
+   octave_idx_type vseulexmas = 0;
+-  if (!vseulexmass.is_empty ()) {
++  if (!vseulexmass.isempty ()) {
+     vseulexmas = 1;
+     if (vseulexmass.is_function_handle () || vseulexmass.is_inline_function ())
+       warning_with_id ("OdePkg:InvalidOption",
+@@ -456,9 +456,9 @@
+   octave_value vtim = args(1).vector_value ()(0);
+   octave_value vsol = args(2);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vseulexpltfun.is_empty ()) odepkg_auxiliary_evalplotfun 
++  if (!vseulexpltfun.isempty ()) odepkg_auxiliary_evalplotfun 
+     (vseulexpltfun, vseulexoutsel, args(1), args(2), vseulexextarg, 0);
+-  if (!vseulexevefun.is_empty ())
++  if (!vseulexevefun.isempty ())
+     odepkg_auxiliary_evaleventfun (vseulexevefun, vtim, args(2), vseulexextarg, 0);
+ 
+   // We are calling the core solver and solve the set of ODEs or DAEs
+@@ -499,9 +499,9 @@
+   octave_value vted = octave_value (XEND);
+   octave_value vfin = octave_value (vlastline);
+ 
+-  if (!vseulexpltfun.is_empty ()) odepkg_auxiliary_evalplotfun
++  if (!vseulexpltfun.isempty ()) odepkg_auxiliary_evalplotfun
+     (vseulexpltfun, vseulexoutsel, vted, vfin, vseulexextarg, 2);
+-  if (!vseulexevefun.is_empty ()) odepkg_auxiliary_evaleventfun
++  if (!vseulexevefun.isempty ()) odepkg_auxiliary_evaleventfun
+     (vseulexevefun, vted, vfin, vseulexextarg, 2);
+   
+   // Get the stats information as an octave_scalar_map if the option 'Stats'
+@@ -526,9 +526,9 @@
+     vretmap.assign ("x", vtres);
+     vretmap.assign ("y", vyres);
+     vretmap.assign ("solver", "odesx");
+-    if (!vstatinfo.is_empty ()) // Event implementation
++    if (!vstatinfo.isempty ()) // Event implementation
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vseulexevefun.is_empty ()) {
++    if (!vseulexevefun.isempty ()) {
+       vretmap.assign ("ie", vseulexevesol(0).cell_value ()(1));
+       vretmap.assign ("xe", vseulexevesol(0).cell_value ()(2));
+       vretmap.assign ("ye", vseulexevesol(0).cell_value ()(3));
+@@ -546,7 +546,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vseulexevefun.is_empty ()) {
++    if (!vseulexevefun.isempty ()) {
+       vretval(2) = vseulexevesol(0).cell_value ()(2);
+       vretval(3) = vseulexevesol(0).cell_value ()(3);
+       vretval(4) = vseulexevesol(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_octsolver_mebdfi.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_mebdfi.cc	2023-09-05 17:32:48.261633613 +0100
+@@ -140,7 +140,7 @@
+   varin(0) = T; varin(1) = A; varin(2) = APRIME;
+   for (octave_idx_type vcnt = 0; vcnt < vmebdfiextarg.length (); vcnt++)
+     varin(vcnt+3) = vmebdfiextarg(vcnt);
+-  octave_value_list vout = feval (vmebdfiodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vmebdfiodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -388,8 +388,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 5) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(4).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(4).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 4; vcnt < nargin; vcnt++)
+         vmebdfiextarg(vcnt-4) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -407,7 +407,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -416,7 +416,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NonNegative, Refine, Mass, MStateDependence,
+   //        MVPattern, MassSingular, InitialSlope, BDF
+@@ -427,7 +427,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ 
+ /* Start PREPROCESSING, ie. check which options have been set and
+@@ -446,13 +446,13 @@
+   // Implementation of the option OutputFcn has been finished, this
+   // option can be set by the user to another value than default value
+   octave_value vplot = vodeopt.contents ("OutputFcn");
+-  if (vplot.is_empty () && nargout == 0) vplot = "odeplot";
++  if (vplot.isempty () && nargout == 0) vplot = "odeplot";
+ 
+   octave_value voutsel = vodeopt.contents ("OutputSel");
+ 
+   // Implementation of the option InitialStep has been finished, this
+   // option can be set by the user to another value than default value
+-  if (vodeopt.contents("InitialStep").is_empty ()) {
++  if (vodeopt.contents("InitialStep").isempty ()) {
+     vodeopt.assign("InitialStep", 1.0e-6);
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value %3.1e is used",
+@@ -468,7 +468,7 @@
+   // The options 'Jacobian', 'JPattern' and 'Vectorized'
+   octave_value vjac = vodeopt.contents ("Jacobian");
+   octave_idx_type vmebdfijac = 22; // We need to set this if no Jac available
+-  if (!vjac.is_empty ()) {
++  if (!vjac.isempty ()) {
+     vmebdfijacfun = vjac; vmebdfijac = 21;
+   }
+ 
+@@ -526,14 +526,14 @@
+   // etc. and initialize the plot, events and the solstore functions
+   octave_value vtim (T0); octave_value vsol (vY0); octave_value vyds (vYPRIME);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vplot.is_empty ()) odepkg_auxiliary_evalplotfun 
++  if (!vplot.isempty ()) odepkg_auxiliary_evalplotfun 
+     (vplot, voutsel, args(1), args(2), vmebdfiextarg, 0);
+ 
+   octave_value_list veveideargs;
+   veveideargs(0) = vsol; 
+   veveideargs(1) = vyds;
+   Cell veveidearg (veveideargs);
+-  if (!vevents.is_empty ()) odepkg_auxiliary_evaleventfun 
++  if (!vevents.isempty ()) odepkg_auxiliary_evaleventfun 
+     (vevents, vtim, veveidearg, vmebdfiextarg, 0);
+ 
+   // We are calling the core solver here to intialize all variables
+@@ -586,12 +586,12 @@
+         vcres(vcnt) = Y0[vcnt]; vydrs(vcnt) = YPRIME[vcnt]; 
+       }
+       vsol = vcres; vyds = vydrs; vtim = TOUT;
+-      if (!vevents.is_empty ()) {
++      if (!vevents.isempty ()) {
+         veveideargs(0) = vsol;
+         veveideargs(1) = vyds;
+ 	veveidearg = veveideargs;
+         veveres = odepkg_auxiliary_evaleventfun (vevents, vtim, veveidearg, vmebdfiextarg, 1);
+-        if (!veveres(0).cell_value ()(0).is_empty ())
++        if (!veveres(0).cell_value ()(0).isempty ())
+           if (veveres(0).cell_value ()(0).int_value () == 1) {
+             ColumnVector vttmp = veveres(0).cell_value ()(2).column_vector_value ();
+             Matrix vrtmp = veveres(0).cell_value ()(3).matrix_value ();
+@@ -600,7 +600,7 @@
+             TOUT = TEND; // let's get out here, the Events function told us to finish
+           }
+       }
+-      if (!vplot.is_empty ()) {
++      if (!vplot.isempty ()) {
+         if (odepkg_auxiliary_evalplotfun (vplot, voutsel, vtim, vsol, vmebdfiextarg, 1)) {
+           error ("Missing error message implementation");
+           return (vretval);
+@@ -637,12 +637,12 @@
+         vcres(vcnt) = Y0[vcnt]; vydrs(vcnt) = YPRIME[vcnt];
+       }
+       vsol = vcres; vyds = vydrs; vtim = TOUT;
+-      if (!vevents.is_empty ()) {
++      if (!vevents.isempty ()) {
+         veveideargs(0) = vsol;
+         veveideargs(1) = vyds;
+ 	veveidearg = veveideargs;
+         veveres = odepkg_auxiliary_evaleventfun (vevents, vtim, veveidearg, vmebdfiextarg, 1);
+-        if (!veveres(0).cell_value ()(0).is_empty ())
++        if (!veveres(0).cell_value ()(0).isempty ())
+           if (veveres(0).cell_value ()(0).int_value () == 1) {
+             ColumnVector vttmp = veveres(0).cell_value ()(2).column_vector_value ();
+             Matrix vrtmp = veveres(0).cell_value ()(3).matrix_value ();
+@@ -651,7 +651,7 @@
+             vtimecnt = vtimelen; // let's get out here, the Events function told us to finish
+           }
+       }
+-      if (!vplot.is_empty ()) {
++      if (!vplot.isempty ()) {
+         if (odepkg_auxiliary_evalplotfun (vplot, voutsel, vtim, vsol, vmebdfiextarg, 1)) {
+           error ("Missing error message implementation");
+           return (vretval);
+@@ -674,9 +674,9 @@
+   veveideargs(0) = vsol;
+   veveideargs(1) = vyds;
+   veveidearg = veveideargs;
+-  if (!vevents.is_empty ())
++  if (!vevents.isempty ())
+     odepkg_auxiliary_evaleventfun (vevents, vtim, veveidearg, vmebdfiextarg, 2);
+-  if (!vplot.is_empty ())
++  if (!vplot.isempty ())
+     odepkg_auxiliary_evalplotfun (vplot, voutsel, vtim, vsol, vmebdfiextarg, 2);
+ 
+   // Return the results that have been stored in the
+@@ -710,7 +710,7 @@
+     vretmap.assign ("solver", "odebdi");
+     if (vodeopt.contents("Stats").string_value () == "on")
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vevents.is_empty ()) {
++    if (!vevents.isempty ()) {
+       vretmap.assign ("ie", veveres(0).cell_value ()(1));
+       vretmap.assign ("xe", veveres(0).cell_value ()(2));
+       vretmap.assign ("ye", veveres(0).cell_value ()(3));
+@@ -728,7 +728,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vevents.is_empty ()) {
++    if (!vevents.isempty ()) {
+       vretval(2) = veveres(0).cell_value ()(2);
+       vretval(3) = veveres(0).cell_value ()(3);
+       vretval(4) = veveres(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_auxiliary_functions.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_auxiliary_functions.cc	2023-09-05 17:41:47.341607892 +0100
+@@ -47,7 +47,7 @@
+  * @end deftypefn
+  */
+ octave_idx_type odepkg_auxiliary_isvector (octave_value vval) {
+-  if (vval.is_numeric_type () && 
++  if (vval.isnumeric () && 
+       vval.ndims () == 2 && // ported from the is_vector.m file
+       (vval.rows () == 1 || vval.columns () == 1))
+     return (true);
+@@ -86,17 +86,17 @@
+   switch (vdeci) {
+     case 0:
+       varin(3) = "init";
+-      feval ("ode_event_handler", varin, 0);
++      octave::feval ("ode_event_handler", varin, 0);
+       break;
+ 
+     case 1:
+       varin(3) = "";
+-      varout = feval ("ode_event_handler", varin, 1);
++      varout = octave::feval ("ode_event_handler", varin, 1);
+       break;
+ 
+     case 2:
+       varin(3) = "done";
+-      feval ("ode_event_handler", varin, 0);
++      octave::feval ("ode_event_handler", varin, 0);
+       break;
+ 
+     default:
+@@ -133,7 +133,7 @@
+ 
+   // Check if the user has set the option "OutputSel" then create a
+   // reduced vector that stores the desired values.
+-  if (vsel.is_empty ()) {
++  if (vsel.isempty ()) {
+     for (octave_idx_type vcnt = 0; vcnt < vresult.numel (); vcnt++)
+       vreduced(vcnt) = vresult(vcnt);
+   }
+@@ -160,18 +160,18 @@
+   // function to the caller function
+   if ((vdeci == 0) || (vdeci == 2)) {
+     if (vplt.is_function_handle () || vplt.is_inline_function ())
+-      feval (vplt.function_value (), varin, 0);
++      octave::feval (vplt.function_value (), varin, 0);
+     else if (vplt.is_string ()) // String may be used from the caller
+-      feval (vplt.string_value (), varin, 0);
++      octave::feval (vplt.string_value (), varin, 0);
+     return (true);
+   }
+ 
+   else if (vdeci == 1) {
+     octave_value_list vout;
+     if (vplt.is_function_handle () || vplt.is_inline_function ())
+-      vout = feval (vplt.function_value (), varin, 1);
++      vout = octave::feval (vplt.function_value (), varin, 1);
+     else if (vplt.is_string ()) // String may be used if set automatically
+-      vout = feval (vplt.string_value (), varin, 1);
++      vout = octave::feval (vplt.string_value (), varin, 1);
+     return (vout(0).bool_value ());
+   }
+ 
+@@ -201,7 +201,7 @@
+ 
+   // If vjac is a cell array then we expect that two matrices are
+   // returned to the caller function, we can't check for this before
+-  if (vjac.is_cell () && (vjac.length () == 2)) {
++  if (vjac.iscell () && (vjac.length () == 2)) {
+     varout(0) = vjac.cell_value ()(0);
+     varout(1) = vjac.cell_value ()(1);
+     if (!varout(0).is_matrix_type () || !varout(1).is_matrix_type ()) {
+@@ -221,7 +221,7 @@
+     for (octave_idx_type vcnt = 0; vcnt < vextarg.length (); vcnt++)
+       varin(vcnt+3) = vextarg(vcnt);
+     // Evaluate the Jacobian function and return results
+-    varout = feval (vjac.function_value (), varin, 1);
++    varout = octave::feval (vjac.function_value (), varin, 1);
+   }
+ 
+   // In principle this is not possible because odepkg_structure_check
+@@ -269,7 +269,7 @@
+     for (octave_idx_type vcnt = 0; vcnt < vextarg.length (); vcnt++)
+       varin(vcnt+2) = vextarg(vcnt);
+     // Evaluate the Jacobian function and return results
+-    varout = feval (vjac.function_value (), varin, 1);
++    varout = octave::feval (vjac.function_value (), varin, 1);
+     vret = varout(0);
+   }
+ 
+@@ -313,7 +313,7 @@
+   else if (vmass.is_function_handle () || vmass.is_inline_function ()) {
+     octave_value_list varin;
+     octave_value_list varout;
+-    if (vstate.is_empty () || !vstate.is_string ())
++    if (vstate.isempty () || !vstate.is_string ())
+       error_with_id ("OdePkg:InvalidOption",
+         "If \"Mass\" value is a handle then \"MStateDependence\" must be given");
+  
+@@ -331,7 +331,7 @@
+     }
+ 
+     // Evaluate the Mass function and return results
+-    varout = feval (vmass.function_value (), varin, 1);
++    varout = octave::feval (vmass.function_value (), varin, 1);
+     vret = varout(0);
+   }
+ 
+--- odepkg-20190131/src/odepkg_octsolver_rodas.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_rodas.cc	2023-09-05 17:36:28.038623127 +0100
+@@ -280,7 +280,7 @@
+   varin(0) = X; varin(1) = A;
+   for (octave_idx_type vcnt = 0; vcnt < vrodasextarg.length (); vcnt++)
+     varin(vcnt+2) = vrodasextarg(vcnt);
+-  octave_value_list vout = feval (vrodasodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vrodasodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -388,10 +388,10 @@
+   octave_value vy = octave_value (A);
+ 
+   // Check if an 'Events' function has been set by the user
+-  if (!vrodasevefun.is_empty ()) {
++  if (!vrodasevefun.isempty ()) {
+     vrodasevesol = odepkg_auxiliary_evaleventfun 
+       (vrodasevefun, vt, vy, vrodasextarg, 1);
+-    if (!vrodasevesol(0).cell_value ()(0).is_empty ())
++    if (!vrodasevesol(0).cell_value ()(0).isempty ())
+       if (vrodasevesol(0).cell_value ()(0).int_value () == 1) {
+         ColumnVector vttmp = vrodasevesol(0).cell_value ()(2).column_vector_value ();
+         Matrix vrtmp = vrodasevesol(0).cell_value ()(3).matrix_value ();
+@@ -407,7 +407,7 @@
+ 
+   // Check if an 'OutputFcn' has been set by the user (including the
+   // values of the options for 'OutputSel' and 'Refine')
+-  if (!vrodaspltfun.is_empty ()) {
++  if (!vrodaspltfun.isempty ()) {
+     if (vrodasrefine.int_value () > 0) {
+       ColumnVector B(N); double vtb = 0.0;
+       for (octave_idx_type vcnt = 1; vcnt < vrodasrefine.int_value (); vcnt++) {
+@@ -522,8 +522,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 4) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(3).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(3).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 3; vcnt < nargin; vcnt++){
+         vrodasextarg(vcnt-3) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -542,7 +542,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -551,7 +551,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NormCotrol, NonNegative, JPattern, Vetorized, MStateDependence, MVPattern,
+   // MassSingular, InitialSlope, BDF
+@@ -562,7 +562,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ 
+ /* Start PREPROCESSING, ie. check which options have been set and
+@@ -586,13 +586,13 @@
+   // Implementation of the option OutputFcn has been finished, this
+   // option can be set by the user to another value than default value
+   vrodaspltfun = vodeopt.contents ("OutputFcn");
+-  if (vrodaspltfun.is_empty () && nargout == 0) vrodaspltfun = "odeplot";
++  if (vrodaspltfun.isempty () && nargout == 0) vrodaspltfun = "odeplot";
+ 
+   vrodasoutsel = vodeopt.contents ("OutputSel");
+   vrodasrefine = vodeopt.contents ("Refine");
+   vrodasevefun = vodeopt.contents ("Events");
+ 
+-  if (vodeopt.contents("InitialStep").is_empty ()) {
++  if (vodeopt.contents("InitialStep").isempty ()) {
+     vodeopt.contents("InitialStep") = 1.0e-6;
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value %3.1e is used",
+@@ -603,13 +603,13 @@
+   // options can be set by the user to another value than default
+   vrodasjacfun = vodeopt.contents ("Jacobian");
+   octave_idx_type vrodasjac = 0; // We need to set this if no Jac available
+-  if (!vrodasjacfun.is_empty ()) vrodasjac = 1;
++  if (!vrodasjacfun.isempty ()) vrodasjac = 1;
+ 
+   // Implementation of the option 'Mass' has been finished, these
+   // options can be set by the user to another value than default
+   vrodasmass = vodeopt.contents ("Mass");
+   octave_idx_type vrodasmas = 0;
+-  if (!vrodasmass.is_empty ()) {
++  if (!vrodasmass.isempty ()) {
+     vrodasmas = 1;
+     if (vrodasmass.is_function_handle () || vrodasmass.is_inline_function ())
+       warning_with_id ("OdePkg:InvalidOption",
+@@ -663,9 +663,9 @@
+   octave_value vtim = args(1).vector_value ()(0);
+   octave_value vsol = args(2);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vrodaspltfun.is_empty ()) odepkg_auxiliary_evalplotfun 
++  if (!vrodaspltfun.isempty ()) odepkg_auxiliary_evalplotfun 
+     (vrodaspltfun, vrodasoutsel, args(1), args(2), vrodasextarg, 0);
+-  if (!vrodasevefun.is_empty ())
++  if (!vrodasevefun.isempty ())
+     odepkg_auxiliary_evaleventfun (vrodasevefun, vtim, args(2), vrodasextarg, 0);
+ 
+   // We are calling the core solver and solve the set of ODEs or DAEs
+@@ -702,9 +702,9 @@
+   octave_value vted = octave_value (XEND);
+   octave_value vfin = octave_value (vlastline);
+ 
+-  if (!vrodaspltfun.is_empty ()) odepkg_auxiliary_evalplotfun
++  if (!vrodaspltfun.isempty ()) odepkg_auxiliary_evalplotfun
+     (vrodaspltfun, vrodasoutsel, vted, vfin, vrodasextarg, 2);
+-  if (!vrodasevefun.is_empty ()) odepkg_auxiliary_evaleventfun
++  if (!vrodasevefun.isempty ()) odepkg_auxiliary_evaleventfun
+     (vrodasevefun, vted, vfin, vrodasextarg, 2);
+   
+   // Get the stats information as an octave_scalar_map if the option 'Stats'
+@@ -729,9 +729,9 @@
+     vretmap.assign ("x", vtres);
+     vretmap.assign ("y", vyres);
+     vretmap.assign ("solver", "oders");
+-    if (!vstatinfo.is_empty ()) // Event implementation
++    if (!vstatinfo.isempty ()) // Event implementation
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vrodasevefun.is_empty ()) {
++    if (!vrodasevefun.isempty ()) {
+       vretmap.assign ("ie", vrodasevesol(0).cell_value ()(1));
+       vretmap.assign ("xe", vrodasevesol(0).cell_value ()(2));
+       vretmap.assign ("ye", vrodasevesol(0).cell_value ()(3));
+@@ -749,7 +749,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vrodasevefun.is_empty ()) {
++    if (!vrodasevefun.isempty ()) {
+       vretval(2) = vrodasevesol(0).cell_value ()(2);
+       vretval(3) = vrodasevesol(0).cell_value ()(3);
+       vretval(4) = vrodasevesol(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_octsolver_radau5.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_radau5.cc	2023-09-05 17:39:07.093615538 +0100
+@@ -102,7 +102,7 @@
+   varin(0) = X; varin(1) = A;
+   for (octave_idx_type vcnt = 0; vcnt < vradau5extarg.length (); vcnt++)
+     varin(vcnt+2) = vradau5extarg(vcnt);
+-  octave_value_list vout = feval (vradau5odefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vradau5odefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -188,10 +188,10 @@
+   octave_value vy = octave_value (A);
+ 
+   // Check if an 'Events' function has been set by the user
+-  if (!vradau5evefun.is_empty ()) {
++  if (!vradau5evefun.isempty ()) {
+     vradau5evesol = odepkg_auxiliary_evaleventfun
+       (vradau5evefun, vt, vy, vradau5extarg, 1);
+-    if (!vradau5evesol(0).cell_value ()(0).is_empty ())
++    if (!vradau5evesol(0).cell_value ()(0).isempty ())
+       if (vradau5evesol(0).cell_value ()(0).int_value () == 1) {
+         ColumnVector vttmp = vradau5evesol(0).cell_value ()(2).column_vector_value ();
+         Matrix vrtmp = vradau5evesol(0).cell_value ()(3).matrix_value ();
+@@ -207,7 +207,7 @@
+ 
+   // Check if an 'OutputFcn' has been set by the user (including the
+   // values of the options for 'OutputSel' and 'Refine')
+-  if (!vradau5pltfun.is_empty ()) {
++  if (!vradau5pltfun.isempty ()) {
+     printf("start solfcn-pltfcn\n");
+     if (vradau5refine.int_value () > 0) {
+       ColumnVector B(N); double vtb = 0.0;
+@@ -335,8 +335,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 4) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(3).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(3).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 3; vcnt < nargin; vcnt++){
+         vradau5extarg(vcnt-3) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -355,7 +355,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -364,7 +364,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NormCotrol, NonNegative, JPattern, Vetorized, MStateDependence, MVPattern,
+   // MassSingular, InitialSlope, BDF
+@@ -375,7 +375,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ 
+ /* Start PREPROCESSING, ie. check which options have been set and
+@@ -397,7 +397,7 @@
+   }
+ 
+   vradau5pltfun = vodeopt.contents ("OutputFcn");
+-  if (vradau5pltfun.is_empty () && nargout == 0) vradau5pltfun = "odeplot";
++  if (vradau5pltfun.isempty () && nargout == 0) vradau5pltfun = "odeplot";
+ 
+   // Implementation of dense output has been finished.
+   // Check if length of the specified input time trange is more than 2 and
+@@ -405,7 +405,7 @@
+   denseTimeIndex = 0;
+   ColumnVector tSpan (2);
+   denseTimeVector = args(1).column_vector_value ();
+-  if (!(denseTimeVector.is_sorted () == ASCENDING)) {
++  if (!(denseTimeVector.issorted () == ASCENDING)) {
+     error_with_id ("OdePkg:InvalidArgument",
+       "The time trange vector must be sorted in ascending order");
+   }
+@@ -420,7 +420,7 @@
+     denseOutputStatus = false;
+   }
+ 
+-  if (vodeopt.contents ("InitialStep").is_empty ()) {
++  if (vodeopt.contents ("InitialStep").isempty ()) {
+     vodeopt.contents("InitialStep") = 1.0e-6;
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value %3.1e is used",
+@@ -431,7 +431,7 @@
+   // options can be set by the user to another value than default
+   vradau5jacfun = vodeopt.contents ("Jacobian");
+   octave_idx_type vradau5jac = 0; // We need to set this if no Jac available
+-  if (!vradau5jacfun.is_empty ()) vradau5jac = 1;
++  if (!vradau5jacfun.isempty ()) vradau5jac = 1;
+ 
+   vradau5outsel = vodeopt.contents ("OutputSel");
+   vradau5refine = vodeopt.contents ("Refine");
+@@ -441,7 +441,7 @@
+   // options can be set by the user to another value than default
+   vradau5mass = vodeopt.contents ("Mass");
+   octave_idx_type vradau5mas = 0;
+-  if (!vradau5mass.is_empty ()) {
++  if (!vradau5mass.isempty ()) {
+     vradau5mas = 1;
+     if (vradau5mass.is_function_handle () || vradau5mass.is_inline_function ())
+       warning_with_id ("OdePkg:InvalidOption",
+@@ -453,14 +453,14 @@
+   vradau5massstate = "none";
+ 
+   if (!vodeopt.isfield ("NewtonTol")
+-      || vodeopt.contents ("NewtonTol").is_empty ()) {
++      || vodeopt.contents ("NewtonTol").isempty ()) {
+     vodeopt.assign ("NewtonTol", 1e-8);
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"NewtonTol\" not set, default value 1e-8 is used");
+   }
+ 
+   if (!vodeopt.isfield ("MaxNewtonIterations")
+-      || vodeopt.contents ("MaxNewtonIterations").is_empty ()) {
++      || vodeopt.contents ("MaxNewtonIterations").isempty ()) {
+     vodeopt.assign ("MaxNewtonIterations", 7);
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"MaxNewtonIterations\" not set, default value 7 is used");
+@@ -511,9 +511,9 @@
+   octave_value vtim = tSpan(0);
+   octave_value vsol = args(2);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vradau5pltfun.is_empty ()) odepkg_auxiliary_evalplotfun
++  if (!vradau5pltfun.isempty ()) odepkg_auxiliary_evalplotfun
+     (vradau5pltfun, vradau5outsel, octave_value(tSpan), args(2), vradau5extarg, 0);
+-  if (!vradau5evefun.is_empty ())
++  if (!vradau5evefun.isempty ())
+     odepkg_auxiliary_evaleventfun (vradau5evefun, vtim, args(2), vradau5extarg, 0);
+ 
+   // octave_stdout <<  "X VALUE=" << X << XEND << std::endl;
+@@ -551,9 +551,9 @@
+   octave_value vted = octave_value (XEND);
+   octave_value vfin = octave_value (vlastline);
+ 
+-  if (!vradau5pltfun.is_empty ()) odepkg_auxiliary_evalplotfun
++  if (!vradau5pltfun.isempty ()) odepkg_auxiliary_evalplotfun
+     (vradau5pltfun, vradau5outsel, vted, vfin, vradau5extarg, 2);
+-  if (!vradau5evefun.is_empty ()) odepkg_auxiliary_evaleventfun
++  if (!vradau5evefun.isempty ()) odepkg_auxiliary_evaleventfun
+     (vradau5evefun, vted, vfin, vradau5extarg, 2);
+ 
+   // Get the stats information as an octave_scalar_map if the option 'Stats'
+@@ -585,9 +585,9 @@
+       vretmap.assign ("y", vyres);
+     }
+     vretmap.assign ("solver", "ode5r");
+-    if (!vstatinfo.is_empty ()) // Event implementation
++    if (!vstatinfo.isempty ()) // Event implementation
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vradau5evefun.is_empty ()) {
++    if (!vradau5evefun.isempty ()) {
+       vretmap.assign ("ie", vradau5evesol(0).cell_value ()(1));
+       vretmap.assign ("xe", vradau5evesol(0).cell_value ()(2));
+       vretmap.assign ("ye", vradau5evesol(0).cell_value ()(3));
+@@ -617,7 +617,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vradau5evefun.is_empty ()) {
++    if (!vradau5evefun.isempty ()) {
+       vretval(2) = vradau5evesol(0).cell_value ()(2);
+       vretval(3) = vradau5evesol(0).cell_value ()(3);
+       vretval(4) = vradau5evesol(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_octsolver_mebdfdae.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_mebdfdae.cc	2023-09-05 17:31:32.881637209 +0100
+@@ -74,7 +74,7 @@
+   varin(0) = T; varin(1) = A;
+   for (octave_idx_type vcnt = 0; vcnt < vmebdfdaeextarg.length (); vcnt++)
+     varin(vcnt+2) = vmebdfdaeextarg(vcnt);
+-  octave_value_list vout = feval (vmebdfdaeodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vmebdfdaeodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -292,8 +292,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 4) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(3).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(3).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 3; vcnt < nargin; vcnt++)
+         vmebdfdaeextarg(vcnt-3) = args(vcnt); // Save arguments in vmebdfdaeextarg
+@@ -311,7 +311,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -320,7 +320,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove Refine, MStateDependence, MassSingular, InitialSlope, BDF
+ 
+@@ -330,7 +330,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+ 
+ 
+@@ -348,9 +348,9 @@
+   else if (!vodeopt.contents ("RelTol").is_scalar_type () && !vodeopt.contents ("AbsTol").is_scalar_type ()) vitol = 5;
+ 
+   octave_value vplot = vodeopt.contents ("OutputFcn");
+-  if (vplot.is_empty () && nargout == 0) vplot = "odeplot";
++  if (vplot.isempty () && nargout == 0) vplot = "odeplot";
+ 
+-  if (vodeopt.contents ("InitialStep").is_empty ()) {
++  if (vodeopt.contents ("InitialStep").isempty ()) {
+     vodeopt.contents ("InitialStep") = 1.0e-6;
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value 1e-6 is used");
+@@ -367,7 +367,7 @@
+   // The options 'Jacobian', 'JPattern' and 'Vectorized'
+   octave_value vjac = vodeopt.contents ("Jacobian");
+   octave_idx_type vmebdfdaejac = 22; // We need to set this if no Jac available
+-  if (!vjac.is_empty ()) {
++  if (!vjac.isempty ()) {
+     vmebdfdaejacfun = vjac; vmebdfdaejac = 21;
+   }
+ 
+@@ -375,7 +375,7 @@
+   // options can be set by the user to another value than default
+   vmebdfdaemass = vodeopt.contents ("Mass");
+   octave_idx_type vmebdfdaemas = 0;
+-  if (!vmebdfdaemass.is_empty ()) {
++  if (!vmebdfdaemass.isempty ()) {
+     vmebdfdaemas = 1;
+     if (vmebdfdaemass.is_function_handle () || vmebdfdaemass.is_inline_function ())
+       warning_with_id ("OdePkg:InvalidOption",
+@@ -411,7 +411,7 @@
+     IWORK[vcnt] = 0;
+   octave_idx_type MBND[4] = {N, N, N, N};
+   octave_idx_type MASBND[4] = {0, N, 0, N};
+-  if (!vmebdfdaemass.is_empty ()) MASBND[0] = 1;
++  if (!vmebdfdaemass.isempty ()) MASBND[0] = 1;
+   octave_idx_type MAXDER = vodeopt.contents ("MaxOrder").int_value ();
+   octave_idx_type ITOL = vitol;
+   double *RTOL = vRTOL.fortran_vec ();
+@@ -429,9 +429,9 @@
+   // etc. and initialize the plot, events and the solstore functions
+   octave_value vtim (T0); octave_value vsol (vY0);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vplot.is_empty ()) odepkg_auxiliary_evalplotfun 
++  if (!vplot.isempty ()) odepkg_auxiliary_evalplotfun 
+     (vplot, vodeopt.contents("OutputSel"), args(1), args(2), vmebdfdaeextarg, 0);
+-  if (!vodeopt.contents("Events").is_empty ()) odepkg_auxiliary_evaleventfun
++  if (!vodeopt.contents("Events").isempty ()) odepkg_auxiliary_evaleventfun
+     (vodeopt.contents("Events"), vtim, args(2), vmebdfdaeextarg, 0);
+ 
+   // We are calling the core solver here to intialize all variables
+@@ -482,9 +482,9 @@
+       for (octave_idx_type vcnt = 0; vcnt < N; vcnt++)
+         vcres(vcnt) = Y0[vcnt];
+       vsol = vcres; vtim = TOUT;
+-      if (!vodeopt.contents("Events").is_empty ()) {
++      if (!vodeopt.contents("Events").isempty ()) {
+         veveres = odepkg_auxiliary_evaleventfun (vodeopt.contents("Events"), vtim, vsol, vmebdfdaeextarg, 1);
+-        if (!veveres(0).cell_value ()(0).is_empty ())
++        if (!veveres(0).cell_value ()(0).isempty ())
+           if (veveres(0).cell_value ()(0).int_value () == 1) {
+             ColumnVector vttmp = veveres(0).cell_value ()(2).column_vector_value ();
+             Matrix vrtmp = veveres(0).cell_value ()(3).matrix_value ();
+@@ -493,7 +493,7 @@
+             TOUT = TEND; // let's get out here, the Events function told us to finish
+           }
+       }
+-      if (!vplot.is_empty ()) {
++      if (!vplot.isempty ()) {
+         if (odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents("OutputSel"), vtim, vsol, vmebdfdaeextarg, 1)) {
+           error ("Missing error message implementation");
+           return (vretval);
+@@ -529,9 +529,9 @@
+       for (octave_idx_type vcnt = 0; vcnt < N; vcnt++)
+         vcres(vcnt) = Y0[vcnt];
+       vsol = vcres; vtim = TOUT;
+-      if (!vodeopt.contents("Events").is_empty ()) {
++      if (!vodeopt.contents("Events").isempty ()) {
+         veveres = odepkg_auxiliary_evaleventfun (vodeopt.contents("Events"), vtim, vsol, vmebdfdaeextarg, 1);
+-        if (!veveres(0).cell_value ()(0).is_empty ())
++        if (!veveres(0).cell_value ()(0).isempty ())
+           if (veveres(0).cell_value ()(0).int_value () == 1) {
+             ColumnVector vttmp = veveres(0).cell_value ()(2).column_vector_value ();
+             Matrix vrtmp = veveres(0).cell_value ()(3).matrix_value ();
+@@ -540,7 +540,7 @@
+             vtimecnt = vtimelen; // let's get out here, the Events function told us to finish
+           }
+       }
+-      if (!vplot.is_empty ()) {
++      if (!vplot.isempty ()) {
+         if (odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents("OutputSel"), vtim, vsol, vmebdfdaeextarg, 1)) {
+           error ("Missing error message implementation");
+           return (vretval);
+@@ -558,9 +558,9 @@
+   // needed to call the OdePkg output function one last time again
+   for (octave_idx_type vcnt = 0; vcnt < N; vcnt++) vcres(vcnt) = Y0[vcnt];
+   vsol = vcres; vtim = TOUT;
+-  if (!vodeopt.contents("Events").is_empty ())
++  if (!vodeopt.contents("Events").isempty ())
+     odepkg_auxiliary_evaleventfun (vodeopt.contents("Events"), vtim, vsol, vmebdfdaeextarg, 2);
+-  if (!vplot.is_empty ())
++  if (!vplot.isempty ())
+     odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents("OutputSel"), vtim, vsol, vmebdfdaeextarg, 2);
+ 
+   // Return the results that have been stored in the
+@@ -594,7 +594,7 @@
+     vretmap.assign ("solver", "odebda");
+     if (vodeopt.contents("Stats").string_value () == "on")
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vodeopt.contents("Events").is_empty ()) {
++    if (!vodeopt.contents("Events").isempty ()) {
+       vretmap.assign ("ie", veveres(0).cell_value ()(1));
+       vretmap.assign ("xe", veveres(0).cell_value ()(2));
+       vretmap.assign ("ye", veveres(0).cell_value ()(3));
+@@ -612,7 +612,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vodeopt.contents("Events").is_empty ()) {
++    if (!vodeopt.contents("Events").isempty ()) {
+       vretval(2) = veveres(0).cell_value ()(2);
+       vretval(3) = veveres(0).cell_value ()(3);
+       vretval(4) = veveres(0).cell_value ()(1);
+--- odepkg-20190131/src/odepkg_octsolver_ddaskr.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/odepkg_octsolver_ddaskr.cc	2023-09-05 17:37:26.449620340 +0100
+@@ -95,7 +95,7 @@
+   varin(0) = T; varin(1) = A; varin(2) = APRIME;
+   for (octave_idx_type vcnt = 0; vcnt < vddaskrextarg.length (); vcnt++)
+     varin(vcnt+3) = vddaskrextarg(vcnt);
+-  octave_value_list vout = feval (vddaskrodefun.function_value (), varin, 1);
++  octave_value_list vout = octave::feval (vddaskrodefun.function_value (), varin, 1);
+ 
+   // Return the results from the function evaluation to the Fortran
+   // solver, again copy them and don't just create a Fortran vector
+@@ -268,8 +268,8 @@
+   // Option structure and etra arguments
+   if (nargin >= 5) {
+     // Fifth input argument != OdePkg option, need a default structure
+-    if (!args(4).is_map ()) {
+-      octave_value_list tmp = feval ("odeset", tmp, 1);
++    if (!args(4).isstruct ()) {
++      octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+       tmpopt = tmp(0).scalar_map_value ();
+       for (octave_idx_type vcnt = 4; vcnt < nargin; vcnt++)
+         vddaskrextarg(vcnt-4) = args(vcnt); // Save arguments in vddaskrextarg
+@@ -287,7 +287,7 @@
+     }
+   }
+   else { // if nargin == 4, everything else has been checked before
+-    octave_value_list tmp = feval ("odeset", tmp, 1);
++    octave_value_list tmp = octave::feval ("odeset", tmp, 1);
+     tmpopt = tmp(0).scalar_map_value (); // Create a default structure
+   }
+ 
+@@ -296,7 +296,7 @@
+   varin(0) = args(2).array_value ().size (0);
+   varin(1) = args(1).array_value ()(0); // init time
+   varin(2) = args(1).array_value ()(args(2).length () - 1); // end time
+-  octave_value_list defaults = feval ("odedefaults", varin);
++  octave_value_list defaults = octave::feval ("odedefaults", varin);
+ 
+   // FIXME: Remove NonNegative, Refine, Mass, MStateDependence,
+   //        MVPattern, InitialSlope, BDF
+@@ -307,7 +307,7 @@
+   varin(2) = defaults(0).scalar_map_value ();
+   varin(3) = defaults(1).scalar_map_value ();
+   varin(4) = defaults(2).scalar_map_value ();
+-  octave_value_list tmp = feval ("odemergeopts", varin);
++  octave_value_list tmp = octave::feval ("odemergeopts", varin);
+   vodeopt = tmp(0).scalar_map_value ();
+   
+   /* Start PREPROCESSING, ie. check which options have been set and
+@@ -325,9 +325,9 @@
+   }
+ 
+   octave_value vplot = vodeopt.contents ("OutputFcn");
+-  if (vplot.is_empty () && nargout == 0) vplot = "odeplot";
++  if (vplot.isempty () && nargout == 0) vplot = "odeplot";
+ 
+-  if (vodeopt.contents ("InitialStep").is_empty ()) {
++  if (vodeopt.contents ("InitialStep").isempty ()) {
+     vodeopt.contents ("InitialStep") = 1.0e-6;
+     warning_with_id ("OdePkg:InvalidOption",
+       "Option \"InitialStep\" not set, new value 1e-6 is used");
+@@ -383,7 +383,7 @@
+   INFO[1]   = vitol;  // RelTol/AbsTol are scalars or vectors
+   INFO[2]   = 1;      // An intermediate output is wanted
+   INFO[3]   = 0;      // Integrate behind TEND
+-  if (!vodeopt.contents ("Jacobian").is_empty ()) {
++  if (!vodeopt.contents ("Jacobian").isempty ()) {
+     INFO[4]   = 1;
+     vddaskrjacfun = vodeopt.contents ("Jacobian");
+   }
+@@ -402,14 +402,14 @@
+   // initialize these IO-functions for further use
+   octave_value vtim (T); octave_value vsol (vY); octave_value vyds (vYPRIME);
+   odepkg_auxiliary_solstore (vtim, vsol, 0);
+-  if (!vodeopt.contents ("OutputSel").is_empty ())
++  if (!vodeopt.contents ("OutputSel").isempty ())
+     odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents ("OutputSel"), args(1), args(2), vddaskrextarg, 0);
+ 
+   octave_value_list veveideargs;
+   veveideargs(0) = vsol; 
+   veveideargs(1) = vyds;
+   Cell veveidearg (veveideargs);
+-  if (!vodeopt.contents ("Events").is_empty ())
++  if (!vodeopt.contents ("Events").isempty ())
+     odepkg_auxiliary_evaleventfun (vodeopt.contents ("Events"), vtim, veveidearg, vddaskrextarg, 0);
+ 
+   // We are calling the core solver here to intialize all variables
+@@ -454,12 +454,12 @@
+       }
+       vsol = vcres; vyds = vydrs; vtim = T;
+ 
+-      if (!vodeopt.contents ("Events").is_empty ()) {
++      if (!vodeopt.contents ("Events").isempty ()) {
+         veveideargs(0) = vsol;
+         veveideargs(1) = vyds;
+         veveidearg = veveideargs;
+         veveres = odepkg_auxiliary_evaleventfun (vodeopt.contents ("Events"), vtim, veveidearg, vddaskrextarg, 1);
+-        if (!veveres(0).cell_value ()(0).is_empty ()){
++        if (!veveres(0).cell_value ()(0).isempty ()){
+           if (veveres(0).cell_value ()(0).int_value () == 1) {
+             ColumnVector vttmp = veveres(0).cell_value ()(2).column_vector_value ();
+             Matrix vrtmp = veveres(0).cell_value ()(3).matrix_value ();
+@@ -470,7 +470,7 @@
+         }
+       }
+ 
+-      if (!vplot.is_empty ()) {
++      if (!vplot.isempty ()) {
+         if (odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents ("OutputSel"), vtim, vsol, vddaskrextarg, 1)) {
+           error ("Missing error message implementation");
+           return (vretval);
+@@ -494,9 +494,9 @@
+   veveideargs(0) = vsol;
+   veveideargs(1) = vyds;
+   veveidearg = veveideargs;
+-  if (!vodeopt.contents ("Events").is_empty ())
++  if (!vodeopt.contents ("Events").isempty ())
+     odepkg_auxiliary_evaleventfun (vodeopt.contents ("Events"), vtim, vsol, vddaskrextarg, 2);
+-  if (!vplot.is_empty ())
++  if (!vplot.isempty ())
+     odepkg_auxiliary_evalplotfun (vplot, vodeopt.contents ("OutputSel"), vtim, vsol, vddaskrextarg, 2);
+ 
+   // Return the results that have been stored in the
+@@ -529,7 +529,7 @@
+     vretmap.assign ("solver", "odekdi");
+     if (vodeopt.contents ("Stats").string_value ().compare ("on") == 0)
+       vretmap.assign ("stats", vstatinfo);
+-    if (!vodeopt.contents ("Events").is_empty ()) {
++    if (!vodeopt.contents ("Events").isempty ()) {
+       vretmap.assign ("ie", veveres(0).cell_value ()(1));
+       vretmap.assign ("xe", veveres(0).cell_value ()(2));
+       vretmap.assign ("ye", veveres(0).cell_value ()(3));
+@@ -547,7 +547,7 @@
+     vretval(2) = vempty;
+     vretval(3) = vempty;
+     vretval(4) = vempty;
+-    if (!vodeopt.contents ("Events").is_empty ()) {
++    if (!vodeopt.contents ("Events").isempty ()) {
+       vretval(2) = veveres(0).cell_value ()(2);
+       vretval(3) = veveres(0).cell_value ()(3);
+       vretval(4) = veveres(0).cell_value ()(1);
+--- odepkg-20190131/src/__taylor__.cc.orig	2019-01-31 14:44:09.000000000 +0000
++++ odepkg-20190131/src/__taylor__.cc	2023-09-05 17:44:45.246599403 +0100
+@@ -76,14 +76,14 @@
+   octave_value_list retval;
+ 
+ #define MAKE_BRANCH(c21, c22, c23, c24, c31, c32, c33, c34, t1, t2, d2, d3) \
+-  if (c21 args(2).is_sparse_type ()                                     \
+-      c22 args(2).is_real_type ()                                       \
++  if (c21 args(2).issparse ()                                           \
++      c22 args(2).isreal ()                                             \
+       c23 args(2).is_single_type ()                                     \
+-      c24 args(2).is_complex_type ()                                    \
+-      c31 args(3).is_sparse_type ()                                     \
+-      c32 args(3).is_real_type ()                                       \
++      c24 args(2).iscomplex ()                                          \
++      c31 args(3).issparse ()                                           \
++      c32 args(3).isreal ()                                             \
+       c33 args(3).is_single_type ()                                     \
+-      c34 args(3).is_complex_type ())                                   \
++      c34 args(3).iscomplex ())                                         \
+     {                                                                   \
+       t1 A = args(2) . d2 ();                                           \
+       t2 b = args(3) . d3 ();                                           \

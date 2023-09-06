@@ -9,7 +9,7 @@ TARDIR=~/tmp/new/s/SuiteSparse
 #TAR_EXT=.tar.gz
 VERSION=5.13.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="http://faculty.cse.tamu.edu/davis/suitesparse.html"
 
@@ -91,7 +91,7 @@ if [ -f ./meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
-  make ${NUM_JOBS} BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" || exit
+  make ${NUM_JOBS} BLAS=-lopenblas LAPACK=-lopenblas || exit
 fi
 fi
 
@@ -104,7 +104,7 @@ if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
-  make BLAS="-lsatlas -lgfortran" LAPACK="-lsatlas" install INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse INSTALL_DOC=${PKG}/usr/doc/${TARNAME}-${VERSION}
+  make BLAS=-lopenblas LAPACK=-lopenblas install INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse INSTALL_DOC=${PKG}/usr/doc/${TARNAME}-${VERSION}
 fi
 
 strip_binaries

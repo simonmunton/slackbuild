@@ -1,0 +1,568 @@
+Description: Fix FTBFS with ffmpeg 5
+Author: William 'jawn-smith' Wilson <jawn-smith@ubuntu.com>
+Origin: Ubuntu
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1004770
+Last-Update: 2022-08-02
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: octave-video-2.0.2/src/cap_ffmpeg_impl_ov.hpp
+===================================================================
+--- octave-video-2.0.2.orig/src/cap_ffmpeg_impl_ov.hpp
++++ octave-video-2.0.2/src/cap_ffmpeg_impl_ov.hpp
+@@ -525,7 +525,9 @@
+ 
+     const char* get_video_codec_name () const
+       {
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++        return _opencv_avcodec_get_name(video_st->codecpar->codec_id);
++#elif LIBAVFORMAT_BUILD > 4628
+         return _opencv_avcodec_get_name(video_st->codec->codec_id);
+ #else
+         return _opencv_avcodec_get_name(video_st->codec.codec_id);
+@@ -604,7 +606,9 @@
+ 
+ void CvCapture_FFMPEG::init()
+ {
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     av_register_all();
++#endif
+     ic = 0;
+     video_stream = -1;
+     video_st = 0;
+@@ -651,7 +655,10 @@
+ 
+     if( video_st )
+     {
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++        AVCodecContext *context;
++        avcodec_parameters_to_context(context, video_st->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+         avcodec_close( video_st->codec );
+ 
+ #else
+@@ -842,6 +849,7 @@
+ 
+ static ImplMutex _mutex;
+ 
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+ static int LockCallBack(void **mutex, AVLockOp op)
+ {
+     ImplMutex* localMutex = reinterpret_cast<ImplMutex*>(*mutex);
+@@ -872,6 +880,7 @@
+     }
+     return 0;
+ }
++#endif
+ 
+ 
+ static void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vargs)
+@@ -900,11 +909,13 @@
+         avformat_network_init();
+ #endif
+ 
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+         /* register all codecs, demux and protocols */
+         av_register_all();
+ 
+         /* register a callback function for synchronization */
+         av_lockmgr_register(&LockCallBack);
++#endif
+ 
+ #ifndef NO_GETENV
+         char* debug_option = getenv("OPENCV_FFMPEG_DEBUG");
+@@ -919,10 +930,12 @@
+             av_log_set_level(AV_LOG_ERROR);
+         }
+     }
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     ~InternalFFMpegRegister()
+     {
+         av_lockmgr_register(NULL);
+     }
++#endif
+ };
+ 
+ bool CvCapture_FFMPEG::open( const char* _filename )
+@@ -962,6 +975,9 @@
+ #else
+     av_dict_set(&dict, "rtsp_transport", "tcp", 0);
+ #endif
++#if LIBAVFORMAT_BUILD > CALC_FFMPEG_VERSION(59, 0, 0)
++    const
++#endif
+     AVInputFormat* input_format = NULL;
+     AVDictionaryEntry* entry = av_dict_get(dict, "input_format", NULL, 0);
+     if (entry != 0)
+@@ -993,7 +1009,10 @@
+     }
+     for(i = 0; i < ic->nb_streams; i++)
+     {
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        AVCodecContext *enc;
++        avcodec_parameters_to_context(enc, ic->streams[i]->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+         AVCodecContext *enc = ic->streams[i]->codec;
+ #else
+         AVCodecContext *enc = &ic->streams[i]->codec;
+@@ -1015,6 +1034,9 @@
+             int enc_width = enc->width;
+             int enc_height = enc->height;
+ 
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++            const
++#endif
+             AVCodec *codec;
+             if(av_dict_get(dict, "video_codec", NULL, 0) == NULL) {
+                 codec = avcodec_find_decoder(enc->codec_id);
+@@ -1119,7 +1141,12 @@
+         }
+ 
+         // Decode video frame
+-        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
++        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++            AVCodecContext *context;
++            avcodec_parameters_to_context(context, video_st->codecpar);
++            avcodec_send_packet(context, &packet);
++            avcodec_receive_frame(context, picture);
++        #elif LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
+             avcodec_decode_video2(video_st->codec, picture, &got_picture, &packet);
+         #elif LIBAVFORMAT_BUILD > 4628
+                 avcodec_decode_video(video_st->codec,
+@@ -1136,7 +1163,11 @@
+         {
+             //picture_pts = picture->best_effort_timestamp;
+             if( picture_pts == AV_NOPTS_VALUE_ )
++                #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++                picture_pts = picture->pkt_dts;
++                #else
+                 picture_pts = picture->pkt_pts != AV_NOPTS_VALUE_ && picture->pkt_pts != 0 ? picture->pkt_pts : picture->pkt_dts;
++                #endif
+ 
+             frame_number++;
+             valid = true;
+@@ -1168,18 +1199,31 @@
+         return false;
+ 
+     if( img_convert_ctx == NULL ||
++        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        frame.width != video_st->codecpar->width ||
++        frame.height != video_st->codecpar->height ||
++        #else
+         frame.width != video_st->codec->width ||
+         frame.height != video_st->codec->height ||
++        #endif
+         frame.data == NULL )
+     {
+         // Some sws_scale optimizations have some assumptions about alignment of data/step/width/height
+         // Also we use coded_width/height to workaround problem with legacy ffmpeg versions (like n0.8)
++        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        int buffer_width = video_st->codecpar->width, buffer_height = video_st->codecpar->height;
++        #else
+         int buffer_width = video_st->codec->coded_width, buffer_height = video_st->codec->coded_height;
++        #endif
+ 
+         img_convert_ctx = sws_getCachedContext(
+                 img_convert_ctx,
+                 buffer_width, buffer_height,
++                #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++                (AVPixelFormat) video_st->codecpar->format,
++                #else
+                 video_st->codec->pix_fmt,
++                #endif
+                 buffer_width, buffer_height,
+                 AV_PIX_FMT_BGR24,
+                 SWS_BICUBIC,
+@@ -1208,8 +1252,13 @@
+         _opencv_ffmpeg_av_image_fill_arrays(&rgb_picture, rgb_picture.data[0],
+                         AV_PIX_FMT_BGR24, buffer_width, buffer_height );
+ #endif
++        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        frame.width = video_st->codecpar->width;
++        frame.height = video_st->codecpar->height;
++        #else
+         frame.width = video_st->codec->width;
+         frame.height = video_st->codec->height;
++        #endif
+         frame.cn = 3;
+         frame.data = rgb_picture.data[0];
+         frame.step = rgb_picture.linesize[0];
+@@ -1219,7 +1268,11 @@
+             img_convert_ctx,
+             picture->data,
+             picture->linesize,
++            #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++            0, video_st->codecpar->height,
++            #else
+             0, video_st->codec->coded_height,
++            #endif
+             rgb_picture.data,
+             rgb_picture.linesize
+             );
+@@ -1334,11 +1387,13 @@
+     }
+ #endif
+ 
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     if (fps < eps_zero)
+     {
+         fps = 1.0 / r2d(ic->streams[video_stream]->codec->time_base);
+     }
+ #endif
++#endif
+     return fps;
+ }
+ 
+@@ -1383,7 +1438,13 @@
+         double  time_base  = r2d(ic->streams[video_stream]->time_base);
+         time_stamp += (int64_t)(sec / time_base + 0.5);
+         if (get_total_frames() > 1) av_seek_frame(ic, video_stream, time_stamp, AVSEEK_FLAG_BACKWARD);
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        AVCodecContext *context;
++        avcodec_parameters_to_context(context, ic->streams[video_stream]->codecpar);
++        avcodec_flush_buffers(context);
++#else
+         avcodec_flush_buffers(ic->streams[video_stream]->codec);
++#endif
+         if( _frame_number > 0 )
+         {
+             grabFrame();
+@@ -1498,7 +1559,9 @@
+ 
+     const char* get_video_codec_name () const
+       {
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++        return _opencv_avcodec_get_name(video_st->codecpar->codec_id);
++#elif LIBAVFORMAT_BUILD > 4628
+         return _opencv_avcodec_get_name(video_st->codec->codec_id);
+ #else
+         return _opencv_avcodec_get_name(video_st->codec.codec_id);
+@@ -1593,7 +1656,9 @@
+ 
+ void CvVideoWriter_FFMPEG::init()
+ {
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     av_register_all();
++#endif
+     fmt = 0;
+     oc = 0;
+     outbuf = 0;
+@@ -1659,7 +1724,9 @@
+     AVCodecContext *c;
+     AVStream *st;
+     int frame_rate, frame_rate_base;
++#if LIBAVFORMAT_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     AVCodec *codec;
++#endif
+ 
+ #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 10, 0)
+     st = avformat_new_stream(oc, 0);
+@@ -1672,13 +1739,17 @@
+         return NULL;
+     }
+ 
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    avcodec_parameters_to_context(c, st->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+     c = st->codec;
+ #else
+     c = &(st->codec);
+ #endif
+ 
+-#if LIBAVFORMAT_BUILD > 4621
++#if LIBAVFORMAT_BUILD > 6027
++    c->codec_id = av_guess_codec(oc->oformat, NULL, oc->url, NULL, AVMEDIA_TYPE_VIDEO);
++#elif LIBAVFORMAT_BUILD > 4621
+     c->codec_id = av_guess_codec(oc->oformat, NULL, oc->filename, NULL, AVMEDIA_TYPE_VIDEO);
+ #else
+     c->codec_id = oc->oformat->video_codec;
+@@ -1689,11 +1760,15 @@
+     }
+ 
+     //if(codec_tag) c->codec_tag=codec_tag;
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++    const AVCodec *codec = avcodec_find_encoder(c->codec_id);
++#else
+     codec = avcodec_find_encoder(c->codec_id);
++#endif
+ 
+     c->codec_type = AVMEDIA_TYPE_VIDEO;
+ 
+-#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(54,25,0)
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(54,25,0) && LIBAVCODEC_BUILD < CALC_FFMPEG_VERSION(59, 0, 0)
+     // Set per-codec defaults
+     AVCodecID c_id = c->codec_id;
+     avcodec_get_context_defaults3(c, codec);
+@@ -1817,7 +1892,10 @@
+ #endif
+                                       AVFrame * picture )
+ {
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    AVCodecContext * c;
++    avcodec_parameters_to_context(c, video_st->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+     AVCodecContext * c = video_st->codec;
+ #else
+     AVCodecContext * c = &(video_st->codec);
+@@ -1845,7 +1923,10 @@
+         /* encode the image */
+         AVPacket pkt;
+         av_init_packet(&pkt);
+-#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(54, 1, 0)
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++        avcodec_send_frame(c, picture);
++        avcodec_receive_packet(c, &pkt);
++#elif LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(54, 1, 0)
+         int got_output = 0;
+         pkt.data = NULL;
+         pkt.size = 0;
+@@ -1913,7 +1994,10 @@
+     height = frame_height;
+ 
+     // typecast from opaque data type to implemented struct
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    AVCodecContext *c;
++    avcodec_parameters_to_context(c, video_st->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+     AVCodecContext *c = video_st->codec;
+ #else
+     AVCodecContext *c = &(video_st->codec);
+@@ -2031,7 +2115,9 @@
+     }
+ 
+     // free pictures
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    if( video_st->codecpar->format != input_pix_fmt)
++#elif LIBAVFORMAT_BUILD > 4628
+     if( video_st->codec->pix_fmt != input_pix_fmt)
+ #else
+     if( video_st->codec.pix_fmt != input_pix_fmt)
+@@ -2047,7 +2133,11 @@
+         av_free(input_picture);
+ 
+     /* close codec */
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    AVCodecContext *context;
++    avcodec_parameters_to_context(context, video_st->codecpar);
++    avcodec_close(context);
++#elif LIBAVFORMAT_BUILD > 4628
+     avcodec_close(video_st->codec);
+ #else
+     avcodec_close(&(video_st->codec));
+@@ -2149,7 +2239,10 @@
+ 
+     /* auto detect the output format from the name and fourcc code. */
+ 
+-#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++     const AVOutputFormat *format = av_guess_format(NULL, filename, NULL);
++     *fmt = *format;
++#elif LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
+     fmt = av_guess_format(NULL, filename, NULL);
+ #else
+     fmt = guess_format(NULL, filename, NULL);
+@@ -2233,7 +2326,11 @@
+ 
+     /* set file name */
+     oc->oformat = fmt;
++#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(59, 0, 0)
++    snprintf(oc->url, sizeof(oc->url), "%s", filename);
++#else
+     snprintf(oc->filename, sizeof(oc->filename), "%s", filename);
++#endif
+ 
+     /* set some options */
+     oc->max_delay = (int)(0.7*AV_TIME_BASE);  /* This reduces buffer underrun warnings with MPEG */
+@@ -2377,10 +2474,14 @@
+         return false;
+     }
+ 
++#if LIBAVFORMAT_BUILD < 6027
+     AVCodec *codec;
++#endif
+     AVCodecContext *c;
+ 
+-#if LIBAVFORMAT_BUILD > 4628
++#if LIBAVFORMAT_BUILD > 6027
++    avcodec_parameters_to_context(c, video_st->codecpar);
++#elif LIBAVFORMAT_BUILD > 4628
+     c = (video_st->codec);
+ #else
+     c = &(video_st->codec);
+@@ -2388,7 +2489,11 @@
+ 
+     c->codec_tag = fourcc;
+     /* find the video encoder */
++#if LIBAVFORMAT_BUILD > 6027
++    const AVCodec *codec = avcodec_find_encoder(c->codec_id);
++#else
+     codec = avcodec_find_encoder(c->codec_id);
++#endif
+     if (!codec) {
+         fprintf(stderr, "Could not find encoder for codec id %d: %s\n", c->codec_id, icvFFMPEGErrStr(
+         #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
+Index: octave-video-2.0.2/src/cap_ffmpeg_wrapper.cc
+===================================================================
+--- octave-video-2.0.2.orig/src/cap_ffmpeg_wrapper.cc
++++ octave-video-2.0.2/src/cap_ffmpeg_wrapper.cc
+@@ -58,17 +58,30 @@
+ undocumented internal function\n\
+ @end deftypefn")
+ {
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59,0,0)
++  void *fmt_iter = NULL;
++#else
+   av_register_all();
++#endif
+ 
+   octave_idx_type n = 0;
+ 
+   // first loop to get numer of output formats
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59,0,0)
++  const AVOutputFormat * oformat = NULL;
++  while (oformat = av_muxer_iterate(&fmt_iter))
++    {
++      n++;
++      oformat = av_muxer_iterate(&fmt_iter);
++    }
++#else
+   AVOutputFormat * oformat = av_oformat_next(NULL);
+   while (oformat != NULL)
+     {
+       n++;
+       oformat = av_oformat_next (oformat);
+     }
++#endif
+ 
+   Cell names (n, 1);
+   Cell long_names (n, 1);
+@@ -77,7 +90,13 @@
+   Cell codecs (n, 1);
+ 
+   // second loop, now fill the cells
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59,0,0)
++  // restart the iterator at NULL
++  fmt_iter = NULL;
++  oformat = av_muxer_iterate(&fmt_iter);
++#else
+   oformat = av_oformat_next(NULL);
++#endif
+   int i = 0;
+   while(oformat != NULL)
+     {
+@@ -141,7 +160,11 @@
+           }
+         }
+ 
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59,0,0)
++      oformat = av_muxer_iterate(&fmt_iter);
++#else
+       oformat = av_oformat_next(oformat);
++#endif
+       i++;
+     }
+ 
+@@ -413,7 +436,9 @@
+     {
+       CvVideoWriter_FFMPEG::register_type();
+       writer_type_loaded = true;
++#if LIBAVCODEC_BUILD < CALC_FFMPEG_VERSION(59,0,0)
+       av_register_all();
++#endif
+     }
+ 
+   std::string filename = args(0).string_value ();
+@@ -432,6 +457,9 @@
+   if (fourcc.size () == 0)
+     {
+       // get tag for default codec for guessed container from filename
++#if LIBAVCODEC_BUILD >= CALC_FFMPEG_VERSION(59,0,0)
++      const
++#endif
+       AVOutputFormat* foo = av_guess_format	(NULL, filename.c_str (), NULL);
+ 
+       // list supported codecs for guessed format
+Index: octave-video-2.0.2/src/ffmpeg_codecs.hpp
+===================================================================
+--- octave-video-2.0.2.orig/src/ffmpeg_codecs.hpp
++++ octave-video-2.0.2/src/ffmpeg_codecs.hpp
+@@ -77,71 +77,6 @@
+     unsigned int tag;
+ } AVCodecTag;
+ 
+-#if (LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(54, 51, 100))
+-#define AV_CODEC_ID_H264 CODEC_ID_H264
+-#define AV_CODEC_ID_H263 CODEC_ID_H263
+-#define AV_CODEC_ID_H263P CODEC_ID_H263P
+-#define AV_CODEC_ID_H263I CODEC_ID_H263I
+-#define AV_CODEC_ID_H261 CODEC_ID_H261
+-#define AV_CODEC_ID_MPEG4 CODEC_ID_MPEG4
+-#define AV_CODEC_ID_MSMPEG4V3 CODEC_ID_MSMPEG4V3
+-#define AV_CODEC_ID_MSMPEG4V2 CODEC_ID_MSMPEG4V2
+-#define AV_CODEC_ID_MSMPEG4V1 CODEC_ID_MSMPEG4V1
+-#define AV_CODEC_ID_WMV1 CODEC_ID_WMV1
+-#define AV_CODEC_ID_WMV2 CODEC_ID_WMV1
+-#define AV_CODEC_ID_DVVIDEO CODEC_ID_DVVIDEO
+-#define AV_CODEC_ID_MPEG1VIDEO CODEC_ID_MPEG1VIDEO
+-#define AV_CODEC_ID_MPEG2VIDEO CODEC_ID_MPEG2VIDEO
+-#define AV_CODEC_ID_MJPEG CODEC_ID_MJPEG
+-#define AV_CODEC_ID_LJPEG CODEC_ID_LJPEG
+-#define AV_CODEC_ID_HUFFYUV CODEC_ID_HUFFYUV
+-#define AV_CODEC_ID_FFVHUFF CODEC_ID_FFVHUFF
+-#define AV_CODEC_ID_CYUV CODEC_ID_CYUV
+-#define AV_CODEC_ID_RAWVIDEO CODEC_ID_RAWVIDEO
+-#define AV_CODEC_ID_INDEO3 CODEC_ID_INDEO3
+-#define AV_CODEC_ID_VP3 CODEC_ID_VP3
+-#define AV_CODEC_ID_ASV1 CODEC_ID_ASV1
+-#define AV_CODEC_ID_ASV2 CODEC_ID_ASV2
+-#define AV_CODEC_ID_VCR1 CODEC_ID_VCR1
+-#define AV_CODEC_ID_FFV1 CODEC_ID_FFV1
+-#define AV_CODEC_ID_XAN_WC4 CODEC_ID_XAN_WC4
+-#define AV_CODEC_ID_MSRLE CODEC_ID_MSRLE
+-#define AV_CODEC_ID_MSVIDEO1 CODEC_ID_MSVIDEO1
+-#define AV_CODEC_ID_CINEPAK CODEC_ID_CINEPAK
+-#define AV_CODEC_ID_TRUEMOTION1 CODEC_ID_TRUEMOTION1
+-#define AV_CODEC_ID_MSZH CODEC_ID_MSZH
+-#define AV_CODEC_ID_ZLIB CODEC_ID_ZLIB
+-#define AV_CODEC_ID_SNOW CODEC_ID_SNOW
+-#define AV_CODEC_ID_4XM CODEC_ID_4XM
+-#define AV_CODEC_ID_FLV1 CODEC_ID_FLV1
+-#define AV_CODEC_ID_SVQ1 CODEC_ID_SVQ1
+-#define AV_CODEC_ID_TSCC CODEC_ID_TSCC
+-#define AV_CODEC_ID_ULTI CODEC_ID_ULTI
+-#define AV_CODEC_ID_VIXL CODEC_ID_VIXL
+-#define AV_CODEC_ID_QPEG CODEC_ID_QPEG
+-#define AV_CODEC_ID_WMV3 CODEC_ID_WMV3
+-#define AV_CODEC_ID_LOCO CODEC_ID_LOCO
+-#define AV_CODEC_ID_THEORA CODEC_ID_THEORA
+-#define AV_CODEC_ID_WNV1 CODEC_ID_WNV1
+-#define AV_CODEC_ID_AASC CODEC_ID_AASC
+-#define AV_CODEC_ID_INDEO2 CODEC_ID_INDEO2
+-#define AV_CODEC_ID_FRAPS CODEC_ID_FRAPS
+-#define AV_CODEC_ID_TRUEMOTION2 CODEC_ID_TRUEMOTION2
+-#define AV_CODEC_ID_FLASHSV CODEC_ID_FLASHSV
+-#define AV_CODEC_ID_JPEGLS CODEC_ID_JPEGLS
+-#define AV_CODEC_ID_VC1 CODEC_ID_VC1
+-#define AV_CODEC_ID_CSCD CODEC_ID_CSCD
+-#define AV_CODEC_ID_ZMBV CODEC_ID_ZMBV
+-#define AV_CODEC_ID_KMVC CODEC_ID_KMVC
+-#define AV_CODEC_ID_VP5 CODEC_ID_VP5
+-#define AV_CODEC_ID_VP6 CODEC_ID_VP6
+-#define AV_CODEC_ID_VP6F CODEC_ID_VP6F
+-#define AV_CODEC_ID_JPEG2000 CODEC_ID_JPEG2000
+-#define AV_CODEC_ID_VMNC CODEC_ID_VMNC
+-#define AV_CODEC_ID_TARGA CODEC_ID_TARGA
+-#define AV_CODEC_ID_NONE CODEC_ID_NONE
+-#endif
+-
+ const AVCodecTag codec_bmp_tags[] = {
+     { AV_CODEC_ID_H264, MKTAG('H', '2', '6', '4') },
+     { AV_CODEC_ID_H264, MKTAG('h', '2', '6', '4') },
