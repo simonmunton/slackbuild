@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/o
 #TAR_EXT=.tar.gz
-VERSION=0.3.7
+VERSION=0.3.24
 VERSIONEXTRA=
 BUILD=1
 
@@ -86,13 +86,22 @@ fi
 
 fi
 
+MAKEOPTS="DYNAMIC_ARCH=1 \
+  TARGET=GENERIC \
+  NO_STATIC=1 \
+  NO_AFFINITY=1 \
+  BUILD_RELAPACK=1 \
+  DESTDIR=${PKG} \
+  PREFIX=/usr \
+  OPENBLAS_LIBRARY_DIR=/usr/lib${LIBDIRSUFFIX}"
+
 if [ ${DO_MAKE} == "yes" ]
 then
 if [ -f ./meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
-  make ${NUM_JOBS} || exit
+  make ${NUM_JOBS} ${MAKEOPTS} || exit
 fi
 fi
 
@@ -105,7 +114,7 @@ if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
-  make install DESTDIR=${PKG} PREFIX=/usr OPENBLAS_LIBRARY_DIR=/usr/lib${LIBDIRSUFFIX}
+  make install DESTDIR=${PKG}  ${MAKEOPTS}
 fi
 
 strip_binaries
