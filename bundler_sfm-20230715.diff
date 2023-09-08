@@ -1,0 +1,42 @@
+--- bundler_sfm-20230715/src/Makefile.orig	2023-07-15 17:05:17.000000000 +0100
++++ bundler_sfm-20230715/src/Makefile	2023-09-08 20:47:18.716831456 +0100
+@@ -43,7 +43,7 @@
+ 	BundleIO.o ProcessBundle.o BundleTwo.o Decompose.o		\
+ 	RelativePose.o Distortion.o TwoFrameModel.o LoadJPEG.o
+ 
+-BUNDLER_BASE_LIBS=-limage -lsfmdrv -lsba.v1.5 -lmatrix -lz -llapack -lblas \
++BUNDLER_BASE_LIBS=-limage -lsfmdrv -lsba.v1.5 -lmatrix -lz -lopenblas \
+ 	-lcblas -lminpack -lm -l5point -ljpeg -lANN_char -lgfortran
+ CERES_LIBS=-lceres -lcholmod -lccolamd -lcolamd -lamd -lcamd -lcxsparse \
+ 	-lsuitesparseconfig -lgomp -lglog -lpthread
+@@ -82,12 +82,12 @@
+ 
+ $(BUNDLE2PLY): Bundle2Ply.o
+ 	$(CXX) -o $@ $(CPPFLAGS) $(LIB_PATH) Bundle2Ply.o \
+-		-lmatrix -llapack -lblas -lcblas -lgfortran -lminpack
++		-lmatrix -lopenblas -lcblas -lgfortran -lminpack
+ 	cp $@ ../bin
+ 
+ $(BUNDLE2PMVS): Bundle2PMVS.o LoadJPEG.o
+ 	$(CXX) -o $@ $(CPPFLAGS) $(LIB_PATH) Bundle2PMVS.o LoadJPEG.o \
+-		-limage -lmatrix -llapack -lblas -lcblas -lgfortran \
++		-limage -lmatrix -lopenblas -lcblas -lgfortran \
+ 		-lminpack -ljpeg
+ 	cp $@ ../bin
+ 
+@@ -97,13 +97,13 @@
+ 
+ $(RADIALUNDISTORT): RadialUndistort.o LoadJPEG.o
+ 	$(CXX) -o $@ $(CPPFLAGS) $(LIB_PATH) $^ \
+-		-limage -lmatrix -llapack -lblas -lcblas -lgfortran \
++		-limage -lmatrix -lopenblas -lcblas -lgfortran \
+ 		-lminpack -ljpeg
+ 	cp $@ ../bin
+ 
+ $(FISHEYEUNDISTORT): FisheyeUndistort.o BundleUtil.o LoadJPEG.o
+ 	$(CXX) -o $@ $(CPPFLAGS) $(LIB_PATH) $^ \
+-		-limage -lmatrix -llapack -lblas -lcblas -lgfortran \
++		-limage -lmatrix -lopenblas -lcblas -lgfortran \
+ 		-lminpack -ljpeg
+ 	cp $@ ../bin
+ 
