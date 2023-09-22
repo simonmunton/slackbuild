@@ -2,23 +2,26 @@
 #
 . build_funcs
 
-TARNAME=metis
+TARNAME=METIS
 TARNAMEEXTRA=
+TARSEP="-"
 TARDIR=~/tmp/new/m
 #TAR_EXT=.tar.gz
-VERSION=5.1.0
+VERSION=5.2.1
 VERSIONEXTRA=
 BUILD=1
 
+WEBPAGE="https://github.com/KarypisLab/METIS"
+
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
-#PKGVERSION=4.0.1
+PKGNAME=metis
+#PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -31,18 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/metis-5.1.0.diff
+ patch -p1 < ${CWD}/METIS-5.2.1.diff
 )
 fi
 
@@ -52,15 +55,49 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+#mkdir _BuilD_
+#cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-  true
-  make config shared=1 prefix=/usr LIBDIRSUFFIX=${LIBDIRSUFFIX}
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
+
+fi
+
+MAKEOPTS="config shared=1 prefix=/usr"
 
 if [ ${DO_MAKE} == "yes" ]
 then
-  make ${NUM_JOBS}
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} ${MAKEOPTS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,17 +105,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install ${MAKEOPTS} DESTDIR=${PKG}
+fi
 
-#mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},include/metis}
-#cp -d lib* ${PKG}/usr/lib${LIBDIRSUFFIX}
-#rm ${PKG}/usr/lib${LIBDIRSUFFIX}/*.a
-#cp Lib/*.h ${PKG}/usr/include/metis
-#cp graphchk kmetis mesh2dual mesh2nodal oemetis onmetis partdmesh partnmesh pmetis ${PKG}/usr/bin
+#cd ..
 
-
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -87,32 +123,19 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO ${TARDIR}/metis-manual.pdf \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
-mkdir -p ${PKG}/install
-cat <<EOF > ${PKG}/install/slack-desc
-# HOW TO EDIT THIS FILE:
-# The "handy ruler" below makes it easier to edit a package description.  Line
-# up the first '|' above the ':' following the base package name, and the '|'
-# on the right side marks the last column you can put a character in.  You must
-# make exactly 11 lines for the formatting to be correct.  It's also
-# customary to leave one space after the ':'.
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "METIS - Serial Graph Partitioning and Fill-reducing Matrix Ordering"
+METIS is a family of programs for partitioning unstructured graphs
+and hypergraphs and computing fill-reducing orderings of sparse
+matrices. The underlying algorithms used by METIS are based on the
+state-of-the-art multilevel paradigm that has been shown to produce
+high quality results and scale to very large problems.
 
-          |-----handy-ruler------------------------------------------------------|
-${PKGNAME}: ${PKGNAME} ${VERSION}
-${PKGNAME}:
-${PKGNAME}: METIS is a family of programs for partitioning unstructured graphs
-${PKGNAME}: and hypergraphs and computing fill-reducing orderings of sparse
-${PKGNAME}: matrices. The underlying algorithms used by METIS are based on the
-${PKGNAME}: state-of-the-art multilevel paradigm that has been shown to produce
-${PKGNAME}: high quality results and scale to very large problems.
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
-${PKGNAME}:
 EOF
 
 post_install

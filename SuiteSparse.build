@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/s/SuiteSparse
 #TAR_EXT=.tar.gz
-VERSION=5.13.0
+VERSION=7.2.0
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://faculty.cse.tamu.edu/davis/suitesparse.html"
 
@@ -85,13 +85,16 @@ fi
 
 fi
 
+export CMAKE_OPTIONS="-DNSTATIC=0 -DCMAKE_INSTALL_PREFIX=/usr"
+
 if [ ${DO_MAKE} == "yes" ]
 then
 if [ -f ./meson.build ]
 then
   ninja -C _BuilD_ || exit
 else
-  make ${NUM_JOBS} BLAS=-lopenblas LAPACK=-lopenblas || exit
+#  make ${NUM_JOBS} BLAS=-lopenblas LAPACK=-lopenblas || exit
+  make ${NUM_JOBS} || exit
 fi
 fi
 
@@ -104,7 +107,8 @@ if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja -C _BuilD_ install
 else
-  make BLAS=-lopenblas LAPACK=-lopenblas install INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse INSTALL_DOC=${PKG}/usr/doc/${TARNAME}-${VERSION}
+#  make BLAS=-lopenblas LAPACK=-lopenblas install INSTALL_LIB=${PKG}/usr/lib${LIBDIRSUFFIX} INSTALL_INCLUDE=${PKG}/usr/include/suitesparse INSTALL_DOC=${PKG}/usr/doc/${TARNAME}-${VERSION}
+  make install DESTDIR=${PKG}
 fi
 
 strip_binaries
