@@ -1,0 +1,19 @@
+--- hotdoc-0.15/hotdoc/extensions/c/c_extension.py.orig	2020-06-23 16:51:05.000000000 +0100
++++ hotdoc-0.15/hotdoc/extensions/c/c_extension.py	2023-09-23 17:16:11.892168632 +0100
+@@ -78,10 +78,13 @@
+     version = subprocess.check_output(['llvm-config', '--version']).strip().decode()
+     prefix = subprocess.check_output(['llvm-config', '--prefix']).strip().decode()
+ 
++    version_short = version.split('.', 1)[0]
++
+     for lib in ['lib', 'lib64']:
+-        p = os.path.join(prefix, lib, 'clang', version, 'include')
+-        if os.path.exists(p):
+-            return p
++        for ver in [version, version_short]:
++            p = os.path.join(prefix, lib, 'clang', ver, 'include')
++            if os.path.exists(p):
++                return p
+ 
+     warn('clang-headers-not-found', CLANG_HEADERS_WARNING)
+ 
