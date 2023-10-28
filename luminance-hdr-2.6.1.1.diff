@@ -1,0 +1,195 @@
+--- luminance-hdr-2.6.1.1/CMakeLists.txt.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/CMakeLists.txt	2023-10-27 22:32:01.278877460 +0100
+@@ -189,7 +189,7 @@
+ INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
+ 
+ FIND_PACKAGE(OpenEXR REQUIRED)
+-INCLUDE_DIRECTORIES(${OPENEXR_INCLUDE_DIR} "${OPENEXR_INCLUDE_DIR}/OpenEXR")
++INCLUDE_DIRECTORIES(${OPENEXR_INCLUDE_DIR} "${OPENEXR_INCLUDE_DIR}/OpenEXR" "${OPENEXR_INCLUDE_DIR}/Imath")
+ 
+ FIND_PACKAGE(GSL REQUIRED)
+ INCLUDE_DIRECTORIES(${GSL_INCLUDE_DIR} ${GSLCBLAS_INCLUDE_DIR})
+--- luminance-hdr-2.6.1.1/src/Libpfs/exif/exifdata.cpp.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/src/Libpfs/exif/exifdata.cpp	2023-10-27 23:10:14.901991607 +0100
+@@ -52,7 +52,7 @@
+ void ExifData::fromFile(const std::string &filename) {
+     reset();
+     try {
+-        ::Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filename);
++        ::Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(filename);
+         image->readMetadata();
+         ::Exiv2::ExifData &exifData = image->exifData();
+ 
+@@ -121,7 +121,7 @@
+          */
+         if ((it = exifData.findKey(Exiv2::ExifKey("Exif.Image.Orientation"))) !=
+             exifData.end()) {
+-            long rotation = it->toLong();
++            long rotation = it->toInt64();
+             switch (rotation) {
+                 case 3:
+                     m_orientation = 180;
+@@ -134,7 +134,7 @@
+                     break;
+             }
+         }
+-    } catch (Exiv2::AnyError &e) {
++    } catch (Exiv2::Error &e) {
+         return;
+     }
+ }
+--- luminance-hdr-2.6.1.1/src/Libpfs/manip/gamma_levels.cpp.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/src/Libpfs/manip/gamma_levels.cpp	2023-10-27 22:41:04.473851543 +0100
+@@ -32,7 +32,7 @@
+ namespace {
+ 
+ template <typename T>
+-inline T clamp(const T &v, const T &lower_bound, const T &upper_bound) {
++inline T pfs_clamp(const T &v, const T &lower_bound, const T &upper_bound) {
+     if (v <= lower_bound) return lower_bound;
+     if (v >= upper_bound) return upper_bound;
+     return v;
+@@ -133,9 +133,9 @@
+         blue = (blue - black_in) / (white_in - black_in);
+         blue *= c;
+ 
+-        R_o[idx] = clamp(black_out + red * (white_out - black_out), 0.f, 1.f);
+-        G_o[idx] = clamp(black_out + green * (white_out - black_out), 0.f, 1.f);
+-        B_o[idx] = clamp(black_out + blue * (white_out - black_out), 0.f, 1.f);
++        R_o[idx] = pfs_clamp(black_out + red * (white_out - black_out), 0.f, 1.f);
++        G_o[idx] = pfs_clamp(black_out + green * (white_out - black_out), 0.f, 1.f);
++        B_o[idx] = pfs_clamp(black_out + blue * (white_out - black_out), 0.f, 1.f);
+     }
+ 
+ #ifdef TIMER_PROFILING
+--- luminance-hdr-2.6.1.1/src/TransplantExif/TransplantExifDialog.cpp.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/src/TransplantExif/TransplantExifDialog.cpp	2023-10-27 23:12:26.829985313 +0100
+@@ -347,7 +347,7 @@
+                 QFile::encodeName((*i_dest)).constData(),
+                 m_Ui->checkBox_dont_overwrite->isChecked());
+             m_Ui->rightlist->item(index)->setBackground(QBrush("#a0ff87"));
+-        } catch (Exiv2::AnyError &e) {
++        } catch (Exiv2::Error &e) {
+             add_log_message("ERROR:" + QString::fromStdString(e.what()));
+             m_Ui->rightlist->item(index)->setBackground(QBrush("#ff743d"));
+         }
+--- luminance-hdr-2.6.1.1/src/Exif/ExifOperations.cpp.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/src/Exif/ExifOperations.cpp	2023-10-27 23:11:23.367988340 +0100
+@@ -108,7 +108,7 @@
+ #endif
+ 
+     try {
+-        Exiv2::Image::AutoPtr sourceImage;
++        Exiv2::Image::UniquePtr sourceImage;
+         Exiv2::ExifData srcExifData;
+ 
+         if (!from.empty()) {
+@@ -128,7 +128,7 @@
+         }
+ 
+         // get destination exif data
+-        Exiv2::Image::AutoPtr destinationImage = Exiv2::ImageFactory::open(to);
++        Exiv2::Image::UniquePtr destinationImage = Exiv2::ImageFactory::open(to);
+ 
+         if (dontOverwrite) {
+             // doesn't throw anything if it is empty
+@@ -212,7 +212,7 @@
+             destinationImage->setExifData(srcExifData);
+         }
+         destinationImage->writeMetadata();
+-    } catch (Exiv2::AnyError &e) {
++    } catch (Exiv2::Error &e) {
+ #ifndef NDEBUG
+         qDebug() << e.what();
+ #endif
+@@ -250,7 +250,7 @@
+ {
+     try
+     {
+-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filename);
++        Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(filename);
+         image->readMetadata();
+         Exiv2::ExifData &exifData = image->exifData();
+         if (exifData.empty())
+@@ -329,7 +329,7 @@
+             return -1;
+         }
+     }
+-    catch (Exiv2::AnyError& e)
++    catch (Exiv2::Error& e)
+     {
+         return -1;
+     }
+@@ -338,7 +338,7 @@
+ 
+ float getExposureTime(const std::string &filename) {
+     try {
+-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filename);
++        Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(filename);
+         image->readMetadata();
+         Exiv2::ExifData &exifData = image->exifData();
+         if (exifData.empty()) return -1;
+@@ -374,14 +374,14 @@
+         } else {
+             return -1;
+         }
+-    } catch (Exiv2::AnyError &e) {
++    } catch (Exiv2::Error &e) {
+         return -1;
+     }
+ }
+ 
+ float getAverageLuminance(const std::string &filename) {
+     try {
+-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filename);
++        Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(filename);
+         image->readMetadata();
+         Exiv2::ExifData &exifData = image->exifData();
+ 
+@@ -403,7 +403,7 @@
+                   << std::endl;
+ 
+         return -1.0;
+-    } catch (Exiv2::AnyError &e) {
++    } catch (Exiv2::Error &e) {
+         return -1.0;
+     }
+ }
+--- luminance-hdr-2.6.1.1/build_files/Modules/CompilerSettings.cmake.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/build_files/Modules/CompilerSettings.cmake	2023-10-27 22:37:07.037862871 +0100
+@@ -15,7 +15,7 @@
+     execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+     if (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
+         message(STATUS "C++11 activated for GCC ${GCC_VERSION}")
+-        set(CMAKE_CXX_STANDARD 11)
++        set(CMAKE_CXX_STANDARD 17)
+         add_definitions(-DLHDR_CXX11_ENABLED)
+     elseif(GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
+         message(WARNING "C++0x activated for GCC ${GCC_VERSION}. If you get any errors update to a compiler that fully supports C++11")
+@@ -26,7 +26,7 @@
+     endif()
+ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+     message(STATUS "C++11 activated for Clang")
+-    set(CMAKE_CXX_STANDARD 11)
++    set(CMAKE_CXX_STANDARD 17)
+     if (APPLE)
+         set(CMAKE_EXE_LINKER_FLAGS "-lc++abi -stdlib=libc++ -rpath @loader_path/../Frameworks/")
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+--- luminance-hdr-2.6.1.1/build_files/Modules/FindOpenEXR.cmake.orig	2021-01-11 09:41:28.000000000 +0000
++++ luminance-hdr-2.6.1.1/build_files/Modules/FindOpenEXR.cmake	2023-10-27 22:33:39.790872760 +0100
+@@ -47,12 +47,12 @@
+   )
+ else ()
+   string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _openexr_libs_ver ${OPENEXR_VERSION})
++  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _imath_libs_ver ${IMATH_VERSION})
+   SET(_openexr_FIND_COMPONENTS
+-    Half
+     Iex-${_openexr_libs_ver}
+-    IlmImf-${_openexr_libs_ver}
+     IlmThread-${_openexr_libs_ver}
+-    Imath-${_openexr_libs_ver}
++    Imath-${_imath_libs_ver}
++    OpenEXR-${_openexr_libs_ver}
+   )
+ endif ()
+ 
