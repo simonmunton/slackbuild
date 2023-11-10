@@ -1,0 +1,36 @@
+From 4cabfa111ab5912ae30d6d44b917a9c403845b3f Mon Sep 17 00:00:00 2001
+From: Paul Cornett <paulcor@users.noreply.github.com>
+Date: Sat, 21 Oct 2023 09:20:45 -0700
+Subject: [PATCH] Avoid crash with GTK3 if console program is linked to GUI
+ library
+
+A console program should not really be linked with the GUI library, but it used
+to work, and it's unavoidable with the monolithic build, so fix the regression.
+See #23981
+---
+ src/gtk/settings.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/gtk/settings.cpp b/src/gtk/settings.cpp
+index 10741e77b931..1202e06fb030 100644
+--- a/src/gtk/settings.cpp
++++ b/src/gtk/settings.cpp
+@@ -13,6 +13,7 @@
+ #include "wx/settings.h"
+ 
+ #ifndef WX_PRECOMP
++    #include "wx/app.h"
+     #include "wx/toplevel.h"
+     #include "wx/module.h"
+ #endif
+@@ -1206,6 +1207,10 @@ bool wxSystemSettingsModule::OnInit()
+ 
+     m_proxy = nullptr;
+ 
++    wxAppConsole* app = wxAppConsole::GetInstance();
++    if (!app || !app->IsGUI())
++        return true;
++
+     // GTK_THEME environment variable overrides other settings
+     if (getenv("GTK_THEME") == nullptr)
+     {
