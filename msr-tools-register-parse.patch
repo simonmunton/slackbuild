@@ -1,0 +1,47 @@
+commit eedf406a48e8354f680df19abb0784d9cd3ac1c5
+Author: Yazen Ghannam <yazen.ghannam@amd.com>
+Date:   Mon Sep 17 11:57:04 2018 -0500
+
+    Fail to read/write if register number is not parsed correctly
+    
+    It's possible that a user will provide a register number in a format
+    that strtoul() can't parse. strtoul() will return 0 if it fails to parse
+    a value. The msr-tools will then silently read/write to MSR 0x0 and
+    succeed. At best this may confuse the user, or at worst this will
+    unintentionally write bad data to the system.
+    
+    Check that the register number parsing has succeeded. If it fails, then
+    inform the user, give a suggestion, and exit.
+    
+    Signed-off-by: Yazen Ghannam <yazen.ghannam@amd.com>
+
+--- a/rdmsr.c
++++ b/rdmsr.c
+@@ -193,7 +193,11 @@ int main(int argc, char *argv[])
+ 		exit(127);
+ 	}
+ 
+-	reg = strtoul(argv[optind], NULL, 0);
++	reg = strtoul(argv[optind], &endarg, 0);
++	if (*endarg) {
++		printf("Failed to parse register number.\n");
++		exit(127);
++	}
+ 
+ 	if (cpu == -1) {
+ 		rdmsr_on_all_cpus(reg);
+--- a/wrmsr.c
++++ b/wrmsr.c
+@@ -120,7 +120,11 @@ int main(int argc, char *argv[])
+ 		exit(127);
+ 	}
+ 
+-	reg = strtoul(argv[optind++], NULL, 0);
++	reg = strtoul(argv[optind++], &endarg, 0);
++	if (*endarg) {
++		printf("Failed to parse register number.\n");
++		exit(127);
++	}
+ 
+ 	if (cpu == -1) {
+ 		wrmsr_on_all_cpus(reg, argc - optind, &argv[optind]);
