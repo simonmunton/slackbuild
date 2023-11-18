@@ -1,0 +1,39 @@
+--- calibre-7.0.0/src/calibre/db/notes/exim.py.orig	2023-11-17 06:02:05.000000000 +0000
++++ calibre-7.0.0/src/calibre/db/notes/exim.py	2023-11-17 17:16:53.314134106 +0000
+@@ -6,6 +6,7 @@
+ from html5_parser import parse
+ from lxml import html
+ from urllib.parse import unquote, urlparse
++from typing import Union
+ 
+ from calibre import guess_extension, guess_type
+ from calibre.db.constants import RESOURCE_URL_SCHEME
+@@ -41,7 +42,7 @@
+     return html.tostring(root, encoding='unicode')
+ 
+ 
+-def import_note(shtml: str | bytes, basedir: str, add_resource) -> tuple[str, str, set[str]]:
++def import_note(shtml: Union[str, bytes], basedir: str, add_resource) -> tuple[str, str, set[str]]:
+     shtml = xml_to_unicode(shtml, strip_encoding_pats=True, assume_utf8=True)[0]
+     basedir = os.path.normcase(get_long_path_name(os.path.abspath(basedir)) + os.sep)
+     root = parse_html(shtml)
+--- calibre-7.0.0/src/calibre/db/cache.py.orig	2023-11-17 06:02:05.000000000 +0000
++++ calibre-7.0.0/src/calibre/db/cache.py	2023-11-17 17:12:05.862147821 +0000
+@@ -21,7 +21,7 @@
+ from queue import Queue
+ from threading import Lock
+ from time import mktime, monotonic, sleep, time
+-from typing import NamedTuple, Optional, Tuple
++from typing import NamedTuple, Optional, Tuple, Union
+ 
+ from calibre import as_unicode, detect_ncpus, isbytestring
+ from calibre.constants import iswindows, preferred_encoding
+@@ -687,7 +687,7 @@
+         return self.backend.notes_data_for(field, item_id)
+ 
+     @read_api
+-    def get_all_items_that_have_notes(self, field_name=None) -> set[int] | dict[str, set[int]]:
++    def get_all_items_that_have_notes(self, field_name=None) -> Union[set[int], dict[str, set[int]]]:
+         ' Return all item_ids for items that have notes in the specified field or all fields if field_name is None '
+         return self.backend.get_all_items_that_have_notes(field_name)
+ 
