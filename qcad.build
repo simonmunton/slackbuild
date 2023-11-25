@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=~/tmp/new/q/qcad
 #TAR_EXT=.tar.gz
-VERSION=3.28.1.0
+VERSION=3.28.2.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -46,10 +46,20 @@ fi
 
 (cd ${TARNAME}-${VERSION}
 # patch -p1 < ${CWD}/qcad-add-qt-5.15.3.diff
- patch -p1 < ${CWD}/qcad-add-qt-5.15.5.diff
- patch -p1 < ${CWD}/qcad-add-qt-5.15.6.diff
- patch -p1 < ${CWD}/qcad-add-qt-5.15.8.diff
- patch -p1 < ${CWD}/qcad-add-qt-5.15.9.diff
+# patch -p1 < ${CWD}/qcad-add-qt-5.15.5.diff
+# patch -p1 < ${CWD}/qcad-add-qt-5.15.6.diff
+# patch -p1 < ${CWD}/qcad-add-qt-5.15.8.diff
+# patch -p1 < ${CWD}/qcad-add-qt-5.15.9.diff
+
+QT_VER=`qtpaths --qt-version`
+
+mkdir src/3rdparty/qt-labs-qtscriptgenerator-${QT_VER}
+cat << EOF > src/3rdparty/qt-labs-qtscriptgenerator-${QT_VER}/qt-labs-qtscriptgenerator-${QT_VER}.pro
+include( ../../../shared.pri )
+
+SUBDIRS = ../qt-labs-qtscriptgenerator-5.5.0/qtbindings
+TEMPLATE = subdirs
+EOF
 
 # sed -i -e "/qcadmobile/ s/SUBDIR/#SUBDIR/" qcad.pro
 
