@@ -289,3 +289,26 @@
                      vertexList->push_back(osg::Vec3(pt.X(), pt.Y(), pt.Z()));
  
                      // populate color list
+--- OpenSceneGraph-3.6.5/src/osgPlugins/jp2/ReaderWriterJP2.cpp.orig	2020-01-31 11:03:07.000000000 +0000
++++ OpenSceneGraph-3.6.5/src/osgPlugins/jp2/ReaderWriterJP2.cpp	2024-01-02 20:47:43.957773353 +0000
+@@ -175,7 +175,9 @@
+             supportsExtension("jp2","Jpeg2000 image format");
+             supportsExtension("jpc","Jpeg2000 image format");
+ 
+-            jas_init();
++            jas_conf_clear();
++            jas_init_library();
++            jas_init_thread();
+ 
+             // little dance here to get around warnings created by jas_image_strtofmt use of char* rather than const char*
+             // as a parameted and modern compilers deprecating "jp2" string being treated as char*.
+@@ -186,7 +188,8 @@
+ 
+         ~ReaderWriterJP2()
+         {
+-            jas_cleanup();
++            jas_cleanup_thread();
++            jas_cleanup_library();
+         }
+ 
+         virtual const char* className() const { return "JPEG 2000 Image Reader/Writer"; }
