@@ -1,0 +1,51 @@
+--- leptonica-1.84.1/CMakeLists.txt.orig	2024-01-02 23:48:24.000000000 +0000
++++ leptonica-1.84.1/CMakeLists.txt	2024-01-20 11:33:47.591106119 +0000
+@@ -71,7 +71,7 @@
+ option(ENABLE_OPENJPEG "Enable OpenJPEG support" ON)
+ 
+ set(leptonica_INSTALL_CMAKE_DIR
+-    "lib/cmake/leptonica"
++    "lib${LIB_SUFFIX}/cmake/leptonica"
+     CACHE STRING "Install destination for CMake package files")
+ 
+ if(NOT SW_BUILD)
+@@ -358,7 +358,7 @@
+ # to resolve generator expression in OUTPUT_NAME
+ file(
+   GENERATE
+-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lept_$<CONFIG>.pc
++  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lept.pc
+   INPUT ${CMAKE_CURRENT_BINARY_DIR}/lept.pc.in)
+ 
+ configure_file(
+@@ -368,8 +368,8 @@
+   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/LeptonicaConfig.cmake.in
+   ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake @ONLY)
+ 
+-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept_$<CONFIG>.pc
+-        DESTINATION lib/pkgconfig)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lept.pc
++        DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig-version.cmake
+         DESTINATION ${leptonica_INSTALL_CMAKE_DIR})
+--- leptonica-1.84.1/src/CMakeLists.txt.orig	2023-05-27 19:42:31.000000000 +0100
++++ leptonica-1.84.1/src/CMakeLists.txt	2024-01-20 11:22:47.379061793 +0000
+@@ -66,7 +66,7 @@
+             ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:leptonica>" ${old_target}
+             DEPENDS ${PROJECT_NAME}
+             COMMENT "Creating lept symlink")
+-        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib)
++        install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib${LIB_SUFFIX})
+     endif(SYM_LINK)
+ endif()
+ 
+@@ -89,7 +89,7 @@
+     export(TARGETS leptonica APPEND FILE ${CMAKE_BINARY_DIR}/LeptonicaTargets.cmake)
+ endif()
+ 
+-install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
++install(TARGETS leptonica EXPORT LeptonicaTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib${LIB_SUFFIX} ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ install(EXPORT LeptonicaTargets DESTINATION  ${leptonica_INSTALL_CMAKE_DIR})
+ install(FILES
+     ${hdr}
