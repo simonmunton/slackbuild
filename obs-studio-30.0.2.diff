@@ -1,0 +1,167 @@
+--- obs-studio-30.0.2/libobs/media-io/media-remux.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/libobs/media-io/media-remux.c	2024-01-30 20:18:27.998990496 +0000
+@@ -91,6 +91,7 @@
+ 			return false;
+ 		}
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ #if FF_API_BUFFER_SIZE_T
+ 		int content_size;
+ #else
+@@ -125,6 +126,7 @@
+ 				       mastering_size);
+ 			}
+ 		}
++#endif
+ 
+ 		ret = avcodec_parameters_copy(out_stream->codecpar,
+ 					      in_stream->codecpar);
+--- obs-studio-30.0.2/plugins/obs-ffmpeg/ffmpeg-mux/ffmpeg-mux.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/plugins/obs-ffmpeg/ffmpeg-mux/ffmpeg-mux.c	2024-01-30 20:23:38.038011312 +0000
+@@ -498,9 +498,17 @@
+ 			av_content_light_metadata_alloc(&content_size);
+ 		content->MaxCLL = max_luminance;
+ 		content->MaxFALL = max_luminance;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(ffm->video_stream,
+ 					AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
+ 					(uint8_t *)content, content_size);
++#else
++	av_packet_side_data_add(
++		&ffm->video_stream->codecpar->coded_side_data,
++		&ffm->video_stream->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (uint8_t *)content,
++		content_size, 0);
++#endif
+ 
+ 		AVMasteringDisplayMetadata *const mastering =
+ 			av_mastering_display_metadata_alloc();
+@@ -516,10 +524,18 @@
+ 		mastering->max_luminance = av_make_q(max_luminance, 1);
+ 		mastering->has_primaries = 1;
+ 		mastering->has_luminance = 1;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(ffm->video_stream,
+ 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
+ 					(uint8_t *)mastering,
+ 					sizeof(*mastering));
++#else
++	av_packet_side_data_add(
++		&ffm->video_stream->codecpar->coded_side_data,
++		&ffm->video_stream->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
++		(uint8_t *)mastering, sizeof(*mastering), 0);
++#endif
+ 	}
+ 
+ 	if (ffm->output->oformat->flags & AVFMT_GLOBALHEADER)
+--- obs-studio-30.0.2/plugins/obs-ffmpeg/obs-ffmpeg-mpegts.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/plugins/obs-ffmpeg/obs-ffmpeg-mpegts.c	2024-01-30 20:23:15.185009777 +0000
+@@ -168,9 +168,17 @@
+ 			av_content_light_metadata_alloc(&content_size);
+ 		content->MaxCLL = hdr_nominal_peak_level;
+ 		content->MaxFALL = hdr_nominal_peak_level;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(data->video,
+ 					AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
+ 					(uint8_t *)content, content_size);
++#else
++	av_packet_side_data_add(
++		&data->video->codecpar->coded_side_data,
++		&data->video->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (uint8_t *)content,
++		content_size, 0);
++#endif
+ 
+ 		AVMasteringDisplayMetadata *const mastering =
+ 			av_mastering_display_metadata_alloc();
+@@ -186,10 +194,18 @@
+ 		mastering->max_luminance = av_make_q(hdr_nominal_peak_level, 1);
+ 		mastering->has_primaries = 1;
+ 		mastering->has_luminance = 1;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(data->video,
+ 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
+ 					(uint8_t *)mastering,
+ 					sizeof(*mastering));
++#else
++	av_packet_side_data_add(
++		&data->video->codecpar->coded_side_data,
++		&data->video->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
++		(uint8_t *)mastering, sizeof(*mastering), 0);
++#endif
+ 	}
+ 	context = avcodec_alloc_context3(NULL);
+ 	context->codec_type = codec->type;
+--- obs-studio-30.0.2/plugins/obs-ffmpeg/obs-ffmpeg-output.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/plugins/obs-ffmpeg/obs-ffmpeg-output.c	2024-01-30 20:25:04.476017115 +0000
+@@ -213,9 +213,17 @@
+ 			av_content_light_metadata_alloc(&content_size);
+ 		content->MaxCLL = hdr_nominal_peak_level;
+ 		content->MaxFALL = hdr_nominal_peak_level;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(data->video,
+ 					AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
+ 					(uint8_t *)content, content_size);
++#else
++	av_packet_side_data_add(
++		&data->video->codecpar->coded_side_data,
++		&data->video->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (uint8_t *)content,
++		content_size, 0);
++#endif
+ 
+ 		AVMasteringDisplayMetadata *const mastering =
+ 			av_mastering_display_metadata_alloc();
+@@ -231,10 +239,18 @@
+ 		mastering->max_luminance = av_make_q(hdr_nominal_peak_level, 1);
+ 		mastering->has_primaries = 1;
+ 		mastering->has_luminance = 1;
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 		av_stream_add_side_data(data->video,
+ 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
+ 					(uint8_t *)mastering,
+ 					sizeof(*mastering));
++#else
++	av_packet_side_data_add(
++		&data->video->codecpar->coded_side_data,
++		&data->video->codecpar->nb_coded_side_data,
++		AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
++		(uint8_t *)mastering, sizeof(*mastering), 0);
++#endif
+ 	}
+ 
+ 	closest_format = data->config.format;
+--- obs-studio-30.0.2/deps/media-playback/media-playback/decode.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/deps/media-playback/media-playback/decode.c	2024-01-30 20:27:46.824028015 +0000
+@@ -114,8 +114,14 @@
+ {
+ 	uint32_t max_luminance = 0;
+ 
++#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 31, 102)
+ 	for (int i = 0; i < stream->nb_side_data; i++) {
+ 		const AVPacketSideData *const sd = &stream->side_data[i];
++#else
++	for (int i = 0; i < stream->codecpar->nb_coded_side_data; i++) {
++		const AVPacketSideData *const sd =
++		&stream->codecpar->coded_side_data[i];
++#endif
+ 		switch (sd->type) {
+ 		case AV_PKT_DATA_MASTERING_DISPLAY_METADATA: {
+ 			const AVMasteringDisplayMetadata *mastering =
+--- obs-studio-30.0.2/deps/media-playback/media-playback/media.c.orig	2023-12-12 16:41:25.000000000 +0000
++++ obs-studio-30.0.2/deps/media-playback/media-playback/media.c	2024-01-30 20:29:26.660034718 +0000
+@@ -504,7 +504,12 @@
+ 	}
+ 
+ 	if (!m->is_local_file && !d->got_first_keyframe) {
++
++#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(58, 29, 100)
+ 		if (!f->key_frame)
++#else
++		if (!(f->flags & AV_FRAME_FLAG_KEY))
++#endif
+ 			return;
+ 
+ 		d->got_first_keyframe = true;
