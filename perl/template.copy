@@ -14,7 +14,7 @@ then
 fi
 
 # try looking up package in 02packages.details.txt
-MOD=`zgrep "^$1\\s" ~/tmp/cpan/MINICPAN/modules/02packages.details.txt.gz`
+MOD=`zgrep "^$1\\s" ~/Source/cpan/MINICPAN/modules/02packages.details.txt.gz`
 if [ $? -eq 0 ]
 then
   MOD=${MOD##*/}
@@ -26,7 +26,7 @@ fi
 # Try and find package in cpan cache
 C=0
 N=${1//::/-}
-for f in `find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*"`
+for f in `find ~/Source/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*"`
 do
   N1=MINICPAN/${f#*/MINICPAN/}
   C=$(($C + 1))
@@ -34,7 +34,7 @@ done
 if (( $C > 1 ))
 then
   echo multiple candidates found:
-  find ~/tmp/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*" -exec ls -l {} \;
+  find ~/Source/cpan/MINICPAN/authors/id -name "${N}-[v0-9]*" -exec ls -l {} \;
 #  exit
   set $N1
 elif (( $C == 1 ))
@@ -77,7 +77,7 @@ if [ ! -z "$2" ]
 then
   DIR=$2
 else
-  DIR='~/tmp/cpan/'$DIRPART
+  DIR='~/Source/cpan/'$DIRPART
 fi
 
 #echo $DIRPART $NAME $VER $DIR
@@ -94,6 +94,7 @@ if [ -f ${NAME}.build ]
 then
   echo $NAME.build exists
 else
-  sed -e "s/TEMPLATE/$NAME/g; s@^TARDIR=~/tmp/cpan/.*@TARDIR=$DIR@; s/^VERSION=/VERSION=$VER/" template.build > $NAME.build
+  sed -e "s/TEMPLATE/$NAME/g; s@^TARDIR=~/Source/cpan/.*@TARDIR=$DIR@; s/^VERSION=/VERSION=$VER/" template.build > $NAME.build
+  sed -i 's@~/Source/@${SOURCE}/@' $NAME.build
   chmod +x $NAME.build
 fi
