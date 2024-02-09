@@ -1,6 +1,18 @@
 #!/bin/bash
 
-HOST=firefly
+CWD=`pwd`
+# find the subdir of the build tree that we're in
+if [ -h build_funcs ]
+then
+  TOPDIR=$(cd $(dirname $(readlink build_funcs)); pwd)
+else
+  TOPDIR=$(cd $(dirname $BASH_SOURCE); pwd)
+fi
+SUBDIR=${CWD#${TOPDIR}}
+SUBDIR=${SUBDIR#/}
+
+# read config file
+. ${TOPDIR}/build.conf
 
 eval `grep -E "^(TARNAME|TARNAMEEXTRA|TARDIR|TARSEP|VERSION|VERSIONEXTRA|FULL_TARNAME[0-9]*|XFCE_VER)=" $1`
 
@@ -9,6 +21,7 @@ TARNAME_BASE=${FULL_TARNAME%${VERSION}*}
 
 #echo ${FULL_TARNAME}
 #echo ${TARNAME_BASE}
+#exit
 
 if [ -f ${FULL_TARNAME}.tar.gz ]
 then
