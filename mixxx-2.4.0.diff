@@ -1,0 +1,42 @@
+--- mixxx-2.4.0/CMakeLists.txt.orig	2024-02-15 23:23:29.000000000 +0000
++++ mixxx-2.4.0/CMakeLists.txt	2024-02-19 18:43:28.841012611 +0000
+@@ -1990,7 +1990,7 @@
+ #
+ # Tests
+ #
+-
++if(BUILD_TESTING)
+ add_executable(mixxx-test
+   src/test/analyserwaveformtest.cpp
+   src/test/analyzersilence_test.cpp
+@@ -2136,7 +2136,7 @@
+   VERBATIM
+ )
+ add_dependencies(mixxx-benchmark mixxx-test)
+-
++endif()
+ #
+ # Resources
+ #
+@@ -2170,8 +2170,10 @@
+ 
+ target_sources(mixxx PRIVATE res/mixxx.qrc)
+ set_target_properties(mixxx PROPERTIES AUTORCC ON)
++if(BUILD_TESTING)
+ target_sources(mixxx-test PRIVATE res/mixxx.qrc)
+ set_target_properties(mixxx-test PROPERTIES AUTORCC ON)
++endif()
+ 
+ if (MIXXX_VERSION_PRERELEASE STREQUAL "")
+    set(MIXXX_VERSION "${CMAKE_PROJECT_VERSION}")
+@@ -3172,8 +3174,10 @@
+   )
+   target_compile_definitions(mixxx-lib PUBLIC __LILV__)
+   target_link_libraries(mixxx-lib PRIVATE lilv::lilv)
++if(BUILD_TESTING)
+   target_link_libraries(mixxx-test PRIVATE lilv::lilv)
+ endif()
++endif()
+ 
+ # Live Broadcasting (Shoutcast)
+ option(BROADCAST "Live Broadcasting (Shoutcast) support" ON)
