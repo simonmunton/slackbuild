@@ -8,3 +8,45 @@
  #include <memory>
  #include <string>
  
+--- inkscape-1.3.2/src/object/uri.h.orig	2022-01-07 10:17:06.000000000 +0000
++++ inkscape-1.3.2/src/object/uri.h	2024-02-02 20:15:58.926255257 +0000
+@@ -13,6 +13,7 @@
+ #define INKSCAPE_URI_H
+ 
+ #include <libxml/uri.h>
++#include <libxml/xmlmemory.h>
+ #include <memory>
+ #include <string>
+ 
+--- inkscape-1.3.2/src/extension/internal/pdfinput/svg-builder.cpp.orig	2023-11-16 19:05:21.000000000 +0000
++++ inkscape-1.3.2/src/extension/internal/pdfinput/svg-builder.cpp	2024-03-04 17:00:28.538294237 +0000
+@@ -1158,9 +1158,9 @@
+ #define INT_EPSILON 8
+ bool SvgBuilder::_addGradientStops(Inkscape::XML::Node *gradient, GfxShading *shading,
+                                    _POPPLER_CONST Function *func) {
+-    int type = func->getType();
++    Function::Type type = func->getType();
+     auto space = shading->getColorSpace();
+-    if ( type == 0 || type == 2 ) {  // Sampled or exponential function
++    if ( type == Function::Type::Sampled || type == Function::Type::Exponential ) {  // Sampled or exponential function
+         GfxColor stop1, stop2;
+         if (!svgGetShadingColor(shading, 0.0, &stop1) || !svgGetShadingColor(shading, 1.0, &stop2)) {
+             return false;
+@@ -1168,7 +1168,7 @@
+             _addStopToGradient(gradient, 0.0, &stop1, space, 1.0);
+             _addStopToGradient(gradient, 1.0, &stop2, space, 1.0);
+         }
+-    } else if ( type == 3 ) { // Stitching
++    } else if ( type == Function::Type::Stitching ) { // Stitching
+         auto stitchingFunc = static_cast<_POPPLER_CONST StitchingFunction*>(func);
+         const double *bounds = stitchingFunc->getBounds();
+         const double *encode = stitchingFunc->getEncode();
+@@ -1183,7 +1183,7 @@
+         for ( int i = 0 ; i < num_funcs ; i++ ) {
+             svgGetShadingColor(shading, bounds[i + 1], &color);
+             // Add stops
+-            if (stitchingFunc->getFunc(i)->getType() == 2) {    // process exponential fxn
++            if (stitchingFunc->getFunc(i)->getType() == Function::Type::Exponential) {    // process exponential fxn
+                 double expE = (static_cast<_POPPLER_CONST ExponentialFunction*>(stitchingFunc->getFunc(i)))->getE();
+                 if (expE > 1.0) {
+                     expE = (bounds[i + 1] - bounds[i])/expE;    // approximate exponential as a single straight line at x=1
