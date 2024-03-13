@@ -1,0 +1,58 @@
+From d459ef4582981500bf75d34df751409ed6668262 Mon Sep 17 00:00:00 2001
+From: Bolshakov <bolsh.andrey@yandex.ru>
+Date: Fri, 3 Nov 2023 22:18:49 +0300
+Subject: [PATCH] [clang compat] Use new ElaboratedTypeKeyword enum
+
+Clang turned ElaboratedTypeKeyword into a scoped enum and renamed all
+enumerators in:
+https://github.com/llvm/llvm-project/commit/4ad2ada5216ee2bb3c334a3233a9
+
+No functional change.
+---
+ iwyu.cc          | 3 ++-
+ iwyu_ast_util.cc | 4 +++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/iwyu.cc b/iwyu.cc
+index 0892fc092..c872d8f90 100644
+--- a/iwyu.cc
++++ b/iwyu.cc
+@@ -166,6 +166,7 @@ using clang::Decl;
+ using clang::DeclContext;
+ using clang::DeclRefExpr;
+ using clang::DeducedTemplateSpecializationType;
++using clang::ElaboratedTypeKeyword;
+ using clang::ElaboratedTypeLoc;
+ using clang::EnumConstantDecl;
+ using clang::EnumDecl;
+@@ -4190,7 +4191,7 @@ class IwyuAstConsumer
+   }
+ 
+   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc type_loc) {
+-    if (type_loc.getTypePtr()->getKeyword() != clang::ETK_None) {
++    if (type_loc.getTypePtr()->getKeyword() != ElaboratedTypeKeyword::None) {
+       preprocessor_info()
+           .FileInfoFor(CurrentFileEntry())
+           ->AddElaboratedType(type_loc);
+diff --git a/iwyu_ast_util.cc b/iwyu_ast_util.cc
+index c1a458d7a..964e1e1bf 100644
+--- a/iwyu_ast_util.cc
++++ b/iwyu_ast_util.cc
+@@ -72,6 +72,7 @@ using clang::DependentScopeDeclRefExpr;
+ using clang::DependentTemplateName;
+ using clang::DependentTemplateSpecializationType;
+ using clang::ElaboratedType;
++using clang::ElaboratedTypeKeyword;
+ using clang::EnumDecl;
+ using clang::Expr;
+ using clang::ExprWithCleanups;
+@@ -250,7 +251,8 @@ bool IsElaboratedTypeSpecifier(const ASTNode* ast_node) {
+   if (ast_node == nullptr)
+     return false;
+   const ElaboratedType* elaborated_type = ast_node->GetAs<ElaboratedType>();
+-  return elaborated_type && elaborated_type->getKeyword() != clang::ETK_None;
++  return elaborated_type &&
++         elaborated_type->getKeyword() != ElaboratedTypeKeyword::None;
+ }
+ 
+ const ASTNode* MostElaboratedAncestor(const ASTNode* ast_node) {

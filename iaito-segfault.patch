@@ -1,0 +1,32 @@
+From 8ccd7d9dd55287699c0e93a0cd899a3406240c2b Mon Sep 17 00:00:00 2001
+From: atom_bomb <atom_bomb@rocketmail.com>
+Date: Mon, 18 Dec 2023 13:51:37 -0800
+Subject: [PATCH] Issue #148: Make RelocsWidget constructor look the same as
+ ExportsWidget, dodging a segfault at startup
+
+---
+ src/widgets/RelocsWidget.cpp | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/widgets/RelocsWidget.cpp b/src/widgets/RelocsWidget.cpp
+index d543d089..08368dd8 100644
+--- a/src/widgets/RelocsWidget.cpp
++++ b/src/widgets/RelocsWidget.cpp
+@@ -163,13 +163,14 @@ bool RelocsProxyModel::lessThan(const QModelIndex &left, const QModelIndex &righ
+ }
+ 
+ RelocsWidget::RelocsWidget(MainWindow *main) :
+-    ListDockWidget(main),
+-    relocsModel(new RelocsModel(&relocs, this)),
+-    relocsProxyModel(new RelocsProxyModel(relocsModel, this))
++    ListDockWidget(main)
+ {
+     setWindowTitle(tr("Relocs"));
+     setObjectName("RelocsWidget");
+ 
++    relocsModel = new RelocsModel(&relocs, this);
++    relocsProxyModel = new RelocsProxyModel(relocsModel, this);
++
+     setModels(relocsProxyModel);
+     ui->treeView->sortByColumn(RelocsModel::NameColumn, Qt::AscendingOrder);
+ 
