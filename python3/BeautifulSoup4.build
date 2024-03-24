@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/b
 #TAR_EXT=.tar.gz
-VERSION=4.10.0
+VERSION=4.12.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="https://pypi.python.org/pypi/beautifulsoup4/"
 
@@ -81,7 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
   rm -rf build
-  python3 setup.py build || exit
+  #python3 setup.py build || exit
+  python3 -m build --wheel --no-isolation || exit
+
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,7 +91,8 @@ then
   exit
 fi
 
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 

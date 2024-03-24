@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=1.9.2
+VERSION=2.12
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://pypi.org/project/PyICU/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -81,7 +81,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +91,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -107,7 +109,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF
+make_slack_desc << EOF "PyICU, a Python extension wrapping the ICU C++ libraries"
+PyICU, a Python extension wrapping the ICU C++ libraries.
+
 EOF
 
 post_install
