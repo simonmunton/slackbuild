@@ -1,0 +1,99 @@
+--- fritzing-app-20240206/pri/svgppdetect.pri.orig	2024-03-25 17:59:10.000000000 +0000
++++ fritzing-app-20240206/pri/svgppdetect.pri	2024-03-25 19:53:00.011153010 +0000
+@@ -2,10 +2,4 @@
+ 
+ message("Using fritzing svgpp detect script.")
+ 
+-exists($$absolute_path($$PWD/../../svgpp-1.3.0)) {
+-            SVGPPPATH = $$absolute_path($$PWD/../../svgpp-1.3.0)
+-            message("found svgpp in $${SVGPPPATH}")
+-        }
+-
+-message("including $$absolute_path($${SVGPPPATH}/include)")
+-INCLUDEPATH += $$absolute_path($${SVGPPPATH}/include)
+\ No newline at end of file
++INCLUDEPATH += /usr/include/svgpp
+\ No newline at end of file
+--- fritzing-app-20240206/pri/clipper1detect.pri.orig	2024-03-25 17:59:10.000000000 +0000
++++ fritzing-app-20240206/pri/clipper1detect.pri	2024-03-25 19:36:36.768086996 +0000
+@@ -5,8 +5,8 @@
+ unix {
+     message("including Clipper1 library on linux or mac")
+ 
+-    exists($$absolute_path($$PWD/../../Clipper1)) {
+-	            CLIPPER1 = $$absolute_path($$PWD/../../Clipper1/6.4.2)
++    exists(/usr/include/polyclipping) {
++	            CLIPPER1 = /usr/include/polyclipping
+ 				message("found Clipper1 in $${CLIPPER1}")
+ 			}
+ }
+@@ -21,7 +21,6 @@
+ }
+ 
+ message("including $$absolute_path($${CLIPPER1}/include)")
+-INCLUDEPATH += $$absolute_path($${CLIPPER1}/include/polyclipping)
++INCLUDEPATH += $${CLIPPER1}
+ 
+-LIBS += -L$$absolute_path($${CLIPPER1}/lib) -lpolyclipping
+-QMAKE_RPATHDIR += $$absolute_path($${CLIPPER1}/lib)
++LIBS += -lpolyclipping
+--- fritzing-app-20240206/pri/quazipdetect.pri.orig	2024-03-25 17:59:10.000000000 +0000
++++ fritzing-app-20240206/pri/quazipdetect.pri	2024-03-25 19:27:01.523048375 +0000
+@@ -3,26 +3,19 @@
+ message("Using Fritzing quazip detect script.")
+ 
+ QUAZIP_VERSION=1.4
+-QUAZIP_PATH=$$absolute_path($$PWD/../../quazip-$$QT_VERSION-$$QUAZIP_VERSION)
+-QUAZIP_INCLUDE_PATH=$$QUAZIP_PATH/include/QuaZip-Qt6-$$QUAZIP_VERSION
+-QUAZIP_LIB_PATH=$$QUAZIP_PATH/lib
++QUAZIP_INCLUDE_PATH=/usr/include/QuaZip-Qt6-$$QUAZIP_VERSION
+ 
+ SOURCES += \
+ 	src/zlibdummy.c \
+ 
+-exists($$QUAZIP_PATH) {
++exists($$QUAZIP_INCLUDE_PATH) {
+ 		message("found quazip in $${QUAZIP_PATH}")
+ 	} else {
+ 		error("quazip could not be found at $$QUAZIP_PATH")
+ 	}
+ 
+ INCLUDEPATH += $$QUAZIP_INCLUDE_PATH
+-LIBS += -L$$QUAZIP_LIB_PATH -lquazip1-qt$$QT_MAJOR_VERSION
+-
+-unix {
+-	message("set rpath for quazip")
+-	QMAKE_RPATHDIR += $$QUAZIP_LIB_PATH
+-}
++LIBS += -lquazip1-qt$$QT_MAJOR_VERSION
+ 
+ macx {
+ 	LIBS += -lz
+--- fritzing-app-20240206/pri/spicedetect.pri.orig	2024-03-25 17:59:10.000000000 +0000
++++ fritzing-app-20240206/pri/spicedetect.pri	2024-03-25 19:21:10.696024821 +0000
+@@ -15,12 +15,12 @@
+ 
+ 
+ message("Using fritzing ngspice detect script.")
+-NGSPICEPATH = ../../ngspice-40
++NGSPICEPATH = /usr/include/ngspice
+ NGSPICEPATH = $$absolute_path($${NGSPICEPATH})
+ 
+ exists($$NGSPICEPATH) {
+     message("using $${NGSPICEPATH}")
+-	INCLUDEPATH += $$NGSPICEPATH/include
++	INCLUDEPATH += $$NGSPICEPATH
+ } else {
+     error("ngspice not found in $${NGSPICEPATH}")
+ }
+--- fritzing-app-20240206/phoenix.pro.orig	2024-03-25 17:59:10.000000000 +0000
++++ fritzing-app-20240206/phoenix.pro	2024-03-25 19:20:33.514022325 +0000
+@@ -19,7 +19,7 @@
+ # ********************************************************************
+ 
+ QT_LEAST=6.5.3
+-QT_MOST=6.5.10
++QT_MOST=6.6.10
+ !versionAtLeast(QT_VERSION, $${QT_LEAST}):error("Use at least Qt version $${QT_LEAST}")
+ !versionAtMost(QT_VERSION, $${QT_MOST}):error("Use at most Qt version $${QT_MOST}")
+ 

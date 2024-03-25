@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/f
 #TAR_EXT=.tar.gz
-VERSION=0.9.10
+VERSION=20240206
 VERSIONEXTRA=
-BUILD=5
+BUILD=1
 
 WEBPAGE="https://fritzing.org/"
 # https://github.com/fritzing/fritzing-app
@@ -46,7 +46,9 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/fritzing-app-0.9.10.diff
+ patch -p1 -b -z .orig < ${CWD}/fritzing-app-20240206.diff
+
+ tar xf ${TARDIR}/fritzing-parts.tar.gz
 )
 fi
 
@@ -87,7 +89,7 @@ then
   meson --prefix=/usr . ..
 fi
 
-qmake-qt5 ../phoenix.pro
+qmake6 ../phoenix.pro
 
 fi
 
@@ -113,9 +115,13 @@ else
   make install INSTALL_ROOT=${PKG}
 fi
 
+release_folder=..
+./Fritzing -db "${release_folder}/fritzing-parts/parts.db" -pp "${release_folder}/fritzing-parts" -f "${release_folder}"
+cp -pr ${release_folder}/fritzing-parts ${PKG}/usr/share/fritzing
+
 cd ..
 
-tar xf ${TARDIR}/fritzing-parts.tar.gz -C ${PKG}/usr/share/fritzing
+#tar xf ${TARDIR}/fritzing-parts.tar.gz -C ${PKG}/usr/share/fritzing
 
 strip_binaries
 
