@@ -1,0 +1,75 @@
+--- kicad-8.0.1/common/gal/opengl/opengl_gal.cpp.orig	2024-03-13 15:55:00.000000000 +0000
++++ kicad-8.0.1/common/gal/opengl/opengl_gal.cpp	2024-03-14 21:09:44.498462619 +0000
+@@ -2657,7 +2657,7 @@
+ 
+ #endif // KICAD_USE_EGL
+ 
+-    if( GLEW_OK != err )
++    if( GLEW_OK != err && GLEW_ERROR_NO_GLX_DISPLAY != err)
+         throw std::runtime_error( (const char*) glewGetErrorString( err ) );
+ 
+     // Check the OpenGL version (minimum 2.1 is required)
+--- kicad-8.0.1/thirdparty/nanodbc/CMakeLists.txt.orig	2024-03-13 15:55:00.000000000 +0000
++++ kicad-8.0.1/thirdparty/nanodbc/CMakeLists.txt	2024-03-14 21:09:44.498462619 +0000
+@@ -86,7 +86,7 @@
+ ########################################
+ if(UNIX)
+   # Try to find unixODBC first via odbc_config program.
+-  find_program(ODBC_CONFIG odbc_config
++  find_program(ODBC_CONFIG odbc_config NO_CACHE
+     PATHS $ENV{ODBC_PATH}/bin /usr/bin /usr/local/bin)
+   if(ODBC_CONFIG)
+     message(STATUS "nanodbc build: ODBC on Unix - unixODBC")
+@@ -118,7 +118,7 @@
+ 
+   # Fallback to using iODBC
+   if(NOT ODBC_CONFIG)
+-    find_program(ODBC_CONFIG iodbc-config
++    find_program(ODBC_CONFIG iodbc-config NO_CACHE
+       PATHS $ENV{ODBC_PATH}/bin /usr/bin /usr/local/bin)
+     if(ODBC_CONFIG)
+       message(STATUS "nanodbc build: ODBC on Unix - iODBC")
+@@ -129,7 +129,9 @@
+       execute_process(COMMAND ${ODBC_CONFIG} --libs
+         OUTPUT_VARIABLE ODBC_LINK_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+       if(NANODBC_ENABLE_UNICODE)
+-        add_definitions(-DNANODBC_USE_IODBC_WIDE_STRINGS)
++#        add_definitions(-DNANODBC_USE_IODBC_WIDE_STRINGS)
++        set(NANODBC_USE_IODBC_WIDE_STRINGS 1)
++        add_compile_definitions(NANODBC_USE_IODBC_WIDE_STRINGS)
+       endif()
+     endif()
+   endif()
+@@ -194,3 +196,7 @@
+   add_compile_definitions(NANODBC_ENABLE_UNICODE)
+   target_compile_definitions(nanodbc PUBLIC NANODBC_ENABLE_UNICODE)
+ endif()
++
++if(NANODBC_USE_IODBC_WIDE_STRINGS)
++  target_compile_definitions(nanodbc PUBLIC NANODBC_USE_IODBC_WIDE_STRINGS)
++endif()
+--- kicad-8.0.1/kicad/project_tree_pane.cpp.orig	2024-03-13 15:55:00.000000000 +0000
++++ kicad-8.0.1/kicad/project_tree_pane.cpp	2024-03-25 17:52:26.051445065 +0000
+@@ -2236,7 +2236,11 @@
+         }
+ 
+         git_oid           oid;
++#if ( LIBGIT2_VER_MAJOR > 1 ) || ( ( LIBGIT2_VER_MAJOR == 1 ) && ( LIBGIT2_VER_MINOR >= 8 ) )
++        git_commit* const parents[1] = { parent };
++#else
+         const git_commit* parents[1] = { parent };
++#endif
+ 
+         if( git_commit_create( &oid, repo, "HEAD", author, author, nullptr, commit_msg.mb_str(), tree,
+                            1, parents ) != 0 )
+--- kicad-8.0.1/CMakeLists.txt.orig	2024-03-13 15:55:00.000000000 +0000
++++ kicad-8.0.1/CMakeLists.txt	2024-03-14 21:09:44.498462619 +0000
+@@ -41,6 +41,8 @@
+ 
+ project( kicad )
+ 
++set(CMAKE_CXX_STANDARD 14)
++
+ # Create a default build type for our QA that doesn't include `NDEBUG`
+ set(CMAKE_CXX_FLAGS_QABUILD "-Os -g1 -ggdb1")
+ 
