@@ -5,11 +5,11 @@
 TARNAME=git-cola
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/g
+TARDIR=${SOURCE}/python
 #TAR_EXT=.tar.gz
-VERSION=3.7
+VERSION=4.6.1
 VERSIONEXTRA=
-BUILD=4
+BUILD=1
 
 WEBPAGE="https://git-cola.github.io/"
 
@@ -81,7 +81,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +91,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
