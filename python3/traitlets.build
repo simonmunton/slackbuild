@@ -5,11 +5,11 @@
 TARNAME=traitlets
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/t
+TARDIR=${SOURCE}/python
 #TAR_EXT=.tar.gz
-VERSION=5.0.4
+VERSION=5.14.2
 VERSIONEXTRA=
-BUILD=5
+BUILD=1
 
 WEBPAGE="https://pypi.org/project/traitlets/"
 
@@ -81,7 +81,8 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +91,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
