@@ -1,0 +1,31 @@
+--- openscad-2021.01/tests/test_pretty_print.py.orig	2024-04-17 17:05:19.134363967 +0100
++++ openscad-2021.01/tests/test_pretty_print.py	2024-04-17 17:05:19.136363967 +0100
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ 
+ # test_pretty_print by don bright 2012. Copyright assigned to Marius Kintel and
+ # Clifford Wolf 2012. Released under the GPL 2, or later, as described in
+@@ -379,9 +379,8 @@
+             raise TypeError('Unknown test type %r' % test.type)
+ 
+     for mf in sorted(makefiles.keys()):
+-        mfname = mf.strip().lstrip(os.path.sep)
+-        text = open(os.path.join(builddir, mfname)).read()
+-        templates.add('makefile_template', 'makefiles', name=mfname, text=text)
++        text = open(mf).read()
++        templates.add('makefile_template', 'makefiles', name=mf, text=text)
+ 
+     text_tests = templates.get('text_tests')
+     image_tests = templates.get('image_tests')
+--- openscad-2021.01/src/FileModule.cc.orig	2021-01-31 20:17:41.000000000 +0000
++++ openscad-2021.01/src/FileModule.cc	2024-04-18 16:42:47.186183166 +0100
+@@ -65,7 +65,7 @@
+ 	auto ext = fs::path(path).extension().generic_string();
+ 
+ 	if (boost::iequals(ext, ".otf") || boost::iequals(ext, ".ttf")) {
+-		if (fs::is_regular(path)) {
++		if (fs::is_regular_file(path)) {
+ 			FontCache::instance()->register_font_file(path);
+ 		} else {
+ 			LOG(message_group::Error,Location::NONE,"","Can't read font with path '%1$s'",path);
