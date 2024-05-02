@@ -1,0 +1,21 @@
+--- Ardour-8.6.0/libs/surfaces/websockets/message.cc.orig	2024-04-13 16:05:25.000000000 +0100
++++ Ardour-8.6.0/libs/surfaces/websockets/message.cc	2024-04-23 19:52:20.637250268 +0100
+@@ -58,14 +58,16 @@
+ 
+ 		_state = NodeState (root.get<std::string> ("node"));
+ 
+-		pt::ptree addr = root.get_child ("addr", pt::ptree ());
++		pt::ptree dflt;
++
++		pt::ptree addr = root.get_child ("addr", dflt);
+ 
+ 		for (pt::ptree::iterator it = addr.begin (); it != addr.end (); ++it) {
+ 			// throws if datatype not uint32_t
+ 			_state.add_addr (boost::lexical_cast<uint32_t> (it->second.data ()));
+ 		}
+ 
+-		pt::ptree val = root.get_child ("val", pt::ptree ());
++		pt::ptree val = root.get_child ("val", dflt);
+ 
+ 		for (pt::ptree::iterator it = val.begin (); it != val.end (); ++it) {
+ 			std::string val = it->second.data ();
