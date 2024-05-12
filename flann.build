@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/f
 #TAR_EXT=.tar.gz
-VERSION=1.8.4
-VERSIONEXTRA=-src
-BUILD=10
+VERSION=1.9.2
+VERSIONEXTRA=
+BUILD=1
 
-WEBPAGE="http://www.cs.ubc.ca/research/flann/"
+WEBPAGE="https://github.com/flann-lib/flann"
+#"http://www.cs.ubc.ca/research/flann/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/flann-1.8.4.diff
+ patch -p1 < ${CWD}/flann-1.9.2.diff
 )
 fi
 
@@ -81,6 +82,8 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       -DPKGROOT=${PKG} \
+      -DBUILD_TESTS=off \
+      -DBUILD_EXAMPLES=off \
       ..
 fi
 
@@ -99,6 +102,11 @@ fi
 make install DESTDIR=${PKG}
 
 rm ${PKG}/usr/bin/*
+
+(
+ cd ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+ sed -i '/^Libs:/ s/;/ /' flann.pc
+)
 
 cd ..
 
