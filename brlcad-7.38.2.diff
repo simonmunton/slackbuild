@@ -1,0 +1,92 @@
+--- brlcad-7.38.2/src/other/tkhtml/src/htmltree.c.orig	2024-03-18 15:00:29.000000000 +0000
++++ brlcad-7.38.2/src/other/tkhtml/src/htmltree.c	2024-05-23 20:51:55.660368568 +0100
+@@ -3075,7 +3075,7 @@
+             return;
+     }
+ 
+-    implicitCloseCount(pTree, pFragment->pCurrent, eType, &nClose);
++    implicitCloseCount(pTree, (HtmlNode *)pFragment->pCurrent, eType, &nClose);
+     for (ii = 0; ii < nClose; ii++) {
+         HtmlNode *pC = &pFragment->pCurrent->node;
+         HtmlNode *pParentC = HtmlNodeParent(pC);
+@@ -3105,7 +3105,7 @@
+     pFragment->pCurrent = pElem;
+ 
+     if (HtmlMarkup(eType)->flags & HTMLTAG_EMPTY) {
+-        nodeHandlerCallbacks(pTree, pFragment->pCurrent);
++        nodeHandlerCallbacks(pTree, (HtmlNode *)pFragment->pCurrent);
+         pFragment->pCurrent = (HtmlElementNode *)HtmlNodeParent(pElem);
+     }
+     if (!pFragment->pCurrent) {
+@@ -3119,10 +3119,10 @@
+     int nClose;
+     int ii;
+     HtmlFragmentContext *p = pTree->pFragment;
+-    explicitCloseCount(p->pCurrent, eType, zType, &nClose);
++    explicitCloseCount((HtmlNode *)p->pCurrent, eType, zType, &nClose);
+     for (ii = 0; ii < nClose; ii++) {
+         assert(p->pCurrent);
+-        nodeHandlerCallbacks(pTree, p->pCurrent);
++        nodeHandlerCallbacks(pTree, (HtmlNode *)p->pCurrent);
+         p->pCurrent = (HtmlElementNode *)HtmlNodeParent(p->pCurrent);
+     }
+     if (!p->pCurrent) {
+@@ -3147,7 +3147,7 @@
+ 
+     while (sContext.pCurrent) {
+         HtmlNode *pParent = HtmlNodeParent(sContext.pCurrent); 
+-        nodeHandlerCallbacks(pTree, sContext.pCurrent);
++        nodeHandlerCallbacks(pTree, (HtmlNode *)sContext.pCurrent);
+         sContext.pCurrent = (HtmlElementNode *)pParent;
+     }
+ 
+--- brlcad-7.38.2/src/other/tkhtml/src/htmltable.c.orig	2024-03-18 15:00:29.000000000 +0000
++++ brlcad-7.38.2/src/other/tkhtml/src/htmltable.c	2024-05-23 20:49:47.314359951 +0100
+@@ -1155,7 +1155,7 @@
+             sRow.node.iNode = -1;
+             sRow.nChild = jj - ii;
+             sRow.apChildren = &((HtmlElementNode *)pNode)->apChildren[ii];
+-            rowIterate(pTree, &sRow, p);
++            rowIterate(pTree, (HtmlNode *)&sRow, p);
+             assert(!sRow.pLayoutCache);
+             ii = jj - 1;
+         }
+@@ -1281,7 +1281,7 @@
+             sRowGroup.node.iNode = -1;
+             sRowGroup.nChild = jj - ii;
+             sRowGroup.apChildren = &((HtmlElementNode *)pNode)->apChildren[ii];
+-            rowGroupIterate(pTree, &sRowGroup, &sRowContext);
++            rowGroupIterate(pTree, (HtmlNode *)&sRowGroup, &sRowContext);
+             assert(!sRowGroup.pLayoutCache);
+             ii = jj - 1;
+         }
+--- brlcad-7.38.2/src/other/tkhtml/src/htmlprop.c.orig	2024-03-18 15:00:29.000000000 +0000
++++ brlcad-7.38.2/src/other/tkhtml/src/htmlprop.c	2024-05-23 20:46:44.923347706 +0100
+@@ -1183,7 +1183,7 @@
+     HtmlTree *pTree = p->pTree;
+ 
+     if (pProp->eType == CSS_CONST_INHERIT) {
+-        HtmlColor **pInherit = (HtmlColor **)getInheritPointer(p, pCVar);
++        HtmlColor **pInherit = (HtmlColor **)getInheritPointer(p, (unsigned char *)pCVar);
+         assert(pInherit);
+         cVal = *pInherit;
+         goto setcolor_out;
+@@ -1686,7 +1686,7 @@
+         case CSS_CONST_INHERIT:
+             if (allow_mask & SZ_INHERIT) {
+                 HtmlNode *pParent = p->pParent;
+-                int *pInherit = (int *)getInheritPointer(p, pIVal);
++                int *pInherit = (int *)getInheritPointer(p, (unsigned char *)pIVal);
+                 assert(pInherit);
+                 assert(pParent);
+ 
+--- brlcad-7.38.2/src/libgcv/plugins/gdal/gdal.cpp.orig	2024-03-18 15:00:29.000000000 +0000
++++ brlcad-7.38.2/src/libgcv/plugins/gdal/gdal.cpp	2024-05-23 22:27:10.121082522 +0100
+@@ -42,6 +42,7 @@
+ #include <stdexcept>
+ 
+ /* GDAL headers */
++#undef EQUAL
+ #include "gdal.h"
+ #include "gdalwarper.h"
+ #include "gdal_utils.h"

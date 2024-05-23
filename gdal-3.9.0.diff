@@ -1,0 +1,37 @@
+--- gdal-3.9.0/ogr/swq_op_general.cpp.orig	2024-05-07 13:53:29.000000000 +0100
++++ gdal-3.9.0/ogr/swq_op_general.cpp	2024-05-23 20:30:23.864281839 +0100
+@@ -131,17 +131,17 @@
+                 };
+ 
+                 const auto pattern_codepoint_size =
+-                    utf8codepointcalcsize(pattern);
++                    utf8codepointcalcsize((utf8_int8_t *)pattern);
+                 if (!IsStringLongEnough(pattern, pattern_codepoint_size))
+                     return 0;
+                 utf8_int32_t pattern_codepoint = 0;
+-                utf8codepoint(pattern, &pattern_codepoint);
++                utf8codepoint((utf8_int8_t *)pattern, &pattern_codepoint);
+ 
+-                const auto input_codepoint_size = utf8codepointcalcsize(input);
++                const auto input_codepoint_size = utf8codepointcalcsize((utf8_int8_t *)input);
+                 if (!IsStringLongEnough(input, input_codepoint_size))
+                     return 0;
+                 utf8_int32_t input_codepoint = 0;
+-                utf8codepoint(input, &input_codepoint);
++                utf8codepoint((utf8_int8_t *)input, &input_codepoint);
+ 
+                 if (!(input_codepoint == pattern_codepoint ||
+                       utf8uprcodepoint(input_codepoint) ==
+--- gdal-3.9.0/port/cpl_recode.cpp.orig	2024-05-07 13:53:29.000000000 +0100
++++ gdal-3.9.0/port/cpl_recode.cpp	2024-05-23 20:25:56.642263898 +0100
+@@ -1062,8 +1062,8 @@
+ 
+     const size_t nLen = strlen(pszStr);
+     char *pszOutputString = static_cast<char *>(CPLMalloc(nLen + 1));
+-    const char *pszPtr = pszStr;
+-    const char *pszEnd = pszStr + nLen;
++    const utf8_int8_t *pszPtr = (utf8_int8_t *)pszStr;
++    const utf8_int8_t *pszEnd = (utf8_int8_t *)(pszStr + nLen);
+     size_t i = 0;
+     while (pszPtr != pszEnd)
+     {
