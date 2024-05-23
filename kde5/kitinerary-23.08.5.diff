@@ -1,0 +1,22 @@
+--- kitinerary-23.08.5/src/lib/pdf/pdfdocument.cpp.orig	2024-05-23 16:30:56.713336614 +0100
++++ kitinerary-23.08.5/src/lib/pdf/pdfdocument.cpp	2024-05-23 16:34:07.190349402 +0100
+@@ -21,6 +21,7 @@
+ #include <PDFDoc.h>
+ #include <PDFDocEncoding.h>
+ #include <Stream.h>
++#include <UTF.h>
+ 
+ #include <cmath>
+ 
+@@ -329,7 +330,11 @@
+         return {};
+     }
+ 
++#if KPOPPLER_VERSION >= QT_VERSION_CHECK(24, 5, 0)
++    if (hasUnicodeByteOrderMark(s->toStr()) || hasUnicodeByteOrderMarkLE(s->toStr())) {
++#else
+     if (s->hasUnicodeMarker() || s->hasUnicodeMarkerLE()) {
++#endif
+         return QString::fromUtf16(reinterpret_cast<const char16_t*>(s->toStr().c_str()), s->toStr().size() / 2);
+     } else {
+         int len = 0;

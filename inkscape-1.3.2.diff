@@ -1,15 +1,27 @@
---- inkscape-1.3.2/src/object/uri.h.orig	2022-01-07 10:17:06.000000000 +0000
-+++ inkscape-1.3.2/src/object/uri.h	2023-12-16 18:59:11.783507352 +0000
-@@ -13,6 +13,7 @@
- #define INKSCAPE_URI_H
+--- inkscape-1.3.2/CMakeLists.txt.orig	2023-11-25 12:17:23.000000000 +0000
++++ inkscape-1.3.2/CMakeLists.txt	2024-05-23 16:53:17.298426619 +0100
+@@ -18,7 +18,7 @@
+ # -----------------------------------------------------------------------------
+ # CMake Configuration
+ # -----------------------------------------------------------------------------
+-set(CMAKE_CXX_STANDARD 17)
++set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ # set(CMAKE_CXX_EXTENSIONS OFF) # enforces -std=c++17 instead of -std=gnu++17
+                                 # TODO: build currently fails with it as we actually depend on GNU compiler extensions...
+--- inkscape-1.3.2/src/ui/knot/knot-holder-entity.cpp.orig	2023-11-16 19:05:21.000000000 +0000
++++ inkscape-1.3.2/src/ui/knot/knot-holder-entity.cpp	2024-05-23 17:08:42.036488704 +0100
+@@ -329,7 +329,7 @@
+     double scale_x = std::clamp(new_extent[X] / _cached_diagonal[X], _cached_min_scale, 1e9);
+     double scale_y = std::clamp(new_extent[Y] / _cached_diagonal[Y], _cached_min_scale, 1e9);
  
- #include <libxml/uri.h>
-+#include <libxml/xmlmemory.h>
- #include <memory>
- #include <string>
+-    Affine new_transform = (state & GDK_CONTROL_MASK) ? Scale(lerp(0.5, scale_x, scale_y))
++    Affine new_transform = (state & GDK_CONTROL_MASK) ? Scale(Geom::lerp(0.5, scale_x, scale_y))
+                                                       : Scale(scale_x, scale_y);
  
+     // 2. Calculate offset to keep pattern origin aligned
 --- inkscape-1.3.2/src/object/uri.h.orig	2022-01-07 10:17:06.000000000 +0000
-+++ inkscape-1.3.2/src/object/uri.h	2024-02-02 20:15:58.926255257 +0000
++++ inkscape-1.3.2/src/object/uri.h	2024-05-23 16:49:06.267409765 +0100
 @@ -13,6 +13,7 @@
  #define INKSCAPE_URI_H
  
@@ -19,7 +31,7 @@
  #include <string>
  
 --- inkscape-1.3.2/src/extension/internal/pdfinput/svg-builder.cpp.orig	2023-11-16 19:05:21.000000000 +0000
-+++ inkscape-1.3.2/src/extension/internal/pdfinput/svg-builder.cpp	2024-03-04 17:00:28.538294237 +0000
++++ inkscape-1.3.2/src/extension/internal/pdfinput/svg-builder.cpp	2024-05-23 16:49:06.267409765 +0100
 @@ -1158,9 +1158,9 @@
  #define INT_EPSILON 8
  bool SvgBuilder::_addGradientStops(Inkscape::XML::Node *gradient, GfxShading *shading,
@@ -50,3 +62,33 @@
                  double expE = (static_cast<_POPPLER_CONST ExponentialFunction*>(stitchingFunc->getFunc(i)))->getE();
                  if (expE > 1.0) {
                      expE = (bounds[i + 1] - bounds[i])/expE;    // approximate exponential as a single straight line at x=1
+--- inkscape-1.3.2/src/extension/internal/pdfinput/poppler-utils.cpp.orig	2023-10-28 15:52:00.000000000 +0100
++++ inkscape-1.3.2/src/extension/internal/pdfinput/poppler-utils.cpp	2024-05-23 17:02:54.897465398 +0100
+@@ -18,6 +18,8 @@
+ #include "PDFDoc.h"
+ #include "libnrtype/font-factory.h"
+ 
++#include <UTF.h>
++
+ /**
+  * Get the default transformation state from the GfxState
+  */
+@@ -563,10 +565,18 @@
+  */
+ std::string getString(const GooString *value)
+ {
++#if POPPLER_CHECK_VERSION(24, 5, 0)
++    if (hasUnicodeByteOrderMark(value->toStr())) {
++#else
+     if (value->hasUnicodeMarker()) {
++#endif
+         return g_convert(value->getCString () + 2, value->getLength () - 2,
+                          "UTF-8", "UTF-16BE", NULL, NULL, NULL);
++#if POPPLER_CHECK_VERSION(24, 5, 0)
++    } else if (hasUnicodeByteOrderMarkLE(value->toStr())) {
++#else
+     } else if (value->hasUnicodeMarkerLE()) {
++#endif
+         return g_convert(value->getCString () + 2, value->getLength () - 2,
+                          "UTF-8", "UTF-16LE", NULL, NULL, NULL);
+     }
