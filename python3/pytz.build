@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=certbot_apache
+TARNAME=pytz
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/c/certbot/individual
+TARDIR=${SOURCE}/python
 #TAR_EXT=.tar.gz
-VERSION=2.11.0
+VERSION=2024.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.python.org/pypi/certbot-apache"
+WEBPAGE="https://pypi.org/project/pytz/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python-certbot-apache
+PKGNAME=python-pytz
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -81,8 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-#python setup.py build || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,8 +92,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-#python setup.py install --root=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -109,8 +111,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Apache plugin for Certbot"
-Apache plugin for Certbot
+make_slack_desc << EOF "World timezone definitions, modern and historical"
+pytz brings the Olson tz database into Python. This library allows
+accurate and cross platform timezone calculations using Python 2.4
+or higher. It also solves the issue of ambiguous times at the end of
+daylight saving time, which you can read more about in the Python
+Library Reference (datetime.tzinfo).
 
 EOF
 
