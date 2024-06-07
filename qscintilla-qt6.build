@@ -1,0 +1,148 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=QScintilla
+TARNAMEEXTRA=_src
+TARSEP="-"
+TARDIR=${SOURCE}/q
+#TAR_EXT=.tar.gz
+VERSION=2.14.1
+VERSIONEXTRA=
+BUILD=1
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=QScintilla-qt6
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PATH=/usr/lib64/qt6/bin:$PATH
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+(cd src
+  qmake6
+)
+(cd designer
+  qmake6 INCLUDEPATH+=../src QMAKE_LIBDIR+=../src
+)
+(cd Python
+  mv pyproject-qt6.toml pyproject.toml
+  export LD_LIBRARY_PATH=`pwd`/../src
+  sip-build \
+  --no-make \
+  --qsci-features-dir ../src/features \
+  --qsci-include-dir ../src \
+  --qsci-library-dir ../src \
+  --api-dir /usr/share/qt6/qsci/api/python
+)
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+cd src
+  make ${NUM_JOBS} || exit
+cd ..
+cd designer
+  make ${NUM_JOBS} || exit
+cd ..
+cd Python/build
+  make ${NUM_JOBS} || exit
+cd ../..
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+(cd src
+  make install INSTALL_ROOT=${PKG}
+  # Yes, we'll spam the dev environment so we can build the other parts.
+#  make install
+)
+
+(cd designer
+  make install INSTALL_ROOT=${PKG}
+)
+
+(cd Python/build
+  make install INSTALL_ROOT=${PKG}
+)
+
+strip_binaries
+
+#(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+# ln -s qt*/lib/* .
+#)
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  *GPL* OPENSOURCE-NOTICE.TXT doc/html-Qt4Qt5 doc/Scintilla \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc <<EOF "Qt port of the Scintilla C++ editor control"
+QScintilla includes features especially useful when editing and
+debugging source code.  These include support for syntax styling,
+error indicators, code completion, and call tips.  The selection
+margin can contain markers like those used in debuggers to
+indicate breakpoints and the current line.  Styling choices are
+more open than with many editors, allowing the use of
+proportional fonts, bold and italics, multiple foreground and
+background colours, and multiple fonts.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
