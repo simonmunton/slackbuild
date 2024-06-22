@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/s
 #TAR_EXT=.tar.gz
-VERSION=6.8.3
+VERSION=6.8.4
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
 
 WEBPAGE="http://www.riverbankcomputing.com/software/sip/intro"
 
@@ -59,7 +59,8 @@ fix_perms
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build
+#python3 setup.py build
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -68,7 +69,8 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 #strip_binaries
 
