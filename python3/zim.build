@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=openshot-qt
+TARNAME=zim
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/o
+TARDIR=${SOURCE}/z
 #TAR_EXT=.tar.gz
-VERSION=3.2.0
+VERSION=0.75.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.openshotvideo.com/"
+WEBPAGE="https://zim-wiki.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=openshot
+PKGNAME=python-zim
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -46,10 +46,6 @@ fi
 
 (cd ${TARNAME}-${VERSION}
  #patch -p1 < ${CWD}/
-# if [ -n "${LIBDIRSUFFIX}" ]
-# then
-#   sed -i "s@lib/mime@lib${LIBDIRSUFFIX}/mime@" setup.py
-# fi
 )
 fi
 
@@ -85,7 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -94,10 +92,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
-
-rm ${PKG}/usr/lib/mime/packages/*
-rmdir -p ${PKG}/usr/lib/mime/packages
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -114,11 +111,15 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "non-linear video editor"
-OpenShot Video Editor is a free, open-source, non-linear video editor. 
-It can create and edit videos and movies using many popular video, 
-audio, and image formats. Create videos for YouTube, Flickr, Vimeo, 
-Metacafe, Xbox, and many more common formats!
+make_slack_desc << EOF "Zim - A Desktop Wiki"
+Zim is a graphical text editor used to maintain a collection of wiki
+pages. Each page can contain links to other pages, simple formatting
+and images. Pages are stored in a folder structure, like in an
+outliner, and can have attachments. Creating a new page is as easy
+as linking to a nonexistent page. All data is stored in plain text
+files with wiki formatting. Various plugins provide additional
+functionality, like a task list manager, an equation editor, a tray
+icon, and support for version control. 
 
 EOF
 
