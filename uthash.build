@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=stellarsolver
+TARNAME=uthash
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/s
+TARDIR=${SOURCE}/u
 #TAR_EXT=.tar.gz
-VERSION=2.6
+VERSION=2.3.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/rlancaste/stellarsolver"
+WEBPAGE="https://troydhanson.github.io/uthash/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/stellarsolver-gsl.patch
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -94,7 +94,8 @@ if [ -f ../meson.build ]
 then
   ninja || exit
 else
-  make ${NUM_JOBS} || exit
+#  make ${NUM_JOBS} || exit
+:
 fi
 fi
 
@@ -107,7 +108,9 @@ if [ -f ../meson.build ]
 then
   DESTDIR=${PKG} ninja install
 else
-  make install DESTDIR=${PKG}
+#  make install DESTDIR=${PKG}
+  mkdir -p ${PKG}/usr/include/uthash
+  cp ../src/* ${PKG}/usr/include/uthash
 fi
 
 cd ..
@@ -121,15 +124,17 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO doc \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "SEP-based Star Extractor and Astrometry.net-Based Solver"
-The Cross Platform SEP-based Star Extractor and Astrometry.net-Based 
-Internal Astrometric Solver
+make_slack_desc << EOF "C macros for hash tables and more"
+Any C structure can be stored in a hash table using uthash. Just add
+a UT_hash_handle to the structure and choose one or more fields in
+your structure to act as the key. Then use these macros to store,
+retrieve or delete items from the hash table. 
 
 EOF
 
