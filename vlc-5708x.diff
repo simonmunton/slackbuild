@@ -1,0 +1,61 @@
+--- vlc-3.0.21/modules/demux/avformat/mux.c.orig	2024-06-05 16:56:07.000000000 +0100
++++ vlc-3.0.21/modules/demux/avformat/mux.c	2024-08-14 16:21:21.151417023 +0100
+@@ -74,12 +74,16 @@
+ static void DelStream( sout_mux_t *, sout_input_t * );
+ static int Mux      ( sout_mux_t * );
+ 
++#if FF_API_AVIO_WRITE_NONCONST
+ static int IOWrite( void *opaque, uint8_t *buf, int buf_size );
+-static int64_t IOSeek( void *opaque, int64_t offset, int whence );
+-#if LIBAVFORMAT_VERSION_CHECK( 57, 7, 0, 40, 100 )
+ static int IOWriteTyped(void *opaque, uint8_t *buf, int buf_size,
+-                              enum AVIODataMarkerType type, int64_t time);
++                        enum AVIODataMarkerType type, int64_t time);
++#else
++static int IOWrite( void *opaque, const uint8_t *buf, int buf_size );
++int IOWriteTyped(void *opaque, const uint8_t *buf, int buf_size,
++                 enum AVIODataMarkerType type, int64_t time);
+ #endif
++static int64_t IOSeek( void *opaque, int64_t offset, int whence );
+ 
+ /*****************************************************************************
+  * Open
+@@ -406,9 +410,13 @@
+     return VLC_SUCCESS;
+ }
+ 
+-#if LIBAVFORMAT_VERSION_CHECK( 57, 7, 0, 40, 100 )
++#if FF_API_AVIO_WRITE_NONCONST
+ int IOWriteTyped(void *opaque, uint8_t *buf, int buf_size,
+                               enum AVIODataMarkerType type, int64_t time)
++#else
++int IOWriteTyped(void *opaque, const uint8_t *buf, int buf_size,
++                 enum AVIODataMarkerType type, int64_t time)
++#endif
+ {
+     VLC_UNUSED(time);
+ 
+@@ -508,7 +516,11 @@
+ /*****************************************************************************
+  * I/O wrappers for libavformat
+  *****************************************************************************/
++#if FF_API_AVIO_WRITE_NONCONST
+ static int IOWrite( void *opaque, uint8_t *buf, int buf_size )
++#else
++static int IOWrite( void *opaque, const uint8_t *buf, int buf_size )
++#endif
+ {
+     sout_mux_t *p_mux = opaque;
+     sout_mux_sys_t *p_sys = p_mux->p_sys;
+--- vlc-3.0.21/modules/codec/avcodec/avcommon_compat.h.orig	2024-06-05 16:56:07.000000000 +0100
++++ vlc-3.0.21/modules/codec/avcodec/avcommon_compat.h	2024-08-14 16:15:13.723392354 +0100
+@@ -77,6 +77,9 @@
+ #ifndef  FF_MAX_B_FRAMES
+ # define  FF_MAX_B_FRAMES 16 // FIXME: remove this
+ #endif
++#ifndef FF_API_AVIO_WRITE_NONCONST // removed in ffmpeg 7
++# define FF_API_AVIO_WRITE_NONCONST (LIBAVFORMAT_VERSION_MAJOR < 61)
++#endif
+ 
+ #endif /* HAVE_LIBAVCODEC_AVCODEC_H */
+ 
