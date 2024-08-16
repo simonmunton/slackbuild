@@ -8,3 +8,88 @@
  #include <boost/filesystem/fstream.hpp>
  #include <boost/iostreams/device/file_descriptor.hpp>
  #include <boost/iostreams/stream.hpp>
+--- wesnoth-1.18.0/src/server/common/server_base.cpp.orig	2024-03-18 00:11:38.000000000 +0000
++++ wesnoth-1.18.0/src/server/common/server_base.cpp	2024-08-16 16:48:16.401665237 +0100
+@@ -22,6 +22,7 @@
+ #include "serialization/base64.hpp"
+ #include "filesystem.hpp"
+ #include "utils/scope_exit.hpp"
++#include <boost/asio/deferred.hpp>
+ 
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+@@ -80,11 +81,13 @@
+ 
+ void server_base::start_server()
+ {
++	boost::asio::deferred_t ct;
+ 	boost::asio::ip::tcp::endpoint endpoint_v6(boost::asio::ip::tcp::v6(), port_);
+-	boost::asio::spawn(io_service_, [this, endpoint_v6](boost::asio::yield_context yield) { serve(yield, acceptor_v6_, endpoint_v6); });
++	boost::asio::spawn(io_service_, [this, endpoint_v6](boost::asio::yield_context yield) { serve(yield, acceptor_v6_, endpoint_v6); }, ct);
+ 
++	boost::asio::deferred_t ct1;
+ 	boost::asio::ip::tcp::endpoint endpoint_v4(boost::asio::ip::tcp::v4(), port_);
+-	boost::asio::spawn(io_service_, [this, endpoint_v4](boost::asio::yield_context yield) { serve(yield, acceptor_v4_, endpoint_v4); });
++	boost::asio::spawn(io_service_, [this, endpoint_v4](boost::asio::yield_context yield) { serve(yield, acceptor_v4_, endpoint_v4); }, ct1);
+ 
+ 	handshake_response_ = htonl(42);
+ 
+@@ -122,7 +125,8 @@
+ 	}
+ 
+ 	if(accepting_connections()) {
+-		boost::asio::spawn(io_service_, [this, &acceptor, endpoint](boost::asio::yield_context yield) { serve(yield, acceptor, endpoint); });
++		boost::asio::deferred_t ct;
++		boost::asio::spawn(io_service_, [this, &acceptor, endpoint](boost::asio::yield_context yield) { serve(yield, acceptor, endpoint); }, ct);
+ 	} else {
+ 		return;
+ 	}
+@@ -563,10 +567,11 @@
+ 
+ template<class SocketPtr> void server_base::async_send_doc_queued(SocketPtr socket, simple_wml::document& doc)
+ {
++	boost::asio::deferred_t ct;
+ 	boost::asio::spawn(
+ 		io_service_, [this, doc_ptr = doc.clone(), socket](boost::asio::yield_context yield) mutable {
+ 			send_doc_queued(socket, doc_ptr, yield);
+-		}
++		}, ct
+ 	);
+ }
+ 
+--- wesnoth-1.18.0/src/server/wesnothd/server.cpp.orig	2024-03-18 00:11:38.000000000 +0000
++++ wesnoth-1.18.0/src/server/wesnothd/server.cpp	2024-08-16 16:51:45.142679252 +0100
+@@ -668,12 +668,14 @@
+ 
+ void server::handle_new_client(socket_ptr socket)
+ {
+-	boost::asio::spawn(io_service_, [socket, this](boost::asio::yield_context yield) { login_client(yield, socket); });
++	boost::asio::deferred_t ct;
++	boost::asio::spawn(io_service_, [socket, this](boost::asio::yield_context yield) { login_client(yield, socket); }, ct);
+ }
+ 
+ void server::handle_new_client(tls_socket_ptr socket)
+ {
+-	boost::asio::spawn(io_service_, [socket, this](boost::asio::yield_context yield) { login_client(yield, socket); });
++	boost::asio::deferred_t ct;
++	boost::asio::spawn(io_service_, [socket, this](boost::asio::yield_context yield) { login_client(yield, socket); }, ct);
+ }
+ 
+ template<class SocketPtr>
+@@ -761,6 +763,7 @@
+ 
+ 	simple_wml::node& player_cfg = games_and_users_list_.root().add_child("user");
+ 
++	boost::asio::deferred_t ct;
+ 	boost::asio::spawn(io_service_,
+ 		[this, socket, new_player = wesnothd::player{
+ 			username,
+@@ -773,7 +776,7 @@
+ 			default_max_messages_,
+ 			default_time_period_,
+ 			is_moderator
+-		}](boost::asio::yield_context yield) { handle_player(yield, socket, new_player); }
++		}](boost::asio::yield_context yield) { handle_player(yield, socket, new_player); }, ct
+ 	);
+ 
+ 	LOG_SERVER << log_address(socket) << "\t" << username << "\thas logged on"

@@ -1,0 +1,44 @@
+--- kicad-8.0.4/3d-viewer/3d_cache/3d_cache.cpp.orig	2024-07-16 19:39:53.000000000 +0100
++++ kicad-8.0.4/3d-viewer/3d_cache/3d_cache.cpp	2024-08-16 10:06:58.296119028 +0100
+@@ -381,7 +381,7 @@
+ 
+     fclose( fp );
+     unsigned int digest[5];
+-    dblock.get_digest( digest );
++    dblock.get_digest( reinterpret_cast<unsigned char (&)[20]>(digest) );
+ 
+     // ensure MSB order
+     for( int i = 0; i < 5; ++i )
+--- kicad-8.0.4/common/gal/opengl/opengl_gal.cpp.orig	2024-07-16 19:39:53.000000000 +0100
++++ kicad-8.0.4/common/gal/opengl/opengl_gal.cpp	2024-07-24 14:34:15.778010996 +0100
+@@ -2679,7 +2679,7 @@
+     SetOpenGLInfo( (const char*) glGetString( GL_VENDOR ), (const char*) glGetString( GL_RENDERER ),
+                    (const char*) glGetString( GL_VERSION ) );
+ 
+-    if( GLEW_OK != err )
++    if( GLEW_OK != err && GLEW_ERROR_NO_GLX_DISPLAY != err)
+         throw std::runtime_error( (const char*) glewGetErrorString( err ) );
+ 
+     // Check the OpenGL version (minimum 2.1 is required)
+--- kicad-8.0.4/common/kiid.cpp.orig	2024-07-16 19:39:53.000000000 +0100
++++ kicad-8.0.4/common/kiid.cpp	2024-08-16 09:56:05.125075175 +0100
+@@ -33,6 +33,9 @@
+ #include <boost/uuid/entropy_error.hpp>
+ #endif
+ 
++#include <boost/random.hpp>
++#include <boost/uuid/entropy_error.hpp>
++
+ #include <nlohmann/json.hpp>
+ 
+ #include <cctype>
+@@ -241,7 +244,8 @@
+     // at runtime it won't matter.
+ 
+     for( int i = 0; i < 4; ++i )
+-        boost::hash_combine( hash, reinterpret_cast<const uint32_t*>( m_uuid.data )[i] );
++//        boost::hash_combine( hash, reinterpret_cast<const uint32_t*>( m_uuid.data )[i] );
++        boost::hash_combine( hash, reinterpret_cast<const uint32_t*>( m_uuid.data() )[i] );
+ 
+     return hash;
+ }
