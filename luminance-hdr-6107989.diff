@@ -1,0 +1,44 @@
+--- luminance-hdr-6107989/build_files/Modules/CompilerSettings.cmake.orig	2024-10-02 18:07:29.000000000 +0100
++++ luminance-hdr-6107989/build_files/Modules/CompilerSettings.cmake	2024-10-02 18:19:31.015198525 +0100
+@@ -14,8 +14,8 @@
+     add_definitions(-DBRANCH_PREDICTION)
+     execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+     if (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
+-        message(STATUS "C++11 activated for GCC ${GCC_VERSION}")
+-        set(CMAKE_CXX_STANDARD 11)
++        message(STATUS "C++17 activated for GCC ${GCC_VERSION}")
++        set(CMAKE_CXX_STANDARD 17)
+         add_definitions(-DLHDR_CXX11_ENABLED)
+     elseif(GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
+         message(WARNING "C++0x activated for GCC ${GCC_VERSION}. If you get any errors update to a compiler that fully supports C++11")
+--- luminance-hdr-6107989/src/Libpfs/manip/resize.hxx.orig	2024-10-02 18:07:29.000000000 +0100
++++ luminance-hdr-6107989/src/Libpfs/manip/resize.hxx	2024-10-02 20:42:56.328146647 +0100
+@@ -23,6 +23,7 @@
+ #define PFS_RESIZE_HXX
+ 
+ #include <boost/math/constants/constants.hpp>
++#include <boost/numeric/conversion/bounds.hpp>
+ #include "copy.h"
+ #include "resize.h"
+ #include "../../sleef.c"
+--- luminance-hdr-6107989/src/Libpfs/manip/gamma_levels.cpp.orig	2024-10-02 18:07:29.000000000 +0100
++++ luminance-hdr-6107989/src/Libpfs/manip/gamma_levels.cpp	2024-10-02 20:46:52.001162470 +0100
+@@ -31,12 +31,12 @@
+ 
+ namespace {
+ 
+-template <typename T>
+-inline T clamp(const T &v, const T &lower_bound, const T &upper_bound) {
+-    if (v <= lower_bound) return lower_bound;
+-    if (v >= upper_bound) return upper_bound;
+-    return v;
+-}
++//template <typename T>
++//inline T clamp(const T &v, const T &lower_bound, const T &upper_bound) {
++//    if (v <= lower_bound) return lower_bound;
++//    if (v >= upper_bound) return upper_bound;
++//    return v;
++//}
+ 
+ ////! \note I assume that *in* contains only value between [0,1]
+ // void gamma_levels_array(const pfs::Array2D* in, pfs::Array2D* out,
