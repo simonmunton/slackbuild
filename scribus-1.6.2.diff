@@ -1,0 +1,57 @@
+--- scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.h.orig	2024-06-15 15:22:26.000000000 +0100
++++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.h	2024-10-16 18:04:58.593178360 +0100
+@@ -59,13 +59,13 @@
+ // LinkSubmitData
+ //------------------------------------------------------------------------
+ 
+-class LinkSubmitForm: public LinkAction
++class LinkSubmitFormScribus: public LinkAction
+ {
+ public:
+ 	// Build a LinkImportData from an action dictionary.
+-	LinkSubmitForm(Object *actionObj);
++	LinkSubmitFormScribus(Object *actionObj);
+ 	// Destructor.
+-	virtual ~LinkSubmitForm();
++	virtual ~LinkSubmitFormScribus();
+ 
+ 	// Was the LinkImportData created successfully?
+ 	GBool isOk() POPPLER_CONST override { return fileName != nullptr; }
+--- scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.cpp.orig	2024-06-15 15:22:26.000000000 +0100
++++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.cpp	2024-10-16 18:03:53.563173994 +0100
+@@ -81,7 +81,7 @@
+ 	}
+ }
+ 
+-LinkSubmitForm::LinkSubmitForm(Object *actionObj)
++LinkSubmitFormScribus::LinkSubmitFormScribus(Object *actionObj)
+ {
+ 	if (!actionObj->isDict())
+ 		return;
+@@ -106,7 +106,7 @@
+ 		m_flags = obj1.getInt();
+ }
+ 
+-LinkSubmitForm::~LinkSubmitForm()
++LinkSubmitFormScribus::~LinkSubmitFormScribus()
+ {
+ 	delete fileName;
+ }
+@@ -320,7 +320,7 @@
+ 			}
+ 			else if (actionObject.isName("SubmitForm"))
+ 			{
+-				linkAction = new LinkSubmitForm(&additionalActionsObject);
++				linkAction = new LinkSubmitFormScribus(&additionalActionsObject);
+ 			}
+ 		}
+ 	}
+@@ -1102,7 +1102,7 @@
+ 					}
+ 					else if (actString == "SubmitForm")
+ 					{
+-						auto *impo = (LinkSubmitForm*) scact;
++						auto *impo = (LinkSubmitFormScribus*) scact;
+ 						if (impo->isOk())
+ 						{
+ 							ite->annotation().setActionType(3);
