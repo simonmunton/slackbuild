@@ -263,3 +263,125 @@
  void webkit_web_view_run_async_javascript_function_in_world(WebKitWebView* webView, const gchar* body, GVariant* arguments, const char* worldName, GCancellable* cancellable, GAsyncReadyCallback callback, gpointer userData)
  {
      webkitWebViewCallAsyncJavascriptFunctionInternal(webView, body, -1, arguments, worldName, nullptr, RunJavascriptReturnType::WebKitJavascriptResult, cancellable, callback, userData);
+--- webkitgtk-2.42.5/Source/JavaScriptCore/llint/LLIntThunks.cpp.orig	2023-09-19 09:27:45.395784000 +0100
++++ webkitgtk-2.42.5/Source/JavaScriptCore/llint/LLIntThunks.cpp	2024-11-01 11:25:34.608475114 +0000
+@@ -227,7 +227,7 @@
+     std::call_once(onceKey, [&] {
+         JSInterfaceJIT jit;
+         void* ptr = reinterpret_cast<void*>(ipint_entry);
+-        void* untagged = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr();
++        void* untagged = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr<>();
+         void* retagged = nullptr;
+ #if ENABLE(JIT_CAGE)
+         if (Options::useJITCage())
+--- webkitgtk-2.42.5/Source/JavaScriptCore/llint/InPlaceInterpreter.cpp.orig	2023-09-19 09:27:45.391784000 +0100
++++ webkitgtk-2.42.5/Source/JavaScriptCore/llint/InPlaceInterpreter.cpp	2024-11-01 11:24:54.940472451 +0000
+@@ -43,8 +43,8 @@
+ do { \
+     void* base = reinterpret_cast<void*>(ipint_unreachable_validate); \
+     void* ptr = reinterpret_cast<void*>(ipint_ ## name ## _validate); \
+-    void* untaggedBase = CodePtr<CFunctionPtrTag>::fromTaggedPtr(base).template untaggedPtr(); \
+-    void* untaggedPtr = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr(); \
++    void* untaggedBase = CodePtr<CFunctionPtrTag>::fromTaggedPtr(base).template untaggedPtr<>(); \
++    void* untaggedPtr = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr<>(); \
+     RELEASE_ASSERT((char*)(untaggedPtr) - (char*)(untaggedBase) == opcode * 256); \
+ } while (false);
+ 
+@@ -52,8 +52,8 @@
+ do { \
+     void* base = reinterpret_cast<void*>(ipint_i32_trunc_sat_f32_s_validate); \
+     void* ptr = reinterpret_cast<void*>(ipint_ ## name ## _validate); \
+-    void* untaggedBase = CodePtr<CFunctionPtrTag>::fromTaggedPtr(base).template untaggedPtr(); \
+-    void* untaggedPtr = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr(); \
++    void* untaggedBase = CodePtr<CFunctionPtrTag>::fromTaggedPtr(base).template untaggedPtr<>(); \
++    void* untaggedPtr = CodePtr<CFunctionPtrTag>::fromTaggedPtr(ptr).template untaggedPtr<>(); \
+     RELEASE_ASSERT((char*)(untaggedPtr) - (char*)(untaggedBase) == opcode * 256); \
+ } while (false);
+ 
+--- webkitgtk-2.42.5/Source/JavaScriptCore/llint/LLIntData.h.orig	2023-09-19 09:27:45.391784000 +0100
++++ webkitgtk-2.42.5/Source/JavaScriptCore/llint/LLIntData.h	2024-11-01 11:09:53.072411901 +0000
+@@ -217,7 +217,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+@@ -227,7 +227,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+@@ -237,7 +237,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+@@ -346,7 +346,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getCodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+@@ -356,7 +356,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getWide16CodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+@@ -366,7 +366,7 @@
+ #if COMPILER(MSVC)
+     return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).taggedPtr());
+ #else
+-    return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).template taggedPtr());
++    return reinterpret_cast<LLIntCode>(getWide32CodePtr<tag>(opcodeID).template taggedPtr<>());
+ #endif
+ }
+ 
+--- webkitgtk-2.42.5/Source/JavaScriptCore/runtime/JSCast.h.orig	2023-09-19 09:27:45.455782700 +0100
++++ webkitgtk-2.42.5/Source/JavaScriptCore/runtime/JSCast.h	2024-11-01 11:05:14.875393223 +0000
+@@ -236,7 +236,7 @@
+ bool inherits(From* from)
+ {
+     using Dispatcher = InheritsTraits<Target>;
+-    return Dispatcher::template inherits(from);
++    return Dispatcher::template inherits<>(from);
+ }
+ 
+ } // namespace JSCastingHelpers
+@@ -245,7 +245,7 @@
+ To jsDynamicCast(From* from)
+ {
+     using Dispatcher = JSCastingHelpers::InheritsTraits<typename std::remove_cv<typename std::remove_pointer<To>::type>::type>;
+-    if (LIKELY(Dispatcher::template inherits(from)))
++    if (LIKELY(Dispatcher::template inherits<>(from)))
+         return static_cast<To>(from);
+     return nullptr;
+ }
+--- webkitgtk-2.42.5/Source/WTF/wtf/Platform.h.orig	2023-09-19 09:27:49.043708800 +0100
++++ webkitgtk-2.42.5/Source/WTF/wtf/Platform.h	2024-11-01 11:18:58.685448532 +0000
+@@ -114,7 +114,7 @@
+ /* FIXME: This does not belong in Platform.h and should instead be included in another mechanism (compiler option, prefix header, config.h, etc) */
+ /* ICU configuration. Some of these match ICU defaults on some platforms, but we would like them consistently set everywhere we build WebKit. */
+ #define U_HIDE_DEPRECATED_API 1
+-#define U_SHOW_CPLUSPLUS_API 0
++#define U_SHOW_CPLUSPLUS_API 1
+ #ifdef __cplusplus
+ #define UCHAR_TYPE char16_t
+ #endif
