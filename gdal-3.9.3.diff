@@ -1,0 +1,24 @@
+--- gdal-3.9.0/port/cpl_recode.cpp.orig	2024-05-07 13:53:29.000000000 +0100
++++ gdal-3.9.0/port/cpl_recode.cpp	2024-05-23 20:25:56.642263898 +0100
+@@ -1062,8 +1062,8 @@
+ 
+     const size_t nLen = strlen(pszStr);
+     char *pszOutputString = static_cast<char *>(CPLMalloc(nLen + 1));
+-    const char *pszPtr = pszStr;
+-    const char *pszEnd = pszStr + nLen;
++    const utf8_int8_t *pszPtr = (utf8_int8_t *)pszStr;
++    const utf8_int8_t *pszEnd = (utf8_int8_t *)(pszStr + nLen);
+     size_t i = 0;
+     while (pszPtr != pszEnd)
+     {
+--- gdal-3.9.3/port/cpl_recode.cpp.orig	2024-11-04 15:00:45.389231044 +0000
++++ gdal-3.9.3/port/cpl_recode.cpp	2024-11-04 15:09:13.424265153 +0000
+@@ -1074,7 +1074,7 @@
+                              reinterpret_cast<const utf8_int8_t *>(pszPtr)) >
+                 pszEnd)
+                 break;
+-            auto pszNext = reinterpret_cast<const char *>(utf8codepoint(
++            auto pszNext = reinterpret_cast<const utf8_int8_t *>(utf8codepoint(
+                 reinterpret_cast<const utf8_int8_t *>(pszPtr), &codepoint));
+             char ch = chReplacementChar;
+             for (const auto &latin1char : aLatinCharacters)
