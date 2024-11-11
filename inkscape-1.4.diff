@@ -1,5 +1,5 @@
 --- inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2024-07-28 12:27:55.000000000 +0100
-+++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp	2024-10-16 17:56:23.573143783 +0100
++++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp	2024-11-03 22:52:11.351515240 +0000
 @@ -810,7 +810,7 @@
              _POPPLER_FREE(obj3);
              if (_POPPLER_CALL_ARGS_DEREF(obj3, obj2.dictLookup, "G").isStream()) {
@@ -394,7 +394,7 @@
  
      auto props = resources->lookup("Properties");
 --- inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.h.orig	2024-04-22 22:00:30.000000000 +0100
-+++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.h	2024-10-16 17:35:45.147060636 +0100
++++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.h	2024-11-03 22:52:11.351515240 +0000
 @@ -4,7 +4,7 @@
   *//*
   * Authors:
@@ -431,3 +431,41 @@
  
    // XObject operators
    void opXObject(Object args[], int numArgs);
+--- inkscape-1.4/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp.orig	2024-04-22 22:00:30.000000000 +0100
++++ inkscape-1.4/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp	2024-11-04 13:29:55.649865156 +0000
+@@ -421,9 +421,9 @@
+                 FoFiTrueType *ff;
+ #endif
+                 if (!font_data.empty()) {
+-                    ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size());
++                    ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
+                 } else {
+-                    ff = FoFiTrueType::load(fileName.c_str());
++                    ff = FoFiTrueType::load(fileName.c_str(), 0);
+                 }
+                 if (!ff) {
+                     goto err2;
+@@ -446,9 +446,9 @@
+             FoFiTrueType *ff;
+ #endif
+             if (!font_data.empty()) {
+-                ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size());
++                ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
+             } else {
+-                ff = FoFiTrueType::load(fileName.c_str());
++                ff = FoFiTrueType::load(fileName.c_str(), 0);
+             }
+             if (!ff) {
+                 error(errSyntaxError, -1, "failed to load truetype font\n");
+@@ -514,9 +514,9 @@
+                     FoFiTrueType *ff;
+ #endif
+                     if (!font_data.empty()) {
+-                        ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size());
++                        ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
+                     } else {
+-                        ff = FoFiTrueType::load(fileName.c_str());
++                        ff = FoFiTrueType::load(fileName.c_str(), 0);
+                     }
+                     if (ff) {
+                         if (ff->isOpenTypeCFF()) {
