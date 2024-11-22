@@ -1,0 +1,217 @@
+#!/bin/bash
+#
+. ../build_funcs
+
+TARNAME=sddm
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/s
+#TAR_EXT=.tar.gz
+VERSION=0.21.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://github.com/sddm/sddm"
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+PKGSUFFIX=-kde6
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+  # Don't source $HOME/.xession in SDDM's Xsession script. It may cause the
+  # wrong session type to launch, or run a second copy of dbus-run-session which
+  # will break logout:
+  cat ${CWD}/sddm.do.not.source.HOME.xsession.diff | patch -p1 --verbose || exit 1
+
+  # List Wayland sessions after X11 sessions since Wayland is more experimental:
+  cat ${CWD}/sddm.list.X11.sessions.before.Wayland.Sessions.diff | patch -p1 --verbose || exit 1
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# This avoids compiling a version number into KDE's .la files:
+QTDIR=/usr/lib${LIBDIRSUFFIX}/qt6
+export QTDIR
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _BuilD_
+cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DBUILD_MAN_PAGES:BOOL=TRUE \
+      -DDBUS_CONFIG_FILENAME="org.freedesktop.sddm.conf" \
+      -DUSE_QT5:BOOL=TRUE \
+      -DENABLE_JOURNALD:BOOL=FALSE \
+      -DENABLE_PAM:BOOL=ON \
+      -DNO_SYSTEMD:BOOL=TRUE \
+      -DUSE_ELOGIND:BOOL=TRUE \
+      -DBUILD_WITH_QT6=on \
+      -Wno-dev \
+      .. \
+      2>&1 | tee _Build_config.log
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+make ${NUM_JOBS} || exit
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+make install DESTDIR=${PKG}
+
+cd ..
+
+make_debug_files
+#strip_binaries
+
+# Replace systemd-centric files with ours:
+rm -f ${PKG}/etc/pam.d/sddm*
+for FILE in sddm sddm-autologin sddm-greeter ; do
+  install -Dm644 ${CWD}/pam.d/${FILE} ${PKG}/etc/pam.d/${FILE}.new
+done
+
+# Create the SDDM home directory:
+mkdir -p ${PKG}/var/lib/sddm
+chmod 755 ${PKG}/var/lib/sddm
+chown sddm:sddm ${PKG}/var/lib/sddm
+
+# D-Bus configs should be under /usr, not /etc:
+mkdir -p ${PKG}/usr/share/dbus-1/system.d
+mv ${PKG}/etc/dbus-1/system.d/* ${PKG}/usr/share/dbus-1/system.d
+rmdir --parents ${PKG}/etc/dbus-1/system.d
+
+# Remove the sddm.conf file because we will generate our own in doinst.sh:
+rm -f ${PKG}/etc/sddm.conf
+
+# Generate the default sddm.conf:
+${PKG}/usr/bin/sddm --example-config > ${PKG}/etc/sddm.conf
+
+# Set the KDE5 theme 'breeze' as default (integrates better with Plasma 5):
+sed -i -e "/\[Theme\]/,/^\[/s/^Current.*/Current=breeze/" ${PKG}/etc/sddm.conf
+
+# Move the default config file to .new:
+mv ${PKG}/etc/sddm.conf ${PKG}/etc/sddm.conf.new
+
+# Make sure that Plasma and SDDM work on older GPUs,
+# by forcing Qt5 to use software GL rendering:
+cat << "EOF" >> ${PKG}/usr/share/sddm/scripts/Xsetup
+# Make sure that Plasma and SDDM work on older GPUs by forcing Qt5 to use
+# software GL rendering if the OpenGL version is not new enough:
+OPENGL_VERSION=$(LANG=C glxinfo |grep '^OpenGL version string: ' |head -n 1 |sed -e 's/^OpenGL version string: \([0-9]\).*$/\1/g')
+if [ "$OPENGL_VERSION" -lt 2 ]; then
+  QT_XCB_FORCE_SOFTWARE_OPENGL=1
+  export QT_XCB_FORCE_SOFTWARE_OPENGL
+fi
+EOF
+
+# Add a wrapper for the sddm binary, to enable a custom environment:
+mv ${PKG}/usr/bin/sddm ${PKG}/usr/bin/sddm.bin
+cat <<"EOT" > ${PKG}/usr/bin/sddm
+#!/bin/sh
+# Customized environment (LANG definition):
+if [ -f /etc/default/sddm ]; then
+  . /etc/default/sddm
+fi
+
+# Ensure non-world readable permissions on /var/log/sddm.log:
+touch /var/log/sddm.log
+chmod 640 /var/log/sddm.log
+
+# Add a timestamp:
+date >> /var/log/sddm.log
+
+# Redirect stdout/stderr to /dev/null to avoid polluting a virtual
+# console with duplicate log messages:
+exec /usr/bin/sddm.bin "$@" 1> /dev/null 2> /dev/null
+EOT
+chmod 0755 ${PKG}/usr/bin/sddm
+
+# Let's also add an example customization (localization of the UI):
+mkdir -p  ${PKG}/etc/default
+echo ". /etc/profile.d/lang.sh" >  ${PKG}/etc/default/sddm.new
+
+
+doinst_config etc/sddm.conf.new
+doinst_config etc/default/sddm.new
+doinst_config etc/pam.d/sddm.new
+doinst_config etc/pam.d/sddm-autologin.new
+doinst_config etc/pam.d/sddm-greeter.new
+
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "QML based X11 display manager"
+SDDM is a modern display manager for X11 aiming to be fast, simple and
+beautiful. It uses modern technologies like QtQuick, which in turn
+gives the designer the ability to create smooth, animated user
+interfaces. SDDM is extremely themeable. There are a few sample themes
+distributed with SDDM. They can be used as a starting point for new
+themes.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}${PKGSUFFIX}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
