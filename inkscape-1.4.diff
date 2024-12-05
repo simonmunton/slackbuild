@@ -1,5 +1,5 @@
 --- inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2024-07-28 12:27:55.000000000 +0100
-+++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp	2024-11-03 22:52:11.351515240 +0000
++++ inkscape-1.4/src/extension/internal/pdfinput/pdf-parser.cpp	2024-12-04 16:24:20.683026096 +0000
 @@ -810,7 +810,7 @@
              _POPPLER_FREE(obj3);
              if (_POPPLER_CALL_ARGS_DEREF(obj3, obj2.dictLookup, "G").isStream()) {
@@ -219,7 +219,7 @@
      // upper-right sub-rectangle
      colors2[0] = colorM0;
      colors2[1] = colorMM;
-@@ -2407,15 +2407,15 @@
+@@ -2407,15 +2407,16 @@
      GBool maskInvert;
      GBool maskInterpolate;
      Object obj1, obj2;
@@ -228,8 +228,10 @@
      // get info from the stream
      bits = 0;
      csMode = streamCSNone;
-     str->getImageParams(&bits, &csMode);
+-    str->getImageParams(&bits, &csMode);
 -    
++    bool hasAlpha = false;
++    str->getImageParams(&bits, &csMode, &hasAlpha);
 +
      // get stream dict
      dict = str->getDict();
@@ -238,7 +240,7 @@
      // get size
      _POPPLER_CALL_ARGS(obj1, dict->lookup, "Width");
      if (obj1.isNull()) {
-@@ -2447,7 +2447,7 @@
+@@ -2447,7 +2448,7 @@
          goto err2;
      }
      _POPPLER_FREE(obj1);
@@ -247,7 +249,7 @@
      // image interpolation
      _POPPLER_CALL_ARGS(obj1, dict->lookup, "Interpolate");
      if (obj1.isNull()) {
-@@ -2475,7 +2475,7 @@
+@@ -2475,7 +2476,7 @@
          goto err2;
      }
      _POPPLER_FREE(obj1);
@@ -256,7 +258,7 @@
      // bit depth
      if (bits == 0) {
          _POPPLER_CALL_ARGS(obj1, dict->lookup, "BitsPerComponent");
-@@ -2492,7 +2492,7 @@
+@@ -2492,7 +2493,7 @@
          }
          _POPPLER_FREE(obj1);
      }
@@ -265,7 +267,7 @@
      // display a mask
      if (mask) {
          // check for inverted mask
-@@ -2515,13 +2515,13 @@
+@@ -2515,13 +2516,13 @@
              goto err2;
          }
          _POPPLER_FREE(obj1);
@@ -282,7 +284,7 @@
          _POPPLER_CALL_ARGS(obj1, dict->lookup, "ColorSpace");
          if (obj1.isNull()) {
              _POPPLER_FREE(obj1);
-@@ -2530,11 +2530,11 @@
+@@ -2530,11 +2531,11 @@
          if (!obj1.isNull()) {
              colorSpace = lookupColorSpaceCopy(obj1);
          } else if (csMode == streamCSDeviceGray) {
@@ -297,7 +299,7 @@
          } else {
              colorSpace = nullptr;
          }
-@@ -2547,13 +2547,13 @@
+@@ -2547,13 +2548,13 @@
              _POPPLER_FREE(obj1);
              _POPPLER_CALL_ARGS(obj1, dict->lookup, "D");
          }
@@ -313,7 +315,7 @@
          // get the mask
          int maskColors[2*gfxColorMaxComps];
          haveColorKeyMask = haveExplicitMask = haveSoftMask = gFalse;
-@@ -2617,7 +2617,7 @@
+@@ -2617,7 +2618,7 @@
  	            _POPPLER_FREE(obj1);
                      _POPPLER_CALL_ARGS(obj1, maskDict->lookup, "CS");
              }
@@ -322,7 +324,7 @@
              _POPPLER_FREE(obj1);
              if (!maskColorSpace || maskColorSpace->getMode() != csDeviceGray) {
                  goto err1;
-@@ -2627,7 +2627,7 @@
+@@ -2627,7 +2628,7 @@
                  _POPPLER_FREE(obj1);
                  _POPPLER_CALL_ARGS(obj1, maskDict->lookup, "D");
              }
@@ -331,7 +333,7 @@
              _POPPLER_FREE(obj1);
              if (!maskColorMap->isOk()) {
                  delete maskColorMap;
-@@ -2708,7 +2708,7 @@
+@@ -2708,7 +2709,7 @@
              _POPPLER_FREE(obj1);
              haveExplicitMask = gTrue;
          }
@@ -340,7 +342,7 @@
          // draw it
          if (haveSoftMask) {
  	    builder->addSoftMaskedImage(state, str, width, height, colorMap, interpolate,
-@@ -2722,7 +2722,7 @@
+@@ -2722,7 +2723,7 @@
  		        haveColorKeyMask ? maskColors : static_cast<int *>(nullptr));
          }
          delete colorMap;
@@ -349,7 +351,7 @@
          _POPPLER_FREE(maskObj);
          _POPPLER_FREE(smaskObj);
      }
-@@ -2739,7 +2739,7 @@
+@@ -2739,7 +2740,7 @@
  {
      Dict *dict;
      GBool transpGroup, isolated, knockout;
@@ -358,7 +360,7 @@
      Object matrixObj, bboxObj;
      double m[6], bbox[4];
      Object resObj;
-@@ -2828,12 +2828,12 @@
+@@ -2828,12 +2829,12 @@
  
      // draw it
      ++formDepth;
@@ -375,7 +377,7 @@
      _POPPLER_FREE(resObj);
  }
  
-@@ -2919,7 +2919,7 @@
+@@ -2919,7 +2920,7 @@
    // display the image
    if (str) {
      doImage(nullptr, str, gTrue);
@@ -384,7 +386,7 @@
      // skip 'EI' tag
      int c1 = str->getUndecodedStream()->getChar();
      int c2 = str->getUndecodedStream()->getChar();
-@@ -3123,7 +3123,7 @@
+@@ -3123,7 +3124,7 @@
   */
  void PdfParser::loadOptionalContentLayers(Dict *resources)
  {
