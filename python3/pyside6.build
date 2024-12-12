@@ -1,0 +1,164 @@
+#!/bin/bash
+#
+
+. build_funcs
+
+TARNAME=pyside-setup-everywhere-src
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/p
+#TAR_EXT=.tar.gz
+VERSION=6.8.0
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://download.qt.io/official_releases/QtForPython/pyside6/"
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=python-pyside6
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION%.*} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then 
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+# patch -p1 -b -z .orig < ${CWD}/
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+#mkdir _BuilD_
+#cd _BuilD_
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+#      -DUSE_PYTHON_VERSION=3 \
+#      ..
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+#make ${NUM_JOBS} || exit
+#python3 setup.py build || exit
+:
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+#make install DESTDIR=${PKG}
+#cd ..
+
+export LIB_SUFFIX=${LIBDIRSUFFIX}
+
+python3 setup.py install --qmake=/usr/lib${LIBDIRSUFFIX}/qt6/bin/qmake --parallel=8 --root=${PKG} --skip-docs --verbose-build
+
+#PYTHON3_SITEDIR=$(python3 -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+
+mkdir -p ${PKG}/usr/{include,lib${LIBDIRSUFFIX}/{cmake,pkgconfig},share,man/man1}
+
+cp -pr build/qfp*/install/include/PySide6 ${PKG}/usr/include
+cp -pr build/qfp*/install/share/PySide6 ${PKG}/usr/share
+cp -pr build/qfp*/install/lib/pkgconfig/pyside6.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cp -pr build/qfp*/install/lib/libpyside6*.so* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp -pr build/qfp*/install/lib/cmake/PySide6* ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+
+cp -pr build/qfp*/install/include/shiboken6 ${PKG}/usr/include
+cp -pr build/qfp*/install/lib/pkgconfig/shiboken6.pc ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig
+cp -pr build/qfp*/install/lib/libshiboken6*.so* ${PKG}/usr/lib${LIBDIRSUFFIX}
+cp -pr build/qfp*/install/lib/cmake/Shiboken6* ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake
+
+#cp -pr build/qfp*/install/share/man/man1/pyside6-* ${PKG}/usr/man/man1
+
+sed -i "s@$(pwd)/.*-release/install@/usr@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+sed -i "s@libdir=lib@libdir=/usr/lib@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+sed -i "s@/usr/lib@/usr/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+sed -i "/exec_prefix/,\$ s@=/usr@=\${prefix}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/pkgconfig/*
+
+sed -i "s@/lib/@/lib${LIBDIRSUFFIX}/@g" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/PySide6*/*
+sed -i "s@/lib/@/lib${LIBDIRSUFFIX}/@g" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken6*/*
+sed -i "/SHIBOKEN_SHARED_LIBRARY_DIR/ s@/lib@/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken6*/Shiboken6Config*
+sed -i "s@$(pwd)/.*-release@/usr@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken6*/Shiboken6Targets*
+
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Qt 6 For Python"
+Qt For Python is the [Python Qt bindings project]
+(http://wiki.qt.io/PySide6), providing access to the complete
+Qt 6.x framework as well as to generator tools for rapidly generating
+bindings for any C++ libraries.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
