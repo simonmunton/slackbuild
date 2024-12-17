@@ -1,0 +1,79 @@
+--- asymptote-2.95/LspCpp/src/jsonrpc/TcpServer.cpp.orig	2024-11-25 09:19:16.000000000 +0000
++++ asymptote-2.95/LspCpp/src/jsonrpc/TcpServer.cpp	2024-12-15 15:33:53.272177601 +0000
+@@ -187,7 +187,7 @@
+         /// The io_context used to perform asynchronous operations.
+         boost::asio::io_context io_context_;
+ 
+-        std::shared_ptr<boost::asio::io_service::work> work;
++        std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work;
+ 
+         std::shared_ptr<tcp_connect_session> _connect_session;
+         /// Acceptor used to listen for incoming connections.
+@@ -209,7 +209,7 @@
+ 
+         {
+ 
+-            d_ptr->work = std::make_shared<boost::asio::io_service::work>(d_ptr->io_context_);
++            d_ptr->work = std::make_shared<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>>(boost::asio::make_work_guard(d_ptr->io_context_));
+ 
+             // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+             boost::asio::ip::tcp::resolver resolver(d_ptr->io_context_);
+--- asymptote-2.95/LspCpp/src/jsonrpc/WebSocketServer.cpp.orig	2024-11-25 09:19:16.000000000 +0000
++++ asymptote-2.95/LspCpp/src/jsonrpc/WebSocketServer.cpp	2024-12-15 15:35:23.852183682 +0000
+@@ -141,7 +141,7 @@
+             /// The io_context used to perform asynchronous operations.
+             boost::asio::io_context io_context_;
+ 
+-            std::shared_ptr<boost::asio::io_service::work> work;
++            std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work;
+ 
+             /// Acceptor used to listen for incoming connections.
+             boost::asio::ip::tcp::acceptor acceptor_;
+@@ -243,7 +243,7 @@
+ 
+         {
+ 
+-            d_ptr->work = std::make_shared<boost::asio::io_service::work>(d_ptr->io_context_);
++            d_ptr->work = std::make_shared<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>>(boost::asio::make_work_guard(d_ptr->io_context_));
+ 
+             // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+             boost::asio::ip::tcp::resolver resolver(d_ptr->io_context_);
+--- asymptote-2.95/LspCpp/include/LibLsp/lsp/ProcessIoService.h.orig	2024-11-25 09:19:16.000000000 +0000
++++ asymptote-2.95/LspCpp/include/LibLsp/lsp/ProcessIoService.h	2024-12-15 18:19:06.140052646 +0000
+@@ -7,13 +7,13 @@
+         class ProcessIoService
+         {
+         public:
+-                using IOService = boost::asio::io_service;
+-                using Work = boost::asio::io_service::work;
++                using IOService = boost::asio::io_context;
++                using Work = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
+                 using WorkPtr = std::unique_ptr<Work>;
+ 
+                 ProcessIoService() {
+ 
+-                        work_ = std::unique_ptr<Work>(new Work(ioService_));
++                        work_ = std::make_unique<Work>(boost::asio::make_work_guard(ioService_));
+                         auto temp_thread_ = new std::thread([this]
+                                 {
+                                         ioService_.run();
+@@ -24,7 +24,7 @@
+                 ProcessIoService(const ProcessIoService&) = delete;
+                 ProcessIoService& operator=(const ProcessIoService&) = delete;
+ 
+-                boost::asio::io_service& getIOService()
++                boost::asio::io_context& getIOService()
+                 {
+                         return ioService_;
+                 }
+--- asymptote-2.95/LspCpp/include/LibLsp/lsp/SimpleTimer.h.orig	2024-11-25 09:19:16.000000000 +0000
++++ asymptote-2.95/LspCpp/include/LibLsp/lsp/SimpleTimer.h	2024-12-15 18:20:11.283057020 +0000
+@@ -41,7 +41,7 @@
+ private:
+     std::atomic_bool is_running_;
+     std::function<void()> call_back;
+-    boost::asio::io_service _ios;
++    boost::asio::io_context _ios;
+     boost::asio::deadline_timer _deadline_timer;
+     std::thread _thread;
+ 
