@@ -1,0 +1,46 @@
+--- avidemux-20250101/avidemux_plugins/ADM_videoEncoder/x265/ADM_x265Setup.cpp.orig	2024-07-19 12:37:29.000000000 +0100
++++ avidemux-20250101/avidemux_plugins/ADM_videoEncoder/x265/ADM_x265Setup.cpp	2025-01-01 10:44:26.582638352 +0000
+@@ -216,13 +216,21 @@
+                         {
+                              param.rc.bStatWrite=1;
+                              param.rc.bStatRead=0;
++#if X265_BUILD < 215
+                              param.rc.statFileName=strdup(logFile);
++#else
++                             strncat(param.rc.statFileName, logFile, X265_MAX_STRING_SIZE-1);
++#endif
+  
+                         }else
+                         {
+                              param.rc.bStatWrite=0;
+                              param.rc.bStatRead=1;
++#if X265_BUILD < 215
+                              param.rc.statFileName=strdup(logFile);
++#else
++                             strncat(param.rc.statFileName, logFile, X265_MAX_STRING_SIZE-1);
++#endif
+                              if(!ADM_fileExist(logFile))
+                              {
+                                    ADM_error("Logfile %s does not exist \n",logFile);
+--- avidemux-20250101/buildCore/ffmpeg/build/ffbuild/config.mak.orig	2025-01-01 10:44:40.628639295 +0000
++++ avidemux-20250101/buildCore/ffmpeg/build/ffbuild/config.mak	2025-01-01 10:44:40.713639301 +0000
+@@ -128,7 +128,7 @@
+ COMPAT_OBJS=
+ INSTALL=install
+ LIBTARGET=
+-SLIBNAME=$(SLIBPREF)$(FULLNAME)$(SLIBSUF)
++SLIBNAME=$(SLIBPREF)ADM6$(FULLNAME)$(SLIBSUF)
+ SLIBNAME_WITH_VERSION=$(SLIBNAME).$(LIBVERSION)
+ SLIBNAME_WITH_MAJOR=$(SLIBNAME).$(LIBMAJOR)
+ SLIB_CREATE_DEF_CMD=
+--- avidemux-20250101/buildCore/ffmpeg/source/ffbuild/common.mak.orig	2024-08-02 23:55:21.000000000 +0100
++++ avidemux-20250101/buildCore/ffmpeg/source/ffbuild/common.mak	2025-01-01 10:44:34.140638859 +0000
+@@ -165,7 +165,7 @@
+ FFLIBS    := $($(NAME)_FFLIBS) $(FFLIBS-yes) $(FFLIBS)
+ TESTPROGS += $(TESTPROGS-yes)
+ 
+-LDLIBS       = $(FFLIBS:%=%$(BUILDSUF))
++LDLIBS       = $(FFLIBS:%=ADM6%$(BUILDSUF))
+ FFEXTRALIBS := $(LDLIBS:%=$(LD_LIB)) $(foreach lib,EXTRALIBS-$(NAME) $(FFLIBS:%=EXTRALIBS-%),$($(lib))) $(EXTRALIBS)
+ 
+ OBJS      := $(sort $(OBJS:%=$(SUBDIR)%))
