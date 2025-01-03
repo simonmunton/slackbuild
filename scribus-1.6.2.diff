@@ -1,5 +1,5 @@
 --- scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.h.orig	2024-06-15 15:22:26.000000000 +0100
-+++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.h	2024-11-04 14:33:35.313121603 +0000
++++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.h	2025-01-03 09:59:25.719669120 +0000
 @@ -59,13 +59,13 @@
  // LinkSubmitData
  //------------------------------------------------------------------------
@@ -17,6 +17,19 @@
  
  	// Was the LinkImportData created successfully?
  	GBool isOk() POPPLER_CONST override { return fileName != nullptr; }
+@@ -95,10 +95,10 @@
+ 	GBool isOk() POPPLER_CONST override { return fileName != nullptr; }
+ 	// Accessors.
+ 	LinkActionKind getKind() POPPLER_CONST override { return actionUnknown; }
+-	GooString *getFileName() { return fileName; }
++	GooString *getFileName() { return fileName.get(); }
+ 
+ private:
+-	GooString *fileName {nullptr};		// file name
++	std::unique_ptr<GooString> fileName;		// file name
+ };
+ 
+ //------------------------------------------------------------------------
 @@ -111,10 +111,17 @@
  	SlaOutFontFileID(const Ref *rA) { r = *rA; }
  	~SlaOutFontFileID() {}
@@ -35,45 +48,68 @@
  
  private:
  	Ref r;
+@@ -146,7 +153,7 @@
+ 	QString currColorStroke;
+ 	double  fontSize {12};
+ 	GooString *fontName {nullptr};
+-	GooString *itemText {nullptr};
++	std::unique_ptr<GooString> itemText;
+ 
+ private:
+ 	QString getColor(GfxColorSpace *color_space, POPPLER_CONST_070 GfxColor *color, int *shade);
 --- scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.cpp.orig	2024-06-15 15:22:26.000000000 +0100
-+++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.cpp	2024-11-04 14:47:25.109177315 +0000
-@@ -81,7 +81,7 @@
++++ scribus-1.6.2/scribus/plugins/import/pdf/slaoutput.cpp	2025-01-03 10:03:29.128685462 +0000
+@@ -80,6 +80,7 @@
+ 		return ret;
  	}
  }
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(24, 10, 0)
  
--LinkSubmitForm::LinkSubmitForm(Object *actionObj)
-+LinkSubmitFormScribus::LinkSubmitFormScribus(Object *actionObj)
+ LinkSubmitForm::LinkSubmitForm(Object *actionObj)
  {
- 	if (!actionObj->isDict())
- 		return;
-@@ -106,7 +106,7 @@
- 		m_flags = obj1.getInt();
- }
- 
--LinkSubmitForm::~LinkSubmitForm()
-+LinkSubmitFormScribus::~LinkSubmitFormScribus()
+@@ -110,6 +111,7 @@
  {
  	delete fileName;
  }
-@@ -320,7 +320,7 @@
++#endif
+ 
+ LinkImportData::LinkImportData(Object *actionObj)
+ {
+@@ -126,13 +128,13 @@
+ 
+ LinkImportData::~LinkImportData()
+ {
+-	delete fileName;
++//	delete fileName;
+ }
+ 
+ AnoOutputDev::~AnoOutputDev()
+ {
+ 	delete fontName;
+-	delete itemText;
++//	delete itemText;
+ }
+ 
+ AnoOutputDev::AnoOutputDev(ScribusDoc* doc, QStringList *importedColors)
+@@ -715,7 +717,7 @@
+ 				currTextColor = annotOutDev->currColorText;
+ 				fontSize = annotOutDev->fontSize;
+ 				fontName = UnicodeParsedString(annotOutDev->fontName);
+-				itemText = UnicodeParsedString(annotOutDev->itemText);
++				itemText = UnicodeParsedString(annotOutDev->itemText.get());
+ 				delete gfx;
+ 				delete annotOutDev;
  			}
- 			else if (actionObject.isName("SubmitForm"))
- 			{
--				linkAction = new LinkSubmitForm(&additionalActionsObject);
-+				linkAction = new LinkSubmitFormScribus(&additionalActionsObject);
- 			}
- 		}
- 	}
-@@ -1102,7 +1102,7 @@
- 					}
- 					else if (actString == "SubmitForm")
- 					{
--						auto *impo = (LinkSubmitForm*) scact;
-+						auto *impo = (LinkSubmitFormScribus*) scact;
+@@ -1106,7 +1108,7 @@
  						if (impo->isOk())
  						{
  							ite->annotation().setActionType(3);
-@@ -3049,7 +3049,11 @@
+-							ite->annotation().setAction(UnicodeParsedString(impo->getFileName()));
++							ite->annotation().setAction(UnicodeParsedString(impo->getUrl()));
+ 							int fl = impo->getFlags();
+ 							if (fl == 0)
+ 								ite->annotation().setHTML(0);
+@@ -3049,7 +3051,11 @@
  	char* tmpBuf = nullptr;
  #endif
  	GfxFontType fontType;
@@ -85,7 +121,7 @@
  	SplashFontFile *fontFile;
  	SplashFontSrc *fontsrc = nullptr;
  	Object refObj, strObj;
-@@ -3079,9 +3083,15 @@
+@@ -3079,9 +3085,15 @@
  		goto err1;
  
  	// check the font file cache
@@ -101,7 +137,7 @@
  	else
  	{
  		fontLoc = gfxFont->locateFont(m_xref ? m_xref : m_pdfDoc->getXRef(), nullptr);
-@@ -3135,29 +3145,58 @@
+@@ -3135,29 +3147,58 @@
  		// load the font file
  		switch (fontType) {
  		case fontType1:
@@ -162,7 +198,7 @@
  			if (!fileName.empty())
  				ff = FoFiTrueType::load(fileName.c_str());
  			else
-@@ -3184,19 +3223,35 @@
+@@ -3184,19 +3225,35 @@
  				codeToGID = nullptr;
  				n = 0;
  			}
@@ -198,7 +234,7 @@
  			break;
  		case fontCIDType0COT:
  			if (((GfxCIDFont *) gfxFont)->getCIDToGID())
-@@ -3210,12 +3265,21 @@
+@@ -3210,12 +3267,21 @@
  				codeToGID = nullptr;
  				n = 0;
  			}
@@ -220,7 +256,7 @@
  			break;
  		case fontCIDType2:
  		case fontCIDType2OT:
-@@ -3232,7 +3296,12 @@
+@@ -3232,7 +3298,12 @@
  			}
  			else
  			{
@@ -234,7 +270,7 @@
  				if (!fileName.empty())
  					ff = FoFiTrueType::load(fileName.c_str());
  				else
-@@ -3253,11 +3322,19 @@
+@@ -3253,11 +3324,19 @@
  				delete ff;
  #endif
  			}
@@ -254,7 +290,7 @@
  			break;
  		default:
  			// this shouldn't happen
-@@ -3292,7 +3369,11 @@
+@@ -3292,7 +3371,11 @@
  	return;
  
  err2:
