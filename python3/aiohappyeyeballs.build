@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ocrmypdf
+TARNAME=aiohappyeyeballs
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/python
+TARDIR=${SOURCE}/a
 #TAR_EXT=.tar.gz
-VERSION=16.8.0
+VERSION=2.4.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.org/project/ocrmypdf"
+WEBPAGE="https://pypi.org/project/aiohappyeyeballs/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python-ocrmypdf
+PKGNAME=python-aiohappyeyeballs
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ocrmypdf-16.0.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -82,7 +82,8 @@ if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
 #python3 setup.py build || exit
-python3 -c 'import setuptools; setuptools.setup()' build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +93,8 @@ fi
 
 #make install DESTDIR=${PKG}
 #python3 setup.py install --root=${PKG}
-python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -109,9 +111,13 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OCRmyPDF adds an OCR text layer to scanned PDF files"
-OCRmyPDF adds an OCR text layer to scanned PDF files, allowing them 
-to be searched or copy-pasted.
+make_slack_desc << EOF "Happy Eyeballs for asyncio"
+This library exists to allow connecting with Happy Eyeballs (RFC
+8305) when you already have a list of addrinfo and not a DNS name.
+
+The stdlib version of loop.create_connection() will only work when
+you pass in an unresolved name which is not a good fit when using
+DNS caching or resolving names via another method such as zeroconf.
 
 EOF
 

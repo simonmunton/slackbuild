@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=ugrep
+TARNAME=sqliteodbc
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/u
+TARDIR=${SOURCE}/s
 #TAR_EXT=.tar.gz
-VERSION=7.2.1
+VERSION=0.99991
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/Genivia/ugrep"
+WEBPAGE="http://www.ch-werner.de/sqliteodbc/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/ugrep-6.0.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,18 +55,18 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
+#mkdir _BuilD_
+#cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
+./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
@@ -80,17 +80,17 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-elif [ -f ../meson.build ]
+      .
+elif [ -f ./meson.build ]
 then
-  meson --prefix=/usr . ..
+  meson --prefix=/usr . .
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   ninja || exit
 else
@@ -103,14 +103,15 @@ then
   exit
 fi
 
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja install
 else
+  mkdir -p ${PKG}/usr/lib${LIBDIRSUFFIX}
   make install DESTDIR=${PKG}
 fi
 
-cd ..
+#cd ..
 
 strip_binaries
 
@@ -127,12 +128,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Search for anything in everything... ultra fast"
-ultra fast grep with interactive TUI, fuzzy search, boolean queries,
-hexdumps and more: search file systems, source code, text, binary
-files, archives (cpio/tar/pax/zip), compressed files
-(gz/Z/bz2/lzma/xz/lz4/zstd), documents etc. A faster, user-friendly
-and compatible grep replacement. 
+make_slack_desc << EOF "SQLite ODBC Driver"
+The SQLite Database Engine provides a lightweight C library to
+access database files using a large subset of SQL92 without the
+overhead of RDBMS server processes. In order to use that
+functionality as a desktop database I wrapped the SQLite library
+into an ODBC driver.
 
 EOF
 

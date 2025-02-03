@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ocrmypdf
+TARNAME=pep517
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/python
+TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=16.8.0
+VERSION=0.13.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.org/project/ocrmypdf"
+WEBPAGE="https://pypi.org/project/pep517"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python-ocrmypdf
+PKGNAME=python-pep517
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ocrmypdf-16.0.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -82,7 +82,8 @@ if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
 #python3 setup.py build || exit
-python3 -c 'import setuptools; setuptools.setup()' build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +93,8 @@ fi
 
 #make install DESTDIR=${PKG}
 #python3 setup.py install --root=${PKG}
-python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -109,9 +111,18 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OCRmyPDF adds an OCR text layer to scanned PDF files"
-OCRmyPDF adds an OCR text layer to scanned PDF files, allowing them 
-to be searched or copy-pasted.
+make_slack_desc << EOF "Wrappers to build Python packages using PEP 517 hooks"
+PEP 517 specifies a standard API for systems which build Python 
+packages.
+
+PEP 660 extends it with a build mode that leads to editable installs.
+
+This package contains wrappers around the hooks specified by PEP 517 
+and PEP 660. It provides:
+    A mechanism to call the hooks in a subprocess, so they are 
+    isolated from the current process.
+    Fallbacks for the optional hooks, so that frontends can call the 
+    hooks without checking which are defined.
 
 EOF
 

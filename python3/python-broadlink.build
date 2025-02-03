@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ocrmypdf
+TARNAME=python-broadlink
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/python
+TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=16.8.0
+VERSION=0.19.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.org/project/ocrmypdf"
+WEBPAGE="https://github.com/mjg59/python-broadlink"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python-ocrmypdf
+PKGNAME=python-broadlink
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/ocrmypdf-16.0.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -82,7 +82,8 @@ if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
 #python3 setup.py build || exit
-python3 -c 'import setuptools; setuptools.setup()' build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -92,7 +93,8 @@ fi
 
 #make install DESTDIR=${PKG}
 #python3 setup.py install --root=${PKG}
-python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -109,9 +111,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OCRmyPDF adds an OCR text layer to scanned PDF files"
-OCRmyPDF adds an OCR text layer to scanned PDF files, allowing them 
-to be searched or copy-pasted.
+make_slack_desc << EOF "Python API for controlling Broadlink devices"
+Python module for controlling Broadlink RM2/3 (Pro) remote controls,
+A1 sensor platforms and SP2/3 smartplugs 
 
 EOF
 
