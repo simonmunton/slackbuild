@@ -1,0 +1,152 @@
+--- scribus-1.6.3/scribus/plugins/import/pdf/importpdf.cpp.orig	2025-01-07 23:06:55.000000000 +0000
++++ scribus-1.6.3/scribus/plugins/import/pdf/importpdf.cpp	2025-02-05 20:15:41.594252616 +0000
+@@ -462,11 +462,11 @@
+ 
+ 			if (dev->isOk())
+ 			{
+-				OCGs* ocg = pdfDoc->getOptContentConfig();
++				const OCGs* ocg = pdfDoc->getOptContentConfig();
+ 				if (ocg && ocg->hasOCGs())
+ 				{
+ 					QStringList ocgNames;
+-					Array *order = ocg->getOrderArray();
++					const Array *order = ocg->getOrderArray();
+ 					if (order)
+ 					{
+ 						for (int i = 0; i < order->getLength (); ++i)
+--- scribus-1.6.3/scribus/plugins/import/pdf/slaoutput.cpp.orig	2025-01-07 23:06:55.000000000 +0000
++++ scribus-1.6.3/scribus/plugins/import/pdf/slaoutput.cpp	2025-02-05 21:05:55.336454955 +0000
+@@ -2932,7 +2932,7 @@
+ 	{
+ 		if (dictRef->isNull())
+ 			return;
+-		OCGs *contentConfig = m_catalog->getOptContentConfig();
++		const OCGs *contentConfig = m_catalog->getOptContentConfig();
+ 		OptionalContentGroup *oc;
+ 		if (dictRef->isRef())
+ 		{
+@@ -3084,7 +3084,11 @@
+ #if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(22, 4, 0)
+ 	int tmpBufLen = 0;
+ #endif
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 	int *codeToGID = nullptr;
++#else
++	std::vector<int> codeToGID;
++#endif
+ 	const double *textMat = nullptr;
+ 	double m11, m12, m21, m22, fontSize;
+ 	SplashCoord mat[4] = { 1.0, 0.0, 0.0, 1.0 };
+@@ -3244,11 +3248,19 @@
+ 			}
+ 			else
+ 			{
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 				codeToGID = nullptr;
++#else
++				codeToGID.clear();
++#endif
+ 				n = 0;
+ 			}
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(24, 11, 0)
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadTrueTypeFont(std::move(id), fontsrc, codeToGID, n, fontLoc->fontNum)))
++#else
++			if (!(fontFile = m_fontEngine->loadTrueTypeFont(std::move(id), fontsrc, std::move(codeToGID), fontLoc->fontNum)))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;
+@@ -3278,19 +3290,35 @@
+ #endif
+ 			break;
+ 		case fontCIDType0COT:
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			if (((GfxCIDFont *) gfxFont)->getCIDToGID())
+ 			{
+ 				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
+ 				codeToGID = (int *) gmallocn(n, sizeof(*codeToGID));
+ 				memcpy(codeToGID, ((GfxCIDFont *) gfxFont)->getCIDToGID(), n * sizeof(*codeToGID));
+ 			}
++#else
++			if (((GfxCIDFont *) gfxFont)->getCIDToGID().size())
++			{
++				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
++				codeToGID = ((GfxCIDFont *) gfxFont)->getCIDToGID();
++			}
++#endif
+ 			else
+ 			{
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 				codeToGID = nullptr;
++#else
++				codeToGID.clear();
++#endif
+ 				n = 0;
+ 			}
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(24, 11, 0)
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadOpenTypeCFFFont(std::move(id), fontsrc, codeToGID, n, fontLoc->fontNum)))
++#else
++			if (!(fontFile = m_fontEngine->loadOpenTypeCFFFont(std::move(id), fontsrc, std::move(codeToGID), fontLoc->fontNum)))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'",
+ 					gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+@@ -3307,8 +3335,13 @@
+ 			break;
+ 		case fontCIDType2:
+ 		case fontCIDType2OT:
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			codeToGID = nullptr;
++#else
++			codeToGID.clear();
++#endif
+ 			n = 0;
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			if (((GfxCIDFont *) gfxFont)->getCIDToGID())
+ 			{
+ 				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
+@@ -3318,6 +3351,16 @@
+ 					memcpy(codeToGID, ((GfxCIDFont *)gfxFont)->getCIDToGID(), n * sizeof(*codeToGID));
+ 				}
+ 			}
++#else
++			if (((GfxCIDFont *) gfxFont)->getCIDToGID().size())
++			{
++				n = ((GfxCIDFont *) gfxFont)->getCIDToGIDLen();
++				if (n)
++				{
++					codeToGID = ((GfxCIDFont *)gfxFont)->getCIDToGID();
++				}
++			}
++#endif
+ 			else
+ 			{
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(24, 11, 0)
+@@ -3339,15 +3382,25 @@
+ 				if (! ff)
+ 					goto err2;
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 2, 0)
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 				codeToGID = ((GfxCIDFont*) gfxFont)->getCodeToGIDMap(ff.get(), &n);
+ 				ff.reset();
++#else
++				codeToGID = ((GfxCIDFont*) gfxFont)->getCodeToGIDMap(ff.get());
++				n = codeToGID.size();
++				ff.reset();
++#endif
+ #else
+ 				codeToGID = ((GfxCIDFont *)gfxFont)->getCodeToGIDMap(ff, &n);
+ 				delete ff;
+ #endif
+ 			}
+ #if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(24, 11, 0)
++#if POPPLER_ENCODED_VERSION < POPPLER_VERSION_ENCODE(25, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadTrueTypeFont(std::move(id), fontsrc, codeToGID, n, fontLoc->fontNum)))
++#else
++			if (!(fontFile = m_fontEngine->loadTrueTypeFont(std::move(id), fontsrc, std::move(codeToGID), fontLoc->fontNum)))
++#endif
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+ 				goto err2;

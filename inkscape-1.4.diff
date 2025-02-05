@@ -434,8 +434,23 @@
    // XObject operators
    void opXObject(Object args[], int numArgs);
 --- inkscape-1.4/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp.orig	2024-04-22 22:00:30.000000000 +0100
-+++ inkscape-1.4/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp	2024-11-04 13:29:55.649865156 +0000
-@@ -421,9 +421,9 @@
++++ inkscape-1.4/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp	2025-02-05 21:37:16.958581284 +0000
+@@ -407,12 +407,10 @@
+             break;
+         case fontCIDType2:
+         case fontCIDType2OT:
+-            if (gfxcid->getCIDToGID()) {
++            if (gfxcid->getCIDToGID().size()) {
+                 n = gfxcid->getCIDToGIDLen();
+                 if (n) {
+-                    const int *src = gfxcid->getCIDToGID();
+-                    codeToGID.reserve(n);
+-                    codeToGID.insert(codeToGID.begin(), src, src + n);
++                    codeToGID = gfxcid->getCIDToGID();
+                 }
+             } else {
+ #if POPPLER_CHECK_VERSION(22, 1, 0)
+@@ -421,13 +419,17 @@
                  FoFiTrueType *ff;
  #endif
                  if (!font_data.empty()) {
@@ -447,7 +462,23 @@
                  }
                  if (!ff) {
                      goto err2;
-@@ -446,9 +446,9 @@
+                 }
++#if POPPLER_CHECK_VERSION(25, 2, 0)
++                codeToGID = gfxcid->getCodeToGIDMap(ff.get());
++                n = codeToGID.size();
++#else
+ #if POPPLER_CHECK_VERSION(22, 1, 0)
+                 int *src = gfxcid->getCodeToGIDMap(ff.get(), &n);
+ #else
+@@ -436,6 +438,7 @@
+                 codeToGID.reserve(n);
+                 codeToGID.insert(codeToGID.begin(), src, src + n);
+                 gfree(src);
++#endif
+             }
+             /* Fall through */
+         case fontTrueType:
+@@ -446,9 +449,9 @@
              FoFiTrueType *ff;
  #endif
              if (!font_data.empty()) {
@@ -459,7 +490,58 @@
              }
              if (!ff) {
                  error(errSyntaxError, -1, "failed to load truetype font\n");
-@@ -514,9 +514,9 @@
+@@ -456,6 +459,9 @@
+             }
+             /* This might be set already for the CIDType2 case */
+             if (fontType == fontTrueType || fontType == fontTrueTypeOT) {
++#if POPPLER_CHECK_VERSION(25, 2, 0)
++                codeToGID = gfx8bit->getCodeToGIDMap(ff.get());
++#else
+ #if POPPLER_CHECK_VERSION(22, 1, 0)
+                 int *src = gfx8bit->getCodeToGIDMap(ff.get());
+ #else
+@@ -464,6 +470,7 @@
+                 codeToGID.reserve(256);
+                 codeToGID.insert(codeToGID.begin(), src, src + 256);
+                 gfree(src);
++#endif
+             }
+             font_face = getFreeTypeFontFace(fontEngine, lib, fileName, std::move(font_data));
+             if (!font_face) {
+@@ -481,10 +488,14 @@
+                     ff1c = FoFiType1C::load(fileName.c_str());
+                 }
+                 if (ff1c) {
++#if POPPLER_CHECK_VERSION(25, 2, 0)
++                    codeToGID = ff1c->getCIDToGIDMap();
++#else
+                     int *src = ff1c->getCIDToGIDMap(&n);
+                     codeToGID.reserve(n);
+                     codeToGID.insert(codeToGID.begin(), src, src + n);
+                     gfree(src);
++#endif
+                     delete ff1c;
+                 }
+             }
+@@ -497,12 +508,16 @@
+             break;
+ 
+         case fontCIDType0COT:
+-            if (gfxcid->getCIDToGID()) {
++            if (gfxcid->getCIDToGID().size()) {
+                 n = gfxcid->getCIDToGIDLen();
+                 if (n) {
++#if POPPLER_CHECK_VERSION(25, 2, 0)
++                    codeToGID = gfxcid->getCIDToGID();
++#else
+                     const int *src = gfxcid->getCIDToGID();
+                     codeToGID.reserve(n);
+                     codeToGID.insert(codeToGID.begin(), src, src + n);
++#endif
+                 }
+             }
+ 
+@@ -514,16 +529,20 @@
                      FoFiTrueType *ff;
  #endif
                      if (!font_data.empty()) {
@@ -471,3 +553,14 @@
                      }
                      if (ff) {
                          if (ff->isOpenTypeCFF()) {
++#if POPPLER_CHECK_VERSION(25, 2, 0)
++                            codeToGID = ff->getCIDToGIDMap();
++#else
+                             int *src = ff->getCIDToGIDMap(&n);
+                             codeToGID.reserve(n);
+                             codeToGID.insert(codeToGID.begin(), src, src + n);
+                             gfree(src);
++#endif
+                         }
+                     }
+                 }
