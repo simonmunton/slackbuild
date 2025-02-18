@@ -1,0 +1,31 @@
+--- plasma-desktop-6.3.1/kcms/libkwindevices/inputdevice.cpp.orig	2025-02-18 13:29:45.000000000 +0000
++++ plasma-desktop-6.3.1/kcms/libkwindevices/inputdevice.cpp	2025-02-18 21:30:57.819902234 +0000
+@@ -167,6 +167,13 @@
+     return m_pressureCurve.isDefaults();
+ }
+ 
++void InputDevice::setCalibrationMatrix(const QMatrix4x4 &matrix)
++{
++    m_calibrationMatrix.set(serializeMatrix(matrix));
++    m_calibrationMatrix.save();
++}
++
++
+ QString InputDevice::serializeMatrix(const QMatrix4x4 &matrix)
+ {
+     QString result;
+--- plasma-desktop-6.3.1/kcms/libkwindevices/inputdevice.h.orig	2025-02-18 13:29:45.000000000 +0000
++++ plasma-desktop-6.3.1/kcms/libkwindevices/inputdevice.h	2025-02-18 21:31:11.907903180 +0000
+@@ -126,11 +126,7 @@
+         return deserializeMatrix(m_calibrationMatrix.value());
+     }
+ 
+-    void setCalibrationMatrix(const QMatrix4x4 &matrix)
+-    {
+-        m_calibrationMatrix.set(serializeMatrix(matrix));
+-        m_calibrationMatrix.save();
+-    }
++    void setCalibrationMatrix(const QMatrix4x4 &matrix);
+ 
+     bool calibrationMatrixIsDefault() const
+     {
