@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=kicad-packages3D
+TARNAME=nng
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/k
+TARDIR=${SOURCE}/n
 #TAR_EXT=.tar.gz
-VERSION=9.0.0
+VERSION=1.10.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://kicad-pcb.org/"
+WEBPAGE="https://nng.nanomsg.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -80,15 +80,23 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_SHARED_LIBS=on \
       ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-# make ${NUM_JOBS} || exit
-:
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -96,12 +104,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
 cd ..
-
-#mkdir -p ${PKG}/usr/share/kicad/modules/
-#cp -pr *.pretty ${PKG}/usr/share/kicad/modules/
 
 strip_binaries
 
@@ -118,8 +128,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "A Cross Platform and Open Source Electronics Design Automation Suite"
-A Cross Platform and Open Source Electronics Design Automation Suite
+make_slack_desc << EOF "light-weight brokerless messaging"
+NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a
+lightweight, broker-less library, offering a simple API to solve
+common recurring messaging problems, such as publish/subscribe,
+RPC-style request/reply, or service discovery. The API frees the
+programmer from worrying about details like connection management,
+retries, and other common considerations, so that they can focus on
+the application instead of the plumbing.
 
 EOF
 
