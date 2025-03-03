@@ -1,0 +1,34 @@
+From 4e005ec603905b88439c387681d9ba13957182ac Mon Sep 17 00:00:00 2001
+From: Yifan Zhu <fanzhuyifan@gmail.com>
+Date: Tue, 25 Feb 2025 23:05:43 -0800
+Subject: [PATCH] gdk/wayland: Avoid grab crossing on idle tablets
+
+Tablets require a tool in proximity to have an active surface
+to send pointer events to. Avoid the grab-induced crossing events
+on tablets that don't have a tool in proximity at the time of
+creating the grab.
+
+Fixes #1188, Fixes #3116
+
+(cherry picked from commit d8919311b18bb0b89121c88405f757d6cee2e7cb)
+---
+ gdk/wayland/gdkdevice-wayland.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/gdk/wayland/gdkdevice-wayland.c b/gdk/wayland/gdkdevice-wayland.c
+index 6c63ad34f8a..0fc3ec3e15c 100644
+--- a/gdk/wayland/gdkdevice-wayland.c
++++ b/gdk/wayland/gdkdevice-wayland.c
+@@ -5029,7 +5029,8 @@ gdk_wayland_seat_grab (GdkSeat                *seat,
+         {
+           GdkWaylandTabletData *tablet = l->data;
+ 
+-          device_maybe_emit_grab_crossing (tablet->master, native, evtime);
++          if (tablet->current_tool)
++            device_maybe_emit_grab_crossing (tablet->master, native, evtime);
+ 
+           _gdk_display_add_device_grab (display,
+                                         tablet->master,
+-- 
+GitLab
+
