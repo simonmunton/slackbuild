@@ -1,0 +1,38 @@
+--- bpftrace-0.22.1/CMakeLists.txt.orig	2025-01-16 23:51:36.000000000 +0000
++++ bpftrace-0.22.1/CMakeLists.txt	2025-03-09 11:37:22.038415524 +0000
+@@ -159,7 +159,7 @@
+   # releases.
+   set(MAX_LLVM_MAJOR 999)
+ else()
+-  set(MAX_LLVM_MAJOR 19)
++  set(MAX_LLVM_MAJOR 20)
+ endif()
+ 
+ if((${LLVM_VERSION_MAJOR} VERSION_LESS ${MIN_LLVM_MAJOR}) OR (${LLVM_VERSION_MAJOR} VERSION_GREATER ${MAX_LLVM_MAJOR}))
+--- bpftrace-0.22.1/src/ast/passes/codegen_llvm.cpp.orig	2025-01-16 23:51:36.000000000 +0000
++++ bpftrace-0.22.1/src/ast/passes/codegen_llvm.cpp	2025-03-09 11:42:34.014436470 +0000
+@@ -1462,9 +1462,14 @@
+     assert(arg->type.IsIntegerTy());
+     if (arg->type.GetSize() > 1) {
+       llvm::Type *arg_type = b_.GetType(arg->type);
++#if LLVM_VERSION_MAJOR >= 20
++      llvm::Function *swap_fun = Intrinsic::getOrInsertDeclaration(
++          module_.get(), Intrinsic::bswap, { arg_type });
++#else
+       Function *swap_fun = Intrinsic::getDeclaration(module_.get(),
+                                                      Intrinsic::bswap,
+                                                      { arg_type });
++#endif
+ 
+       expr_ = b_.CreateCall(swap_fun, { expr_ });
+     }
+@@ -4008,8 +4013,7 @@
+   pb.crossRegisterProxies(lam, fam, cgam, mam);
+ 
+   ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(
+-      llvm::OptimizationLevel::O3,
+-      /*LTOPreLink=*/false);
++      llvm::OptimizationLevel::O3);
+   mpm.run(*module_, mam);
+ 
+ #else
