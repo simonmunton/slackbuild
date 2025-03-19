@@ -1,0 +1,14 @@
+--- ffmpeg-7.1.1/libavcodec/libsvtav1.c.orig	2024-09-30 00:31:48.000000000 +0100
++++ ffmpeg-7.1.1/libavcodec/libsvtav1.c	2025-03-18 17:22:31.535424620 +0000
+@@ -435,7 +435,11 @@
+ 
+     svt_enc->eos_flag = EOS_NOT_REACHED;
+ 
++#if SVT_AV1_CHECK_VERSION(3, 0, 0)
++    svt_ret = svt_av1_enc_init_handle(&svt_enc->svt_handle, &svt_enc->enc_params);
++#else
+     svt_ret = svt_av1_enc_init_handle(&svt_enc->svt_handle, svt_enc, &svt_enc->enc_params);
++#endif
+     if (svt_ret != EB_ErrorNone) {
+         return svt_print_error(avctx, svt_ret, "Error initializing encoder handle");
+     }
