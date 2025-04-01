@@ -1,0 +1,30 @@
+From d46e4e3349f28def119b2512de11bd5be42a6bd9 Mon Sep 17 00:00:00 2001
+From: jeanlf <jeanlf@gpac.io>
+Date: Tue, 4 Jun 2024 15:49:09 +0200
+Subject: [PATCH] fixed wring PID delay assigned in ffdmx causing sync and
+ dashing issues - cf #2855
+
+---
+ src/filters/ff_dmx.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/filters/ff_dmx.c b/src/filters/ff_dmx.c
+index 09775b5a85..540eb80fc1 100644
+--- a/src/filters/ff_dmx.c
++++ b/src/filters/ff_dmx.c
+@@ -707,12 +707,15 @@ static GF_Err ffdmx_process(GF_Filter *filter)
+ 			ts = (pctx->fake_dts_plus_one-1 - pctx->fake_dts_orig + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
+ 			gf_filter_pck_set_dts(pck_dst, ts);
+ 			if (!pctx->fake_dts_set) {
++				//this is NOT a PID delay, CTS=0 means 0, we simply dispatch in negctts mode
++#if 0
+ 				if (pctx->fake_dts_plus_one) {
+ 					s64 offset = pctx->fake_dts_plus_one-1;
+ 					offset -= pctx->fake_dts_orig;
+ 					if (offset)
+ 						gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
+ 				}
++#endif
+ 				pctx->fake_dts_set = GF_TRUE;
+ 				if (pctx->pck_queue) {
+ 					while (gf_list_count(pctx->pck_queue)) {
