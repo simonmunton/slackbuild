@@ -1,0 +1,121 @@
+--- wesnoth-1.18.4/CMakeLists.txt.orig	2025-02-17 21:50:08.000000000 +0000
++++ wesnoth-1.18.4/CMakeLists.txt	2025-04-16 14:36:49.909210474 +0100
+@@ -93,7 +93,7 @@
+ 	find_library(SECURITY_LIBRARY Security REQUIRED)
+ endif()
+ 
+-find_package(Boost ${BOOST_VERSION} REQUIRED COMPONENTS iostreams program_options regex system thread random coroutine locale filesystem graph)
++find_package(Boost ${BOOST_VERSION} REQUIRED COMPONENTS iostreams program_options regex system thread random coroutine locale filesystem graph process)
+ find_package(ICU REQUIRED COMPONENTS data i18n uc)
+ 
+ # no, gettext executables are not required when NLS is deactivated
+--- wesnoth-1.18.4/src/game_launcher.cpp.orig	2025-02-17 21:50:08.000000000 +0000
++++ wesnoth-1.18.4/src/game_launcher.cpp	2025-04-16 14:17:39.092133210 +0100
+@@ -61,6 +61,7 @@
+ #ifdef _WIN32
+ #include <boost/process/windows.hpp>
+ #endif
++//#include <boost/asio.hpp>
+ #include <boost/process.hpp>
+ #include <cstdlib>   // for system
+ #include <new>
+@@ -838,10 +839,12 @@
+ 	}
+ 
+ 	LOG_GENERAL << "Starting wesnothd";
+-	try
++//	try
+ 	{
+ #ifndef _WIN32
+-		bp::child c(wesnothd_program, "-c", config);
++		boost::asio::io_context ctx;
++		bp::process c(ctx, wesnothd_program, {"-c", config});
++//		bp::child c(wesnothd_program, "-c", config);
+ #else
+ 		bp::child c(wesnothd_program, "-c", config, bp::windows::create_no_window);
+ #endif
+@@ -850,14 +853,14 @@
+ 		SDL_Delay(50);
+ 		return;
+ 	}
+-	catch(const bp::process_error& e)
+-	{
+-		preferences::set_mp_server_program_name("");
+-
+-		// Couldn't start server so throw error
+-		WRN_GENERAL << "Failed to start server " << wesnothd_program << ":\n" << e.what();
+-		throw game::mp_server_error("Starting MP server failed!");
+-	}
++//	catch(const bp::process_error& e)
++//	{
++//		preferences::set_mp_server_program_name("");
++
++//		// Couldn't start server so throw error
++//		WRN_GENERAL << "Failed to start server " << wesnothd_program << ":\n" << e.what();
++//		throw game::mp_server_error("Starting MP server failed!");
++//	}
+ }
+ 
+ bool game_launcher::play_multiplayer(mp_mode mode)
+--- wesnoth-1.18.4/src/filesystem.cpp.orig	2025-02-17 21:50:08.000000000 +0000
++++ wesnoth-1.18.4/src/filesystem.cpp	2025-04-16 14:33:02.110195180 +0100
+@@ -30,6 +30,7 @@
+ #include "serialization/unicode.hpp"
+ #include "utils/general.hpp"
+ 
++#include <boost/algorithm/string/replace.hpp>
+ #include <boost/filesystem.hpp>
+ #include <boost/filesystem/fstream.hpp>
+ #include <boost/iostreams/device/file_descriptor.hpp>
+@@ -1022,14 +1023,14 @@
+ 	// with version
+ 	std::string version = std::to_string(game_config::wesnoth_version.major_version()) + "." + std::to_string(game_config::wesnoth_version.minor_version());
+ 	std::string exe = filesystem::get_program_invocation("wesnoth-"+version);
+-	bfs::path search = bp::search_path(exe).string();
++	bfs::path search = bp::v2::environment::find_executable(exe).string();
+ 	if(!search.string().empty()) {
+ 		return search.parent_path().string();
+ 	}
+ 
+ 	// versionless
+ 	exe = filesystem::get_program_invocation("wesnoth");
+-	search = bp::search_path(exe).string();
++	search = bp::v2::environment::find_executable(exe).string();
+ 	if(!search.string().empty()) {
+ 		return search.parent_path().string();
+ 	}
+@@ -1733,7 +1734,7 @@
+ 
+ 	std::string canonicalized = filesystem::normalize_path(path, true, false);
+ 	if(user_name != nullptr) {
+-		boost::replace_all(canonicalized, user_name, "USER");
++		boost::algorithm::replace_all(canonicalized, user_name, "USER");
+ 	}
+ 
+ 	return canonicalized;
+--- wesnoth-1.18.4/src/CMakeLists.txt.orig	2025-02-17 21:50:08.000000000 +0000
++++ wesnoth-1.18.4/src/CMakeLists.txt	2025-04-16 14:40:33.528225487 +0100
+@@ -247,6 +247,7 @@
+ 		OpenSSL::SSL
+ 		Boost::iostreams
+ 		Boost::program_options
++		Boost::process
+ 		Boost::regex
+ 		Boost::system
+ 		Boost::random
+@@ -342,6 +343,7 @@
+ 		OpenSSL::Crypto
+ 		OpenSSL::SSL
+ 		Boost::iostreams
++		Boost::process
+ 		Boost::program_options
+ 		Boost::regex
+ 		Boost::system
+@@ -383,6 +385,7 @@
+ 		OpenSSL::Crypto
+ 		OpenSSL::SSL
+ 		Boost::iostreams
++		Boost::process
+ 		Boost::program_options
+ 		Boost::regex
+ 		Boost::system
