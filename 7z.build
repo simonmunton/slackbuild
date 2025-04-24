@@ -9,7 +9,7 @@ TARDIR=~/Source/7
 #TAR_EXT=.tar.gz
 VERSION=2409
 VERSIONEXTRA=-src
-BUILD=2
+BUILD=3
 
 WEBPAGE="https://www.7-zip.org/"
 
@@ -121,17 +121,23 @@ then
   DESTDIR=${PKG} ninja install
 else
 
-  mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX},man/man1}
+  mkdir -p ${PKG}/usr/{bin,lib${LIBDIRSUFFIX}/7zip,man/man1}
 
-  install -Dm755 CPP/7zip/Bundles/Alone2/b/g/7zz ${PKG}/usr/bin
-  install -Dm755 CPP/7zip/Bundles/Alone/b/g/7za ${PKG}/usr/bin
-  install -Dm755 CPP/7zip/Bundles/Alone7z/b/g/7zr ${PKG}/usr/bin
+  install -Dm755 CPP/7zip/Bundles/Alone2/b/g/7zz ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
+  install -Dm755 CPP/7zip/Bundles/Alone/b/g/7za ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
+  install -Dm755 CPP/7zip/Bundles/Alone7z/b/g/7zr ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
 #  install -Dm755 CPP/7zip/Bundles/Format7zF/b/g/7z.so ${PKG}/usr/lib${LIBDIRSUFFIX}
-  install -Dm755 CPP/7zip/Bundles/Format7zF/b/g/7z.so ${PKG}/usr/bin
-  install -Dm755 CPP/7zip/UI/Console/b/g/7z ${PKG}/usr/bin
-  install -Dm755 CPP/7zip/Bundles/SFXCon/b/g/7zCon ${PKG}/usr/bin
+  install -Dm755 CPP/7zip/Bundles/Format7zF/b/g/7z.so ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
+  install -Dm755 CPP/7zip/UI/Console/b/g/7z ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
+  install -Dm755 CPP/7zip/Bundles/SFXCon/b/g/7zCon ${PKG}/usr/lib${LIBDIRSUFFIX}/7zip
 
   cp ${CWD}/7z{,a,r,z}.1 ${PKG}/usr/man/man1
+
+  for P in 7za 7zr 7z 7zz 7zCon; do
+    printf '#!/bin/sh\nexec /usr/%s/7zip/%s "$@"\n' "lib${LIBDIRSUFFIX}" "$P" \
+    | install -D /dev/stdin "${PKG}/usr/bin/$P"
+  done
+
 
 #  make install DESTDIR=${PKG}
 fi
