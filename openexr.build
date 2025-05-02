@@ -10,11 +10,14 @@ fi
 
 TARNAME=openexr
 TARNAMEEXTRA=
-TARDIR=${SOURCE}/o/OpenEXR
+TARSEP="-"
+TARDIR=~/Source/o/OpenEXR
 #TAR_EXT=.tar.gz
-VERSION=2.2.0
+VERSION=3.3.3
 VERSIONEXTRA=
-BUILD=2
+BUILD=1
+
+WEBPAGE="https://openexr.com/en/latest/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -24,7 +27,7 @@ BUILD=2
 #ARCH=noarch
 
 
-FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}-${VERSION}${VERSIONEXTRA}${TAR_EXT}
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
 
 pre_unpack
 
@@ -37,18 +40,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 -b -z .orig < ${CWD}/openexr-1.7.0.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -58,30 +61,48 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-#mkdir -p ${PKG}/cg/lib
-#touch ${PKG}/cg/lib/{libCg.so,libCgGL.so}
-
+if [ -f ../configure ]
+then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man \
-	    --enable-imfexamples \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_TESTING=on \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
 
-#            --with-cg-prefix=${PKG}/cg
-
-#rm -rf ${PKG}/cg
-
-#sed -i -e '/^LIBS/ s/$/ -lpthread/' IlmThread/Makefile
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,11 +110,16 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-sanitise_la_files ${PKG}/usr/lib${LIBDIRSUFFIX}
+cd ..
 
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -105,20 +131,17 @@ cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
-mv ${PKG}/usr/share/doc/OpenEXR-${VERSION}/* ${PKG}/usr/doc/${TARNAME}-${VERSION}
-rmdir -p ${PKG}/usr/share/doc/OpenEXR-${VERSION}
-
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "high dynamic-range (HDR) image file format"
-OpenEXR is a high dynamic-range (HDR) image file format developed by 
+make_slack_desc << EOF "high dynamic-range (HDR) image file format"
+OpenEXR is a high dynamic-range (HDR) image file format developed by
 Industrial Light & Magic for use in computer imaging applications.
 
-OpenEXR is used by ILM on all motion pictures currently in production. 
+OpenEXR is used by ILM on all motion pictures currently in production.
 The first movies to employ OpenEXR were Harry Potter and the Sorcerers
-Stone, Men in Black II, Gangs of New York, and Signs. Since then, 
-OpenEXR has become ILM's main image file format. 
+Stone, Men in Black II, Gangs of New York, and Signs. Since then,
+OpenEXR has become ILM's main image file format.
 
 EOF
 
