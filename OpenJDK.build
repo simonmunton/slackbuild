@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=openjdk
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/o/OpenJDK/21
+TAR_EXT=
+VERSION=21.0.2
+VERSIONEXTRA=_linux-x64_bin
+BUILD=1
+
+WEBPAGE="https://openjdk.org/"
+# https://jdk.java.net/
+
+#POLICY_FILE=jce_policy-8.zip
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+echo $FULL_TARNAME
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+:
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+(cd ${PKG}
+ mkdir -p usr/lib${LIBDIRSUFFIX}
+ cd usr/lib${LIBDIRSUFFIX}
+ tar xf ${FULL_TARNAME}
+
+ f=`echo jdk*`
+ mv $f java
+ ln -sf java $f
+
+ cd ../..
+ mkdir -p etc/profile.d
+ cp -a ${CWD}/OpenJDK.{sh,csh} etc/profile.d
+ sed -i "s@usr/lib@usr/lib${LIBDIRSUFFIX}@" etc/profile.d/OpenJDK.{sh,csh}
+ chmod 755 etc/profile.d/*
+)
+
+#strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+ln -s /usr/lib${LIBDIRSUFFIX}/java/{README*,COPYRIGHT,LICENSE} ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Java(TM) Platform Standard Edition Development Kit"
+The Java SDK software includes tools for developing, testing, and
+running programs written in the Java programming language.  This
+package contains everything you need to run Java(TM).
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
