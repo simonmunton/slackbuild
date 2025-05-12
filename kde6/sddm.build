@@ -9,7 +9,7 @@ TARDIR=${SOURCE}/s
 #TAR_EXT=.tar.gz
 VERSION=0.21.0
 VERSIONEXTRA=
-BUILD=3
+BUILD=4
 
 WEBPAGE="https://github.com/sddm/sddm"
 
@@ -56,6 +56,7 @@ fi
   # List Wayland sessions after X11 sessions since Wayland is more experimental:
   cat ${CWD}/sddm.list.X11.sessions.before.Wayland.Sessions.diff | patch -p1 --verbose || exit 1
 
+  # Properly inherit the environment instead of hardcoding it:
   patch -p1 < ${CWD}/sddm.env.insert.patch
 )
 fi
@@ -137,8 +138,17 @@ rm -f ${PKG}/etc/sddm.conf
 # Generate the default sddm.conf:
 ${PKG}/usr/bin/sddm --example-config > ${PKG}/etc/sddm.conf
 
-# Set the KDE5 theme 'breeze' as default (integrates better with Plasma 5):
+# Set the KDE5 theme 'breeze' as default:
 sed -i -e "/\[Theme\]/,/^\[/s/^Current.*/Current=breeze/" ${PKG}/etc/sddm.conf
+
+# Set the rootless X11 as default display:
+sed -i 's/DisplayServer=x11/DisplayServer=x11-user/g' ${PKG}/etc/sddm.conf
+
+# Set GreeterEnvironment for layer-shell-qt:
+sed -i 's/GreeterEnvironment=/GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell/g' ${PKG}/etc/sddm.conf
+
+# Set kwin_wayland as compositor command:
+sed -i 's/CompositorCommand=weston --shell=kiosk/CompositorCommand=kwin_wayland --drm --no-lockscreen --no-global-shortcuts --locale1/g' ${PKG}/etc/sddm.conf
 
 # Move the default config file to .new:
 mv ${PKG}/etc/sddm.conf ${PKG}/etc/sddm.conf.new
@@ -216,6 +226,7 @@ post_install
 
 cd ${PKG}
 su -c "chown -R root:root ${PKG}; \
+chown sddm:sddm ${PKG}/var/lib/sddm; \
 find . -type d -exec chmod 755 {} \; ; \
 makepkg -l y -c n ${PKGDIR}${PKGNAME}${PKGSUFFIX}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
 chown -R ${USERNAME}:${GROUP} ${PKG}"
