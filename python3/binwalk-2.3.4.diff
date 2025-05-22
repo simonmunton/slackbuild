@@ -1,0 +1,164 @@
+--- binwalk-2.3.4/build/lib/binwalk/modules/extractor.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/build/lib/binwalk/modules/extractor.py	2025-05-20 16:04:52.000000000 +0100
+@@ -966,7 +966,7 @@
+             
+             # Fork a child process
+             child_pid = os.fork()
+-            if child_pid is 0:
++            if child_pid == 0:
+                 # Switch to the run-as user privileges, if one has been set
+                 if self.runas_uid is not None and self.runas_gid is not None:
+                     os.setgid(self.runas_uid)
+@@ -981,7 +981,7 @@
+             rval = subprocess.call(shlex.split(command), stdout=tmp, stderr=tmp)
+ 
+         # A true child process should exit with the subprocess exit value
+-        if child_pid is 0:
++        if child_pid == 0:
+             sys.exit(rval)
+         # If no os.fork() happened, just return the subprocess exit value
+         elif child_pid is None:
+--- binwalk-2.3.4/build/lib/binwalk/core/plugin.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/build/lib/binwalk/core/plugin.py	2025-05-20 16:00:49.000000000 +0100
+@@ -1,7 +1,7 @@
+ # Core code for supporting and managing plugins.
+ 
+ import os
+-import imp
++import importlib
+ import inspect
+ import binwalk.core.common
+ import binwalk.core.settings
+@@ -180,7 +180,8 @@
+                         module = file_name[:-len(self.MODULE_EXTENSION)]
+ 
+                         try:
+-                            plugin = imp.load_source(module, os.path.join(plugins[key]['path'], file_name))
++                            #plugin = imp.load_source(module, os.path.join(plugins[key]['path'], file_name))
++                            plugin = importlib.machinery.SourceFileLoader(module, os.path.join(plugins[key]['path'], file_name)).load_module()
+                             plugin_class = self._find_plugin_class(plugin)
+ 
+                             plugins[key]['enabled'][module] = True
+@@ -222,7 +223,8 @@
+                 continue
+ 
+             try:
+-                plugin = imp.load_source(module, file_path)
++                #plugin = imp.load_source(module, file_path)
++                plugin = importlib.machinery.SourceFileLoader(module, file_path).load_module()
+                 plugin_class = self._find_plugin_class(plugin)
+ 
+                 class_instance = plugin_class(self.parent)
+--- binwalk-2.3.4/build/lib/binwalk/core/module.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/build/lib/binwalk/core/module.py	2025-05-20 16:07:52.000000000 +0100
+@@ -704,14 +704,15 @@
+                 modules[module] = module.PRIORITY
+ 
+         # user-defined modules
+-        import imp
++        import importlib
+         user_modules = binwalk.core.settings.Settings().user.modules
+         for file_name in os.listdir(user_modules):
+             if not file_name.endswith('.py'):
+                 continue
+             module_name = file_name[:-3]
+             try:
+-                user_module = imp.load_source(module_name, os.path.join(user_modules, file_name))
++                #user_module = imp.load_source(module_name, os.path.join(user_modules, file_name))
++                user_module = importlib.machinery.SourceFileLoader(module_name, os.path.join(user_modules, file_name)).load_module()
+             except KeyboardInterrupt as e:
+                 raise e
+             except Exception as e:
+--- binwalk-2.3.4/build/lib/binwalk/core/magic.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/build/lib/binwalk/core/magic.py	2025-05-20 16:03:19.000000000 +0100
+@@ -428,7 +428,7 @@
+         # Regex rule to find format strings
+         self.fmtstr = re.compile("%[^%]")
+         # Regex rule to find periods (see self._do_math)
+-        self.period = re.compile("\.")
++        self.period = re.compile(r"\.")
+ 
+     def reset(self):
+         self.display_once = set()
+--- binwalk-2.3.4/src/binwalk/modules/extractor.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/src/binwalk/modules/extractor.py	2025-05-20 16:04:52.275563452 +0100
+@@ -966,7 +966,7 @@
+             
+             # Fork a child process
+             child_pid = os.fork()
+-            if child_pid is 0:
++            if child_pid == 0:
+                 # Switch to the run-as user privileges, if one has been set
+                 if self.runas_uid is not None and self.runas_gid is not None:
+                     os.setgid(self.runas_uid)
+@@ -981,7 +981,7 @@
+             rval = subprocess.call(shlex.split(command), stdout=tmp, stderr=tmp)
+ 
+         # A true child process should exit with the subprocess exit value
+-        if child_pid is 0:
++        if child_pid == 0:
+             sys.exit(rval)
+         # If no os.fork() happened, just return the subprocess exit value
+         elif child_pid is None:
+--- binwalk-2.3.4/src/binwalk/core/plugin.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/src/binwalk/core/plugin.py	2025-05-20 16:00:49.228892691 +0100
+@@ -1,7 +1,7 @@
+ # Core code for supporting and managing plugins.
+ 
+ import os
+-import imp
++import importlib
+ import inspect
+ import binwalk.core.common
+ import binwalk.core.settings
+@@ -180,7 +180,8 @@
+                         module = file_name[:-len(self.MODULE_EXTENSION)]
+ 
+                         try:
+-                            plugin = imp.load_source(module, os.path.join(plugins[key]['path'], file_name))
++                            #plugin = imp.load_source(module, os.path.join(plugins[key]['path'], file_name))
++                            plugin = importlib.machinery.SourceFileLoader(module, os.path.join(plugins[key]['path'], file_name)).load_module()
+                             plugin_class = self._find_plugin_class(plugin)
+ 
+                             plugins[key]['enabled'][module] = True
+@@ -222,7 +223,8 @@
+                 continue
+ 
+             try:
+-                plugin = imp.load_source(module, file_path)
++                #plugin = imp.load_source(module, file_path)
++                plugin = importlib.machinery.SourceFileLoader(module, file_path).load_module()
+                 plugin_class = self._find_plugin_class(plugin)
+ 
+                 class_instance = plugin_class(self.parent)
+--- binwalk-2.3.4/src/binwalk/core/module.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/src/binwalk/core/module.py	2025-05-20 16:07:52.131082253 +0100
+@@ -704,14 +704,15 @@
+                 modules[module] = module.PRIORITY
+ 
+         # user-defined modules
+-        import imp
++        import importlib
+         user_modules = binwalk.core.settings.Settings().user.modules
+         for file_name in os.listdir(user_modules):
+             if not file_name.endswith('.py'):
+                 continue
+             module_name = file_name[:-3]
+             try:
+-                user_module = imp.load_source(module_name, os.path.join(user_modules, file_name))
++                #user_module = imp.load_source(module_name, os.path.join(user_modules, file_name))
++                user_module = importlib.machinery.SourceFileLoader(module_name, os.path.join(user_modules, file_name)).load_module()
+             except KeyboardInterrupt as e:
+                 raise e
+             except Exception as e:
+--- binwalk-2.3.4/src/binwalk/core/magic.py.orig	2023-02-01 16:15:53.000000000 +0000
++++ binwalk-2.3.4/src/binwalk/core/magic.py	2025-05-20 16:03:19.591647631 +0100
+@@ -428,7 +428,7 @@
+         # Regex rule to find format strings
+         self.fmtstr = re.compile("%[^%]")
+         # Regex rule to find periods (see self._do_math)
+-        self.period = re.compile("\.")
++        self.period = re.compile(r"\.")
+ 
+     def reset(self):
+         self.display_once = set()
