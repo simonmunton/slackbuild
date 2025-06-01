@@ -1,0 +1,126 @@
+Description: Stop parsing the document summary information
+ We were only reading two fields from it: "manager" (which is never actually
+ used) and "company" (which is only used in the docbook XML export, where if
+ set it was included in document metadata).  Rather than try to fix buffer
+ overreads in this code, it seems simpler to just excise it.
+Author: Olly Betts <olly@survex.com>
+Origin: vendor
+Bug-Debian: https://bugs.debian.org/968812
+Forwarded: not-needed
+Last-Update: 2025-04-18
+
+--- antiword-0.37.orig/antiword.h
++++ antiword-0.37/antiword.h
+@@ -657,7 +657,6 @@ extern const char	*szGetAuthor(void);
+ extern const char	*szGetLastSaveDtm(void);
+ extern const char	*szGetModDate(void);
+ extern const char	*szGetCreationDate(void);
+-extern const char	*szGetCompany(void);
+ extern const char	*szGetLanguage(void);
+ /* tabstop.c */
+ extern void	vSetDefaultTabWidth(FILE *, const pps_info_type *,
+--- antiword-0.37.orig/summary.c
++++ antiword-0.37/summary.c
+@@ -38,8 +38,6 @@ static char	*szAuthor = NULL;
+ static time_t	tCreateDtm = (time_t)-1;
+ static time_t	tLastSaveDtm= (time_t)-1;
+ static char	*szAppName = NULL;
+-static char	*szManager = NULL;
+-static char	*szCompany = NULL;
+ static USHORT	usLid = (USHORT)-1;
+ 
+ 
+@@ -57,8 +55,6 @@ vDestroySummaryInfo(void)
+ 	tCreateDtm = (time_t)-1;
+ 	tLastSaveDtm = (time_t)-1;
+ 	szAppName = xfree(szAppName);
+-	szManager = xfree(szManager);
+-	szCompany = xfree(szCompany);
+ 	usLid = (USHORT)-1;
+ } /* end of vDestroySummaryInfo */
+ 
+@@ -262,41 +258,6 @@ vAnalyseSummaryInfo(const UCHAR *aucBuff
+ } /* end of vAnalyseSummaryInfo */
+ 
+ /*
+- * vAnalyseDocumentSummaryInfo - analyse the document summary information
+- */
+-static void
+-vAnalyseDocumentSummaryInfo(const UCHAR *aucBuffer)
+-{
+-	ULONG	ulOffset;
+-	size_t	tIndex, tCount, tPropID, tPropType;
+-
+-	tCount = (size_t)ulGetLong(4, aucBuffer);
+-	DBG_DEC(tCount);
+-	for (tIndex = 0; tIndex < tCount; tIndex++) {
+-		tPropID = (size_t)ulGetLong(8 + tIndex * 8, aucBuffer);
+-		ulOffset = ulGetLong(12 + tIndex * 8, aucBuffer);
+-		NO_DBG_DEC(tPropID);
+-		NO_DBG_HEX(ulOffset);
+-		tPropType = (size_t)ulGetLong(ulOffset, aucBuffer);
+-		NO_DBG_DEC(tPropType);
+-		switch (tPropID) {
+-		case PIDD_MANAGER:
+-			if (tPropType == VT_LPSTR && szManager == NULL) {
+-				szManager = szLpstr(ulOffset, aucBuffer);
+-			}
+-			break;
+-		case PIDD_COMPANY:
+-			if (tPropType == VT_LPSTR && szCompany == NULL) {
+-				szCompany = szLpstr(ulOffset, aucBuffer);
+-			}
+-			break;
+-		default:
+-			break;
+-		}
+-	}
+-} /* end of vAnalyseDocumentSummaryInfo */
+-
+-/*
+  * pucAnalyseSummaryInfoHeader-
+  */
+ static UCHAR *
+@@ -628,15 +589,6 @@ vSetSummaryInfoOLE(FILE *pFile, const pp
+ 		vAnalyseSummaryInfo(pucBuffer);
+ 		pucBuffer = xfree(pucBuffer);
+ 	}
+-
+-	/* Document Summary Information */
+-	pucBuffer = pucAnalyseSummaryInfoHeader(pFile,
+-		pPPS->tDocSummaryInfo.ulSB, pPPS->tDocSummaryInfo.ulSize,
+-		aulBBD, tBBDLen, aulSBD, tSBDLen);
+-	if (pucBuffer != NULL) {
+-		vAnalyseDocumentSummaryInfo(pucBuffer);
+-		pucBuffer = xfree(pucBuffer);
+-	}
+ } /* end of vSetSummaryInfoOLE */
+ 
+ /*
+@@ -779,15 +731,6 @@ szGetCreationDate(void)
+ } /* end of szGetCreationDate */
+ 
+ /*
+- * szGetCompany - get the company field
+- */
+-const char *
+-szGetCompany(void)
+-{
+-	return szCompany;
+-} /* end of szGetCompany */
+-
+-/*
+  * szGetLanguage - get de language field
+  */
+ const char *
+--- antiword-0.37.orig/xml.c
++++ antiword-0.37/xml.c
+@@ -681,7 +681,7 @@ vCreateBookIntro(diagram_type *pDiag, in
+ 	szSubject = szGetSubject();
+ 	szAuthor = szGetAuthor();
+ 	szLastSaveDtm = szGetLastSaveDtm();
+-	szCompany = szGetCompany();
++	szCompany = NULL; /* No longer read */
+ 
+ 	/* Start Book */
+ 	szLanguage = szGetLanguage();

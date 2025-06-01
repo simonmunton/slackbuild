@@ -9,7 +9,7 @@ TARDIR=${SOURCE}/a
 #TAR_EXT=.tar.gz
 VERSION=0.37
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE=""
 
@@ -45,12 +45,12 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 < ${CWD}/antiword-10_fix_buffer_overflow_wordole_c.patch
- patch -p1 < ${CWD}/antiword-50_antiword-manpage-hyphen-to-minus.patch
- patch -p1 < ${CWD}/antiword-docx.patch
- patch -p1 < ${CWD}/antiword-remove-cjb.net-references.patch
- patch -p1 < ${CWD}/antiword-use-snprintf.patch
-
+ patch -p1 < ${CWD}/10_fix_buffer_overflow_wordole_c.patch
+ patch -p1 < ${CWD}/50_antiword-manpage-hyphen-to-minus.patch
+ patch -p1 < ${CWD}/docx.patch
+ patch -p1 < ${CWD}/remove-dead-upstream-links.patch
+ patch -p1 < ${CWD}/use-snprintf.patch
+ patch -p1 < ${CWD}/stop-parsing-documentsummary.patch
 )
 fi
 
@@ -67,7 +67,7 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -76,7 +76,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -85,17 +85,17 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-elif [ -f ../meson.build ]
+      .
+elif [ -f ./meson.build ]
 then
-  meson --prefix=/usr . ..
+  meson --prefix=/usr . .
 fi
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   ninja || exit
 else
@@ -108,14 +108,17 @@ then
   exit
 fi
 
-if [ -f ../meson.build ]
+if [ -f ./meson.build ]
 then
   DESTDIR=${PKG} ninja install
 else
-  make install DESTDIR=${PKG}
+  make global_install GLOBAL_INSTALL_DIR=/usr/bin DESTDIR=${PKG}
 fi
 
 #cd ..
+
+# Don't ship kantiword - it's broken and apparently unused.
+rm ${PKG}/usr/bin/kantiword
 
 strip_binaries
 
@@ -127,6 +130,7 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  Docs/{ReadMe,ChangeLog,COPYING,FAQ,History} \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
