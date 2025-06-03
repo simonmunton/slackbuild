@@ -2,14 +2,14 @@
 #
 . build_funcs
 
-TARNAME=setuptools-rust
+TARNAME=setuptools_rust
 TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/s
 #TAR_EXT=.tar.gz
-VERSION=1.1.2
+VERSION=1.11.1
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
 WEBPAGE="https://pypi.org/project/setuptools-rust/"
 
@@ -81,7 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -90,7 +92,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 

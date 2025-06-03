@@ -7,9 +7,9 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/c
 #TAR_EXT=.tar.gz
-VERSION=39.0.2
+VERSION=45.0.3
 VERSIONEXTRA=
-BUILD=3
+BUILD=1
 
 WEBPAGE="https://pypi.org/project/cryptography/"
 
@@ -81,8 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-#python setup.py build || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,8 +92,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-#python setup.py install --root=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -110,8 +112,8 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "cryptographic recipes and primitives for Python"
-cryptography is a package which provides cryptographic recipes and 
-primitives to Python developers. Our goal is for it to be your 
+cryptography is a package which provides cryptographic recipes and
+primitives to Python developers. Our goal is for it to be your
 cryptographic standard library.
 
 EOF
