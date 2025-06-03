@@ -1,0 +1,1549 @@
+From f3aaf48b44a9ba7d01461245ca47649a82b3eb5f Mon Sep 17 00:00:00 2001
+From: Dave Beckett <dave@dajobe.org>
+Date: Sat, 24 Jun 2023 13:12:46 -0700
+Subject: [PATCH] Make tests work with parallel make (-j)
+
+---
+ tests/feeds/Makefile.am         |  46 ++++++------
+ tests/grddl/Makefile.am         |  14 ++--
+ tests/json/Makefile.am          |  30 ++++----
+ tests/mkr/Makefile.am           |  13 ++--
+ tests/nquads-2013/Makefile.am   |  30 ++++----
+ tests/ntriples-2013/Makefile.am |  30 ++++----
+ tests/ntriples/Makefile.am      |  37 +++++----
+ tests/rdfa/Makefile.am          |  19 ++---
+ tests/rdfa11/Makefile.am        |  22 +++---
+ tests/rdfxml/Makefile.am        | 128 ++++++++++++++++++--------------
+ tests/trig/Makefile.am          |  20 ++---
+ tests/turtle-2013/Makefile.am   |  51 +++++++------
+ tests/turtle/Makefile.am        |  99 ++++++++++++------------
+ 13 files changed, 294 insertions(+), 245 deletions(-)
+
+Origin: upstream
+
+diff --git a/tests/feeds/Makefile.am b/tests/feeds/Makefile.am
+index 82b67d69..5a20f672 100644
+--- a/tests/feeds/Makefile.am
++++ b/tests/feeds/Makefile.am
+@@ -83,11 +83,12 @@ check-rdfxml-to-turtle: $(check_rdfxml_to_turtle_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing RDF/XML to Turtle"; \
+ 	printf 'IF(RAPTOR_PARSER_RDFXML)\n\n' >>CMakeTests.txt; \
++	base="$@"; \
+ 	for test in $(TEST_IN_RDF_ATOMS); do \
+ 	  parser=rdfxml; \
+ 	  name=`basename $$test .rdf` ; \
+ 	  turtle="$$name.ttl"; \
+-	  expected="$$name-result.ttl"; \
++	  expected="$(srcdir)/$$name-result.ttl"; \
+ 	  opts="-f writeBaseURI=0"; \
+ 	  if test $$name = test01; then \
+ 	    baseuri="http://example.org/whatsnew"; \
+@@ -98,21 +99,20 @@ check-rdfxml-to-turtle: $(check_rdfxml_to_turtle_deps)
+ 	  fi; \
+ 	  opts="-q -i $$parser -o turtle $$opts -O $$baseuri"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) $$opts file:$(srcdir)/$$test > $$turtle 2> errors-crtt.log; \
++	  $(RAPPER) $$opts file:$(srcdir)/$$test > $$turtle 2> $$base.errs; \
+ 	  status=$$?; \
+ 	  if test $$status != 0; then \
+ 	    $(RECHO) "FAILED with code $$status"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$(srcdir)/$$test"; \
+-	    cat errors-crtt.log ; \
++	    cat $base.errs ; \
+ 	    result=1 ; \
+-	  elif cmp $(srcdir)/$$expected $$turtle >/dev/null 2>&1; then \
++	  elif cmp $$expected $$turtle >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$(srcdir)/$$test"; \
+-	    diff -u $(srcdir)/$$expected $$turtle; result=1; \
++	    diff -u $$expected $$turtle; result=1; \
+ 	  fi; \
+-	  rm -f errors-crtt.log ; \
+ 	  printf '\tRAPPER_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t%s\n\t)\n\n' \
+ 		feeds.$$test \
+ 		"\$${RAPPER} $$opts file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test" \
+@@ -120,6 +120,7 @@ check-rdfxml-to-turtle: $(check_rdfxml_to_turtle_deps)
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$expected" >>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_RDFXML)\n\n' >>CMakeTests.txt; \
++	rm -f $$base.errs ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -131,11 +132,12 @@ check-atom-to-turtle: $(check_atom_to_turtle_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing Atom to Turtle"; \
+ 	printf 'IF(RAPTOR_PARSER_RSS)\n\n' >>CMakeTests.txt; \
++	base="$@"; \
+ 	for test in $(TEST_IN_ATOMS); do \
+ 	  parser=rss-tag-soup; \
+ 	  name=`basename $$test .atom` ; \
+ 	  turtle="$$name.ttl"; \
+-	  expected="$$name-result.ttl"; \
++	  expected="$(srcdir)/$$name-result.ttl"; \
+ 	  opts="-f writeBaseURI=0"; \
+ 	  baseuri="http://www.example.org/blog/"; \
+ 	  if test $$name = test04; then \
+@@ -143,21 +145,20 @@ check-atom-to-turtle: $(check_atom_to_turtle_deps)
+ 	  fi; \
+ 	  opts="-q -i $$parser -o turtle $$opts -O $$baseuri"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) $$opts file:$(srcdir)/$$test > $$turtle 2> errors-catt.log; \
++	  $(RAPPER) $$opts file:$(srcdir)/$$test > $$turtle 2> $$base.errs; \
+ 	  status=$$?; \
+ 	  if test $$status != 0; then \
+ 	    $(RECHO) "FAILED with code $$status"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$(srcdir)/$$test"; \
+-	    cat errors-catt.log ; \
++	    cat $$base.errs ; \
+ 	    result=1 ; \
+-	  elif cmp $(srcdir)/$$expected $$turtle >/dev/null 2>&1; then \
++	  elif cmp $$expected $$turtle >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$(srcdir)/$$test"; \
+-	    diff -u $(srcdir)/$$expected $$turtle; result=1; \
++	    diff -u $$expected $$turtle; result=1; \
+ 	  fi; \
+-	  rm -f errors-catt.log ; \
+ 	  printf '\tRAPPER_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t%s\n\t)\n\n' \
+ 		feeds.$$test \
+ 		"\$${RAPPER} $$opts file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test" \
+@@ -165,6 +166,7 @@ check-atom-to-turtle: $(check_atom_to_turtle_deps)
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$expected" >>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_RSS)\n\n' >>CMakeTests.txt; \
++	rm -f $$base.errs ; \
+ 	set -e; exit $$result
+ 
+ # Parser from Turtle and Serialize to Atom
+@@ -172,10 +174,11 @@ check-serialize-atom: check-atom-to-turtle
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing Turtle to Atom XML"; \
+ 	printf 'IF(RAPTOR_SERIALIZER_ATOM)\n\n' >>CMakeTests.txt; \
++	base="$@"; \
+ 	for test in $(OUT_RDF_TTLS); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  atom="$$name.atom"; \
+-	  expected="$$name-result.atom"; \
++	  expected="$(srcdir)/$$name-result.atom"; \
+ 	  opts="-f writeBaseURI=0 -f rssTriples=atom-triples"; \
+ 	  if test $$name = test01; then \
+ 	    baseuri="http://example.org/whatsnew"; \
+@@ -187,21 +190,20 @@ check-serialize-atom: check-atom-to-turtle
+ 	  fi; \
+ 	  opts="-q -i turtle -o atom $$opts -I $$baseuri -O $$baseuri"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) $$opts file:$$test > $$atom 2> errors-csa.log; \
++	  $(RAPPER) $$opts file:$$test > $$atom 2> $$base.errs; \
+ 	  status=$$?; \
+ 	  if test $$status != 0; then \
+ 	    $(RECHO) "FAILED with code $$status"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$$test"; \
+-	    cat errors-csa.log ; \
++	    cat $$base.errs ; \
+ 	    result=1 ; \
+-	  elif cmp $(srcdir)/$$expected $$atom >/dev/null 2>&1; then \
++	  elif cmp $$expected $$atom >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+ 	    $(RECHO) "$(RAPPER) $$opts file:$(srcdir)/$$test"; \
+-	    diff -u $(srcdir)/$$expected $$atom; result=1; \
++	    diff -u $$expected $$atom; result=1; \
+ 	  fi; \
+-	  rm -f errors-csa.log ; \
+ 	  printf '\tRAPPER_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t%s\n\t)\n\n' \
+ 		feeds.$$test \
+ 		"\$${RAPPER} $$opts file:$$test" \
+@@ -209,6 +211,7 @@ check-serialize-atom: check-atom-to-turtle
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$expected" >>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_SERIALIZER_ATOM)\n\n' >>CMakeTests.txt; \
++	rm -f $$base.errs ; \
+ 	set -e; exit $$result
+ 
+ 
+@@ -220,6 +223,7 @@ SUFFIXES = .rng .rnc
+ 
+ check-validate-atom: $(srcdir)/atom.rng check-serialize-atom $(TEST_IN_ATOMS)
+ 	@set +e; result=0; \
++	base="$@"; \
+ 	if test "X$(JING)" = X; then \
+ 	  $(RECHO) "WARNING: Skipping feed validation RelaxNG tests - jing is missing"; \
+ 	else \
+@@ -227,22 +231,22 @@ check-validate-atom: $(srcdir)/atom.rng check-serialize-atom $(TEST_IN_ATOMS)
+ 	  for atom in $(OUT_ATOMS) $(TEST_IN_ATOMS); do \
+ 	    test -f $$atom || atom=$(srcdir)/$$atom; \
+ 	    $(RECHO) $(RECHO_N) "Validating $$atom $(RECHO_C)"; \
+-	    $(JING) $(srcdir)/atom.rng $$atom > errors-cva.log 2>&1; \
++	    $(JING) $(srcdir)/atom.rng $$atom > $$base.errs 2>&1; \
+ 	    status=$$?; \
+ 	    if test $$status != 0; then \
+ 	      $(RECHO) "FAILED with code $$status"; result=1; \
+ 	      $(RECHO) $(JING) $(srcdir)/atom.rng $$atom; \
+-	      sed -e "s,^.*$$atom,$$atom," errors-cva.log ; \
++	      sed -e "s,^.*$$atom,$$atom," $$base.errs ; \
+ 	      result=1 ; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+-	    rm -f errors-cva.log; \
+ 	    printf '\tADD_TEST(%s %s)\n' \
+ 		  feeds.jing-$$atom \
+ 		  "\$${JING} \$${CMAKE_CURRENT_SOURCE_DIR}/atom.rng $$atom" >>CMakeTests.txt; \
+ 	  done; \
+ 	fi; \
++	rm -f $$base.errs; \
+ 	set -e; exit $$result
+ 
+ endif
+diff --git a/tests/grddl/Makefile.am b/tests/grddl/Makefile.am
+index e0c7774f..d8fefc34 100644
+--- a/tests/grddl/Makefile.am
++++ b/tests/grddl/Makefile.am
+@@ -55,30 +55,32 @@ check-grddl: build-rapper $(check_grddl_deps)
+ 	@result=0; \
+ 	$(RECHO) "Testing GRDDL"; \
+ 	printf 'IF(RAPTOR_PARSER_GRDDL)\n\n' >>CMakeTests.txt; \
++	base="$@" ; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .html` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -f noNet -q -i grddl -o ntriples $(srcdir)/$$test > $$name.res 2> $$name.err; \
++	  $(RAPPER) -f noNet -q -i grddl -o ntriples $(srcdir)/$$test > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) FAILED returned status $$status; result=1; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $(srcdir)/$$name.out $$base.res; result=1; \
+ 	  fi; \
+ 	  if test $$status != 1 ; then \
+-	    rm -f $$name.res $$name.err; \
++	    rm -f $$base.res $$base.err; \
+ 	  fi; \
+ 	  printf '\tRAPPER_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t%s\n\t)\n\n' \
+ 		grddl.$$name \
+ 		"\$${RAPPER} -f noNet -q -i grddl -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_GRDDL)\n\n' >>CMakeTests.txt; \
+diff --git a/tests/json/Makefile.am b/tests/json/Makefile.am
+index ec59cb82..4fde0faf 100644
+--- a/tests/json/Makefile.am
++++ b/tests/json/Makefile.am
+@@ -57,37 +57,38 @@ check_json_deps = $(TEST_FILES)
+ endif
+ 
+ check-json: build-rapper $(check_json_deps)
+-	@result=0; \
++	@set +e; result=0; \
+ 	$(RECHO) "Testing legal JSON"; \
+ 	printf 'IF(RAPTOR_PARSER_JSON)\n\n' >>CMakeTests.txt; \
++	base="$@" ; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .json` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
++	  expected="$(srcdir)/$$name.nt"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i json -o ntriples $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i json -o ntriples $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) FAILED returned status $$status; result=1; \
+-	  elif cmp $(srcdir)/$$name.nt $$name.res >/dev/null 2>&1; then \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    cat $$name.err; \
+-	    diff $(srcdir)/$$name.nt $$name.res; result=1; \
++	    cat $$base.err; diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	  printf '\tRAPPER_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t%s\n\t)\n\n' \
+ 		json.$$name \
+ 		"\$${RAPPER} -q -i json -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.nt" >>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_JSON)\n\n' >>CMakeTests.txt; \
+-	exit $$result
++	rm -f $$base.res $$base.err; \
++	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+ check_bad_json_deps = $(JSON_BAD_TEST_FILES)
+@@ -97,25 +98,25 @@ check-bad-json: build-rapper $(check_bad_json_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing that bad JSON fails"; \
+ 	printf 'IF(RAPTOR_PARSER_JSON)\n\n' >>CMakeTests.txt; \
++	base="$@" ; \
+ 	for test in $(JSON_BAD_TEST_FILES); do \
+ 	  name=`basename $$test .json` ; \
+ 	  baseuri=$(BASE_URI)$$name.json; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i json -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i json -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning"; \
+-	    cat $$name.res; grep Warning $$name.err; result=1; \
++	    cat $$base.res; grep Warning $$base.err; result=1; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf '\tADD_TEST(%s %s) # WILL_FAIL\n' \
+ 		json.$$name \
+ 		"\$${RAPPER} -q -i json -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" >>CMakeTests.txt; \
+@@ -126,5 +127,6 @@ check-bad-json: build-rapper $(check_bad_json_deps)
+ 	 printf '\t\tPROPERTIES\n\t\tWILL_FAIL TRUE\n\t)\n\n'; \
+ 	 printf 'ENDIF(RAPTOR_PARSER_JSON)\n\n') >>CMakeTests.txt; \
+ 	rm -f CMakeTmp.txt; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+diff --git a/tests/mkr/Makefile.am b/tests/mkr/Makefile.am
+index 4d5aea2d..8f0a2510 100644
+--- a/tests/mkr/Makefile.am
++++ b/tests/mkr/Makefile.am
+@@ -74,6 +74,7 @@ endif
+ check-mkr-serialize-syntax: build-rapper $(check_mkr_serialize_syntax_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing mkr exact serialization output"; \
++	base="$@"; \
+ 	for test in $(TEST_SERIALIZE_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  if test $$name = rdf-schema; then \
+@@ -84,19 +85,19 @@ check-mkr-serialize-syntax: build-rapper $(check_mkr_serialize_syntax_deps)
+             baseuri=$(BASE_URI)$$test; \
+ 	  fi; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o mkr $(srcdir)/$$test $$baseuri > $$name.out 2> $$name.err; \
+-	  cmp -s $$name.out $(srcdir)/$$name.mkr; \
++	  $(RAPPER) -q -i turtle -o mkr $(srcdir)/$$test $$baseuri > $$base.out 2> $$base.err; \
++	  cmp -s $$base.out $(srcdir)/$$name.mkr; \
+ 	  status=$$?; \
+ 	  if test $$status = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o mkr $(srcdir)/$$test $$baseuri '>' $$name.out; \
+-	    cat $$name.err; \
+-	    diff -a -u $$name.out $(srcdir)/$$name.mkr; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o mkr $(srcdir)/$$test $$baseuri '>' $$base.out; \
++	    cat $$base.err; \
++	    diff -a -u $$base.out $(srcdir)/$$name.mkr; \
+ 	  fi; \
+-	  rm -f $$name.out $$name.err; \
+ 	done; \
++	rm -f $$base.out $$base.err; \
+ 	set -e; exit $$result
+ 
+ 
+diff --git a/tests/nquads-2013/Makefile.am b/tests/nquads-2013/Makefile.am
+index ccf3cbd6..37c570b5 100644
+--- a/tests/nquads-2013/Makefile.am
++++ b/tests/nquads-2013/Makefile.am
+@@ -148,26 +148,27 @@ endif
+ check-good-nquads: build-rapper $(check_good_nquads_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing good N-Quads syntax passes"; \
++	base="$@" ; \
+ 	for test in $(TEST_GOOD_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) "FAILED returned status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i nquads -o nquads $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i nquads -o nquads $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status = 2 ; then \
+-	    $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	    $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	  else \
+ 	    $(RECHO) "ok"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors:$$failures"; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -177,35 +178,36 @@ endif
+ check-bad-nquads: build-rapper $(check_bad_nquads_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing bad N-Quads fails"; \
++	base="$@" ; \
+ 	for test in $(TEST_BAD_FILES) ; do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning";  result=1; \
+-	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; grep Warning $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; grep Warning $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors:$$failures"; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+diff --git a/tests/ntriples-2013/Makefile.am b/tests/ntriples-2013/Makefile.am
+index 3696594c..bb60f22b 100644
+--- a/tests/ntriples-2013/Makefile.am
++++ b/tests/ntriples-2013/Makefile.am
+@@ -130,26 +130,27 @@ endif
+ check-good-ntriples: build-rapper $(check_good_ntriples_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing good N-Triples syntax passes"; \
++	base="$@" ; \
+ 	for test in $(TEST_GOOD_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) "FAILED returned status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status = 2 ; then \
+-	    $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	    $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	  else \
+ 	    $(RECHO) "ok"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors:$$failures"; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -159,35 +160,36 @@ endif
+ check-bad-ntriples: build-rapper $(check_bad_ntriples_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing bad N-Triples fails"; \
++	base="$@" ; \
+ 	for test in $(TEST_BAD_FILES) ; do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning";  result=1; \
+-	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; grep Warning $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; grep Warning $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors:$$failures"; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+diff --git a/tests/ntriples/Makefile.am b/tests/ntriples/Makefile.am
+index 93108659..9cbc4a4e 100644
+--- a/tests/ntriples/Makefile.am
++++ b/tests/ntriples/Makefile.am
+@@ -74,27 +74,29 @@ endif
+ check-nt: build-rapper $(check_nt_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing N-Triples"; \
++	base="$@" ; \
+ 	for test in $(NT_TEST_FILES); do \
+ 	  name=`basename $$test .nt` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $(BASE_URI)$$test > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $(BASE_URI)$$test > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -ne 0 ; then \
+ 	    $(RECHO) "FAILED"; \
+-	    cat $$name.err; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	    cat $$base.err; \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		ntriples.$$name \
+ 		"\$${RAPPER} -q -i ntriples -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $(BASE_URI)$$test" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -104,25 +106,25 @@ endif
+ check-bad-nt: build-rapper $(check_bad_nt_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing that bad N-Triples fails"; \
++	base="$@" ; \
+ 	for test in $(NT_BAD_TEST_FILES); do \
+ 	  name=`basename $$test .nt` ; \
+ 	  baseuri=$(BASE_URI)$$name.nt; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i ntriples -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning"; \
+-	    cat $$name.res; grep Warning $$name.err; result=1; \
++	    cat $$base.res; grep Warning $$base.err; result=1; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf 'ADD_TEST(%s %s) # WILL_FAIL\n' \
+ 		ntriples.$$name \
+ 		"\$${RAPPER} -q -i ntriples -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" >>CMakeTests.txt; \
+@@ -132,6 +134,7 @@ check-bad-nt: build-rapper $(check_bad_nt_deps)
+ 	 cat CMakeTmp.txt; \
+ 	 printf '\tPROPERTIES\n\tWILL_FAIL TRUE\n)\n\n') >>CMakeTests.txt; \
+ 	rm -f CMakeTmp.txt; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -141,23 +144,25 @@ endif
+ check-nq: build-rapper $(check_nq_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing N-Quads"; \
++	base="$@" ; \
+ 	for test in $(NQ_TEST_FILES); do \
+ 	  name=`basename $$test .nq` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $(BASE_URI)$$test > $$name.res 2>/dev/null; \
+-	  if cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  $(RAPPER) -q -i nquads -o nquads file:$(srcdir)/$$test $(BASE_URI)$$test > $$base.res 2>/dev/null; \
++	  if cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res ; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		ntriples.$$name \
+ 		"\$${RAPPER} -q -i nquads -o nquads file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $(BASE_URI)$$test" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res ; \
+ 	set -e; exit $$result
+ 
+ print-nt-test-files:
+diff --git a/tests/rdfa/Makefile.am b/tests/rdfa/Makefile.am
+index b8060837..a2a36f93 100644
+--- a/tests/rdfa/Makefile.am
++++ b/tests/rdfa/Makefile.am
+@@ -125,34 +125,34 @@ check-rdfa: build-rdfdiff build-rapper $(check_rdfa_deps)
+ 	@set +e; result=0; failures=; failure_count=0; \
+ 	$(RECHO) "Testing RDFa 1.0"; \
+ 	printf 'IF(RAPTOR_PARSER_RDFA)\n\n' >>CMakeTests.txt; \
++	base="$@"; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .xml` ; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+ 	  baseuri=$(BASE_URI)$$test; \
+-	  $(RAPPER) -f noNet -q -i rdfa10 -I $$baseuri -o ntriples $(srcdir)/$$test > $$name-res.nt 2> $$name.err; \
++	  $(RAPPER) -f noNet -q -i rdfa10 -I $$baseuri -o ntriples $(srcdir)/$$test > $$base-res.nt 2> $$base.err; \
+ 	  status1=$$?; \
+ 	  if test $$status1 = 2; then \
+ 	    status1=0; \
+ 	  fi; \
+-	  $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$name-res.nt > $$name.res 2> $$name.err; \
++	  $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$base-res.nt > $$base.res 2> $$base.err; \
+ 	  status2=$$?; \
+ 	  if test $$status1 = 0 -a $$status2 = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    $(RECHO) "Triple counts: expected: `wc -l < $(srcdir)/$$name.out` got: `wc -l < $$name-res.nt` "; \
+-	    $(RECHO) $(RAPPER) -f noNet -q -i rdfa10 -I $$baseuri -o ntriples $(srcdir)/$$test '>' $$name-res.nt; \
+-	    $(RECHO) $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$name-res.nt '>' $$name.res; \
+-	    cat $$name.err $$name.res; \
++	    $(RECHO) "Triple counts: expected: `wc -l < $(srcdir)/$$name.out` got: `wc -l < $$base-res.nt` "; \
++	    $(RECHO) $(RAPPER) -f noNet -q -i rdfa10 -I $$baseuri -o ntriples $(srcdir)/$$test '>' $$base-res.nt; \
++	    $(RECHO) $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$base-res.nt '>' $$base.res; \
++	    cat $$base.err $$base.res; \
+ 	    failures="$$failures $$test"; \
+ 	    failure_count=`expr $$failure_count + 1`; \
+ 	  fi; \
+-	  rm -f $$name-res.nt $$name.res $$name.err; \
+ 	  printf '\tRAPPER_RDFDIFF_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t"%s"\n\t)\n\n' \
+ 		rdfa.$$name \
+ 		"\$${RAPPER} -f noNet -q -i rdfa10 -I $$baseuri -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test" \
+-		$$name-res.nt \
+-		"\$${RDFDIFF} -f ntriples -u $$baseuri -t ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out $$name-res.nt" \
++		$$base-res.nt \
++		"\$${RDFDIFF} -f ntriples -u $$baseuri -t ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out $$base-res.nt" \
+ 		>>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_RDFA)\n\n' >>CMakeTests.txt; \
+@@ -165,4 +165,5 @@ check-rdfa: build-rdfdiff build-rapper $(check_rdfa_deps)
+ 	    result=1; \
+ 	  fi; \
+ 	fi; \
++	rm -f $$base-res.nt $$base.res $$base.err; \
+ 	set -e; exit $$result
+diff --git a/tests/rdfa11/Makefile.am b/tests/rdfa11/Makefile.am
+index bce25700..0b561a33 100644
+--- a/tests/rdfa11/Makefile.am
++++ b/tests/rdfa11/Makefile.am
+@@ -162,39 +162,40 @@ endif
+ check-rdfa: build-rdfdiff build-rapper $(check_rdfa_deps)
+ 	@set +e; result=0; failures=; failure_count=0; \
+ 	$(RECHO) "Testing RDFa 1.1"; \
++	base="$@"; \
+ 	printf 'IF(RAPTOR_PARSER_RDFA)\n\n' >>CMakeTests.txt; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .xml` ; \
++	  expected="$(srcdir)/$$name.out" ; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+ 	  baseuri=$(BASE_URI)$$test; \
+-	  $(RAPPER) -f noNet -q -i rdfa11 -I $$baseuri -o ntriples $(srcdir)/$$test > $$name-res.nt 2> $$name.err; \
++	  $(RAPPER) -f noNet -q -i rdfa11 -I $$baseuri -o ntriples $(srcdir)/$$test > $$base-res.nt 2> $$base.err; \
+ 	  status1=$$?; \
+ 	  if test $$status1 = 2; then \
+ 	    status1=0; \
+ 	  fi; \
+-	  if cmp $(srcdir)/$$name.out $$name-res.nt >/dev/null 2>&1; then \
++	  if cmp $$expected $$base-res.nt >/dev/null 2>&1; then \
+ 	    status2=0; \
+ 	  else \
+-	    $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$name-res.nt > $$name.res 2> $$name.err; \
++	    $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$base-res.nt > $$base.res 2> $$base.err; \
+ 	    status2=$$?; \
+ 	  fi; \
+ 	  if test $$status1 = 0 -a $$status2 = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    $(RECHO) "Triple counts: expected: `wc -l < $(srcdir)/$$name.out` got: `wc -l < $$name-res.nt` "; \
+-	    $(RECHO) $(RAPPER) -f noNet -q -i rdfa11 -I $$baseuri -o ntriples $(srcdir)/$$test '>' $$name-res.nt; \
+-	    $(RECHO) $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$name-res.nt '>' $$name.res; \
+-	    cat $$name.err $$name.res; \
++	    $(RECHO) "Triple counts: expected: `wc -l < $(srcdir)/$$name.out` got: `wc -l < $$base-res.nt` "; \
++	    $(RECHO) $(RAPPER) -f noNet -q -i rdfa11 -I $$baseuri -o ntriples $(srcdir)/$$test '>' $$base-res.nt; \
++	    $(RECHO) $(RDFDIFF) -f ntriples -u $$baseuri -t ntriples $(srcdir)/$$name.out $$base-res.nt '>' $$base.res; \
++	    cat $$base.err $$base.res; \
+ 	    failures="$$failures $$test"; \
+ 	    failure_count=`expr $$failure_count + 1`; \
+ 	  fi; \
+-	  rm -f $$name-res.nt $$name.res $$name.err; \
+ 	  printf '\tRAPPER_RDFDIFF_TEST(%s\n\t\t"%s"\n\t\t%s\n\t\t"%s"\n\t)\n\n' \
+ 		rdfa11.$$name \
+ 		"\$${RAPPER} -f noNet -q -i rdfa11 -I $$baseuri -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test" \
+-		$$name-res.nt \
+-		"\$${RDFDIFF} -f ntriples -u $$baseuri -t ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out $$name-res.nt" \
++		$$base-res.nt \
++		"\$${RDFDIFF} -f ntriples -u $$baseuri -t ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out $$base-res.nt" \
+ 		>>CMakeTests.txt; \
+ 	done; \
+ 	printf 'ENDIF(RAPTOR_PARSER_RDFA)\n\n' >>CMakeTests.txt; \
+@@ -208,4 +209,5 @@ check-rdfa: build-rdfdiff build-rapper $(check_rdfa_deps)
+ 	    result=1; \
+ 	  fi; \
+ 	fi; \
++	rm -f $$base-res.nt $$base.res $$base.err; \
+ 	set -e; exit $$result
+diff --git a/tests/rdfxml/Makefile.am b/tests/rdfxml/Makefile.am
+index a9fe3e7e..b649438b 100644
+--- a/tests/rdfxml/Makefile.am
++++ b/tests/rdfxml/Makefile.am
+@@ -143,8 +143,10 @@ endif
+ check-rdf: build-rapper $(check_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing legal rdf/xml"; \
++	base="$@" ; \
+ 	for test in $(RDF_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  if test $$name = 22-rdf-syntax-ns; then \
+ 	    baseuri=$(RDF_NS_URI); \
+ 	  elif test $$name = rdfs-namespace -o $$name = rdf-schema; then \
+@@ -159,27 +161,27 @@ check-rdf: build-rapper $(check_rdf_deps)
+ 	    baseuri=$(BASE_URI)$$name.rdf; \
+ 	  fi; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o ntriples $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -o ntriples $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) FAILED returned status $$status; result=1; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -189,24 +191,26 @@ endif
+ check-assume-rdf: build-rapper $(check_assume_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdf/xml known by context"; \
++	base="$@" ; \
+ 	for test in $(RDF_ASSUME_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2>/dev/null; \
+-	  if cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2>/dev/null; \
++	  if cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res ; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -216,24 +220,26 @@ endif
+ check-scan-rdf: build-rapper $(check_scan_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdf/xml inside other XML"; \
++	base="$@" ; \
+ 	for test in $(RDF_SCAN_TEST_FILES); do \
+ 	  name=`echo $$test | sed -e 's/\..*//'` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -f scanForRDF -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2>/dev/null; \
+-	  if cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  $(RAPPER) -q -f scanForRDF -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2>/dev/null; \
++	  if cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res ; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -f scanForRDF -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -243,31 +249,33 @@ endif
+ check-mayfail-xml-rdf: build-rapper $(check_mayfail_xml_rdf_deps)
+ 	@set +e; \
+ 	$(RECHO) "Testing rdf/xml (may fail due to XML parser bugs)"; \
++	base="$@" ; \
+ 	for test in $(RDF_MAYFAIL_XML_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o ntriples $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -o ntriples $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) FAILED returned status $$status; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; \
++	    diff $$expected $$base.res; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -o ntriples \$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit 0
+ 
+ if MAINTAINER_MODE
+@@ -277,25 +285,25 @@ endif
+ check-bad-rdf: build-rapper $(check_bad_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing that bad rdf/xml fails"; \
++	base="$@" ; \
+ 	for test in $(RDF_BAD_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning"; \
+-	    cat $$name.res; grep Warning $$name.err; result=1; \
++	    cat $$base.res; grep Warning $$base.err; result=1; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf 'ADD_TEST(%s %s) # WILL_FAIL\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" >>CMakeTests.txt; \
+@@ -305,6 +313,7 @@ check-bad-rdf: build-rapper $(check_bad_rdf_deps)
+ 	 cat CMakeTmp.txt; \
+ 	 printf '\tPROPERTIES\n\tWILL_FAIL TRUE\n)\n\n') >>CMakeTests.txt; \
+ 	rm -f CMakeTmp.txt; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -314,25 +323,25 @@ endif
+ check-bad-nfc-rdf: build-rapper $(check_bad_nfc_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing that rdf/xml with bad Unicode NFC fails"; \
++	base="$@" ; \
+ 	for test in $(RDF_BAD_NFC_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -m strict -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -m strict -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning"; \
+-	    cat $$name.res; grep Warning $$name.err; result=1; \
++	    cat $$base.res; grep Warning $$base.err; result=1; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed (NFC test)"; \
+-	    cat $$name.res; result=0; \
++	    cat $$base.res; result=0; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf 'ADD_TEST(%s %s) # WILL_FAIL\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -m strict -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" >>CMakeTests.txt; \
+@@ -342,6 +351,7 @@ check-bad-nfc-rdf: build-rapper $(check_bad_nfc_rdf_deps)
+ 	 cat CMakeTmp.txt; \
+ 	 printf '\tPROPERTIES\n\tWILL_FAIL TRUE\n)\n\n') >>CMakeTests.txt; \
+ 	rm -f CMakeTmp.txt; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -351,33 +361,35 @@ endif
+ check-warn-rdf: build-rapper $(check_warn_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdf/xml with warnings"; \
++	base="$@" ; \
+ 	for test in $(RDF_WARN_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  baseuri=$(BASE_URI)$$name.rdf; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "FAILED - parsing failed when should have warned"; \
+-	    cat $$name.res; grep Error $$name.err; result=1; \
++	    cat $$base.res; grep Error $$base.err; result=1; \
+ 	  elif test $$status -eq 2 ; then \
+-	    if cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	    if cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	      $(RECHO) "ok"; \
+ 	    else \
+ 	      $(RECHO) "FAILED"; \
+-	      diff $(srcdir)/$$name.out $$name.res; result=1; \
++	      diff $$expected $$base.res; result=1; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; \
+-	    cat $$name.res; result=1; \
++	    cat $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -o ntriples file:\$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
++		$$base.res \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -387,19 +399,20 @@ endif
+ check-rdfdiff: build-rdfdiff $(check_rdfdiff_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdfdiff with legal rdf/xml"; \
++	base="$@" ; \
+ 	for test in $(RDF_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RDFDIFF) $(srcdir)/$$test $(srcdir)/$$test > $$name.res 2> $$name.err; \
++	  $(RDFDIFF) $(srcdir)/$$test $(srcdir)/$$test > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    cat $$name.err; result=1; \
++	    cat $$base.err; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -409,24 +422,26 @@ endif
+ check-rdfxml: build-rapper $(check_rdfxml_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdfxml serialization with legal rdf/xml"; \
++	base="$@" ; \
+ 	for test in $(RDF_SERIALIZE_TEST_FILES); do \
+ 	  name=`basename $$test .nt` ; \
++	  expected="$(srcdir)/$$name.rdf"; \
+ 	  baseuri=-; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i ntriples -o rdfxml $(srcdir)/$$test $$baseuri > $$name-rdfxml.rdf 2> $$name.err; \
+-	  if cmp $(srcdir)/$$name.rdf $$name-rdfxml.rdf >/dev/null 2>&1; then \
++	  $(RAPPER) -q -i ntriples -o rdfxml $(srcdir)/$$test $$baseuri > $$base-rdfxml.rdf 2> $$base.err; \
++	  if cmp $$expected $$base-rdfxml.rdf >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.rdf $$name-rdfxml.rdf; result=1; \
++	    diff $$expected $$base-rdfxml.rdf; result=1; \
+ 	  fi; \
+-	  rm -f $$name-rdfxml.rdf $$name.res $$name.err; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		rdfxml.$$name \
+ 		"\$${RAPPER} -q -i ntriples -o rdfxml \$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name-rdfxml.rdf \
++		$$base-rdfxml.rdf \
+ 		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.rdf" >>CMakeTests.txt; \
+ 	done; \
++	rm -f $$base-rdfxml.rdf $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -436,32 +451,33 @@ endif
+ check-rdfxmla: build-rdfdiff build-rapper $(check_rdfxmla_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing rdfxml-abbrev serialization with legal rdf/xml"; \
++	base="$@" ; \
+ 	for test in $(RDF_TEST_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  baseuri=-; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o rdfxml-abbrev $(srcdir)/$$test $$baseuri > $$name-rdfxmla.rdf 2> $$name.err; \
++	  $(RAPPER) -q -o rdfxml-abbrev $(srcdir)/$$test $$baseuri > $$base-rdfxmla.rdf 2> $$base.err; \
+ 	  status1=$$?; \
+ 	  if test $$test = ex-38.rdf; then \
+-	    diff $(srcdir)/ex-38-rdfxmla.out $$name-rdfxmla.rdf > $$name.res 2> $$name.err; \
++	    diff $(srcdir)/ex-38-rdfxmla.out $$base-rdfxmla.rdf > $$base.res 2> $$base.err; \
+ 	    status2=$$?; \
+ 	  else \
+-	    $(RDFDIFF) $(srcdir)/$$test $$name-rdfxmla.rdf > $$name.res 2> $$name.err; \
++	    $(RDFDIFF) $(srcdir)/$$test $$base-rdfxmla.rdf > $$base.res 2> $$base.err; \
+ 	    status2=$$?; \
+ 	  fi; \
+ 	  if test $$status1 = 0 -a $$status2 = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status1 = 2 -a $$status2 = 0; then \
+-	    $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	    $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    echo $(RAPPER) -q -o rdfxml-abbrev $(srcdir)/$$test $$baseuri '>' $$name-rdfxmla.rdf; \
+-	  status1=$$?; \
+-	    echo $(RDFDIFF) $(srcdir)/$$test $$name-rdfxmla.rdf '>' $$name.res; \
+-	    echo "rapper + rdfdiff output:"; cat $$name.err; result=1; \
++	    echo $(RAPPER) -q -o rdfxml-abbrev $(srcdir)/$$test $$baseuri '>' $$base-rdfxmla.rdf; \
++	    status1=$$?; \
++	    echo $(RDFDIFF) $(srcdir)/$$test $$base-rdfxmla.rdf '>' $$base.res; \
++	    echo "rapper + rdfdiff output:"; cat $$base.err; result=1; \
+ 	  fi; \
+-	  rm -f $$name-rdfxmla.rdf $$name.res $$name.err; \
+ 	done; \
++	rm -f $$base-rdfxmla.rdf $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ print-rdf-test-files:
+diff --git a/tests/trig/Makefile.am b/tests/trig/Makefile.am
+index 82066ca4..f885f07d 100644
+--- a/tests/trig/Makefile.am
++++ b/tests/trig/Makefile.am
+@@ -50,31 +50,33 @@ check_trig_deps = $(TEST_FILES)
+ endif
+ 
+ check-trig: build-rapper $(check_trig_deps)
+-	@result=0; \
++	@set +e; result=0; \
+ 	$(RECHO) "Testing legal TRiG"; \
++	base="$@" ; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .trig` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i trig -o nquads $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i trig -o nquads $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) FAILED returned status $$status; result=1; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; \
+-	    diff $(srcdir)/$$name.out $$name.res; result=1; \
++	    diff $$expected $$base.res; result=1; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	  printf 'RAPPER_TEST(%s\n\t"%s"\n\t%s\n\t%s\n)\n\n' \
+ 		trig.$$name \
+ 		"\$${RAPPER} -q -i trig -o nquads \$${CMAKE_CURRENT_SOURCE_DIR}/$$test $$baseuri" \
+-		$$name.res \
+-		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$name.out" >>CMakeTests.txt; \
++		$$base.res \
++		"\$${CMAKE_CURRENT_SOURCE_DIR}/$$base.out" >>CMakeTests.txt; \
+ 	done; \
+-	exit $$result
++	rm -f $$base.res $$base.err; \
++	set -e; exit $$result
+diff --git a/tests/turtle-2013/Makefile.am b/tests/turtle-2013/Makefile.am
+index 36830003..9c5c5f61 100644
+--- a/tests/turtle-2013/Makefile.am
++++ b/tests/turtle-2013/Makefile.am
+@@ -499,27 +499,28 @@ endif
+ 
+ check-good-turtle: build-rapper $(check_good_turtle_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
++	base="$@"; \
+ 	$(RECHO) "Testing good Turtle syntax passes"; \
+ 	for test in $(TEST_GOOD_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) "FAILED returned status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status = 2 ; then \
+-	    $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	    $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	  else \
+ 	    $(RECHO) "ok"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors: $$failures"; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -529,37 +530,38 @@ endif
+ check-bad-turtle: build-rapper $(check_bad_turtle_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing bad Turtle fails"; \
++	base="$@"; \
+ 	for test in $(TEST_BAD_FILES) $(TEST_BAD_EVAL_FILES) ; do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning";  result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; grep Warning $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; grep Warning $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    cat $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors: $$failures"; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ 
+@@ -570,34 +572,35 @@ endif
+ check-eval-turtle: build-rapper $(check_eval_turtle_deps)
+ 	@set +e; result=0; errors=0; failures=''; \
+ 	$(RECHO) "Testing eval Turtle"; \
++	base="$@"; \
+ 	for test in $(TEST_EVAL_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$name.nt > $$name.nnt; \
+-	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$name.nt > $$base.nnt; \
++	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) "FAILED returned status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+-	  elif $(RDFCOMPARE) $$name.nnt $$name.res >/dev/null 2>&1; then \
++	  elif $(RDFCOMPARE) $$base.nnt $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    diff $$name.nnt $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    diff $$base.nnt $$base.res; \
+ 	    errors=`expr $$errors + 1`; \
+ 	    failures="$$failures $$test"; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err $$name.nnt; \
+ 	done; \
+ 	$(RECHO) "Result: $$errors errors: $$failures"; \
++	rm -f $$base.res $$base.err $$base.nnt; \
+ 	set -e; exit $$result
+diff --git a/tests/turtle/Makefile.am b/tests/turtle/Makefile.am
+index daf041d9..777979dc 100644
+--- a/tests/turtle/Makefile.am
++++ b/tests/turtle/Makefile.am
+@@ -105,33 +105,35 @@ check_rdf_deps = $(TEST_FILES)
+ endif
+ 
+ check-rdf: build-rapper $(check_rdf_deps)
+-	@result=0; \
++	@set +e; result=0; \
+ 	$(RECHO) "Testing legal Turtle"; \
++	base="$@"; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
++	  expected="$(srcdir)/$$name.out"; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status != 0 -a $$status != 2 ; then \
+ 	    $(RECHO) "FAILED returned status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	  elif cmp $(srcdir)/$$name.out $$name.res >/dev/null 2>&1; then \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	  elif cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    if test $$status = 2 ; then \
+-	      $(RECHO) "ok with warnings"; grep Warning $$name.err; \
++	      $(RECHO) "ok with warnings"; grep Warning $$base.err; \
+ 	    else \
+ 	      $(RECHO) "ok"; \
+ 	    fi; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    diff $(srcdir)/$$name.out $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples $(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    diff $$expected $$base.res; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
+-	exit $$result
++	rm -f $$base.res $$base.err; \
++	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+ check_bad_rdf_deps = $(TEST_BAD_FILES)
+@@ -140,30 +142,31 @@ endif
+ check-bad-rdf: build-rapper $(check_bad_rdf_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing bad Turtle fails"; \
++	base="$@"; \
+ 	for test in $(TEST_BAD_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  baseuri=$(BASE_URI)$$test; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
+ 	  status=$$?; \
+ 	  if test $$status -eq 1 ; then \
+ 	    $(RECHO) "ok"; \
+ 	  elif test $$status -eq 2 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded with a warning";  result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; grep Warning $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; grep Warning $$base.err; \
+ 	  elif test $$status -eq 0 ; then \
+ 	    $(RECHO) "FAILED - parsing succeeded but should have failed"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.res; \
+ 	  else \
+ 	    $(RECHO) "FAILED - parsing failed with unknown status $$status"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    cat $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    cat $$base.res; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err ; \
+ 	done; \
++	rm -f $$base.res $$base.err ; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -173,6 +176,7 @@ endif
+ check-turtle-serialize: build-rdfdiff build-rapper $(check_turtle_serialize_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing turtle serialization with legal turtle"; \
++	base="$@"; \
+ 	for test in $(TEST_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  if test $$name = rdf-schema; then \
+@@ -183,20 +187,20 @@ check-turtle-serialize: build-rdfdiff build-rapper $(check_turtle_serialize_deps
+ 	    baseuri=$(BASE_URI)$$test; \
+ 	  fi; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri > $$name-turtle.ttl 2> $$name.err; \
++	  $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri > $$base-turtle.ttl 2> $$base.err; \
+ 	  status1=$$?; \
+-	  $(RDFDIFF) -f turtle -u $$baseuri -t turtle $(srcdir)/$$test $$name-turtle.ttl > $$name.res 2> $$name.err; \
++	  $(RDFDIFF) -f turtle -u $$baseuri -t turtle $(srcdir)/$$test $$base-turtle.ttl > $$base.res 2> $$base.err; \
+ 	  status2=$$?; \
+ 	  if test $$status1 = 0 -a $$status2 = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri '>' $$name-turtle.ttl; \
+-	    $(RECHO) $(RDFDIFF) -f turtle -u $$baseuri -t turtle $(srcdir)/$$test $$name-turtle.ttl '>' $$name.res; \
+-	    cat $$name-turtle.ttl; cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri '>' $$base-turtle.ttl; \
++	    $(RECHO) $(RDFDIFF) -f turtle -u $$baseuri -t turtle $(srcdir)/$$test $$base-turtle.ttl '>' $$base.res; \
++	    cat $$base-turtle.ttl; cat $$base.err; \
+ 	  fi; \
+-	  rm -f $$name-turtle.ttl $$name.res $$name.err; \
+ 	done; \
++	rm -f $$base-turtle.ttl $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ if MAINTAINER_MODE
+@@ -206,6 +210,7 @@ endif
+ check-turtle-serialize-syntax: build-rapper $(check_turtle_serialize_syntax_deps)
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing turtle exact serialization output"; \
++	base="$@"; \
+ 	for test in $(TEST_SERIALIZE_FILES); do \
+ 	  name=`basename $$test .ttl` ; \
+ 	  if test $$name = rdf-schema; then \
+@@ -218,70 +223,72 @@ check-turtle-serialize-syntax: build-rapper $(check_turtle_serialize_syntax_deps
+ 	    baseuri=$(BASE_URI)$$test; \
+ 	  fi; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri > $$name-turtle.ttl 2> $$name.err; \
+-	  cmp -s $(srcdir)/$$name-out.ttl $$name-turtle.ttl; \
++	  $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri > $$base-turtle.ttl 2> $$base.err; \
++	  cmp -s $(srcdir)/$$name-out.ttl $$base-turtle.ttl; \
+ 	  status=$$?; \
+ 	  if test $$status = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri '>' $$name-turtle.ttl; \
+-	    cat $$name.err; \
+-	    diff -a -u $(srcdir)/$$name-out.ttl $$name-turtle.ttl; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o turtle $(srcdir)/$$test $$baseuri '>' $$base-turtle.ttl; \
++	    cat $$base.err; \
++	    diff -a -u $(srcdir)/$$name-out.ttl $$base-turtle.ttl; \
+ 	  fi; \
+-	  rm -f $$name-turtle.ttl $$name.err; \
+ 	done; \
++	rm -f $$base-turtle.ttl $$base.err; \
+ 	set -e; exit $$result
+ 
+ check-turtle-parse-ntriples: build-rapper
+ 	@set +e; result=0; \
+ 	$(RECHO) "Testing Turtle parsing with N-Triples tests"; \
+ 	NT_TEST_FILES=`unset MAKELEVEL MAKEFLAGS; cd $(NTRIPLES_DIR) && $(MAKE) print-nt-test-files | sed -e 's,^, ,' -e 's, ,$(NTRIPLES_DIR)/,g'`; \
++	base="$@"; \
+ 	for test in $$NT_TEST_FILES; do \
+ 	  name=`basename $$test .nt` ; \
+ 	  baseuri=-; \
++	  expected=$(srcdir)/$(NTRIPLES_DIR)/$$name.out; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$name.res 2> $$name.err; \
+-	  test_expected=$(srcdir)/$(NTRIPLES_DIR)/$$name.out; \
+-	  if cmp $$test_expected $$name.res >/dev/null 2>&1; then \
++	  $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri > $$base.res 2> $$base.err; \
++	  if cmp $$expected $$base.res >/dev/null 2>&1; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED";  result=1; \
+-	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$name.res; \
+-	    cat $$name.err; \
+-	    diff $$test_expected $$name.res; \
++	    $(RECHO) $(RAPPER) -q -i turtle -o ntriples file:$(srcdir)/$$test $$baseuri '>' $$base.res; \
++	    cat $$base.err; \
++	    diff $$expected $$base.res; \
+ 	  fi; \
+-	  rm -f $$name.res $$name.err; \
+ 	done; \
++	rm -f $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ check-turtle-serialize-rdf: build-rdfdiff build-rapper
+ 	@set +e; result=0; \
+ 	RDF_TEST_FILES=`unset MAKELEVEL MAKEFLAGS; cd $(RDFXML_DIR) && $(MAKE) print-rdf-test-files | sed -e 's,^, ,' -e 's, ,$(RDFXML_DIR)/,g'`; \
+ 	$(RECHO) "Testing turtle serialization with legal rdf/xml"; \
++	base="$@"; \
+ 	for test in $$RDF_TEST_FILES $(TURTLE_SERIALIZE_RDF_FILES); do \
+ 	  name=`basename $$test .rdf` ; \
+ 	  baseuri=-; \
+ 	  $(RECHO) $(RECHO_N) "Checking $$test $(RECHO_C)"; \
+-	  $(RAPPER) -q -o turtle $(srcdir)/$$test $$baseuri > $$name-turtle.ttl 2> $$name.err; \
++	  $(RAPPER) -q -o turtle $(srcdir)/$$test $$baseuri > $$base-turtle.ttl 2> $$base.err; \
+ 	  status1=$$?; \
+ 	  if test $$test = "$(RDFXML_DIR)/ex-38.rdf"; then \
+-	    diff $(srcdir)/ex-38-turtle.out $$name-turtle.ttl > $$name.res 2> $$name.err; \
++	    diff $(srcdir)/ex-38-turtle.out $$base-turtle.ttl > $$base.res 2> $$base.err; \
+ 	    status2=$$?; \
+ 	  else \
+-	    $(RDFDIFF) -t turtle $(srcdir)/$$test $$name-turtle.ttl > $$name.res 2> $$name.err; \
++	    $(RDFDIFF) -t turtle $(srcdir)/$$test $$base-turtle.ttl > $$base.res 2> $$base.err; \
+ 	    status2=$$?; \
+ 	  fi; \
+ 	  if test $$status1 = 0 -a $$status2 = 0; then \
+ 	    $(RECHO) "ok"; \
+ 	  else \
+ 	    $(RECHO) "FAILED"; result=1; \
+-	    $(RECHO) $(RAPPER) -q -o turtle $(srcdir)/$$test $$baseuri '>' $$name-turtle.ttl; \
+-	    $(RECHO) $(RDFDIFF) -t turtle $(srcdir)/$$test $$name-turtle.ttl '>' $$name.res; \
+-	    cat $$name.err; \
++	    $(RECHO) $(RAPPER) -q -o turtle $(srcdir)/$$test $$baseuri '>' $$base-turtle.ttl; \
++	    $(RECHO) $(RDFDIFF) -t turtle $(srcdir)/$$test $$base-turtle.ttl '>' $$base.res; \
++	    cat $$base.err; \
+ 	  fi; \
+-	  rm -f $$name-turtle.ttl $$name.res $$name.err; \
+ 	done; \
++	rm -f $$base-turtle.ttl $$base.res $$base.err; \
+ 	set -e; exit $$result
+ 
+ 
+-- 
+2.20.1
+
