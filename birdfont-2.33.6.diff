@@ -1,0 +1,1178 @@
+--- birdfont-2.33.6/libbirdgems/fit_cubic.c.orig	2024-09-16 10:15:40.000000000 +0100
++++ birdfont-2.33.6/libbirdgems/fit_cubic.c	2025-06-14 09:24:59.639130427 +0100
+@@ -6,18 +6,18 @@
+ */
+ 
+ /*
+- * EULA: The Graphics Gems code is copyright-protected. In other words, 
+- * you cannot claim the text of the code as your own and resell it. 
+- * Using the code is permitted in any program, product, or library, 
+- * non-commercial or commercial. Giving credit is not required, though 
+- * is a nice gesture. The code comes as-is, and if there are any flaws 
++ * EULA: The Graphics Gems code is copyright-protected. In other words,
++ * you cannot claim the text of the code as your own and resell it.
++ * Using the code is permitted in any program, product, or library,
++ * non-commercial or commercial. Giving credit is not required, though
++ * is a nice gesture. The code comes as-is, and if there are any flaws
+  * or problems with any Gems code, nobody involved with Gems - authors,
+- * editors, publishers, or webmasters - are to be held responsible. 
+- * Basically, don't be a jerk, and remember that anything free comes 
+- * with no guarantee. 
++ * editors, publishers, or webmasters - are to be held responsible.
++ * Basically, don't be a jerk, and remember that anything free comes
++ * with no guarantee.
+  */
+ 
+-/*  fit_cubic.c	*/									
++/*  fit_cubic.c	*/
+ /*	Piecewise cubic fitting code	*/
+ 
+ #include "GraphicsGems.h"
+@@ -34,39 +34,39 @@
+ 
+ 
+ typedef Point2 *BezierCurve;
+-
+-/* Forward declarations */
+-void		FitCurve();
+-static	void		FitCubic();
+-static	double		*Reparameterize();
+-static	double		NewtonRaphsonRootFind();
+-static	Point2		BezierII();
+-static	double 		B0(), B1(), B2(), B3();
+-static	Vector2		ComputeLeftTangent();
+-static	Vector2		ComputeRightTangent();
+-static	Vector2		ComputeCenterTangent();
+-static	double		ComputeMaxError();
+-static	double		*ChordLengthParameterize();
+-static	BezierCurve	GenerateBezier();
+-static	Vector2		V2AddII();
+-static	Vector2		V2ScaleIII();
+-static	Vector2		V2SubII();
+-
+-#define MAXPOINTS	1000		/* The most points you can have */
+-
+ typedef struct {
+ 	int simplified_path_buffer_size ;
+ 	int simplified_path_size;
+ 	double* simplified_path;
+ } Buffer;
+ 
++
++/* Forward declarations */
++void   FitCurve(Buffer *buffer, Point2 *d, int nPts, double error);
++static  void FitCubic(Buffer* buffer, Point2 *d, int first, int last, Vector2 tHat1, Vector2 tHat2, double error, int iterations);
++static double *Reparameterize(Point2 *d, int first, int last, double *u, BezierCurve bezCurve);
++static double NewtonRaphsonRootFind(BezierCurve Q, Point2 P, double u);
++static Point2 BezierII(int degree, Point2 *V, double t);
++static	double 		B0(double), B1(double), B2(double), B3(double);
++static	Vector2		ComputeLeftTangent(Point2 *d, int end);
++static	Vector2		ComputeRightTangent(Point2 *d, int end);
++static	Vector2		ComputeCenterTangent(Point2 *d, int center);
++static	double		ComputeMaxError(Point2 *d, int first, int last, BezierCurve bezCurve, double *u, int *splitPoint);
++static	double		*ChordLengthParameterize(Point2 *d, int first, int last);
++static	BezierCurve	GenerateBezier(Point2 *d, int first, int last, double *uPrime, Vector2 tHat1, Vector2 tHat2);
++static	Vector2		V2AddII(Vector2 a, Vector2  b);
++static	Vector2		V2ScaleIII(Vector2 v, double s);
++static	Vector2		V2SubII(Vector2 a, Vector2 b);
++
++#define MAXPOINTS	1000		/* The most points you can have */
++
+ Buffer* gems_buffer_new (int buffer_size, double* simplified_path) {
+ 	Buffer* b = (Buffer*) malloc (sizeof (Buffer));
+-	
++
+ 	b->simplified_path = simplified_path;
+ 	b->simplified_path_buffer_size = buffer_size;
+ 	b->simplified_path_size = 0;
+-	
++
+ 	return b;
+ }
+ 
+@@ -74,7 +74,7 @@
+ 	free (b);
+ }
+ 
+-/** Generates an a bezier path and returns the length of the output array. */ 
++/** Generates an a bezier path and returns the length of the output array. */
+ void fit_bezier_curve_to_line (
+ 	double* lines,
+ 	int lines_size,
+@@ -87,7 +87,7 @@
+ 	int npoints;
+ 
+ 	if (lines_size % 2 != 0) {
+-		fprintf (stderr, "Odd number of coordinates in fit_bezier_curve_to_line.");		
++		fprintf (stderr, "Odd number of coordinates in fit_bezier_curve_to_line.");
+ 		return;
+ 	}
+ 
+@@ -95,17 +95,17 @@
+ 		fprintf (stderr, "No lines in fit_bezier_curve_to_line.");
+ 		return;
+ 	}
+-	
++
+ 	if (bezier_path == NULL) {
+ 		fprintf (stderr, "No destination for output buffer in fit_bezier_curve_to_line");
+-		return;	
++		return;
+ 	}
+ 
+ 	if (bezier_path_size == NULL) {
+ 		fprintf (stderr, "No destination for bezier_path_size in fit_bezier_curve_to_line");
+-		return;	
++		return;
+ 	}
+-	
++
+ 	npoints = lines_size / 2;
+ 	points = malloc (npoints * sizeof (Point2));
+ 
+@@ -115,16 +115,16 @@
+ 		points[i].y = lines[j + 1];
+ 		j += 2;
+ 	}
+-	
++
+ 	int buffer_size = 8 * lines_size;
+ 	double* simplified_path = malloc (buffer_size * sizeof (double));
+ 	Buffer* buffer = gems_buffer_new (buffer_size, simplified_path);
+-	
++
+ 	FitCurve(buffer, points, npoints, error);
+-	
++
+ 	*bezier_path = simplified_path;
+ 	*bezier_path_size = buffer->simplified_path_size;
+-	
++
+ 	gems_buffer_delete (buffer);
+ 	free (points);
+ }
+@@ -143,7 +143,7 @@
+ 		g_warning ("Expecting three points\n");
+ 		return;
+ 	}
+-	
++
+ 	i = buffer->simplified_path_size;
+ 	simplified_path = buffer->simplified_path;
+ 
+@@ -161,7 +161,7 @@
+ 
+ /*
+  *  FitCurve :
+- *  	Fit a Bezier curve to a set of digitized points 
++ *  	Fit a Bezier curve to a set of digitized points
+  */
+ void FitCurve(buffer, d, nPts, error)
+     Buffer* buffer;
+@@ -180,13 +180,13 @@
+  *  FitCubic :
+  *  	Fit a Bezier curve to a (sub)set of digitized points
+  */
+-static void FitCubic(buffer, d, first, last, tHat1, tHat2, error, iterations)
+-    Buffer* buffer;
+-    Point2	*d;			/*  Array of digitized points */
+-    int		first, last;	/* Indices of first and last pts in region */
+-    Vector2	tHat1, tHat2;	/* Unit tangent vectors at endpoints */
+-    double	error;		/*  User-defined error squared	   */
+-    int iterations;
++static void FitCubic(Buffer* buffer, Point2 *d, int first, int last, Vector2 tHat1, Vector2 tHat2, double error, int iterations)
++    // Buffer* buffer;
++    // Point2	*d;			/*  Array of digitized points */
++    // int		first, last;	/* Indices of first and last pts in region */
++    // Vector2	tHat1, tHat2;	/* Unit tangent vectors at endpoints */
++    // double	error;		/*  User-defined error squared	   */
++    // int iterations;
+ {
+     BezierCurve	bezCurve; /*Control points of fitted Bezier curve*/
+     double	*u;		/*  Parameter values for point  */
+@@ -197,7 +197,7 @@
+     double	iterationError; /*Error below which you try iterating  */
+     int		maxIterations = 4; /*  Max times to try iterating  */
+     Vector2	tHatCenter;   	/* Unit tangent vector at splitPoint */
+-    int		i;		
++    int		i;
+ 
+ 	if (iterations > 2000) {
+ 		g_warning("Too many iterations.");
+@@ -212,7 +212,7 @@
+ 		g_warning("nPts <= 1");
+ 		return;
+ 	}
+-	
++
+     /*  Use heuristic if region only has two points in it */
+     if (nPts == 2) {
+ 	    double dist = V2DistanceBetween2Points(&d[last], &d[first]) / 3.0;
+@@ -232,7 +232,7 @@
+     if (u == NULL) {
+ 		return;
+ 	}
+-    
++
+     bezCurve = GenerateBezier(d, first, last, u, tHat1, tHat2);
+ 
+     /*  Find max deviation of points to fitted curve */
+@@ -280,11 +280,11 @@
+  *  Use least-squares method to find Bezier control points for region.
+  *
+  */
+-static BezierCurve  GenerateBezier(d, first, last, uPrime, tHat1, tHat2)
+-    Point2	*d;			/*  Array of digitized points	*/
+-    int		first, last;		/*  Indices defining region	*/
+-    double	*uPrime;		/*  Parameter values for region */
+-    Vector2	tHat1, tHat2;	/*  Unit tangents at endpoints	*/
++static BezierCurve  GenerateBezier(Point2 *d, int first, int last, double *uPrime, Vector2 tHat1, Vector2 tHat2)
++    // Point2	*d;			/*  Array of digitized points	*/
++    // int		first, last;		/*  Indices defining region	*/
++    // double	*uPrime;		/*  Parameter values for region */
++    // Vector2	tHat1, tHat2;	/*  Unit tangents at endpoints	*/
+ {
+     int 	i;
+     Vector2 	A[MAXPOINTS][2];	/* Precomputed rhs for eqn	*/
+@@ -302,7 +302,7 @@
+     bezCurve = (Point2 *)malloc(4 * sizeof(Point2));
+     nPts = last - first + 1;
+ 
+- 
++
+     /* Compute the A's	*/
+     for (i = 0; i < nPts; i++) {
+ 		Vector2		v1, v2;
+@@ -325,7 +325,7 @@
+     for (i = 0; i < nPts; i++) {
+         C[0][0] += V2Dot(&A[i][0], &A[i][0]);
+ 		C[0][1] += V2Dot(&A[i][0], &A[i][1]);
+-/*					C[1][0] += V2Dot(&A[i][0], &A[i][1]);*/	
++/*					C[1][0] += V2Dot(&A[i][0], &A[i][1]);*/
+ 		C[1][0] = C[0][1];
+ 		C[1][1] += V2Dot(&A[i][1], &A[i][1]);
+ 
+@@ -337,7 +337,7 @@
+ 		        			V2AddII(
+ 	                  		V2ScaleIII(d[last], B2(uPrime[i])),
+ 	                    		V2ScaleIII(d[last], B3(uPrime[i]))))));
+-	
++
+ 
+ 	X[0] += V2Dot(&A[i][0], &tmp);
+ 	X[1] += V2Dot(&A[i][1], &tmp);
+@@ -386,13 +386,13 @@
+  *   a better parameterization.
+  *
+  */
+-static double *Reparameterize(d, first, last, u, bezCurve)
+-    Point2	*d;			/*  Array of digitized points	*/
+-    int		first, last;		/*  Indices defining region	*/
+-    double	*u;			/*  Current parameter values	*/
+-    BezierCurve	bezCurve;	/*  Current fitted curve	*/
++static double *Reparameterize(Point2 *d, int first, int last, double *u, BezierCurve bezCurve)
++//    Point2	*d;			/*  Array of digitized points	*/
++//    int		first, last;		/*  Indices defining region	*/
++//    double	*u;			/*  Current parameter values	*/
++//    BezierCurve	bezCurve;	/*  Current fitted curve	*/
+ {
+-    int 	nPts = last-first+1;	
++    int 	nPts = last-first+1;
+     int 	i;
+     double	*uPrime;		/*  New parameter values	*/
+ 
+@@ -410,36 +410,36 @@
+  *  NewtonRaphsonRootFind :
+  *	Use Newton-Raphson iteration to find better root.
+  */
+-static double NewtonRaphsonRootFind(Q, P, u)
+-    BezierCurve	Q;			/*  Current fitted curve	*/
+-    Point2 		P;		/*  Digitized point		*/
+-    double 		u;		/*  Parameter value for "P"	*/
++static double NewtonRaphsonRootFind(BezierCurve Q, Point2 P, double u)
++    // BezierCurve	Q;			/*  Current fitted curve	*/
++    // Point2 		P;		/*  Digitized point		*/
++    // double 		u;		/*  Parameter value for "P"	*/
+ {
+     double 		numerator, denominator;
+     Point2 		Q1[3], Q2[2];	/*  Q' and Q''			*/
+     Point2		Q_u, Q1_u, Q2_u; /*u evaluated at Q, Q', & Q''	*/
+     double 		uPrime;		/*  Improved u			*/
+     int 		i;
+-    
++
+     /* Compute Q(u)	*/
+     Q_u = BezierII(3, Q, u);
+-    
++
+     /* Generate control vertices for Q'	*/
+     for (i = 0; i <= 2; i++) {
+ 		Q1[i].x = (Q[i+1].x - Q[i].x) * 3.0;
+ 		Q1[i].y = (Q[i+1].y - Q[i].y) * 3.0;
+     }
+-    
++
+     /* Generate control vertices for Q'' */
+     for (i = 0; i <= 1; i++) {
+ 		Q2[i].x = (Q1[i+1].x - Q1[i].x) * 2.0;
+ 		Q2[i].y = (Q1[i+1].y - Q1[i].y) * 2.0;
+     }
+-    
++
+     /* Compute Q'(u) and Q''(u)	*/
+     Q1_u = BezierII(2, Q1, u);
+     Q2_u = BezierII(1, Q2, u);
+-    
++
+     /* Compute f(u)/f'(u) */
+     numerator = (Q_u.x - P.x) * (Q1_u.x) + (Q_u.y - P.y) * (Q1_u.y);
+     denominator = (Q1_u.x) * (Q1_u.x) + (Q1_u.y) * (Q1_u.y) +
+@@ -451,31 +451,31 @@
+     return (uPrime);
+ }
+ 
+-	
+-		       
++
++
+ /*
+  *  Bezier :
+  *  	Evaluate a Bezier curve at a particular parameter value
+- * 
++ *
+  */
+-static Point2 BezierII(degree, V, t)
+-    int		degree;		/* The degree of the bezier curve	*/
+-    Point2 	*V;		/* Array of control points		*/
+-    double 	t;		/* Parametric value to find point for	*/
++static Point2 BezierII(int degree, Point2 *V, double t)
++    // int		degree;		/* The degree of the bezier curve	*/
++    // Point2 	*V;		/* Array of control points		*/
++    // double 	t;		/* Parametric value to find point for	*/
+ {
+-    int 	i, j;		
++    int 	i, j;
+     Point2 	Q;	        /* Point on curve at parameter t	*/
+     Point2 	*Vtemp;		/* Local copy of control points		*/
+ 
+     /* Copy array	*/
+-    Vtemp = (Point2 *)malloc((unsigned)((degree+1) 
++    Vtemp = (Point2 *)malloc((unsigned)((degree+1)
+ 				* sizeof (Point2)));
+     for (i = 0; i <= degree; i++) {
+ 		Vtemp[i] = V[i];
+     }
+ 
+     /* Triangle computation	*/
+-    for (i = 1; i <= degree; i++) {	
++    for (i = 1; i <= degree; i++) {
+ 		for (j = 0; j <= degree-i; j++) {
+ 	    	Vtemp[j].x = (1.0 - t) * Vtemp[j].x + t * Vtemp[j+1].x;
+ 	    	Vtemp[j].y = (1.0 - t) * Vtemp[j].y + t * Vtemp[j+1].y;
+@@ -492,30 +492,26 @@
+  *  B0, B1, B2, B3 :
+  *	Bezier multipliers
+  */
+-static double B0(u)
+-    double	u;
++static double B0(double u)
+ {
+     double tmp = 1.0 - u;
+     return (tmp * tmp * tmp);
+ }
+ 
+ 
+-static double B1(u)
+-    double	u;
++static double B1(double u)
+ {
+     double tmp = 1.0 - u;
+     return (3 * u * (tmp * tmp));
+ }
+ 
+-static double B2(u)
+-    double	u;
++static double B2(double u)
+ {
+     double tmp = 1.0 - u;
+     return (3 * u * u * tmp);
+ }
+ 
+-static double B3(u)
+-    double	u;
++static double B3(double u)
+ {
+     return (u * u * u);
+ }
+@@ -526,9 +522,9 @@
+  * ComputeLeftTangent, ComputeRightTangent, ComputeCenterTangent :
+  *Approximate unit tangents at endpoints and "center" of digitized curve
+  */
+-static Vector2 ComputeLeftTangent(d, end)
+-    Point2	*d;			/*  Digitized points*/
+-    int		end;		/*  Index to "left" end of region */
++static Vector2 ComputeLeftTangent(Point2 *d, int end)
++    // Point2	*d;			/*  Digitized points*/
++    // int		end;		/*  Index to "left" end of region */
+ {
+     Vector2	tHat1;
+     tHat1 = V2SubII(d[end+1], d[end]);
+@@ -536,9 +532,9 @@
+     return tHat1;
+ }
+ 
+-static Vector2 ComputeRightTangent(d, end)
+-    Point2	*d;			/*  Digitized points		*/
+-    int		end;		/*  Index to "right" end of region */
++static Vector2 ComputeRightTangent(Point2 *d, int end)
++    // Point2	*d;			/*  Digitized points		*/
++    // int		end;		/*  Index to "right" end of region */
+ {
+     Vector2	tHat2;
+     tHat2 = V2SubII(d[end-1], d[end]);
+@@ -547,9 +543,9 @@
+ }
+ 
+ 
+-static Vector2 ComputeCenterTangent(d, center)
+-    Point2	*d;			/*  Digitized points			*/
+-    int		center;		/*  Index to point inside region	*/
++static Vector2 ComputeCenterTangent(Point2 *d, int center)
++    // Point2	*d;			/*  Digitized points			*/
++    // int		center;		/*  Index to point inside region	*/
+ {
+     Vector2	V1, V2, tHatCenter;
+ 
+@@ -564,14 +560,14 @@
+ 
+ /*
+  *  ChordLengthParameterize :
+- *	Assign parameter values to digitized points 
++ *	Assign parameter values to digitized points
+  *	using relative distances between points.
+  */
+-static double *ChordLengthParameterize(d, first, last)
+-    Point2	*d;			/* Array of digitized points */
+-    int		first, last;		/*  Indices defining region	*/
++static double *ChordLengthParameterize(Point2 *d, int first, int last)
++    // Point2	*d;			/* Array of digitized points */
++    // int		first, last;		/*  Indices defining region	*/
+ {
+-    int		i;	
++    int		i;
+     double	*u;			/*  Parameterization		*/
+ 
+ 	if (last-first+1 <= 0) {
+@@ -580,7 +576,7 @@
+ 	}
+ 
+     u = (double *)malloc((unsigned)(last-first+1) * sizeof(double));
+-	
++
+ 	if (u == NULL) {
+ 		g_warning("Can't allocate array in ChordLengthParameterize");
+ 		return NULL;
+@@ -607,12 +603,12 @@
+  *	Find the maximum squared distance of digitized points
+  *	to fitted curve.
+ */
+-static double ComputeMaxError(d, first, last, bezCurve, u, splitPoint)
+-    Point2	*d;			/*  Array of digitized points	*/
+-    int		first, last;		/*  Indices defining region	*/
+-    BezierCurve	bezCurve;		/*  Fitted Bezier curve		*/
+-    double	*u;			/*  Parameterization of points	*/
+-    int		*splitPoint;		/*  Point of maximum error	*/
++static double ComputeMaxError(Point2 *d, int first, int last, BezierCurve bezCurve, double *u, int *splitPoint)
++    // Point2	*d;			/*  Array of digitized points	*/
++    // int		first, last;		/*  Indices defining region	*/
++    // BezierCurve	bezCurve;		/*  Fitted Bezier curve		*/
++    // double	*u;			/*  Parameterization of points	*/
++    // int		*splitPoint;		/*  Point of maximum error	*/
+ {
+     int		i;
+     double	maxDist;		/*  Maximum error		*/
+@@ -633,24 +629,24 @@
+     }
+     return (maxDist);
+ }
+-static Vector2 V2AddII(a, b)
+-    Vector2 a, b;
++static Vector2 V2AddII(Vector2 a, Vector2 b)
++    // Vector2 a, b;
+ {
+     Vector2	c;
+     c.x = a.x + b.x;  c.y = a.y + b.y;
+     return (c);
+ }
+-static Vector2 V2ScaleIII(v, s)
+-    Vector2	v;
+-    double	s;
++static Vector2 V2ScaleIII(Vector2 v, double s)
++    // Vector2	v;
++    // double	s;
+ {
+     Vector2 result;
+     result.x = v.x * s; result.y = v.y * s;
+     return (result);
+ }
+ 
+-static Vector2 V2SubII(a, b)
+-    Vector2	a, b;
++static Vector2 V2SubII(Vector2 a, Vector2 b)
++    // Vector2	a, b;
+ {
+     Vector2	c;
+     c.x = a.x - b.x; c.y = a.y - b.y;
+--- birdfont-2.33.6/libbirdgems/GGVecLib.c.orig	2024-09-16 10:15:40.000000000 +0100
++++ birdfont-2.33.6/libbirdgems/GGVecLib.c	2025-06-14 09:03:45.344636334 +0100
+@@ -1,19 +1,19 @@
+-/* 
+-2d and 3d Vector C Library 
++/*
++2d and 3d Vector C Library
+ by Andrew Glassner
+ from "Graphics Gems", Academic Press, 1990
+ */
+ 
+ /*
+- * EULA: The Graphics Gems code is copyright-protected. In other words, 
+- * you cannot claim the text of the code as your own and resell it. 
+- * Using the code is permitted in any program, product, or library, 
+- * non-commercial or commercial. Giving credit is not required, though 
+- * is a nice gesture. The code comes as-is, and if there are any flaws 
++ * EULA: The Graphics Gems code is copyright-protected. In other words,
++ * you cannot claim the text of the code as your own and resell it.
++ * Using the code is permitted in any program, product, or library,
++ * non-commercial or commercial. Giving credit is not required, though
++ * is a nice gesture. The code comes as-is, and if there are any flaws
+  * or problems with any Gems code, nobody involved with Gems - authors,
+- * editors, publishers, or webmasters - are to be held responsible. 
+- * Basically, don't be a jerk, and remember that anything free comes 
+- * with no guarantee. 
++ * editors, publishers, or webmasters - are to be held responsible.
++ * Basically, don't be a jerk, and remember that anything free comes
++ * with no guarantee.
+  */
+ 
+ #include <math.h>
+@@ -24,30 +24,26 @@
+ /*   2d Library   */
+ /******************/
+ 
+-/* returns squared length of input vector */	
+-double V2SquaredLength(a) 
+-Vector2 *a;
++/* returns squared length of input vector */
++double V2SquaredLength(Vector2 *a)
+ {	return((a->x * a->x)+(a->y * a->y));
+ 	}
+-	
++
+ /* returns length of input vector */
+-double V2Length(a) 
+-Vector2 *a;
++double V2Length(Vector2 *a)
+ {
+ 	return(sqrt(V2SquaredLength(a)));
+ 	}
+-	
++
+ /* negates the input vector and returns it */
+-Vector2 *V2Negate(v) 
+-Vector2 *v;
++Vector2 *V2Negate(Vector2 *v)
+ {
+ 	v->x = -v->x;  v->y = -v->y;
+ 	return(v);
+ 	}
+ 
+ /* normalizes the input vector and returns it */
+-Vector2 *V2Normalize(v) 
+-Vector2 *v;
++Vector2 *V2Normalize(Vector2 *v)
+ {
+ double len = V2Length(v);
+ 	if (len != 0.0) { v->x /= len;  v->y /= len; }
+@@ -56,9 +52,7 @@
+ 
+ 
+ /* scales the input vector to the new length and returns it */
+-Vector2 *V2Scale(v, newlen) 
+-Vector2 *v;
+-double newlen;
++Vector2 *V2Scale(Vector2 *v, double newlen)
+ {
+ double len = V2Length(v);
+ 	if (len != 0.0) { v->x *= newlen/len;   v->y *= newlen/len; }
+@@ -66,24 +60,21 @@
+ 	}
+ 
+ /* return vector sum c = a+b */
+-Vector2 *V2Add(a, b, c)
+-Vector2 *a, *b, *c;
++Vector2 *V2Add(Vector2 *a, Vector2 *b, Vector2 *c)
+ {
+ 	c->x = a->x+b->x;  c->y = a->y+b->y;
+ 	return(c);
+ 	}
+-	
++
+ /* return vector difference c = a-b */
+-Vector2 *V2Sub(a, b, c)
+-Vector2 *a, *b, *c;
++Vector2 *V2Sub(Vector2 *a, Vector2 *b, Vector2 *c)
+ {
+ 	c->x = a->x-b->x;  c->y = a->y-b->y;
+ 	return(c);
+ 	}
+ 
+ /* return the dot product of vectors a and b */
+-double V2Dot(a, b) 
+-Vector2 *a, *b; 
++double V2Dot(Vector2 *a, Vector2 *b)
+ {
+ 	return((a->x*b->x)+(a->y*b->y));
+ 	}
+@@ -91,9 +82,7 @@
+ /* linearly interpolate between vectors by an amount alpha */
+ /* and return the resulting vector. */
+ /* When alpha=0, result=lo.  When alpha=1, result=hi. */
+-Vector2 *V2Lerp(lo, hi, alpha, result) 
+-Vector2 *lo, *hi, *result; 
+-double alpha;
++Vector2 *V2Lerp(Vector2 *lo, Vector2 *hi, double alpha, Vector2 *result)
+ {
+ 	result->x = LERP(alpha, lo->x, hi->x);
+ 	result->y = LERP(alpha, lo->y, hi->y);
+@@ -103,9 +92,7 @@
+ 
+ /* make a linear combination of two vectors and return the result. */
+ /* result = (a * ascl) + (b * bscl) */
+-Vector2 *V2Combine (a, b, result, ascl, bscl) 
+-Vector2 *a, *b, *result;
+-double ascl, bscl;
++Vector2 *V2Combine (Vector2 *a, Vector2 *b, Vector2 *result, double ascl, double bscl)
+ {
+ 	result->x = (ascl * a->x) + (bscl * b->x);
+ 	result->y = (ascl * a->y) + (bscl * b->y);
+@@ -113,8 +100,7 @@
+ 	}
+ 
+ /* multiply two vectors together component-wise */
+-Vector2 *V2Mul (a, b, result) 
+-Vector2 *a, *b, *result;
++Vector2 *V2Mul (Vector2 *a, Vector2 *b, Vector2 *result)
+ {
+ 	result->x = a->x * b->x;
+ 	result->y = a->y * b->y;
+@@ -122,8 +108,7 @@
+ 	}
+ 
+ /* return the distance between two points */
+-double V2DistanceBetween2Points(a, b)
+-Point2 *a, *b;
++double V2DistanceBetween2Points(Point2 *a, Point2 *b)
+ {
+ double dx = a->x - b->x;
+ double dy = a->y - b->y;
+@@ -131,8 +116,7 @@
+ 	}
+ 
+ /* return the vector perpendicular to the input vector a */
+-Vector2 *V2MakePerpendicular(a, ap)
+-Vector2 *a, *ap;
++Vector2 *V2MakePerpendicular(Vector2 *a, Vector2 *ap)
+ {
+ 	ap->x = -a->y;
+ 	ap->y = a->x;
+@@ -140,36 +124,32 @@
+ 	}
+ 
+ /* create, initialize, and return a new vector */
+-Vector2 *V2New(x, y)
+-double x, y;
++Vector2 *V2New(double x, double y)
+ {
+ Vector2 *v = NEWTYPE(Vector2);
+-	v->x = x;  v->y = y; 
++	v->x = x;  v->y = y;
+ 	return(v);
+ 	}
+-	
++
+ 
+ /* create, initialize, and return a duplicate vector */
+-Vector2 *V2Duplicate(a)
+-Vector2 *a;
++Vector2 *V2Duplicate(Vector2 *a)
+ {
+ Vector2 *v = NEWTYPE(Vector2);
+-	v->x = a->x;  v->y = a->y; 
++	v->x = a->x;  v->y = a->y;
+ 	return(v);
+ 	}
+-	
++
+ /* multiply a point by a matrix and return the transformed point */
+-Point2 *V2MulPointByMatrix(p, m)
+-Point2 *p;
+-Matrix3 *m;
++Point2 *V2MulPointByMatrix(Point2 *p, Matrix3 *m)
+ {
+ double w;
+ Point2 ptmp;
+-	ptmp.x = (p->x * m->element[0][0]) + 
++	ptmp.x = (p->x * m->element[0][0]) +
+              (p->y * m->element[1][0]) + m->element[2][0];
+-	ptmp.y = (p->x * m->element[0][1]) + 
++	ptmp.y = (p->x * m->element[0][1]) +
+              (p->y * m->element[1][1]) + m->element[2][1];
+-	w    = (p->x * m->element[0][2]) + 
++	w    = (p->x * m->element[0][2]) +
+              (p->y * m->element[1][2]) + m->element[2][2];
+ 	if (w != 0.0) { ptmp.x /= w;  ptmp.y /= w; }
+ 	*p = ptmp;
+@@ -178,14 +158,14 @@
+ 
+ /* multiply together matrices c = ab */
+ /* note that c must not point to either of the input matrices */
+-Matrix3 *V2MatMul(a, b, c)
+-Matrix3 *a, *b, *c;
++Matrix3 *
++V2MatMul (Matrix3 *a, Matrix3 *b, Matrix3 *c)
+ {
+ int i, j, k;
+ 	for (i=0; i<3; i++) {
+ 		for (j=0; j<3; j++) {
+ 			c->element[i][j] = 0;
+-		for (k=0; k<3; k++) c->element[i][j] += 
++		for (k=0; k<3; k++) c->element[i][j] +=
+ 				a->element[i][k] * b->element[k][j];
+ 			}
+ 		}
+@@ -198,32 +178,32 @@
+ /******************/
+ /*   3d Library   */
+ /******************/
+-	
+-/* returns squared length of input vector */	
+-double V3SquaredLength(a) 
+-Vector3 *a;
++
++/* returns squared length of input vector */
++double
++V3SquaredLength (Vector3 *a)
+ {
+ 	return((a->x * a->x)+(a->y * a->y)+(a->z * a->z));
+ 	}
+ 
+ /* returns length of input vector */
+-double V3Length(a) 
+-Vector3 *a;
++double
++V3Length (Vector3 *a)
+ {
+ 	return(sqrt(V3SquaredLength(a)));
+ 	}
+ 
+ /* negates the input vector and returns it */
+-Vector3 *V3Negate(v) 
+-Vector3 *v;
++Vector3 *
++V3Negate (Vector3 *v)
+ {
+ 	v->x = -v->x;  v->y = -v->y;  v->z = -v->z;
+ 	return(v);
+ 	}
+ 
+ /* normalizes the input vector and returns it */
+-Vector3 *V3Normalize(v) 
+-Vector3 *v;
++Vector3 *
++V3Normalize (Vector3 *v)
+ {
+ double len = V3Length(v);
+ 	if (len != 0.0) { v->x /= len;  v->y /= len; v->z /= len; }
+@@ -231,9 +211,8 @@
+ 	}
+ 
+ /* scales the input vector to the new length and returns it */
+-Vector3 *V3Scale(v, newlen) 
+-Vector3 *v;
+-double newlen;
++Vector3 *
++V3Scale (Vector3 *v, double newlen)
+ {
+ double len = V3Length(v);
+ 	if (len != 0.0) {
+@@ -244,24 +223,24 @@
+ 
+ 
+ /* return vector sum c = a+b */
+-Vector3 *V3Add(a, b, c)
+-Vector3 *a, *b, *c;
++Vector3 *
++V3Add (Vector3 *a, Vector3 *b, Vector3 *c)
+ {
+ 	c->x = a->x+b->x;  c->y = a->y+b->y;  c->z = a->z+b->z;
+ 	return(c);
+ 	}
+-	
++
+ /* return vector difference c = a-b */
+-Vector3 *V3Sub(a, b, c)
+-Vector3 *a, *b, *c;
++Vector3 *
++V3Sub (Vector3 *a, Vector3 *b, Vector3 *c)
+ {
+ 	c->x = a->x-b->x;  c->y = a->y-b->y;  c->z = a->z-b->z;
+ 	return(c);
+ 	}
+ 
+ /* return the dot product of vectors a and b */
+-double V3Dot(a, b) 
+-Vector3 *a, *b; 
++double
++V3Dot (Vector3 *a, Vector3 *b)
+ {
+ 	return((a->x*b->x)+(a->y*b->y)+(a->z*b->z));
+ 	}
+@@ -269,9 +248,8 @@
+ /* linearly interpolate between vectors by an amount alpha */
+ /* and return the resulting vector. */
+ /* When alpha=0, result=lo.  When alpha=1, result=hi. */
+-Vector3 *V3Lerp(lo, hi, alpha, result) 
+-Vector3 *lo, *hi, *result; 
+-double alpha;
++Vector3 *
++V3Lerp (Vector3 *lo, Vector3 *hi, double alpha, Vector3 *result)
+ {
+ 	result->x = LERP(alpha, lo->x, hi->x);
+ 	result->y = LERP(alpha, lo->y, hi->y);
+@@ -281,9 +259,8 @@
+ 
+ /* make a linear combination of two vectors and return the result. */
+ /* result = (a * ascl) + (b * bscl) */
+-Vector3 *V3Combine (a, b, result, ascl, bscl) 
+-Vector3 *a, *b, *result;
+-double ascl, bscl;
++Vector3 *
++V3Combine (Vector3 *a, Vector3 *b, Vector3 *result, double ascl, double bscl)
+ {
+ 	result->x = (ascl * a->x) + (bscl * b->x);
+ 	result->y = (ascl * a->y) + (bscl * b->y);
+@@ -293,8 +270,8 @@
+ 
+ 
+ /* multiply two vectors together component-wise and return the result */
+-Vector3 *V3Mul (a, b, result) 
+-Vector3 *a, *b, *result;
++Vector3 *
++V3Mul (Vector3 *a, Vector3 *b, Vector3 *result)
+ {
+ 	result->x = a->x * b->x;
+ 	result->y = a->y * b->y;
+@@ -303,8 +280,8 @@
+ 	}
+ 
+ /* return the distance between two points */
+-double V3DistanceBetween2Points(a, b)
+-Point3 *a, *b;
++double
++V3DistanceBetween2Points (Point3 *a, Point3 *b)
+ {
+ double dx = a->x - b->x;
+ double dy = a->y - b->y;
+@@ -313,8 +290,8 @@
+ 	}
+ 
+ /* return the cross product c = a cross b */
+-Vector3 *V3Cross(a, b, c)
+-Vector3 *a, *b, *c;
++Vector3 *
++V3Cross (Vector3 *a, Vector3 *b, Vector3 *c)
+ {
+ 	c->x = (a->y*b->z) - (a->z*b->y);
+ 	c->y = (a->z*b->x) - (a->x*b->z);
+@@ -323,8 +300,8 @@
+ 	}
+ 
+ /* create, initialize, and return a new vector */
+-Vector3 *V3New(x, y, z)
+-double x, y, z;
++Vector3 *
++V3New (double x, double y, double z)
+ {
+ Vector3 *v = NEWTYPE(Vector3);
+ 	v->x = x;  v->y = y;  v->z = z;
+@@ -332,29 +309,28 @@
+ 	}
+ 
+ /* create, initialize, and return a duplicate vector */
+-Vector3 *V3Duplicate(a)
+-Vector3 *a;
++Vector3 *
++V3Duplicate (Vector3 *a)
+ {
+ Vector3 *v = NEWTYPE(Vector3);
+ 	v->x = a->x;  v->y = a->y;  v->z = a->z;
+ 	return(v);
+ 	}
+ 
+-	
++
+ /* multiply a point by a matrix and return the transformed point */
+-Point3 *V3MulPointByMatrix(p, m)
+-Point3 *p;
+-Matrix4 *m;
++Point3 *
++V3MulPointByMatrix (Point3 *p, Matrix4 *m)
+ {
+ double w;
+ Point3 ptmp;
+-	ptmp.x = (p->x * m->element[0][0]) + (p->y * m->element[1][0]) + 
++	ptmp.x = (p->x * m->element[0][0]) + (p->y * m->element[1][0]) +
+ 		 (p->z * m->element[2][0]) + m->element[3][0];
+-	ptmp.y = (p->x * m->element[0][1]) + (p->y * m->element[1][1]) + 
++	ptmp.y = (p->x * m->element[0][1]) + (p->y * m->element[1][1]) +
+ 		 (p->z * m->element[2][1]) + m->element[3][1];
+-	ptmp.z = (p->x * m->element[0][2]) + (p->y * m->element[1][2]) + 
++	ptmp.z = (p->x * m->element[0][2]) + (p->y * m->element[1][2]) +
+ 		 (p->z * m->element[2][2]) + m->element[3][2];
+-	w =    (p->x * m->element[0][3]) + (p->y * m->element[1][3]) + 
++	w =    (p->x * m->element[0][3]) + (p->y * m->element[1][3]) +
+ 		 (p->z * m->element[2][3]) + m->element[3][3];
+ 	if (w != 0.0) { ptmp.x /= w;  ptmp.y /= w;  ptmp.z /= w; }
+ 	*p = ptmp;
+@@ -363,14 +339,14 @@
+ 
+ /* multiply together matrices c = ab */
+ /* note that c must not point to either of the input matrices */
+-Matrix4 *V3MatMul(a, b, c)
+-Matrix4 *a, *b, *c;
++Matrix4 *
++V3MatMul (Matrix4 *a, Matrix4 *b, Matrix4 *c)
+ {
+ int i, j, k;
+ 	for (i=0; i<4; i++) {
+ 		for (j=0; j<4; j++) {
+ 			c->element[i][j] = 0;
+-			for (k=0; k<4; k++) c->element[i][j] += 
++			for (k=0; k<4; k++) c->element[i][j] +=
+ 				a->element[i][k] * b->element[k][j];
+ 			}
+ 		}
+@@ -379,8 +355,8 @@
+ 
+ /* binary greatest common divisor by Silver and Terzian.  See Knuth */
+ /* both inputs must be >= 0 */
+-int gcd(u, v)
+-int u, v;
++int
++gcd (int u, int v)
+ {
+ int t, f;
+ 	if ((u<0) || (v<0)) return(1); /* error if u<0 or v<0 */
+@@ -395,7 +371,7 @@
+ 	if (t > 0) u = t; else v = -t;
+ 	if (0 != (t = u - v)) goto B3;
+ 	return(u*f);
+-	}	
++	}
+ 
+ /***********************/
+ /*   Useful Routines   */
+@@ -403,8 +379,8 @@
+ 
+ /* return roots of ax^2+bx+c */
+ /* stable algebra derived from Numerical Recipes by Press et al.*/
+-int quadraticRoots(a, b, c, roots)
+-double a, b, c, *roots;
++int
++quadraticRoots (double a, double b, double c, double *roots)
+ {
+ double d, q;
+ int count = 0;
+@@ -420,8 +396,8 @@
+ /* generic 1d regula-falsi step.  f is function to evaluate */
+ /* interval known to contain root is given in left, right */
+ /* returns new estimate */
+-double RegulaFalsi(f, left, right)
+-double (*f)(), left, right;
++double
++RegulaFalsi (double (*f)(double), double left, double right)
+ {
+ double d = (*f)(right) - (*f)(left);
+ 	if (d != 0.0) return (right - (*f)(right)*(right-left)/d);
+@@ -430,8 +406,8 @@
+ 
+ /* generic 1d Newton-Raphson step. f is function, df is derivative */
+ /* x is current best guess for root location. Returns new estimate */
+-double NewtonRaphson(f, df, x)
+-double (*f)(), (*df)(), x;
++double
++NewtonRaphson (double (*f)(double), double (*df)(double), double x)
+ {
+ double d = (*df)(x);
+ 	if (d != 0.0) return (x-((*f)(x)/d));
+@@ -443,17 +419,16 @@
+ /* input function f and its derivative df, an interval */
+ /* left, right known to contain the root, and an error tolerance */
+ /* Based on Blinn */
+-double findroot(left, right, tolerance, f, df)
+-double left, right, tolerance;
+-double (*f)(), (*df)();
++double
++findroot (double left, double right, double tolerance, double (*f)(double), double (*df)(double))
+ {
+ double newx = left;
+ 	while (ABS((*f)(newx)) > tolerance) {
+ 		newx = NewtonRaphson(f, df, newx);
+-		if (newx < left || newx > right) 
++		if (newx < left || newx > right)
+ 			newx = RegulaFalsi(f, left, right);
+-		if ((*f)(newx) * (*f)(left) <= 0.0) right = newx;  
++		if ((*f)(newx) * (*f)(left) <= 0.0) right = newx;
+ 			else left = newx;
+ 		}
+ 	return(newx);
+-	} 
++	}
+--- birdfont-2.33.6/libbirdgems/GraphicsGems.h.orig	2024-09-16 10:15:40.000000000 +0100
++++ birdfont-2.33.6/libbirdgems/GraphicsGems.h	2025-06-14 09:03:42.587186330 +0100
+@@ -1,21 +1,21 @@
+-/* 
+- * GraphicsGems.h  
++/*
++ * GraphicsGems.h
+  * Version 1.0 - Andrew Glassner
+  * from "Graphics Gems", Academic Press, 1990
+  */
+ 
+ /*
+- * EULA: The Graphics Gems code is copyright-protected. In other words, 
+- * you cannot claim the text of the code as your own and resell it. 
+- * Using the code is permitted in any program, product, or library, 
+- * non-commercial or commercial. Giving credit is not required, though 
+- * is a nice gesture. The code comes as-is, and if there are any flaws 
++ * EULA: The Graphics Gems code is copyright-protected. In other words,
++ * you cannot claim the text of the code as your own and resell it.
++ * Using the code is permitted in any program, product, or library,
++ * non-commercial or commercial. Giving credit is not required, though
++ * is a nice gesture. The code comes as-is, and if there are any flaws
+  * or problems with any Gems code, nobody involved with Gems - authors,
+- * editors, publishers, or webmasters - are to be held responsible. 
+- * Basically, don't be a jerk, and remember that anything free comes 
+- * with no guarantee. 
++ * editors, publishers, or webmasters - are to be held responsible.
++ * Basically, don't be a jerk, and remember that anything free comes
++ * with no guarantee.
+  */
+- 
++
+ #ifndef GG_H
+ 
+ #define GG_H 1
+@@ -40,7 +40,7 @@
+ typedef struct Box2dStruct {		/* 2d box */
+ 	Point2 min, max;
+ 	} Box2;
+-	
++
+ 
+ /*********************/
+ /* 3d geometry types */
+@@ -77,7 +77,7 @@
+ #define ROUND(a)	((a)>0 ? (int)((a)+0.5) : -(int)(0.5-(a)))
+ 
+ /* take sign of a, either -1, 0, or 1 */
+-#define ZSGN(a)		(((a)<0) ? -1 : (a)>0 ? 1 : 0)	
++#define ZSGN(a)		(((a)<0) ? -1 : (a)>0 ? 1 : 0)
+ 
+ /* take binary sign of a, either -1, or 1 if >= 0 */
+ #define SGN(a)		(((a)<0) ? -1 : 1)
+@@ -87,7 +87,7 @@
+ if (!(x)) fprintf(stderr," Assert failed: x\n");
+ 
+ /* square a */
+-#define SQR(a)		((a)*(a))	
++#define SQR(a)		((a)*(a))
+ 
+ 
+ /***********************/
+@@ -95,10 +95,10 @@
+ /***********************/
+ 
+ /* find minimum of a and b */
+-#define MIN(a,b)	(((a)<(b))?(a):(b))	
++#define MIN(a,b)	(((a)<(b))?(a):(b))
+ 
+ /* find maximum of a and b */
+-#define MAX(a,b)	(((a)>(b))?(a):(b))	
++#define MAX(a,b)	(((a)>(b))?(a):(b))
+ 
+ /* swap a and b (see Gem by Wyvill) */
+ #define SWAP(a,b)	{ a^=b; b^=a; a^=b; }
+@@ -148,23 +148,45 @@
+ typedef int boolean;			/* boolean data type */
+ typedef boolean flag;			/* flag data type */
+ 
+-extern double V2SquaredLength(), V2Length();
+-extern double V2Dot(), V2DistanceBetween2Points(); 
+-extern Vector2 *V2Negate(), *V2Normalize(), *V2Scale(), *V2Add(), *V2Sub();
+-extern Vector2 *V2Lerp(), *V2Combine(), *V2Mul(), *V2MakePerpendicular();
+-extern Vector2 *V2New(), *V2Duplicate();
+-extern Point2 *V2MulPointByMatrix();
+-extern Matrix3 *V2MatMul();
+-
+-extern double V3SquaredLength(), V3Length();
+-extern double V3Dot(), V3DistanceBetween2Points();
+-extern Vector3 *V3Normalize(), *V3Scale(), *V3Add(), *V3Sub();
+-extern Vector3 *V3Lerp(), *V3Combine(), *V3Mul(), *V3Cross();
+-extern Vector3 *V3New(), *V3Duplicate();
+-extern Point3 *V3MulPointByMatrix();
+-extern Matrix4 *V3MatMul();
+-
+-extern double RegulaFalsi(), NewtonRaphson(), findroot();
++double V2SquaredLength(Vector2 *a);
++double V2Length(Vector2 *a);
++Vector2 *V2Negate(Vector2 *v);
++Vector2 *V2Normalize(Vector2 *v);
++Vector2 *V2Scale(Vector2 *v, double newlen);
++Vector2 *V2Add(Vector2 *a, Vector2 *b, Vector2 *c);
++Vector2 *V2Sub(Vector2 *a, Vector2 *b, Vector2 *c);
++double V2Dot(Vector2 *a, Vector2 *b);
++Vector2 *V2Lerp(Vector2 *lo, Vector2 *hi, double alpha, Vector2 *result);
++Vector2 *V2Combine(Vector2 *a, Vector2 *b, Vector2 *result, double ascl, double bscl);
++Vector2 *V2Mul(Vector2 *a, Vector2 *b, Vector2 *result);
++double V2DistanceBetween2Points(Point2 *a, Point2 *b);
++Vector2 *V2MakePerpendicular(Vector2 *a, Vector2 *ap);
++Vector2 *V2New(double x, double y);
++Vector2 *V2Duplicate(Vector2 *a);
++Point2 *V2MulPointByMatrix(Point2 *p, Matrix3 *m);
++Matrix3 *V2MatMul(Matrix3 *a, Matrix3 *b, Matrix3 *c);
++double V3SquaredLength(Vector3 *a);
++double V3Length(Vector3 *a);
++Vector3 *V3Negate(Vector3 *v);
++Vector3 *V3Normalize(Vector3 *v);
++Vector3 *V3Scale(Vector3 *v, double newlen);
++Vector3 *V3Add(Vector3 *a, Vector3 *b, Vector3 *c);
++Vector3 *V3Sub(Vector3 *a, Vector3 *b, Vector3 *c);
++double V3Dot(Vector3 *a, Vector3 *b);
++Vector3 *V3Lerp(Vector3 *lo, Vector3 *hi, double alpha, Vector3 *result);
++Vector3 *V3Combine(Vector3 *a, Vector3 *b, Vector3 *result, double ascl, double bscl);
++Vector3 *V3Mul(Vector3 *a, Vector3 *b, Vector3 *result);
++double V3DistanceBetween2Points(Point3 *a, Point3 *b);
++Vector3 *V3Cross(Vector3 *a, Vector3 *b, Vector3 *c);
++Vector3 *V3New(double x, double y, double z);
++Vector3 *V3Duplicate(Vector3 *a);
++Point3 *V3MulPointByMatrix(Point3 *p, Matrix4 *m);
++Matrix4 *V3MatMul(Matrix4 *a, Matrix4 *b, Matrix4 *c);
++int gcd(int u, int v);
++int quadraticRoots(double a, double b, double c, double *roots);
++double RegulaFalsi(double (*f)(double), double left, double right);
++double NewtonRaphson(double (*f)(double), double (*df)(double), double x);
++double findroot(double left, double right, double tolerance, double (*f)(double), double (*df)(double));
+ 
+ #endif
+ 
