@@ -1,0 +1,252 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=thunderbird
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/m/mozilla/thunderbird
+#TAR_EXT=.tar.gz
+VERSION=139.0.2
+VERSIONEXTRA=.source
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+PKGNAME=mozilla-thunderbird
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+
+# Retain GTK+ v2 scrolling behavior:
+zcat $CWD/thunderbird-tb.ui.scrollToClick.diff.gz | patch -p1 --verbose || exit 1
+
+ # Don't define a function that's included starting in glibc-2.36:
+zcat $CWD/thunderbird-arc4random_buf.glibc-2.36.diff.gz | patch -p1 --verbose || exit 1
+  
+# Accept sha1 signatures for a while longer:
+sed -i 's|pref("mail.smime.accept_insecure_sha1_message_signatures", false);|pref("mail.smime.accept_insecure_sha1_message_signatures", true);|g' comm/mail/extensions/am-e2e/prefs/e2e-prefs.js
+
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+# Choose a compiler (gcc/g++ or clang/clang++):
+export CC=${CC:-clang}
+export CXX=${CXX:-clang++}
+
+# Set linker to use:
+if [ "$CC" = "clang" -a "$(which lld 2> /dev/null)" = "/usr/bin/lld" ]; then
+  # Upstream default:
+  LINKER=lld
+else
+  LINKER=bfd
+fi
+
+# Keep memory usage as low as possible when linking:
+if [ ! "$LINKER" = "lld" ]; then
+  SLKLDFLAGS=" -Wl,--as-needed -Wl,--no-keep-memory -Wl,--stats -Wl,--reduce-memory-overheads"
+  export LDFLAGS="$SLKLDFLAGS"
+  export MOZ_LINK_FLAGS="$SLKLDFLAGS"
+fi
+
+# Put Rust objects on a diet to keep the linker from running into memory
+# issues (especially on 32-bit):
+export RUSTFLAGS="-Cdebuginfo=0"
+
+# If there is a private Google API key available at compile time, use
+# it to enable support for Google Safe Browsing. For Slackware builds,
+# we use a private key issued for the Slackware project. If you are
+# rebuilding and need this support, or you are producing your own
+# distribution, you may obtain your own Google API key at no charge by
+# following these instructions:
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1377987#c0
+if [ -r $HOME/Documents/Google/google-api-key ]; then
+  GOOGLE_API_KEY="--with-google-safebrowsing-api-keyfile=$HOME/Documents/Google/google-api-key"
+fi
+
+# Our building options, in a configure-like display ;)
+OPTIONS="\
+  --enable-official-branding \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --with-system-zlib \
+  --with-system-nss \
+  --with-system-nspr \
+  --enable-alsa \
+  --with-unsigned-addon-scopes=app,system \
+  --without-wasm-sandboxed-libraries \
+  --allow-addon-sideload \
+  --enable-application=comm/mail \
+  --enable-default-toolkit=cairo-gtk3-wayland \
+  --enable-linker=$LINKER \
+  --disable-strip \
+  --disable-install-strip \
+  --enable-cpp-rtti \
+  --enable-accessibility \
+  --enable-optimize \
+  $GOOGLE_API_KEY \
+  --disable-crashreporter \
+  --disable-debug-symbols \
+  --disable-debug \
+  --disable-elf-hack \
+  --disable-tests \
+  --disable-updater \
+  --host=$ARCH-slackware-linux \
+  --target=$ARCH-slackware-linux"
+  # Complains about missing APNG support in Slackware's libpng:
+  #--with-system-png \
+  # Broken with 12.0:
+  #--enable-system-cairo \
+
+# They say to use the second line, not the first.
+# But they're not the boss of me.
+export MACH_USE_SYSTEM_PYTHON="1"
+#export MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE=system
+export BUILD_OFFICIAL=1
+export MOZILLA_OFFICIAL=1
+export MOZ_PHOENIX=1
+export CFLAGS="$SLKCFLAGS"
+export CXXFLAGS="$SLKCFLAGS"
+export MOZ_MAKE_FLAGS="$NUM_JOBS"
+# Set the following variable to empty. =0 does not work.
+export MOZ_REQUIRE_SIGNING=
+export MOZBUILD_STATE_PATH="$(pwd)/.mozbuild"
+
+# Clear some variables that could break the build
+unset DBUS_SESSION_BUS_ADDRESS ORBIT_SOCKETDIR SESSION_MANAGER \
+  XDG_SESSION_COOKIE XAUTHORITY MAKEFLAGS
+
+# Assemble our .mozconfig:
+echo > .mozconfig
+
+# Tell .mozconfig about the selected compiler:
+echo "export CC=\"${CC}\"" >> .mozconfig
+echo "export CXX=\"${CXX}\"" >> .mozconfig
+
+# Mozilla devs enforce using an objdir for building
+# https://developer.mozilla.org/en/Configuring_Build_Options#Building_with_an_objdir
+mkdir obj
+echo "mk_add_options MOZ_OBJDIR=$(pwd)/obj" >> .mozconfig
+# This directory is also needed or the build will fail:
+mkdir -p mozilla/obj
+
+# Add the $OPTIONS above to .mozconfig:
+for option in $OPTIONS; do echo "ac_add_options $option" >> .mozconfig; done
+
+if [ ${DO_MAKE} == "yes" ]
+then
+# Do a standard build:
+./mach build || exit 1
+./mach buildsymbols || exit 1
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+DESTDIR=$PKG ./mach install || exit 1
+
+strip_binaries
+
+# We don't need these (just symlinks anyway):
+rm -rf $PKG/usr/lib${LIBDIRSUFFIX}/thunderbird-devel-$VERSION
+
+# Nor these:
+rm -rf $PKG/usr/include
+
+mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}/mozilla/plugins
+mkdir -p ${PKG}/usr/share/applications
+cat ${CWD}/mozilla-thunderbird.desktop > ${PKG}/usr/share/applications/mozilla-thunderbird.desktop
+
+# Need some default icons in the right place:
+for i in 16 22 24 32 48 256; do
+  install -m 0644 -D comm/mail/branding/thunderbird/default${i}.png \
+    $PKG/usr/share/icons/hicolor/${i}x${i}/apps/thunderbird.png
+done
+
+mkdir -p $PKG/usr/share/pixmaps
+( cd $PKG/usr/share/pixmaps ; ln -sf /usr/share/icons/hicolor/256x256/apps/thunderbird.png . )
+mkdir -p $PKG/usr/lib$LIBDIRSUFFIX/thunderbird/chrome/icons/default
+install -m 644 other-licenses/branding/thunderbird/mailicon16.png \
+  $PKG/usr/lib$LIBDIRSUFFIX/thunderbird/icons/
+install -m 644 other-licenses/branding/thunderbird/mailicon16.png \
+  $PKG/usr/lib$LIBDIRSUFFIX/thunderbird/chrome/icons/default/
+
+# Copy over the LICENSE
+install -p -c -m 644 LICENSE $PKG/usr/lib${LIBDIRSUFFIX}/thunderbird/
+
+# Fix duplicate binary, https://bugzilla.mozilla.org/show_bug.cgi?id=658850
+( cd $PKG/usr/lib$LIBDIRSUFFIX/thunderbird
+  if cmp thunderbird thunderbird-bin ; then
+    ln -sf thunderbird-bin thunderbird
+  fi
+)
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "Mozilla Thunderbird mail application"
+Mozilla Thunderbird is a redesign of the Mozilla mail component
+written using the XUL user interface language.  Thunderbird makes
+emailing safer, faster, and easier than ever before with the
+industry's best implementations of features such as intelligent spam
+filters, built-in RSS reader, quick search, and much more.
+
+Visit the Mozilla Thunderbird project online:
+  http://www.mozilla.org/projects/thunderbird/
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
