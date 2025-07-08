@@ -1,0 +1,148 @@
+--- inkscape-1.4.2/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2025-04-27 19:26:33.000000000 +0100
++++ inkscape-1.4.2/src/extension/internal/pdfinput/pdf-parser.cpp	2025-07-08 08:40:49.559549848 +0100
+@@ -686,7 +686,9 @@
+ void PdfParser::opSetExtGState(Object args[], int /*numArgs*/)
+ {
+     Object obj1, obj2, obj3, obj4, obj5;
+-    Function *funcs[4] = {nullptr, nullptr, nullptr, nullptr};
++//    Function *funcs[4] = {nullptr, nullptr, nullptr, nullptr};
++    std::vector<std::unique_ptr<Function>> funcs(4);
++
+     GfxColor backdropColor;
+     GBool haveBackdropColor = gFalse;
+     GBool alpha = gFalse;
+@@ -749,8 +751,13 @@
+         _POPPLER_CALL_ARGS(obj2, obj1.dictLookup, "TR");
+     }
+     if (obj2.isName(const_cast<char *>("Default")) || obj2.isName(const_cast<char *>("Identity"))) {
+-        funcs[0] = funcs[1] = funcs[2] = funcs[3] = nullptr;
+-        state->setTransfer(funcs);
++//        funcs[0] = funcs[1] = funcs[2] = funcs[3] = nullptr;
++        funcs[0] = nullptr;
++        funcs[1] = nullptr;
++        funcs[2] = nullptr;
++        funcs[3] = nullptr;
++
++        state->setTransfer(std::move(funcs));
+     } else if (obj2.isArray() && obj2.arrayGetLength() == 4) {
+         int pos = 4;
+         for (int i = 0; i < 4; ++i) {
+@@ -763,12 +770,15 @@
+         }
+         _POPPLER_FREE(obj3);
+         if (pos == 4) {
+-            state->setTransfer(funcs);
++            state->setTransfer(std::move(funcs));
+         }
+     } else if (obj2.isName() || obj2.isDict() || obj2.isStream()) {
+         if ((funcs[0] = Function::parse(&obj2))) {
+-            funcs[1] = funcs[2] = funcs[3] = nullptr;
+-            state->setTransfer(funcs);
++//            funcs[1] = funcs[2] = funcs[3] = nullptr;
++            funcs[0] = nullptr;
++            funcs[1] = nullptr;
++            funcs[2] = nullptr;
++            state->setTransfer(std::move(funcs));
+         }
+     } else if (!obj2.isNull()) {
+         error(errSyntaxError, getPos(), "Invalid transfer function in ExtGState");
+@@ -790,7 +800,7 @@
+                 funcs[0] = Function::parse(&obj3);
+                 if (funcs[0]->getInputSize() != 1 || funcs[0]->getOutputSize() != 1) {
+                     error(errSyntaxError, getPos(), "Invalid transfer function in soft mask in ExtGState");
+-                    delete funcs[0];
++//                    delete funcs[0];
+                     funcs[0] = nullptr;
+                 }
+             }
+@@ -835,9 +845,10 @@
+                             }
+                         }
+                     }
+-                    doSoftMask(&obj3, alpha, blendingColorSpace.get(), isolated, knockout, funcs[0], &backdropColor);
++                    doSoftMask(&obj3, alpha, blendingColorSpace.get(), isolated, knockout, funcs[0].get(), &backdropColor);
+                     if (funcs[0]) {
+-                        delete funcs[0];
++//                        delete funcs[0];
++                        funcs[0] = nullptr;
+                     }
+                 } else {
+                     error(errSyntaxError, getPos(), "Invalid soft mask in ExtGState - missing group");
+@@ -2316,7 +2327,8 @@
+                          dx, dy, ax, ay, tOriginX, tOriginY, code, n, u, uLen);
+ 
+         // Move onto next unicode character.
+-        state->shift(tdx, tdy);
++//        state->shift(tdx, tdy);
++        state->textShiftWithUserCoords(tdx, tdy);
+         p += n;
+         len -= n;
+     }
+--- inkscape-1.4.2/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp.orig	2025-04-27 19:26:33.000000000 +0100
++++ inkscape-1.4.2/src/extension/internal/pdfinput/poppler-cairo-font-engine.cpp	2025-07-08 08:59:33.482821419 +0100
+@@ -318,7 +318,11 @@
+ #endif
+     char **enc;
+     const char *name;
++#if POPPLER_CHECK_VERSION(25, 7, 0)
++    std::unique_ptr<FoFiType1C> ff1c;
++#else
+     FoFiType1C *ff1c;
++#endif
+     std::optional<FreeTypeFontFace> font_face;
+     std::vector<int> codeToGID;
+     bool substitute = false;
+@@ -429,7 +433,7 @@
+                 FoFiTrueType *ff;
+ #endif
+                 if (!font_data.empty()) {
+-                    ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
++                    ff = FoFiTrueType::make(std::span((fontchar)font_data.data(), font_data.size()), 0);
+                 } else {
+                     ff = FoFiTrueType::load(fileName.c_str(), 0);
+                 }
+@@ -459,7 +463,7 @@
+             FoFiTrueType *ff;
+ #endif
+             if (!font_data.empty()) {
+-                ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
++                ff = FoFiTrueType::make(std::span((fontchar)font_data.data(), font_data.size()), 0);
+             } else {
+                 ff = FoFiTrueType::load(fileName.c_str(), 0);
+             }
+@@ -493,7 +497,7 @@
+         case fontCIDType0C:
+             if (!useCIDs) {
+                 if (!font_data.empty()) {
+-                    ff1c = FoFiType1C::make((fontchar)font_data.data(), font_data.size());
++                    ff1c = FoFiType1C::make(std::span((fontchar)font_data.data(), font_data.size()));
+                 } else {
+                     ff1c = FoFiType1C::load(fileName.c_str());
+                 }
+@@ -506,7 +510,9 @@
+                     codeToGID.insert(codeToGID.begin(), src, src + n);
+                     gfree(src);
+ #endif
++#if ! POPPLER_CHECK_VERSION(25, 7, 0)
+                     delete ff1c;
++#endif
+                 }
+             }
+ 
+@@ -542,13 +548,14 @@
+                     FoFiTrueType *ff;
+ #endif
+                     if (!font_data.empty()) {
+-                        ff = FoFiTrueType::make((fontchar)font_data.data(), font_data.size(), 0);
++                        ff = FoFiTrueType::make(std::span((fontchar)font_data.data(), font_data.size()), 0);
+                     } else {
+                         ff = FoFiTrueType::load(fileName.c_str(), 0);
+                     }
+                     if (ff) {
+                         if (ff->isOpenTypeCFF()) {
+-                            auto src = ff1c->_POPPLER_GET_CID_TO_GID_MAP(&n);
++//                            auto src = ff1c->_POPPLER_GET_CID_TO_GID_MAP(&n);
++                            auto src = ff->_POPPLER_GET_CID_TO_GID_MAP(&n);
+ #if POPPLER_CHECK_VERSION(25,2,0)
+                             codeToGID = std::move(src);
+ #else
