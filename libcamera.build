@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=libcamera
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/l
+#TAR_EXT=.tar.gz
+VERSION=0.5.1
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE="https://libcamera.org/"
+# https://git.libcamera.org/libcamera/libcamera.git
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+
+if [ ! -d ${TARNAME}-${VERSION} ]
+then
+  echo "${TARNAME}-${VERSION} directory not found"
+  exit
+fi
+
+(cd ${TARNAME}-${VERSION}
+ #patch -p1 < ${CWD}/
+)
+fi
+
+pre_configure
+
+cd ${TARNAME}-${VERSION}
+
+fix_perms
+
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
+fi
+
+if [ ${DO_MAKE} == "yes" ]
+then
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
+fi
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+cp -a \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
+  ${PKG}/usr/doc/${TARNAME}-${VERSION}
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "A complex camera support library for Linux, Android, and ChromeOS"
+Cameras are complex devices that need heavy hardware image
+processing operations. Control of the processing is based on
+advanced algorithms that must run on a programmable processor. This
+has traditionally been implemented in a dedicated MCU in the camera,
+but in embedded devices algorithms have been moved to the main CPU
+to save cost. Blurring the boundary between camera devices and Linux
+often left the user with no other option than a vendor-specific
+closed-source solution.
+
+To address this problem the Linux media community is collaborating
+with the industry to develop a camera stack that is
+open-source-friendly while still protecting vendor core IP.
+libcamera was born out of that collaboration and offers modern
+camera support to Linux-based systems, including traditional Linux
+distributions, ChromeOS and Android.
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
