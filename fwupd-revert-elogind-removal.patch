@@ -1,6 +1,6 @@
---- fwupd-2.0.7/meson.build.orig	2025-03-25 16:15:38.000000000 +0000
-+++ fwupd-2.0.7/meson.build	2025-03-26 15:40:13.461284266 +0000
-@@ -514,6 +514,11 @@
+--- fwupd-2.0.13/meson.build.orig	2025-07-22 09:41:43.000000000 +0100
++++ fwupd-2.0.13/meson.build	2025-07-24 10:57:20.908652662 +0100
+@@ -523,6 +523,11 @@
    endif
  endif
  
@@ -12,7 +12,7 @@
  supported_build = get_option('supported_build').disable_auto_if(not tag).allowed()
  if supported_build
      conf.set('SUPPORTED_BUILD', '1')
-@@ -698,6 +703,7 @@
+@@ -712,6 +717,7 @@
    'dbus_socket_address': get_option('dbus_socket_address'),
    'vendor_ids_dir': vendor_ids_dir,
    'docs': build_docs,
@@ -20,9 +20,9 @@
    'gnutls': gnutls,
    'introspection': introspection.allowed(),
    'libblkid': libblkid,
---- fwupd-2.0.7/meson_options.txt.orig	2025-03-25 16:15:38.000000000 +0000
-+++ fwupd-2.0.7/meson_options.txt	2025-03-26 15:37:49.284274586 +0000
-@@ -44,6 +44,10 @@
+--- fwupd-2.0.13/meson_options.txt.orig	2025-07-22 09:41:43.000000000 +0100
++++ fwupd-2.0.13/meson_options.txt	2025-07-24 10:57:20.908712946 +0100
+@@ -39,6 +39,10 @@
    type: 'string',
    description: 'the hardcoded name of OS directory in ESP, e.g. fedora',
  )
@@ -33,22 +33,39 @@
  option('firmware-packager',
    type: 'boolean',
    value: true,
---- fwupd-2.0.7/data/meson.build.orig	2025-03-25 16:15:38.000000000 +0000
-+++ fwupd-2.0.7/data/meson.build	2025-03-26 15:37:49.284274586 +0000
-@@ -167,7 +167,7 @@
-     )
-   endif
+--- fwupd-2.0.13/data/meson.build.orig	2025-07-22 09:41:43.000000000 +0100
++++ fwupd-2.0.13/data/meson.build	2025-07-24 10:57:20.908746013 +0100
+@@ -194,16 +194,18 @@
+     install_dir: join_paths(datadir, 'dbus-1', 'system-services'),
+   )
  
--  if libsystemd.found()
-+  if libsystemd.found() or elogind.found()
+-  if launchctl.found()
++  if launchctl.found() or elogind.found()
      con2 = configuration_data()
      con2.set('libexecdir', libexecdir)
+     con2.set('dbus_socket_address', get_option('dbus_socket_address'))
+-    configure_file(
+-      input: 'org.freedesktop.fwupd.plist',
+-      output: 'org.freedesktop.fwupd.plist',
+-      configuration: con2,
+-      install_dir: get_option('launchd_agent_dir'),
+-    )
++    if launchctl.found()
++      configure_file(
++        input: 'org.freedesktop.fwupd.plist',
++        output: 'org.freedesktop.fwupd.plist',
++        configuration: con2,
++        install_dir: get_option('launchd_agent_dir'),
++      )
++    endif
+   endif
  
---- fwupd-2.0.7/plugins/logind/meson.build.orig	2025-03-25 16:15:38.000000000 +0000
-+++ fwupd-2.0.7/plugins/logind/meson.build	2025-03-26 15:37:49.284274586 +0000
+ endif
+--- fwupd-2.0.13/plugins/logind/meson.build.orig	2025-07-22 09:41:43.000000000 +0100
++++ fwupd-2.0.13/plugins/logind/meson.build	2025-07-24 10:59:17.407184997 +0100
 @@ -1,4 +1,4 @@
--if libsystemd.found()
-+if libsystemd.found() or elogind.found()
+-libsystemd.found() or subdir_done()
++libsystemd.found() or elogind.found() or subdir_done()
+ 
  cargs = ['-DG_LOG_DOMAIN="FuPluginLogind"']
  plugins += {meson.current_source_dir().split('/')[-1]: true}
- 
