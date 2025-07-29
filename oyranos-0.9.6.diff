@@ -1,37 +1,27 @@
---- oyranos-0.9.6/src/examples/image_display/Oy_Fl_Shader_Box.h.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/examples/image_display/Oy_Fl_Shader_Box.h	2018-12-21 10:48:56.294365990 +0000
-@@ -7,6 +7,8 @@
- #  include <OpenGL/glu.h>
- #else
- #  include <GL/gl.h>
-+#define GL_GLEXT_PROTOTYPES
-+#  include <GL/glext.h>
- #  include <GL/glu.h>
- #endif
+--- oyranos-0.9.6/src/include_private/oyranos_monitor_internal_x11.h.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/include_private/oyranos_monitor_internal_x11.h	2025-07-29 08:49:03.107276273 +0100
+@@ -65,7 +65,7 @@
+ #define GetMonitorProfile       catCMMstruct( oyX1, getProfile )
+ #define MoveColorServerProfiles catCMMstruct( oyX1, moveColorServerProfiles )
  
---- oyranos-0.9.6/src/examples/image_display/image_display.cpp.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/examples/image_display/image_display.cpp	2019-07-13 22:47:27.350994746 +0100
-@@ -17,6 +17,8 @@
- #include <cstdio>
- #include <cstring>
+-int                CMMInit           ( );
++int                CMMInit           ( oyStruct_s        * filter );
+ int                CMMMessageFuncSet ( oyMessage_f         message_func );
  
-+#define GL_GLEXT_PROTOTYPES
-+
- #include "oyranos_config_internal.h" /* I18N */
- #include "oyranos_i18n.h"
- #include "oyranos_sentinel.h" /* oyInit_() */
---- oyranos-0.9.6/src/tools/qcmsevents/qcmsevents.h.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/tools/qcmsevents/qcmsevents.h	2020-07-15 22:26:02.497564862 +0100
-@@ -28,6 +28,7 @@
  
- #include <X11/Xcm/XcmEvents.h>
- #include <X11/Xcm/Xcm.h>
-+#undef None
+--- oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_CUPS.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_CUPS.c	2025-07-29 08:17:00.994920937 +0100
+@@ -321,7 +321,7 @@
+       system_port = device_name;
  
- class QcmseDialog : public QDialog
- {
+       host = cupsServer();
+-      attrs = ppdFindAttr(ppd, "cupsICCProfile", 0);
++      attrs = ppdFindAttr(ppd, "cupsICCProfile", (const char *)0);
+ 
+       if(attrs && attrs->text)
+         device_settings = attrs->text;
 --- oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_oyRE.cpp.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_oyRE.cpp	2023-10-28 19:18:41.714487771 +0100
++++ oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_oyRE.cpp	2025-07-29 08:17:00.994718611 +0100
 @@ -140,7 +140,7 @@
  extern oyCMMapi8_s_ _api8;
  
@@ -107,28 +97,52 @@
             return false;
           else
             return true;
---- oyranos-0.9.6/src/tools/qcmsevents/CMakeLists.txt.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/tools/qcmsevents/CMakeLists.txt	2023-12-03 11:58:24.045179176 +0000
-@@ -1,5 +1,5 @@
- # X Color Management event observer
--ADD_SUBDIRECTORY( qt4 )
-+#ADD_SUBDIRECTORY( qt4 )
+--- oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_lcms.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_lcms.c	2025-07-29 08:42:55.020208676 +0100
+@@ -88,7 +88,7 @@
  
- FIND_PACKAGE(Qt5 COMPONENTS Widgets X11Extras Xml Svg)
- IF(QT_FOUND OR Qt5Widgets_FOUND)
---- oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_CUPS.c.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/modules/color/modules/devices/oyranos_cmm_CUPS.c	2025-06-03 14:42:44.877157515 +0100
-@@ -321,7 +321,7 @@
-       system_port = device_name;
+ int lcmsErrorHandlerFunction(int ErrorCode, const char *ErrorText);
+ int            lcmsCMMMessageFuncSet ( oyMessage_f         message_func );
+-int                lcmsCMMInit       ( );
++int                lcmsCMMInit       ( oyStruct_s        * filter );
  
-       host = cupsServer();
--      attrs = ppdFindAttr(ppd, "cupsICCProfile", 0);
-+      attrs = ppdFindAttr(ppd, "cupsICCProfile", (const char *)0);
  
-       if(attrs && attrs->text)
-         device_settings = attrs->text;
+ 
+--- oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_lcm2.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_lcm2.c	2025-07-29 08:43:51.235275369 +0100
+@@ -91,7 +91,7 @@
+                                        cmsUInt32Number     ErrorCode,
+                                        const char        * ErrorText );
+ int            lcm2CMMMessageFuncSet ( oyMessage_f         lcm2_msg_func );
+-int                lcm2CMMInit       ( );
++int                lcm2CMMInit       ( oyStruct_s        * filter );
+ 
+ 
+ /** @struct lcm2ProfileWrap_s
+--- oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_oiDB.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_oiDB.c	2025-07-29 08:44:53.630362273 +0100
+@@ -80,7 +80,7 @@
+ oyMessage_f oiDB_msg = oyMessageFunc;
+ 
+ int            oiDBMessageFuncSet ( oyMessage_f         oiDB_msg_func );
+-int                oiDBInit       ( );
++int                oiDBInit       ( oyStruct_s        * filter );
+ char *   oiOyranosToOpenicc          ( const char        * key_name,
+                                        oyAlloc_f           alloc );
+ char *   oiOpeniccToOyranos          ( const char        * key_name,
+--- oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_trds.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_trds.c	2025-07-29 08:44:29.077268723 +0100
+@@ -86,7 +86,7 @@
+ oyMessage_f trds_msg = oyMessageFunc;
+ 
+ int            trdsCMMMessageFuncSet ( oyMessage_f         trds_msg_func );
+-int                trdsCMMInit       ( );
++int                trdsCMMInit       ( oyStruct_s        * filter );
+ 
+ 
+ #include <unistd.h> /* usleep() */
 --- oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_oPNG.c.orig	2016-12-09 10:36:53.000000000 +0000
-+++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_oPNG.c	2025-06-03 14:41:52.840965284 +0100
++++ oyranos-0.9.6/src/modules/color/modules/oyranos_cmm_oPNG.c	2025-07-29 08:17:00.995000614 +0100
 @@ -882,7 +882,7 @@
    {
  #if defined(PNG_iCCP_SUPPORTED)
@@ -138,3 +152,77 @@
      png_uint_32 proflen = 0;
      int compression = 0;
  
+--- oyranos-0.9.6/src/tools/qcmsevents/CMakeLists.txt.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/tools/qcmsevents/CMakeLists.txt	2025-07-29 08:17:00.994828033 +0100
+@@ -1,5 +1,5 @@
+ # X Color Management event observer
+-ADD_SUBDIRECTORY( qt4 )
++#ADD_SUBDIRECTORY( qt4 )
+ 
+ FIND_PACKAGE(Qt5 COMPONENTS Widgets X11Extras Xml Svg)
+ IF(QT_FOUND OR Qt5Widgets_FOUND)
+--- oyranos-0.9.6/src/tools/qcmsevents/qcmsevents.h.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/tools/qcmsevents/qcmsevents.h	2025-07-29 08:17:00.994622679 +0100
+@@ -28,6 +28,7 @@
+ 
+ #include <X11/Xcm/XcmEvents.h>
+ #include <X11/Xcm/Xcm.h>
++#undef None
+ 
+ class QcmseDialog : public QDialog
+ {
+--- oyranos-0.9.6/src/tools/oyranos_convert.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/tools/oyranos_convert.c	2025-07-29 08:50:39.590255613 +0100
+@@ -646,7 +646,7 @@
+       if(!width)
+         width = 8;
+       buf = calloc(sizeof(uint16_t), size*width*size*width*3);
+-#pragma omp parallel for private(in,a,b,j,)
++#pragma omp parallel for private(in,a,b,j)
+       for(l = 0; l < size; ++l)
+       {
+         in[0] = floor((double) l / (size - 1) * 65535.0 + 0.5);
+--- oyranos-0.9.6/src/examples/oyranos_cmm_dFil.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/examples/oyranos_cmm_dFil.c	2025-07-29 08:51:16.534300401 +0100
+@@ -62,7 +62,7 @@
+  *  @date    2009/06/14
+  *  @since   2009/06/14 (Oyranos: 0.1.10)
+  */
+-int                dFilCMMInit       ( )
++int                dFilCMMInit       ( oyStruct_s        * filter )
+ {
+   int error = 0;
+   return error;
+--- oyranos-0.9.6/src/examples/image_display/image_display.cpp.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/examples/image_display/image_display.cpp	2025-07-29 08:17:00.994540914 +0100
+@@ -17,6 +17,8 @@
+ #include <cstdio>
+ #include <cstring>
+ 
++#define GL_GLEXT_PROTOTYPES
++
+ #include "oyranos_config_internal.h" /* I18N */
+ #include "oyranos_i18n.h"
+ #include "oyranos_sentinel.h" /* oyInit_() */
+--- oyranos-0.9.6/src/examples/image_display/Oy_Fl_Shader_Box.h.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/examples/image_display/Oy_Fl_Shader_Box.h	2025-07-29 08:17:00.994424539 +0100
+@@ -7,6 +7,8 @@
+ #  include <OpenGL/glu.h>
+ #else
+ #  include <GL/gl.h>
++#define GL_GLEXT_PROTOTYPES
++#  include <GL/glext.h>
+ #  include <GL/glu.h>
+ #endif
+ 
+--- oyranos-0.9.6/src/examples/oyranos_cmm_dDev.c.orig	2016-12-09 10:36:53.000000000 +0000
++++ oyranos-0.9.6/src/examples/oyranos_cmm_dDev.c	2025-07-29 08:51:32.789077150 +0100
+@@ -82,7 +82,7 @@
+ 
+ /* --- implementations --- */
+ 
+-int                CMMInit       ( )
++int                CMMInit       ( oyStruct_s        * filter )
+ {
+   int error = 0;
+   return error;

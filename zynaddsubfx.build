@@ -9,7 +9,7 @@ TARDIR=${SOURCE}/z
 #TAR_EXT=.tar.gz
 VERSION=3.0.5
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="https://zynaddsubfx.sourceforge.io/"
 
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/zynaddsubfx-3.0.5.diff
 )
 fi
 
@@ -59,6 +59,7 @@ mkdir _BuilD_
 cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -74,7 +75,7 @@ CXXFLAGS="${SLKCFLAGS}" \
 elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -I/usr/include/cairo" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \

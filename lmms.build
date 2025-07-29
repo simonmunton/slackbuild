@@ -8,7 +8,7 @@ TARDIR=${SOURCE}/l
 #TAR_EXT=.tar.gz
 VERSION=1.2.2
 VERSIONEXTRA=
-BUILD=3
+BUILD=4
 
 WEBPAGE="http://lmms.sf.net/"
 
@@ -44,7 +44,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/lmms-0.4.13.diff
+ patch -p1 < ${CWD}/lmms-1.2.2.diff
 )
 fi
 
@@ -56,13 +56,15 @@ fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 mkdir _BuilD_
 cd _BuilD_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -I/usr/include/cairo" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DCMAKE_INSTALL_LIBDIR=lib${LIBDIRSUFFIX} \
