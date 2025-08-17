@@ -2,16 +2,17 @@
 #
 . build_funcs
 
-TARNAME=openvdb
+TARNAME=partio
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/o
+TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=12.1.0
+VERSION=1.19.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://www.openvdb.org/"
+WEBPAGE="https://disneyanimation.com/open-source/partio/"
+#https://github.com/wdas/partio
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/openvdb-6.2.1.diff
+ #patch -p1 < ${CWD}/
 )
 fi
 
@@ -55,10 +56,10 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
-
 mkdir _BuilD_
 cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -80,30 +81,19 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      -DCONCURRENT_MALLOC=None \
-      -DUSE_NANOVDB=on \
-      -DUSE_PNG=on \
-      -DOPENVDB_CORE_STATIC=off \
-      -DOPENVDB_BUILD_NANOVDB=on \
-      -DOPENVDB_BUILD_PYTHON_MODULE=off \
-      -DOPENVDB_BUILD_VDB_RENDER=on \
-      -DOPENVDB_BUILD_VDB_TOOL=on \
-      -DOPENVDB_BUILD_VDB_VIEW=on \
       ..
-elif [ -f ./meson.build ]
+elif [ -f ../meson.build ]
 then
-  meson --prefix=/usr _BuilD_
+  meson --prefix=/usr . ..
 fi
 
 fi
-
-NUM_JOBS=-j3
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  ninja -C _BuilD_ || exit
+  ninja || exit
 else
   make ${NUM_JOBS} || exit
 fi
@@ -114,9 +104,9 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
+if [ -f ../meson.build ]
 then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
+  DESTDIR=${PKG} ninja install
 else
   make install DESTDIR=${PKG}
 fi
@@ -138,14 +128,10 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "OpenVDB - Sparse volume data structure and tools"
-OpenVDB is an Academy Award-winning open-source C++ library comprising 
-a novel hierarchical data structure and a suite of tools for the 
-efficient storage and manipulation of sparse volumetric data 
-discretized on three-dimensional grids. It was developed by DreamWorks 
-Animation for use in volumetric applications typically encountered in 
-feature film production and is now maintained by the Academy Software 
-Foundation (ASWF).
+make_slack_desc << EOF "A library for particle IO and manipulation"
+C++ (with python bindings) library for easily
+reading/writing/manipulating common animation particle formats such
+as PDB, BGEO, PTC.
 
 EOF
 
