@@ -1,0 +1,31 @@
+--- Meshlab-2025.07/src/external/lib3mf.cmake.orig	2025-08-17 21:54:02.000000000 +0100
++++ Meshlab-2025.07/src/external/lib3mf.cmake	2025-08-18 16:21:12.455611595 +0100
+@@ -42,6 +42,14 @@
+     if(NOT download_and_unzip_SUCCESS)
+       message(STATUS "- Lib3MF - download failed")
+     endif()
++
++    find_package(Patch)
++    if(Patch_FOUND)
++      execute_process(
++        COMMAND ${Patch_EXECUTABLE} -d ${CMAKE_CURRENT_SOURCE_DIR}/downloads -p0 -i ${CMAKE_CURRENT_SOURCE_DIR}/lib3mf-2.4.1.diff
++      )
++    endif()
++
+   endif()
+ 
+   if(EXISTS ${LIB3MF_CHECK})
+--- Meshlab-2025.07/src/external/lib3mf-2.4.1.diff.orig	2025-08-18 16:17:34.756706722 +0100
++++ Meshlab-2025.07/src/external/lib3mf-2.4.1.diff	2025-08-17 22:06:08.241181090 +0100
+@@ -0,0 +1,11 @@
++--- lib3mf-2.4.1/Source/Model/Writer/v100/NMR_ResourceDependencySorter.cpp.orig	2025-02-26 16:12:42.000000000 +0000
+++++ lib3mf-2.4.1/Source/Model/Writer/v100/NMR_ResourceDependencySorter.cpp	2025-08-17 22:05:32.775642683 +0100
++@@ -37,6 +37,8 @@
++ #include "Model/Classes/NMR_Model.h"
++ #include "Model/Classes/NMR_ModelResource.h"
++ 
+++#include <algorithm>
+++
++ namespace NMR
++ {
++ 
