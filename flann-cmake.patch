@@ -1,0 +1,111 @@
+--- flann-1.9.2/CMakeLists.txt.orig	2025-08-26 10:09:32.076095376 +0100
++++ flann-1.9.2/CMakeLists.txt	2025-08-26 10:15:04.351422222 +0100
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 2.6)
++cmake_minimum_required(VERSION 2.8.12)
+ 
+ if(COMMAND cmake_policy)
+     cmake_policy(SET CMP0003 NEW)
+@@ -49,6 +49,8 @@
+ # set output path for tests
+ set(TEST_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/test)
+ 
++option(BUILD_SHARED_LIBS "Build shared version of libs" ON)
++option(WITH_HDF5 "Build hdf5 library" OFF)
+ option(BUILD_C_BINDINGS "Build C bindings" ON)
+ option(BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
+ option(BUILD_MATLAB_BINDINGS "Build Matlab bindings" ON)
+@@ -75,11 +77,19 @@
+ endif()
+ endif()
+ 
+-find_hdf5()
++if (WITH_HDF5)
++find_package(HDF5 CONFIG REQUIRED)
+ if (NOT HDF5_FOUND)
+-	message(WARNING "hdf5 library not found, some tests will not be run")
++	message(ERROR "hdf5 library not found")
+ else()
+-    include_directories(${HDF5_INCLUDE_DIR})
++    if (TARGET hdf5::hdf5-shared)
++        link_libraries(hdf5::hdf5-shared)
++    elseif (TARGET hdf5::hdf5-static)
++        link_libraries(hdf5::hdf5-static)
++    endif()
++    set(PKG_EXTERNAL_DEPS "${PKG_EXTERNAL_DEPS} hdf5")
++    set(CMAKE_EXTERNAL_DEPS "find_dependency(HDF5)")
++endif()
+ endif()
+ 
+ if (USE_MPI OR HDF5_IS_PARALLEL)
+@@ -146,7 +156,10 @@
+     endif(CUDA_FOUND)
+ endif(BUILD_CUDA_LIB)
+ 
+-find_package(PkgConfig REQUIRED)
++find_package(PkgConfig)
++find_package(lz4 REQUIRED)
++set(PKG_EXTERNAL_DEPS "${PKG_EXTERNAL_DEPS} liblz4")
++
+ pkg_check_modules(LZ4 REQUIRED liblz4)
+ include_directories(${LZ4_INCLUDE_DIRS})
+ 
+--- flann-1.9.2/src/cpp/CMakeLists.txt.orig	2021-04-12 08:15:28.000000000 +0100
++++ flann-1.9.2/src/cpp/CMakeLists.txt	2025-08-26 10:09:32.077130556 +0100
+@@ -104,20 +104,31 @@
+        SOVERSION ${FLANN_SOVERSION}
+        DEFINE_SYMBOL FLANN_EXPORTS
+     )
++  endif()
+ endif()
+ 
+ if(WIN32)
+-if (BUILD_C_BINDINGS AND BUILD_MATLAB_BINDINGS)
+-    install (
+-        TARGETS flann
+-        RUNTIME DESTINATION share/flann/matlab
+-    )
+-endif()
++  if (BUILD_C_BINDINGS AND BUILD_MATLAB_BINDINGS)
++      install (
++          TARGETS flann
++          RUNTIME DESTINATION share/flann/matlab
++      )
++  endif()
+ endif(WIN32)
+ 
++if(NOT BUILD_SHARED_LIBS)
++  list(APPEND FLANN_TARGETS_CPP "flann_cpp_s")
++  list(APPEND FLANN_TARGETS_C "flann_s")
++  list(APPEND FLANN_TARGETS_CUDA "flann_cuda_s")
++endif()
++if(BUILD_SHARED_LIBS)
++  list(APPEND FLANN_TARGETS_CPP "flann_cpp")
++  list(APPEND FLANN_TARGETS_C "flann")
++  list(APPEND FLANN_TARGETS_CUDA "flann_cuda")
++endif()
+ 
+ install (
+-    TARGETS flann_cpp flann_cpp_s
++    TARGETS ${FLANN_TARGETS_CPP}
+     EXPORT ${targets_export_name}
+     INCLUDES DESTINATION include
+     RUNTIME DESTINATION bin
+@@ -127,7 +138,7 @@
+ 
+ if (BUILD_CUDA_LIB)
+     install (
+-        TARGETS flann_cuda flann_cuda_s
++        TARGETS ${FLANN_TARGETS_CUDA}
+         EXPORT ${targets_export_name}
+         INCLUDES DESTINATION include
+         RUNTIME DESTINATION bin
+@@ -138,7 +149,7 @@
+ 
+ if (BUILD_C_BINDINGS)
+     install (
+-        TARGETS flann flann_s
++        TARGETS ${FLANN_TARGETS_C}
+         EXPORT ${targets_export_name}
+         INCLUDES DESTINATION include
+         RUNTIME DESTINATION bin
