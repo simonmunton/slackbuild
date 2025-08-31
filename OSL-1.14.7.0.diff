@@ -1,0 +1,48 @@
+--- OSL-1.14.7.0/src/liboslcomp/oslcomp.cpp.orig	2025-08-02 22:08:57.000000000 +0100
++++ OSL-1.14.7.0/src/liboslcomp/oslcomp.cpp	2025-08-31 21:48:39.607325588 +0100
+@@ -171,16 +171,18 @@
+     llvm::raw_string_ostream errstream(preproc_errors);
+     clang::DiagnosticOptions* diagOptions = new clang::DiagnosticOptions();
+     clang::TextDiagnosticPrinter* diagPrinter
+-        = new clang::TextDiagnosticPrinter(errstream, diagOptions);
++        = new clang::TextDiagnosticPrinter(errstream, *diagOptions);
+     llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagIDs(
+         new clang::DiagnosticIDs);
+     clang::DiagnosticsEngine* diagEngine
+-        = new clang::DiagnosticsEngine(diagIDs, diagOptions, diagPrinter);
++        = new clang::DiagnosticsEngine(diagIDs, *diagOptions, diagPrinter);
+     inst.setDiagnostics(diagEngine);
+ 
+-    const std::shared_ptr<clang::TargetOptions> targetopts
+-        = std::make_shared<clang::TargetOptions>(inst.getTargetOpts());
+-    targetopts->Triple = llvm::sys::getDefaultTargetTriple();
++//    const std::shared_ptr<clang::TargetOptions> targetopts
++//        = std::make_shared<clang::TargetOptions>(inst.getTargetOpts());
++    clang::TargetOptions targetopts
++        = inst.getTargetOpts();
++    targetopts.Triple = llvm::sys::getDefaultTargetTriple();
+     clang::TargetInfo* target
+         = clang::TargetInfo::CreateTargetInfo(inst.getDiagnostics(),
+                                               targetopts);
+--- OSL-1.14.7.0/src/cmake/externalpackages.cmake.orig	2025-08-02 22:08:57.000000000 +0100
++++ OSL-1.14.7.0/src/cmake/externalpackages.cmake	2025-08-28 22:33:33.283362124 +0100
+@@ -58,7 +58,7 @@
+ # LLVM library setup
+ checked_find_package (LLVM REQUIRED
+                       VERSION_MIN 11.0
+-                      VERSION_MAX 20.9
++                      VERSION_MAX 21.9
+                       PRINT LLVM_SYSTEM_LIBRARIES CLANG_LIBRARIES
+                             LLVM_SHARED_MODE)
+ # ensure include directory is added (in case of non-standard locations
+--- OSL-1.14.7.0/src/liboslexec/llvm_instance.cpp.orig	2025-08-02 22:08:57.000000000 +0100
++++ OSL-1.14.7.0/src/liboslexec/llvm_instance.cpp	2025-08-31 21:37:15.472296056 +0100
+@@ -2225,7 +2225,7 @@
+             // The triple is empty with recent versions of LLVM (e.g., 15) for reasons that aren't
+             // clear. So we must set them to the expected values.
+             // See: https://llvm.org/docs/NVPTXUsage.html
+-            ll.module()->setTargetTriple("nvptx64-nvidia-cuda");
++            ll.module()->setTargetTriple(llvm::Triple("nvptx64-nvidia-cuda"));
+             ll.module()->setDataLayout(
+                 "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-i128:128:128-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64");
+ 
