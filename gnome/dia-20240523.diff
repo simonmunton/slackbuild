@@ -9,3 +9,17 @@
                           ],
  )
  
+--- dia-20240523/plug-ins/pdf/pdf-import.cpp.orig	2024-05-23 20:02:04.000000000 +0100
++++ dia-20240523/plug-ins/pdf/pdf-import.cpp	2025-09-03 08:40:50.244002835 +0100
+@@ -365,7 +365,11 @@
+     if ((pf = strstr (family, " Oblique")) != NULL)
+       *pf = 0;
+ 
++#if POPPLER_VERSION_MAJOR > 25 || (POPPLER_VERSION_MAJOR == 25 && POPPLER_VERSION_MINOR >= 9)
++    const double *fm = f->getFontMatrix().data();
++#else
+     const double *fm = f->getFontMatrix();
++#endif
+     double fsize = state->getTransformedFontSize();
+     if (fm[0] != 0)
+       fsize *= fabs(fm[3] / fm[0]);

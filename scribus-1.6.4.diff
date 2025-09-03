@@ -1,5 +1,38 @@
+--- scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.h.orig	2025-04-20 14:52:19.000000000 +0100
++++ scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.h	2025-09-02 19:07:53.606635335 +0100
+@@ -199,7 +199,9 @@
+ 	void stroke(GfxState *state) override;
+ 	void fill(GfxState *state) override;
+ 	void eoFill(GfxState *state) override;
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++	bool tilingPatternFill(GfxState *state, Gfx *gfx, Catalog *cat, GfxTilingPattern *tPat, const std::array<double, 6> &mat, int x0, int y0, int x1, int y1, double xStep, double yStep) override;
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
+ 	bool tilingPatternFill(GfxState *state, Gfx *gfx, Catalog *cat, GfxTilingPattern *tPat, const double *mat, int x0, int y0, int x1, int y1, double xStep, double yStep) override;
+ #else
+ 	bool tilingPatternFill(GfxState *state, Gfx *gfx, Catalog *cat, Object *str, const double *pmat, int paintType, int tilingType, Dict *resDict, const double *mat, const double *bbox, int x0, int y0, int x1, int y1, double xStep, double yStep) override;
+@@ -262,10 +264,19 @@
+ 				   bool maskInvert, bool maskInterpolate) override;
+ 
+ 	//----- transparency groups and soft masks
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++	void beginTransparencyGroup(GfxState *state, const std::array<double, 4> & bbox, GfxColorSpace * /*blendingColorSpace*/, bool /*isolated*/, bool /*knockout*/, bool /*forSoftMask*/) override;
++	void paintTransparencyGroup(GfxState *state, const std::array<double, 4> & bbox) override;
++#else
+ 	void beginTransparencyGroup(GfxState *state, const double *bbox, GfxColorSpace * /*blendingColorSpace*/, bool /*isolated*/, bool /*knockout*/, bool /*forSoftMask*/) override;
+ 	void paintTransparencyGroup(GfxState *state, const double *bbox) override;
++#endif
+ 	void endTransparencyGroup(GfxState *state) override;
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++	void setSoftMask(GfxState * /*state*/, const std::array<double, 4> & /*bbox*/, bool /*alpha*/, Function * /*transferFunc*/, GfxColor * /*backdropColor*/) override;
++#else
+ 	void setSoftMask(GfxState * /*state*/, const double * /*bbox*/, bool /*alpha*/, Function * /*transferFunc*/, GfxColor * /*backdropColor*/) override;
++#endif
+ 	void clearSoftMask(GfxState * /*state*/) override;
+ 
+ 	void updateFillColor(GfxState *state) override;
 --- scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp.orig	2025-04-20 14:52:19.000000000 +0100
-+++ scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp	2025-07-08 09:19:20.761766021 +0100
++++ scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp	2025-09-03 08:34:18.111110527 +0100
 @@ -606,7 +606,11 @@
  		FormWidget *fm = m_formWidgets->getWidget(i);
  		if (!fm)
@@ -12,7 +45,65 @@
  		if (!ano)
  			continue;
  		if (ano != (AnnotWidget*) annota)
-@@ -3254,7 +3258,7 @@
+@@ -1475,14 +1479,22 @@
+ 	m_graphicStack.restore();
+ }
+ 
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++void SlaOutputDev::beginTransparencyGroup(GfxState *state, const std::array<double, 4> & bbox, GfxColorSpace * /*blendingColorSpace*/, bool isolated, bool knockout, bool forSoftMask)
++#else
+ void SlaOutputDev::beginTransparencyGroup(GfxState *state, const double *bbox, GfxColorSpace * /*blendingColorSpace*/, bool isolated, bool knockout, bool forSoftMask)
++#endif
+ {
+ // 	qDebug() << "SlaOutputDev::beginTransparencyGroup isolated:" << isolated << "knockout:" << knockout << "forSoftMask:" << forSoftMask;
+ 	pushGroup("", forSoftMask);
+ 	m_groupStack.top().isolated = isolated;
+ }
+ 
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++void SlaOutputDev::paintTransparencyGroup(GfxState *state, const std::array<double, 4> & bbox)
++#else
+ void SlaOutputDev::paintTransparencyGroup(GfxState *state, const double *bbox)
++#endif
+ {
+ // 	qDebug() << "SlaOutputDev::paintTransparencyGroup";
+ 	if (m_groupStack.count() != 0)
+@@ -1581,7 +1593,11 @@
+ 	m_tmpSel->clear();
+ }
+ 
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++void SlaOutputDev::setSoftMask(GfxState * /*state*/, const std::array<double, 4> & bbox, bool alpha, Function *transferFunc, GfxColor * /*backdropColor*/)
++#else
+ void SlaOutputDev::setSoftMask(GfxState * /*state*/, const double * bbox, bool alpha, Function *transferFunc, GfxColor * /*backdropColor*/)
++#endif
+ {
+ 	if (m_groupStack.count() <= 0)
+ 		return;
+@@ -2336,14 +2352,20 @@
+ 	return true;
+ }
+ 
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++bool SlaOutputDev::tilingPatternFill(GfxState *state, Gfx * /*gfx*/, Catalog *cat, GfxTilingPattern *tPat, const std::array<double, 6>&mat, int x0, int y0, int x1, int y1, double xStep, double yStep)
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
+ bool SlaOutputDev::tilingPatternFill(GfxState *state, Gfx * /*gfx*/, Catalog *cat, GfxTilingPattern *tPat, const double *mat, int x0, int y0, int x1, int y1, double xStep, double yStep)
+ #else
+ bool SlaOutputDev::tilingPatternFill(GfxState *state, Gfx * /*gfx*/, Catalog *cat, Object *str, const double *pmat, int /*paintType*/, int /*tilingType*/, Dict *resDict, const double *mat, const double *bbox, int x0, int y0, int x1, int y1, double xStep, double yStep)
+ #endif
+ {
+ //	qDebug() << "SlaOutputDev::tilingPatternFill";
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++	const double *bbox = tPat->getBBox().data();
++	const double *pmat = tPat->getMatrix().data();
++	Dict *resDict = tPat->getResDict();
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(21, 3, 0)
+ 	const double *bbox = tPat->getBBox();
+ 	const double *pmat = tPat->getMatrix();
+ 	Dict *resDict = tPat->getResDict();
+@@ -3254,7 +3276,7 @@
  			if (!fileName.empty())
  				ff = FoFiTrueType::load(fileName.c_str(), fontLoc->fontNum);
  			else
@@ -21,7 +112,7 @@
  #elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
  			if (!fileName.empty())
  				ff = FoFiTrueType::load(fileName.c_str());
-@@ -3399,7 +3403,7 @@
+@@ -3399,7 +3421,7 @@
  				if (!fileName.empty())
  					ff = FoFiTrueType::load(fileName.c_str(), fontLoc->fontNum);
  				else
@@ -30,3 +121,39 @@
  #elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(22, 4, 0)
  				if (!fileName.empty())
  					ff = FoFiTrueType::load(fileName.c_str());
+@@ -3820,7 +3842,11 @@
+ 		return CommonStrings::None;
+ 	if (color->getSpace() == AnnotColor::colorRGB)
+ 	{
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++		const double *color_data = color->getValues().data();
++#else
+ 		const double *color_data = color->getValues();
++#endif
+ 		double Rc = color_data[0];
+ 		double Gc = color_data[1];
+ 		double Bc = color_data[2];
+@@ -3829,7 +3855,11 @@
+ 	}
+ 	else if (color->getSpace() == AnnotColor::colorCMYK)
+ 	{
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++		const double *color_data = color->getValues().data();
++#else
+ 		const double *color_data = color->getValues();
++#endif
+ 		double Cc = color_data[0];
+ 		double Mc = color_data[1];
+ 		double Yc = color_data[2];
+@@ -3839,7 +3869,11 @@
+ 	}
+ 	else if (color->getSpace() == AnnotColor::colorGray)
+ 	{
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(25, 9, 0)
++		const double *color_data = color->getValues().data();
++#else
+ 		const double *color_data = color->getValues();
++#endif
+ 		double Kc = 1.0 - color_data[0];
+ 		tmp.setCmykColorF(0, 0, 0, Kc);
+ 		fNam = m_doc->PageColors.tryAddColor(namPrefix+tmp.name(), tmp);
