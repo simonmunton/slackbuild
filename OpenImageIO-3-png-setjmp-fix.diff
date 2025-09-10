@@ -1,0 +1,84 @@
+--- OpenImageIO-3.0.10.0/src/ico.imageio/icooutput.cpp.orig	2025-09-01 06:28:41.000000000 +0100
++++ OpenImageIO-3.0.10.0/src/ico.imageio/icooutput.cpp	2025-09-10 09:04:39.462273509 +0100
+@@ -149,6 +149,12 @@
+             errorfmt("{}", s);
+             return false;
+         }
++
++        // Must call this setjmp in every function that does PNG writes
++        if (setjmp(png_jmpbuf(m_png))) { // NOLINT(cert-err52-cpp)
++            errorfmt("{}", "PNG library error");
++            return false;
++        }
+     } else {
+         // reuse PNG constants for DIBs as well
+         switch (m_spec.nchannels) {
+--- OpenImageIO-3.0.10.0/src/ico.imageio/icoinput.cpp.orig	2025-09-01 06:28:41.000000000 +0100
++++ OpenImageIO-3.0.10.0/src/ico.imageio/icoinput.cpp	2025-09-10 09:04:05.611480131 +0100
+@@ -224,6 +224,12 @@
+             return false;
+         }
+ 
++        // Must call this setjmp in every function that does PNG reads
++        if (setjmp(png_jmpbuf(m_png))) { // NOLINT(cert-err52-cpp)
++            errorfmt("{}", "PNG library error");
++            return false;
++        }
++
+         //std::cerr << "[ico] reading PNG info\n";
+         // Tell libpng to use our read callback to read from the IOProxy
+         png_set_read_fn(m_png, this, PngReadCallback);
+--- OpenImageIO-3.0.10.0/src/png.imageio/pngoutput.cpp.orig	2025-09-01 06:28:41.000000000 +0100
++++ OpenImageIO-3.0.10.0/src/png.imageio/pngoutput.cpp	2025-09-10 09:05:42.855402012 +0100
+@@ -156,6 +156,12 @@
+         return false;
+     }
+ 
++    // Must call this setjmp in every function that does PNG writes
++    if (setjmp(png_jmpbuf(m_png))) { // NOLINT(cert-err52-cpp)
++        errorfmt("{}", "PNG library error");
++        return false;
++    }
++
+     png_set_write_fn(m_png, this, PngWriteCallback, PngFlushCallback);
+ 
+     png_set_compression_level(
+--- OpenImageIO-3.0.10.0/src/png.imageio/pnginput.cpp.orig	2025-09-01 06:28:41.000000000 +0100
++++ OpenImageIO-3.0.10.0/src/png.imageio/pnginput.cpp	2025-09-10 09:05:33.302550879 +0100
+@@ -158,6 +158,12 @@
+         return false;
+     }
+ 
++    // Must call this setjmp in every function that does PNG reads
++    if (setjmp(png_jmpbuf(m_png))) { // NOLINT(cert-err52-cpp)
++        errorfmt("{}", "PNG library error");
++        return false;
++    }
++
+     // Tell libpng to use our read callback to read from the IOProxy
+     png_set_read_fn(m_png, this, PngReadCallback);
+ 
+--- OpenImageIO-3.0.10.0/src/png.imageio/png_pvt.h.orig	2025-09-01 06:28:41.000000000 +0100
++++ OpenImageIO-3.0.10.0/src/png.imageio/png_pvt.h	2025-09-09 16:21:41.260767663 +0100
+@@ -85,10 +85,6 @@
+     if (!ip)
+         return "Could not create PNG info structure";
+ 
+-    // Must call this setjmp in every function that does PNG reads
+-    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+-        return "PNG library error";
+-
+     // success
+     return "";
+ }
+@@ -470,10 +466,6 @@
+     if (!ip)
+         return "Could not create PNG info structure";
+ 
+-    // Must call this setjmp in every function that does PNG writes
+-    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+-        return "PNG library error";
+-
+     // success
+     return "";
+ }
