@@ -1,0 +1,57 @@
+--- leptonica-1.86.0/CMakeLists.txt.orig	2025-09-18 17:24:35.000000000 +0100
++++ leptonica-1.86.0/CMakeLists.txt	2025-09-23 17:41:00.237149376 +0100
+@@ -71,7 +71,7 @@
+ option(ENABLE_OPENJPEG "Enable OpenJPEG support" ON)
+ 
+ set(leptonica_INSTALL_CMAKE_DIR
+-    "lib/cmake/leptonica"
++    "lib${LIB_SUFFIX}/cmake/leptonica"
+     CACHE STRING "Install destination for CMake package files")
+ 
+ include(LeptonicaFunc)
+@@ -81,10 +81,10 @@
+   set(pkgs_private "")
+   set(libs_private "")
+ 
+-  find_and_handle_library(ZLIB ENABLE_ZLIB ZLIB)
+-  find_and_handle_library(PNG ENABLE_PNG PNG)
+-  find_and_handle_library(JPEG ENABLE_JPEG JPEG)
+-  find_and_handle_library(TIFF ENABLE_TIFF TIFF)
++  find_and_handle_library(ZLIB ENABLE_ZLIB zlib)
++  find_and_handle_library(PNG ENABLE_PNG libpng)
++  find_and_handle_library(JPEG ENABLE_JPEG libjpeg)
++  find_and_handle_library(TIFF ENABLE_TIFF libtiff-4)
+ 
+   if(ENABLE_GIF)
+     find_package(GIF 5)
+@@ -344,7 +344,7 @@
+   ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake @ONLY)
+ 
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pkg_conf_name}
+-        DESTINATION lib/pkgconfig)
++        DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/LeptonicaConfig-version.cmake
+         DESTINATION ${leptonica_INSTALL_CMAKE_DIR})
+--- leptonica-1.86.0/src/CMakeLists.txt.orig	2025-09-18 17:24:35.000000000 +0100
++++ leptonica-1.86.0/src/CMakeLists.txt	2025-09-23 16:29:41.621193963 +0100
+@@ -78,7 +78,7 @@
+       ${old_target}
+       DEPENDS ${PROJECT_NAME}
+       COMMENT "Creating lept symlink")
+-    install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib)
++    install(FILES ${CMAKE_BINARY_DIR}/src/${old_target} DESTINATION lib${LIB_SUFFIX})
+   endif(SYM_LINK)
+ endif()
+ 
+@@ -106,8 +106,8 @@
+   TARGETS leptonica
+   EXPORT LeptonicaTargets
+   RUNTIME DESTINATION bin
+-  LIBRARY DESTINATION lib
+-  ARCHIVE DESTINATION lib)
++  LIBRARY DESTINATION lib${LIB_SUFFIX}
++  ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ install(EXPORT LeptonicaTargets DESTINATION ${leptonica_INSTALL_CMAKE_DIR})
+ install(FILES ${hdr} ${CMAKE_BINARY_DIR}/src/endianness.h
+         DESTINATION include/leptonica)
