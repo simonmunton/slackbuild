@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=librsync
+TARNAME=rclone
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/l
+TARDIR=${SOURCE}/r
 #TAR_EXT=.tar.gz
-VERSION=2.3.4
+VERSION=v1.71.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/librsync/librsync"
+WEBPAGE="https://rclone.org/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,8 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
+#mkdir _BuilD_
+#cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -94,7 +94,8 @@ if [ -f ../meson.build ]
 then
   ninja || exit
 else
-  make ${NUM_JOBS} || exit
+#  make ${NUM_JOBS} || exit
+  go build
 fi
 fi
 
@@ -107,10 +108,14 @@ if [ -f ../meson.build ]
 then
   DESTDIR=${PKG} ninja install
 else
-  make install DESTDIR=${PKG}
+#  make install DESTDIR=${PKG}
+  mkdir -p ${PKG}/usr/{bin,man/man1}
+  install -p -m 644 rclone.1 ${PKG}/usr/man/man1
+  install -p -m 755 rclone ${PKG}/usr/bin
+
 fi
 
-cd ..
+#cd ..
 
 strip_binaries
 
@@ -127,10 +132,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "remote delta-compression library"
-librsync is a library for calculating and applying network deltas,
-with an interface designed to ease integration into diverse network
-applications.
+make_slack_desc << EOF "Rclone syncs your files to cloud storage"
+Rclone is a command-line program to manage files on cloud storage.
+It is a feature-rich alternative to cloud vendors' web storage
+interfaces. Over 70 cloud storage products support rclone including
+S3 object stores, business & consumer file storage services, as well
+as standard transfer protocols.
 
 EOF
 

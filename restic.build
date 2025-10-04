@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=librsync
+TARNAME=restic
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/l
+TARDIR=${SOURCE}/r
 #TAR_EXT=.tar.gz
-VERSION=2.3.4
+VERSION=0.18.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/librsync/librsync"
+WEBPAGE="https://restic.net/"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -55,8 +55,8 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
+#mkdir _BuilD_
+#cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
@@ -94,7 +94,8 @@ if [ -f ../meson.build ]
 then
   ninja || exit
 else
-  make ${NUM_JOBS} || exit
+#  make ${NUM_JOBS} || exit
+  go run build.go
 fi
 fi
 
@@ -107,10 +108,17 @@ if [ -f ../meson.build ]
 then
   DESTDIR=${PKG} ninja install
 else
-  make install DESTDIR=${PKG}
+#  make install DESTDIR=${PKG}
+mkdir -p ${PKG}/usr/{bin,man/man1,share/{zsh/site-functions,fish/vendor_completions.d,bash-completion/completions}}
+install -p -m 644 doc/man/* ${PKG}/usr/man/man1/
+install -p -m 644 doc/zsh-completion.zsh ${PKG}/usr/share/zsh/site-functions/_restic
+install -p -m 644 doc/fish-completion.fish ${PKG}/usr/share/fish/vendor_completions.d/restic.fish
+install -p -m 644 doc/bash-completion.sh ${PKG}/usr/share/bash-completion/completions/restic
+install -p -m 755 restic ${PKG}/usr/bin
+
 fi
 
-cd ..
+#cd ..
 
 strip_binaries
 
@@ -127,10 +135,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "remote delta-compression library"
-librsync is a library for calculating and applying network deltas,
-with an interface designed to ease integration into diverse network
-applications.
+make_slack_desc << EOF "Backups done right!"
+Restic is a modern backup program that can back up your files.
 
 EOF
 

@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=librsync
+TARNAME=duplicity
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/l
+TARDIR=${SOURCE}/d
 #TAR_EXT=.tar.gz
-VERSION=2.3.4
+VERSION=rel.3.0.5.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://github.com/librsync/librsync"
+WEBPAGE="https://gitlab.com/duplicity/duplicity"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=python-duplicity
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -34,12 +34,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then
+then 
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,47 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
-then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-../configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      ..
-elif [ -f ../meson.build ]
-then
-  meson --prefix=/usr . ..
-fi
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ../meson.build ]
-then
-  ninja || exit
-else
-  make ${NUM_JOBS} || exit
-fi
+#make ${NUM_JOBS} || exit
+python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+#python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -103,14 +91,10 @@ then
   exit
 fi
 
-if [ -f ../meson.build ]
-then
-  DESTDIR=${PKG} ninja install
-else
-  make install DESTDIR=${PKG}
-fi
-
-cd ..
+#make install DESTDIR=${PKG}
+python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+#python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -127,10 +111,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "remote delta-compression library"
-librsync is a library for calculating and applying network deltas,
-with an interface designed to ease integration into diverse network
-applications.
+make_slack_desc << EOF "Encrypted bandwidth-efficient backup using the rsync algorithm"
+Duplicity backs up directories by producing encrypted tar-format
+volumes and uploading them to a remote or local file server.
 
 EOF
 
