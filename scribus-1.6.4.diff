@@ -31,8 +31,41 @@
  	void clearSoftMask(GfxState * /*state*/) override;
  
  	void updateFillColor(GfxState *state) override;
+--- scribus-1.6.4/scribus/plugins/import/pdf/importpdf.cpp.orig	2025-04-20 14:52:19.000000000 +0100
++++ scribus-1.6.4/scribus/plugins/import/pdf/importpdf.cpp	2025-10-06 20:59:42.660051137 +0100
+@@ -928,25 +928,25 @@
+ 
+ QString PdfPlug::UnicodeParsedString(const GooString *s1)
+ {
+-	if (!s1 || s1->getLength() == 0)
++	if (!s1 || s1->size() == 0)
+ 		return QString();
+ 	bool isUnicode;
+ 	int i;
+ 	Unicode u;
+ 	QString result;
+-	if ((s1->getChar(0) & 0xff) == 0xfe && (s1->getLength() > 1 && (s1->getChar(1) & 0xff) == 0xff))
++	if ((s1->getChar(0) & 0xff) == 0xfe && (s1->size() > 1 && (s1->getChar(1) & 0xff) == 0xff))
+ 	{
+ 		isUnicode = true;
+ 		i = 2;
+-		result.reserve((s1->getLength() - 2) / 2);
++		result.reserve((s1->size() - 2) / 2);
+ 	}
+ 	else
+ 	{
+ 		isUnicode = false;
+ 		i = 0;
+-		result.reserve(s1->getLength());
++		result.reserve(s1->size());
+ 	}
+-	while (i < s1->getLength())
++	while (i < s1->size())
+ 	{
+ 		if (isUnicode)
+ 		{
 --- scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp.orig	2025-04-20 14:52:19.000000000 +0100
-+++ scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp	2025-09-03 08:34:18.111110527 +0100
++++ scribus-1.6.4/scribus/plugins/import/pdf/slaoutput.cpp	2025-10-06 20:58:46.238168296 +0100
 @@ -606,7 +606,11 @@
  		FormWidget *fm = m_formWidgets->getWidget(i);
  		if (!fm)
@@ -157,3 +190,34 @@
  		double Kc = 1.0 - color_data[0];
  		tmp.setCmykColorF(0, 0, 0, Kc);
  		fNam = m_doc->PageColors.tryAddColor(namPrefix+tmp.name(), tmp);
+@@ -4042,25 +4076,25 @@
+ 
+ QString SlaOutputDev::UnicodeParsedString(const GooString *s1) const
+ {
+-	if (!s1 || s1->getLength() == 0)
++	if (!s1 || s1->size() == 0)
+ 		return QString();
+ 	bool isUnicode;
+ 	int i;
+ 	Unicode u;
+ 	QString result;
+-	if ((s1->getChar(0) & 0xff) == 0xfe && (s1->getLength() > 1 && (s1->getChar(1) & 0xff) == 0xff))
++	if ((s1->getChar(0) & 0xff) == 0xfe && (s1->size() > 1 && (s1->getChar(1) & 0xff) == 0xff))
+ 	{
+ 		isUnicode = true;
+ 		i = 2;
+-		result.reserve((s1->getLength() - 2) / 2);
++		result.reserve((s1->size() - 2) / 2);
+ 	}
+ 	else
+ 	{
+ 		isUnicode = false;
+ 		i = 0;
+-		result.reserve(s1->getLength());
++		result.reserve(s1->size());
+ 	}
+-	while (i < s1->getLength())
++	while (i < s1->size())
+ 	{
+ 		if (isUnicode)
+ 		{
