@@ -1,0 +1,68 @@
+--- facile-1.1.4/lib/fcl_nonlinear.ml.orig	2017-11-30 19:24:10.000000000 +0000
++++ facile-1.1.4/lib/fcl_nonlinear.ml	2025-10-09 17:59:54.505179128 +0100
+@@ -274,7 +274,7 @@
+ let min_max_of_remainder x y =
+   let r_abs_max =
+     let min_y, max_y = Fd.min_max y in
+-    max (Pervasives.abs min_y) (Pervasives.abs max_y) - 1 in
++    max (Stdlib.abs min_y) (Stdlib.abs max_y) - 1 in
+   if Fd.min x >= 0 then (0, r_abs_max)
+   else if Fd.max x <= 0 then ((0 - r_abs_max), 0)
+   else ((0 - r_abs_max), r_abs_max)
+--- facile-1.1.4/lib/fcl_cstr.ml.orig	2017-11-30 19:24:10.000000000 +0000
++++ facile-1.1.4/lib/fcl_cstr.ml	2025-10-09 17:59:22.614084951 +0100
+@@ -50,7 +50,7 @@
+   and nb_solved = Fcl_stak.ref 0 in
+   let update i =
+     if update i then
+-      if Pervasives.not solved.(i) then begin
++      if Stdlib.not solved.(i) then begin
+        	Fcl_stak.set nb_solved (Fcl_stak.get nb_solved + 1);
+        	array_set_true solved i
+       end in
+--- facile-1.1.4/lib/fcl_fdArray.ml.orig	2017-11-30 19:24:10.000000000 +0000
++++ facile-1.1.4/lib/fcl_fdArray.ml	2025-10-09 18:00:29.582852619 +0100
+@@ -299,7 +299,7 @@
+       let (mi, ma) =
+       	Array.fold_left
+ 	  (fun (mi, ma) e ->
+-	    (Pervasives.min mi (Fd.min e), Pervasives.max ma (Fd.max e)))
++	    (Stdlib.min mi (Fd.min e), Stdlib.max ma (Fd.max e)))
+ 	  (max_int, min_int) array in
+       if mi = ma then Fd.int mi else
+       let value = Fd.create (Fcl_domain.interval mi ma) in
+--- facile-1.1.4/lib/fcl_misc.ml.orig	2017-11-30 19:24:10.000000000 +0000
++++ facile-1.1.4/lib/fcl_misc.ml	2025-10-09 17:58:53.364312220 +0100
+@@ -50,9 +50,9 @@
+     x - y
+ *)
+ 
+-  let (+) = Pervasives.(+)
+-  let (-) = Pervasives.(-)
+-  let ( * ) = Pervasives.( * )
++  let (+) = Stdlib.(+)
++  let (-) = Stdlib.(-)
++  let ( * ) = Stdlib.( * )
+ 
+   let (=+) x y = x := !x + y
+   let (=+.) x y = x := !x +. y
+--- facile-1.1.4/lib/fcl_sorting.ml.orig	2017-11-30 19:24:10.000000000 +0000
++++ facile-1.1.4/lib/fcl_sorting.ml	2025-10-09 18:00:44.560704607 +0100
+@@ -355,7 +355,7 @@
+   else
+     let inf, sup =
+       Array.fold_left
+-      	(fun (inf, sup) x -> Pervasives.min (Fd.min x) inf, Pervasives.max (Fd.max x) sup) (max_int, min_int) a in
++      	(fun (inf, sup) x -> Stdlib.min (Fd.min x) inf, Stdlib.max (Fd.max x) sup) (max_int, min_int) a in
+     let d = Fd.array n inf sup
+     and p = Fd.array n 0 (n - 1) in
+     Fcl_cstr.post (cstr a ~p:(Some p) d);
+@@ -368,7 +368,7 @@
+   else
+     let inf, sup =
+       Array.fold_left
+-      	(fun (inf, sup) x -> Pervasives.min (Fd.min x) inf, Pervasives.max (Fd.max x) sup) (max_int, min_int) a in
++      	(fun (inf, sup) x -> Stdlib.min (Fd.min x) inf, Stdlib.max (Fd.max x) sup) (max_int, min_int) a in
+     let d = Fd.array n inf sup in
+     Fcl_cstr.post (cstr a d);
+     d;;
