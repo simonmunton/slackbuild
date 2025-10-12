@@ -3,9 +3,9 @@
 . build_funcs
 
 # Set initial variables:
-PKG=/tmp/package-libo
+PKG=/tmp/package-libreoffice
 
-VERSION=25.8.1
+VERSION=25.8.2
 
 case `uname -m` in
   x86_64)
@@ -155,12 +155,13 @@ rm -rf $PKG/opt/kde3
 
 # Replace the binaries in /usr/bin - correct link to file
 #cd $PKG
-#rm $PKG/usr/bin/*
+rm $PKG/usr/bin/*
 
-#cat << _EOF_ > $PKG/usr/bin/libreoffice${S_VERSION}
-##!/bin/sh
-#exec /opt/libreoffice${S_VERSION}/program/soffice "\$@"
-#_EOF_
+cat << _EOF_ > $PKG/usr/bin/libreoffice${S_VERSION}
+#!/bin/sh
+export PYTHONHOME=/opt/libreoffice${S_VERSION}
+exec /opt/libreoffice${S_VERSION}/program/soffice "\$@"
+_EOF_
 
 (cd $PKG/usr/bin
  ln -s libreoffice${S_VERSION} libreoffice
