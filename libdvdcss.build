@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/l
 #TAR_EXT=.tar.gz
-VERSION=1.4.3
+VERSION=1.5.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -55,28 +55,62 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix=/usr \
+../configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
+            --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
+then
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
 fi
 
+fi
+  
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
 fi
-
+fi
+  
 if [ ${DO_INSTALL} != "yes" ]
 then
   exit
 fi
+ 
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-make install DESTDIR=${PKG}
+cd ..
 
 #strip_binaries
 
