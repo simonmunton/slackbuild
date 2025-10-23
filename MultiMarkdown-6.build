@@ -9,7 +9,7 @@ TARDIR=${SOURCE}/m
 #TAR_EXT=.tar.gz
 VERSION=6.7.0
 VERSIONEXTRA=
-BUILD=1
+BUILD=2
 
 WEBPAGE="https://fletcherpenney.net/multimarkdown/"
 
@@ -59,6 +59,8 @@ mkdir _BuilD_
 cd _BuilD_
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -114,6 +116,13 @@ cd ..
 
 mv ${PKG}/usr/bin/markdown ${PKG}/usr/bin/markdown-mmd
 rm ${PKG}/usr/bin/mmd
+
+mv ${PKG}/usr/share/texmf ${PKG}/usr/share/texmf-local
+cat >>  ${PKG}/install/doinst.sh << EOF
+usr/bin/mktexlsr usr/share/texmf-local
+
+EOF
+
 
 strip_binaries
 
