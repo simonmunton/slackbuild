@@ -1,0 +1,48 @@
+Index: med-fichier/src/ci/_MEDfieldComputingStepCheck236.c
+===================================================================
+--- med-fichier.orig/src/ci/_MEDfieldComputingStepCheck236.c
++++ med-fichier/src/ci/_MEDfieldComputingStepCheck236.c
+@@ -146,7 +146,7 @@ med_err _MEDfieldComputingStepCheck236(m
+        * On vérifie que le nom du maillage par défaut est le même pour toutes
+        * les étapes de calcul de tous les couples (entitytype,geotype)
+        */
+-      if (_MEDiterate(_cstpid, _MEDcheckAttributeStringFunc, &_itdatas ) < 0) {
++      if (_MEDiterate(_cstpid, (herr_t (*)(void))_MEDcheckAttributeStringFunc, &_itdatas ) < 0) {
+ 	MED_ERR_(_ret,MED_ERR_INVALID,MED_ERR_ATTRIBUTE,MED_ERR_VALUE_MSG);
+ 	SSCRUTE(_itdatas.attvalprec); SSCRUTE(_itdatas.attval); goto ERROR;
+       }
+@@ -157,7 +157,7 @@ med_err _MEDfieldComputingStepCheck236(m
+      * les étapes de calcul de tous les couples (entitytype,geotype)
+      */
+     if (checkmultiplemesh) {
+-      if (_MEDiterate(_cstpid, _MEDchecknSublinkFunc, multiplemesh ) < 0) {
++      if (_MEDiterate(_cstpid, (herr_t (*)(void))_MEDchecknSublinkFunc, multiplemesh ) < 0) {
+ 	MED_ERR_(_ret,MED_ERR_COUNT,MED_ERR_DATAGROUP,MED_ERR_NBR_MSG MED_ERR_MESH_MSG);
+ 	SSCRUTE(_path);goto ERROR;
+       }
+Index: med-fichier/src/hdfi/_MEDiterate.c
+===================================================================
+--- med-fichier.orig/src/hdfi/_MEDiterate.c
++++ med-fichier/src/hdfi/_MEDiterate.c
+@@ -32,7 +32,7 @@ _MEDiterate(const med_idt fid,  herr_t (
+   med_size   _n;
+   hsize_t    _idx=0;
+ 
+-  if ( H5Literate( fid, H5_INDEX_NAME, H5_ITER_NATIVE, &_idx, func, itdatas ) < 0 ) {
++  if ( H5Literate( fid, H5_INDEX_NAME, H5_ITER_NATIVE, &_idx, (H5L_iterate1_t)func, itdatas ) < 0 ) {
+     MED_ERR_(_ret,MED_ERR_VISIT,MED_ERR_DATAGROUP,"");
+     ISCRUTE_size(_idx);
+     goto ERROR;
+Index: med-fichier/src/hdfi/_MEDvisit.c
+===================================================================
+--- med-fichier.orig/src/hdfi/_MEDvisit.c
++++ med-fichier/src/hdfi/_MEDvisit.c
+@@ -26,7 +26,7 @@
+ 
+ med_err
+ _MEDvisit(const med_idt fid, const char * const srcpath, const char * const dstpath,
+-	  herr_t (*func)() )
++	  medvisitorfunc func )
+ {
+ 
+   med_err    _ret=-1;

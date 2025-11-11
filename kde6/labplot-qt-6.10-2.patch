@@ -1,0 +1,25 @@
+--- labplot-2.12.1/CMakeLists.txt.orig	2025-08-15 00:00:33.000000000 +0100
++++ labplot-2.12.1/CMakeLists.txt	2025-11-11 18:25:54.005200549 +0000
+@@ -51,7 +51,11 @@
+ )
+ 
+ # building QADS or Xlsx requires Qt${QT_VERSION_MAJOR}GuiPrivate (QADS is required, Xlsx is optional)
+-find_package(Qt${QT_MAJOR_VERSION}Gui ${QT_MIN_VERSION} CONFIG REQUIRED Private)
++if (Qt6Gui_VERSION VERSION_GREATER_EQUAL 6.10.0)
++    find_package(Qt6GuiPrivate ${QT_MIN_VERSION} CONFIG REQUIRED)
++else()
++    find_package(Qt${QT_MAJOR_VERSION}Gui ${QT_MIN_VERSION} CONFIG REQUIRED Private)
++endif()
+ 
+ find_package(KF${KF_MAJOR_VERSION} ${KF_MIN_VERSION} REQUIRED COMPONENTS
+     Archive
+--- labplot-2.12.1/src/backend/worksheet/plots/cartesian/XYFourierFilterCurve.cpp.orig	2025-08-15 00:00:36.000000000 +0100
++++ labplot-2.12.1/src/backend/worksheet/plots/cartesian/XYFourierFilterCurve.cpp	2025-11-11 21:05:18.512316447 +0000
+@@ -27,6 +27,7 @@
+ #include <QDebug> // qWarning()
+ #include <QIcon>
+ #include <QThreadPool>
++#include <QElapsedTimer>
+ 
+ /*!
+  * \class XYFourierFilterCurve
