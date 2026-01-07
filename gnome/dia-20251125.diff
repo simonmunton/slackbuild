@@ -1,0 +1,14 @@
+--- dia-20251125/plug-ins/pdf/pdf-import.cpp.orig	2025-11-25 13:38:33.000000000 +0000
++++ dia-20251125/plug-ins/pdf/pdf-import.cpp	2026-01-07 12:23:13.074255437 +0000
+@@ -904,7 +904,11 @@
+       unsigned char *pixels = gdk_pixbuf_get_pixels (pixbuf);
+       int y;
+ 
++#if POPPLER_VERSION_MAJOR >= 26
++      imgStr.rewind(); // otherwise getLine() is crashing right away
++#else
+       imgStr.reset(); // otherwise getLine() is crashing right away
++#endif
+       line = imgStr.getLine ();
+       for (y = 0; y < height && line; ++y) {
+ 	unsigned char *dest = pixels + y * rowstride;

@@ -1,0 +1,44 @@
+--- inkscape-1.4.3/src/extension/internal/pdfinput/pdf-input.cpp.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/pdf-input.cpp	2026-01-07 11:48:46.929024433 +0000
+@@ -28,6 +28,7 @@
+ #include <poppler/PDFDoc.h>
+ #include <poppler/Page.h>
+ #include <poppler/goo/GooString.h>
++#include <poppler/goo/gmem.h>
+ 
+ #ifdef HAVE_POPPLER_CAIRO
+ #include <poppler/glib/poppler.h>
+--- inkscape-1.4.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/svg-builder.cpp	2026-01-07 11:52:28.066645483 +0000
+@@ -57,6 +57,7 @@
+ #include "xml/node.h"
+ #include "xml/repr.h"
+ #include "xml/sp-css-attr.h"
++#include <poppler/goo/gmem.h>
+ 
+ namespace Inkscape {
+ namespace Extension {
+@@ -2093,7 +2094,11 @@
+         } else {
+             image_stream = new ImageStream(str, width, 1, 1);
+         }
++#if POPPLER_CHECK_VERSION(26, 1, 0)
++        image_stream->rewind();
++#else
+         image_stream->reset();
++#endif
+ 
+         // Convert grayscale values
+         unsigned char *buffer = new unsigned char[width];
+@@ -2119,7 +2124,11 @@
+         image_stream = new ImageStream(str, width,
+                                        color_map->getNumPixelComps(),
+                                        color_map->getBits());
++#if POPPLER_CHECK_VERSION(26, 1, 0)
++        image_stream->rewind();
++#else
+         image_stream->reset();
++#endif
+ 
+         // Convert RGB values
+         unsigned int *buffer = new unsigned int[width];
