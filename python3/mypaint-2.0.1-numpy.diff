@@ -1,0 +1,40 @@
+--- mypaint-2.0.1/lib/strokemap.py.orig	2020-05-29 17:40:02.000000000 +0100
++++ mypaint-2.0.1/lib/strokemap.py	2026-01-10 16:45:34.562335053 +0000
+@@ -411,7 +411,7 @@
+ 
+     """
+ 
+-    _ZDATA_ONES = zlib.compress(np.ones((N, N), 'uint8').tostring())
++    _ZDATA_ONES = zlib.compress(np.ones((N, N), 'uint8').tobytes())
+ 
+     def __init__(self):
+         """Initialize, as a tile filled with all ones."""
+@@ -451,7 +451,7 @@
+             tile._zdata = None
+         else:
+             tile._all = False
+-            tile._zdata = zlib.compress(array.tostring())
++            tile._zdata = zlib.compress(array.tobytes())
+         return tile
+ 
+     @classmethod
+--- mypaint-2.0.1/lib/stroke.py.orig	2020-05-29 17:40:02.000000000 +0100
++++ mypaint-2.0.1/lib/stroke.py	2026-01-10 16:44:35.413336877 +0000
+@@ -43,7 +43,7 @@
+ 
+         states = brush.get_states_as_array()
+         assert states.dtype == 'float32'
+-        self.brush_state = states.tostring()
++        self.brush_state = states.tobytes()
+ 
+         self.brush = brush
+         self.brush.new_stroke()  # resets the stroke_* members of the brush
+@@ -63,7 +63,7 @@
+         # - for space: just gzip? use integer datatypes?
+         # - for time: maybe already use array storage while recording?
+         data = np.array(self.tmp_event_list, dtype='float64')
+-        data = data.tostring()
++        data = data.tobytes()
+         version = b'2'
+         self.stroke_data = version + data
+ 
