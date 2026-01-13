@@ -1,0 +1,31 @@
+--- libphonenumber-9.0.21/cpp/CMakeLists.txt.orig	2025-12-17 10:11:03.000000000 +0000
++++ libphonenumber-9.0.21/cpp/CMakeLists.txt	2026-01-11 09:29:45.104981447 +0000
+@@ -145,7 +145,7 @@
+   if (WIN32)
+     set (Boost_USE_STATIC_LIBS ON)
+   endif ()
+-  find_package (Boost 1.40.0 COMPONENTS date_time system thread)
++  find_package (Boost 1.40.0 COMPONENTS date_time thread OPTIONAL_COMPONENTS system)
+   if (NOT Boost_FOUND)
+     print_error ("Boost Date_Time/System/Thread" "Boost")
+   endif ()
+--- libphonenumber-9.0.21/cpp/src/phonenumbers/geocoding/phonenumber_offline_geocoder.cc.orig	2025-12-17 10:11:03.000000000 +0000
++++ libphonenumber-9.0.21/cpp/src/phonenumbers/geocoding/phonenumber_offline_geocoder.cc	2026-01-11 09:38:19.243359957 +0000
+@@ -77,7 +77,7 @@
+ }
+ 
+ PhoneNumberOfflineGeocoder::~PhoneNumberOfflineGeocoder() {
+-  absl::MutexLock l(&mu_);
++  absl::MutexLock l(mu_);
+   gtl::STLDeleteContainerPairSecondPointers(
+       available_maps_.begin(), available_maps_.end());
+ }
+@@ -195,7 +195,7 @@
+   const int country_calling_code = number.country_code();
+   // NANPA area is not split in C++ code.
+   const int phone_prefix = country_calling_code;
+-  absl::MutexLock l(&mu_);
++  absl::MutexLock l(mu_);
+   const AreaCodeMap* const descriptions = GetPhonePrefixDescriptions(
+       phone_prefix, lang, script, region);
+   const char* description = descriptions ? descriptions->Lookup(number) : NULL;
