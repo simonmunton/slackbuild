@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+. build_funcs
+
+TARNAME=osinfo-db
+TARNAMEEXTRA=
+TARSEP="-"
+TARDIR=${SOURCE}/o
+#TAR_EXT=.tar.gz
+VERSION=20251212
+VERSIONEXTRA=
+BUILD=1
+
+WEBPAGE=""
+
+#TAR_PROG=
+#TAR_OPTS=
+#PKGNAME=
+#PKGVERSION=
+#BUILD_SUFFIX=
+#ARCH=noarch
+
+
+FULL_TARNAME=${TARDIR}/${TARNAME}${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+
+pre_unpack
+
+PKG=/tmp/package-${PKGNAME}
+
+if [ ! -f ${FULL_TARNAME} ]
+then
+  echo Can\'t find ${FULL_TARNAME}
+  exit
+fi
+
+pre_configure
+
+if [ ${DO_INSTALL} != "yes" ]
+then
+  exit
+fi
+
+osinfo-db-import --dir ${PKG}/usr/share/osinfo ${FULL_TARNAME}
+
+strip_binaries
+
+fix_links
+
+compress_manpages
+
+compress_info
+
+fix_docs
+
+#-----handy-ruler-for-slack-desc-width-------------------------------|
+make_slack_desc << EOF "osinfo database"
+osinfo database
+
+EOF
+
+post_install
+
+cd ${PKG}
+su -c "chown -R root:root ${PKG}; \
+find . -type d -exec chmod 755 {} \; ; \
+makepkg -l y -c n ${PKGDIR}${PKGNAME}-${PKGVERSION}-${ARCH}-${BUILD}${BUILD_SUFFIX}.tgz; \
+chown -R ${USERNAME}:${GROUP} ${PKG}"
