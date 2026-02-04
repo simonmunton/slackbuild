@@ -8,7 +8,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=6.10.1
+VERSION=6.10.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -131,6 +131,13 @@ sed -i "s@/lib/@/lib${LIBDIRSUFFIX}/@g" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shib
 sed -i "/SHIBOKEN_SHARED_LIBRARY_DIR/ s@/lib@/lib${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken6*/Shiboken6Config*
 sed -i "s@$(pwd)/.*-release@/usr@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/Shiboken6*/Shiboken6Targets*
 
+
+sed -i "/set_and_check/ s@{PACKAGE_PREFIX_DIR}/@{PACKAGE_PREFIX_DIR}/share/PySide6/@" ${PKG}/usr/lib${LIBDIRSUFFIX}/cmake/PySide6/PySide6Config.abi3.cmake
+
+PYTHON_VERSION=`python -V 2>&1 | gawk '{print $2}' | cut -d. -f1,2`
+
+sed -i "s@{_IMPORT_PREFIX}/@{_IMPORT_PREFIX}/lib64/python${PYTHON_VERSION}/site-packages/@" ${PKG}/usr/lib64/cmake/Shiboken6/Shiboken6Targets.cmake
+sed -i "s@{_IMPORT_PREFIX}/@{_IMPORT_PREFIX}/lib64/python${PYTHON_VERSION}/site-packages/@" ${PKG}/usr/lib64/cmake/PySide6/PySide6Targets.cmake
 
 #strip_binaries
 
