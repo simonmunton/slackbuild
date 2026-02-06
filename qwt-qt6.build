@@ -2,20 +2,21 @@
 #
 . build_funcs
 
-TARNAME=darktable
+TARNAME=qwt
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/d
+TARDIR=${SOURCE}/q
 #TAR_EXT=.tar.gz
-VERSION=5.4.1
+VERSION=6.3.0
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://www.darktable.org/"
+WEBPAGE="https://sourceforge.net/projects/qwt/"
+# "https://github.com/gbm19/qwt5-qt5"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=qwt-qt6
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +46,11 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/darktable-4.4.2.diff
+ patch -p1 -b -z .orig < ${CWD}/qwt-6.3.0.diff
+
+# sed -i "s/@ARCH@/${LIBDIRSUFFIX}/" qwtconfig.pri examples/examples.pri qwt.prf designer/designer.pro
+
+ 
 )
 fi
 
@@ -55,14 +60,14 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-mkdir _BuilD_
-cd _BuilD_
-
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _Build_6_
+cd _Build_6_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ../configure ]
+if [ -f ./configure ]
 then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
@@ -71,7 +76,7 @@ CXXFLAGS="${SLKCFLAGS}" \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
             --localstatedir=/var/lib \
 	    --mandir=/usr/man
-elif [ -f ../CMakeLists.txt ]
+elif [ -f ./CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
@@ -80,14 +85,22 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DMAN_INSTALL_DIR=/usr/man \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      ..
+      .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr _BuilD_
 fi
-
+qmake6 LIBDIRSUFFIX=${LIBDIRSUFFIX} ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ./meson.build ]
+then
+  ninja -C _BuilD_ || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -95,9 +108,22 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja -C _BuilD_ install
+else
+  make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
+fi
 
 cd ..
+
+#(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
+# ln -s qt5/lib/libqwt5-qt5.* .
+#)
+
+mv ${PKG}/usr/doc/qwt/man ${PKG}/usr
+
+sed -i "s@\$\${LIBDIRSUFFIX}@${LIBDIRSUFFIX}@" ${PKG}/usr/lib${LIBDIRSUFFIX}/qt6/mkspecs/features/*
 
 strip_binaries
 
@@ -114,12 +140,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "open source photography workflow application and RAW developer"
-darktable is an open source photography workflow application and RAW 
-developer. A virtual lighttable and darkroom for photographers. It 
-manages your digital negatives in a database, lets you view them 
-through a zoomable lighttable and enables you to develop raw images 
-and enhance them.
+make_slack_desc << EOF "Qwt library updated to work with Qt6"
+Qwt library updated to work with Qt6.
 
 EOF
 

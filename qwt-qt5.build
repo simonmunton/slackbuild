@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/q
 #TAR_EXT=.tar.gz
-VERSION=6.2.0
+VERSION=6.3.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -16,7 +16,7 @@ WEBPAGE="https://sourceforge.net/projects/qwt/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=qwt-qt5
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -46,7 +46,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 -b -z .orig < ${CWD}/qwt-6.3.0.diff
 
 # sed -i "s/@ARCH@/${LIBDIRSUFFIX}/" qwtconfig.pri examples/examples.pri qwt.prf designer/designer.pro
 
@@ -61,6 +61,9 @@ cd ${TARNAME}-${VERSION}
 fix_perms
 
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
+mkdir _Build_5_
+cd _Build_5_
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -87,7 +90,7 @@ elif [ -f ./meson.build ]
 then
   meson --prefix=/usr _BuilD_
 fi
-qmake-qt5 LIBDIRSUFFIX=${LIBDIRSUFFIX}
+qmake-qt5 LIBDIRSUFFIX=${LIBDIRSUFFIX} ..
 fi
 
 if [ ${DO_MAKE} == "yes" ]
@@ -112,6 +115,8 @@ else
   make install DESTDIR=${PKG} INSTALL_ROOT=${PKG}
 fi
 
+cd ..
+
 #(cd ${PKG}/usr/lib${LIBDIRSUFFIX}
 # ln -s qt5/lib/libqwt5-qt5.* .
 #)
@@ -135,8 +140,8 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Qwt library (version 5.2.3) updated to work with Qt5."
-Qwt library (version 5.2.3) updated to work with Qt5.
+make_slack_desc << EOF "Qwt library updated to work with Qt5"
+Qwt library updated to work with Qt5.
 
 EOF
 
