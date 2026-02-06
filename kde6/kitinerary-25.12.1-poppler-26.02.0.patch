@@ -1,0 +1,70 @@
+--- kitinerary-25.12.1/src/lib/pdf/pdfextractoroutputdevice.cpp.orig	2026-01-06 16:29:40.000000000 +0000
++++ kitinerary-25.12.1/src/lib/pdf/pdfextractoroutputdevice.cpp	2026-02-06 18:06:23.771877707 +0000
+@@ -313,3 +313,24 @@
+     PdfLink l(QString::fromStdString(uriLink->getURI()), QRectF(QPointF(std::min(xu1, xu2), std::min(yu1, yu2)), QPointF(std::max(xu1, xu2), std::max(yu1, yu2))));
+     m_links.push_back(std::move(l));
+ }
++
++#if KPOPPLER_VERSION >= QT_VERSION_CHECK(26, 1, 90)
++void PdfExtractorOutputDevice::setDefaultCTM(const std::array<double, 6> &ctm)
++{
++    TextOutputDev::setDefaultCTM(ctm);
++
++    const double det = 1 / (ctm[0] * ctm[3] - ctm[1] * ctm[2]);
++    m_defICTM[0] = ctm[3] * det;
++    m_defICTM[1] = -ctm[1] * det;
++    m_defICTM[2] = -ctm[2] * det;
++    m_defICTM[3] = ctm[0] * det;
++    m_defICTM[4] = (ctm[2] * ctm[5] - ctm[3] * ctm[4]) * det;
++    m_defICTM[5] = (ctm[1] * ctm[4] - ctm[0] * ctm[5]) * det;
++}
++
++void PdfExtractorOutputDevice::cvtDevToUser(double dx, double dy, double *ux, double *uy) const
++{
++    *ux = m_defICTM[0] * dx + m_defICTM[2] * dy + m_defICTM[4];
++    *uy = m_defICTM[1] * dx + m_defICTM[3] * dy + m_defICTM[5];
++}
++#endif
+--- kitinerary-25.12.1/src/lib/pdf/pdfextractoroutputdevice_p.h.orig	2026-01-06 16:29:40.000000000 +0000
++++ kitinerary-25.12.1/src/lib/pdf/pdfextractoroutputdevice_p.h	2026-02-06 18:05:14.410895883 +0000
+@@ -25,6 +25,10 @@
+ public:
+     explicit PdfExtractorOutputDevice();
+ 
++#if KPOPPLER_VERSION >= QT_VERSION_CHECK(26, 1, 90)
++    void setDefaultCTM(const std::array<double, 6> &ctm) override;
++#endif
++
+     // call once displaying has been completed
+     void finalize();
+ 
+@@ -61,6 +65,13 @@
+ 
+     // extracted links
+     std::vector<PdfLink> m_links;
++
++private:
++#if KPOPPLER_VERSION >= QT_VERSION_CHECK(26, 1, 90)
++    // removed in Poppler 26.02
++    void cvtDevToUser(double dx, double dy, double *ux, double *uy) const;
++    std::array<double, 6> m_defICTM;
++#endif
+ };
+ 
+ }
+--- kitinerary-25.12.1/src/lib/pdf/pdfdocument.cpp.orig	2026-01-06 16:29:40.000000000 +0000
++++ kitinerary-25.12.1/src/lib/pdf/pdfdocument.cpp	2026-02-06 17:57:22.584910280 +0000
+@@ -385,8 +385,12 @@
+     std::unique_ptr<PdfDocument> doc(new PdfDocument(parent));
+     doc->d->m_pdfData = data;
+     // PDFDoc takes ownership of stream
++#if KPOPPLER_VERSION < QT_VERSION_CHECK(26, 1, 90)
+     auto stream = new MemStream(const_cast<char*>(doc->d->m_pdfData.constData()), 0, doc->d->m_pdfData.size(), Object());
+-    std::unique_ptr<PDFDoc> popplerDoc(new PDFDoc(stream));
++#else
++    auto stream = std::make_unique<MemStream>(const_cast<char*>(doc->d->m_pdfData.constData()), 0, doc->d->m_pdfData.size(), Object());
++#endif
++    auto popplerDoc = std::make_unique<PDFDoc>(std::move(stream));
+     if (!popplerDoc->isOk()) {
+         qCWarning(Log) << "Got invalid PDF document!" << popplerDoc->getErrorCode();
+         return nullptr;
