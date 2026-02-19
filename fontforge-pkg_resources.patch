@@ -1,0 +1,556 @@
+From 89bea62f870e91c23358669feb21350f3af7c86b Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Fri, 10 Oct 2025 18:16:36 +0300
+Subject: [PATCH 1/6] Use importlib in plugin manager
+
+---
+ fontforge/plugin.c | 81 +++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 58 insertions(+), 23 deletions(-)
+
+diff --git a/fontforge/plugin.c b/fontforge/plugin.c
+index 35ffb30168..b8f3c11048 100644
+--- a/fontforge/plugin.c
++++ b/fontforge/plugin.c
+@@ -285,28 +285,65 @@ static void ReimportPlugins() {
+     }
+ }
+ 
++static PyObject *GetPluginEntryPoints() {
++    PyObject *str = NULL, *iter = NULL, *ep_method = NULL;
++    PyObject *keywords = NULL, *entry_points = NULL;
++
++    /* Try importlib.metadata first, fallback to importlib_metadata */
++    PyObject *importlib = PyImport_ImportModule("importlib.metadata");
++    if (!importlib) {
++        PyErr_Clear();
++        importlib = PyImport_ImportModule("importlib_metadata");
++        if (!importlib) {
++            PyErr_Clear();
++            LogError(_("Core python package 'importlib.metadata' not found: Cannot discover plugins"));
++            return NULL;
++        }
++    }
++    if (!PyObject_HasAttrString(importlib, "entry_points")) {
++        LogError(_("Method 'entry_points()' not found in module 'importlib.metadata'"));
++	PyErr_Clear();
++        Py_DECREF(importlib);
++        return NULL;
++    }
++
++    /* Call entry_points(group="fontforge_plugin") */
++    ep_method = PyObject_GetAttrString(importlib, "entry_points");
++    str = PyUnicode_FromString("fontforge_plugin");
++    keywords = PyDict_New();
++    PyDict_SetItemString(keywords, "group", str);
++    entry_points = PyObject_Call(ep_method, PyTuple_New(0), keywords);
++
++    Py_DECREF(ep_method);
++    Py_DECREF(str);
++    Py_DECREF(keywords);
++    Py_DECREF(importlib);
++
++    if (!entry_points) {
++        LogError(_("Failed to retrieve plugin entry points"));
++	PyErr_Clear();
++        return NULL;
++    }
++
++    iter = PyObject_GetIter(entry_points);
++    if (!iter || !PyIter_Check(iter)) {
++	PyErr_Clear();
++        LogError(_("Could not iterate 'fontforge_plugin' entry points."));
++        Py_XDECREF(iter);
++        return NULL;
++    }
++
++    return iter;
++}
++
+ static bool DiscoverPlugins(int do_import) {
+     int do_ask = false;
+     PluginEntry *pe;
+     GList_Glib *i;
+     PyObject *str, *str2, *iter, *tmp, *tmp2, *entrypoint;
+-    PyObject *pkgres = PyImport_ImportModule("pkg_resources");
+-    if (pkgres == NULL || !PyObject_HasAttrString(pkgres, "iter_entry_points")) {
+-        LogError(_("Core python package 'pkg_resources' not found: Cannot discover plugins"));
+-	PyErr_Clear();
+-        return false;
+-    }
+-    str = PyUnicode_FromString("iter_entry_points");
+-    str2 = PyUnicode_FromString("fontforge_plugin");
+-    iter = PyObject_CallMethodObjArgs(pkgres, str, str2, NULL);
+-    if (!PyIter_Check(iter)) {
+-        LogError(_("Could not iterate 'fontforge_plugin' entry points."));
+-        return false;
+-    }
+-    Py_DECREF(str);
+-    Py_DECREF(str2);
+ 
+-    PyObject *getmetastr = PyUnicode_FromString("get_metadata_lines");
++    iter = GetPluginEntryPoints();
++
+     while ((entrypoint = PyIter_Next(iter))) {
+         // Find name and module_name
+         str = PyObject_GetAttrString(entrypoint, "name");
+@@ -316,7 +353,7 @@ static bool DiscoverPlugins(int do_import) {
+             PyErr_Clear();
+             continue;
+         }
+-        str2 = PyObject_GetAttrString(entrypoint, "module_name");
++        str2 = PyObject_GetAttrString(entrypoint, "module");
+         const char *modname = PyUnicode_AsUTF8(str2);
+         if (modname == NULL) {
+             Py_XDECREF(str);
+@@ -341,7 +378,7 @@ static bool DiscoverPlugins(int do_import) {
+         }
+         Py_DECREF(str);
+         Py_DECREF(str2);
+-        str = PyObject_GetAttrString(entrypoint, "attrs");
++        str = PyObject_GetAttrString(entrypoint, "attr");
+         if (str == NULL) {
+             PyErr_Clear();
+         } else {
+@@ -357,9 +394,9 @@ static bool DiscoverPlugins(int do_import) {
+         pe->entrypoint = entrypoint;
+         // Extract project URL from package data
+         PyObject *dist = PyObject_GetAttrString(entrypoint, "dist");
+-        if (dist != NULL) {
+-            tmp = PyObject_GetAttrString(dist, "PKG_INFO");
+-            tmp2 = PyObject_CallMethodObjArgs(dist, getmetastr, tmp, NULL);
++        if (dist != NULL && PyObject_HasAttrString(dist, "metadata")) {
++            tmp = PyObject_GetAttrString(dist, "metadata");
++            tmp2 = PyObject_GetIter(tmp);
+             Py_DECREF(tmp);
+             if (PyIter_Check(tmp2)) {
+                 while ((str = PyIter_Next(tmp2))) {
+@@ -403,8 +440,6 @@ static bool DiscoverPlugins(int do_import) {
+         }
+     }
+     Py_DECREF(iter);
+-    Py_DECREF(getmetastr);
+-    Py_DECREF(pkgres);
+     return do_ask;
+ }
+ 
+
+From 4aa6c86fd05a848b01f1a4a12799da55a141531d Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Sat, 11 Oct 2025 11:43:14 +0300
+Subject: [PATCH 2/6] Simplify code
+
+---
+ fontforge/plugin.c | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/fontforge/plugin.c b/fontforge/plugin.c
+index b8f3c11048..04089c8335 100644
+--- a/fontforge/plugin.c
++++ b/fontforge/plugin.c
+@@ -286,8 +286,8 @@ static void ReimportPlugins() {
+ }
+ 
+ static PyObject *GetPluginEntryPoints() {
+-    PyObject *str = NULL, *iter = NULL, *ep_method = NULL;
+-    PyObject *keywords = NULL, *entry_points = NULL;
++    PyObject *iter = NULL, *ep_method = NULL;
++    PyObject *kw_args = NULL, *entry_points = NULL;
+ 
+     /* Try importlib.metadata first, fallback to importlib_metadata */
+     PyObject *importlib = PyImport_ImportModule("importlib.metadata");
+@@ -309,14 +309,11 @@ static PyObject *GetPluginEntryPoints() {
+ 
+     /* Call entry_points(group="fontforge_plugin") */
+     ep_method = PyObject_GetAttrString(importlib, "entry_points");
+-    str = PyUnicode_FromString("fontforge_plugin");
+-    keywords = PyDict_New();
+-    PyDict_SetItemString(keywords, "group", str);
+-    entry_points = PyObject_Call(ep_method, PyTuple_New(0), keywords);
++    kw_args = Py_BuildValue("{s,s}", "group", "fontforge_plugin");
++    entry_points = PyObject_Call(ep_method, PyTuple_New(0), kw_args);
+ 
+     Py_DECREF(ep_method);
+-    Py_DECREF(str);
+-    Py_DECREF(keywords);
++    Py_DECREF(kw_args);
+     Py_DECREF(importlib);
+ 
+     if (!entry_points) {
+
+From 8d6583e7c200d40978d0dc194f4fe619eb02b33c Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Sat, 11 Oct 2025 20:26:25 +0300
+Subject: [PATCH 3/6] Support Python versions 3.8, 3.12
+
+---
+ fontforge/plugin.c | 55 +++++++++++++++++++++++++++-------------------
+ 1 file changed, 32 insertions(+), 23 deletions(-)
+
+diff --git a/fontforge/plugin.c b/fontforge/plugin.c
+index 04089c8335..d683f78be3 100644
+--- a/fontforge/plugin.c
++++ b/fontforge/plugin.c
+@@ -286,19 +286,14 @@ static void ReimportPlugins() {
+ }
+ 
+ static PyObject *GetPluginEntryPoints() {
+-    PyObject *iter = NULL, *ep_method = NULL;
+-    PyObject *kw_args = NULL, *entry_points = NULL;
++    PyObject *iter = NULL, *all_eps = NULL;
++    PyObject *entry_points = NULL;
+ 
+-    /* Try importlib.metadata first, fallback to importlib_metadata */
+     PyObject *importlib = PyImport_ImportModule("importlib.metadata");
+     if (!importlib) {
+         PyErr_Clear();
+-        importlib = PyImport_ImportModule("importlib_metadata");
+-        if (!importlib) {
+-            PyErr_Clear();
+-            LogError(_("Core python package 'importlib.metadata' not found: Cannot discover plugins"));
+-            return NULL;
+-        }
++        LogError(_("Core python package 'importlib.metadata' not found: Cannot discover plugins"));
++        return NULL;
+     }
+     if (!PyObject_HasAttrString(importlib, "entry_points")) {
+         LogError(_("Method 'entry_points()' not found in module 'importlib.metadata'"));
+@@ -306,22 +301,33 @@ static PyObject *GetPluginEntryPoints() {
+         Py_DECREF(importlib);
+         return NULL;
+     }
++    all_eps = PyObject_CallMethod(importlib, "entry_points", NULL);
++
++    /* The object returned from importlib.metadata.entry_points() varies between versions*/
++    if (PyDict_Check(all_eps)) {
++	/* entry_points is a dictionary of entry point groups */
++	entry_points = PyDict_GetItemString(all_eps, "fontforge_plugin");
++	if (!entry_points) {
++	    /* No FontForge plugins found */
++	    PyErr_Clear();
++            return NULL;
++	}
++    } else {
++        /* all_eps is an EntryPoints object. Call all_eps.select(group="fontforge_plugin") */
++        PyObject *select_method = PyObject_GetAttrString(all_eps, "select");
++        PyObject *kw_args = Py_BuildValue("{s,s}", "group", "fontforge_plugin");
++        entry_points = PyObject_Call(select_method, PyTuple_New(0), kw_args);
++        Py_DECREF(select_method);
++        Py_DECREF(kw_args);
++        if (!entry_points) {
++            LogError(_("Failed to retrieve plugin entry points"));
++	    PyErr_Print();
++            return NULL;
++        }
++    }
+ 
+-    /* Call entry_points(group="fontforge_plugin") */
+-    ep_method = PyObject_GetAttrString(importlib, "entry_points");
+-    kw_args = Py_BuildValue("{s,s}", "group", "fontforge_plugin");
+-    entry_points = PyObject_Call(ep_method, PyTuple_New(0), kw_args);
+-
+-    Py_DECREF(ep_method);
+-    Py_DECREF(kw_args);
+     Py_DECREF(importlib);
+ 
+-    if (!entry_points) {
+-        LogError(_("Failed to retrieve plugin entry points"));
+-	PyErr_Clear();
+-        return NULL;
+-    }
+-
+     iter = PyObject_GetIter(entry_points);
+     if (!iter || !PyIter_Check(iter)) {
+ 	PyErr_Clear();
+@@ -340,6 +346,9 @@ static bool DiscoverPlugins(int do_import) {
+     PyObject *str, *str2, *iter, *tmp, *tmp2, *entrypoint;
+ 
+     iter = GetPluginEntryPoints();
++    if (iter == NULL) {
++	return false;
++    }
+ 
+     while ((entrypoint = PyIter_Next(iter))) {
+         // Find name and module_name
+@@ -350,7 +359,7 @@ static bool DiscoverPlugins(int do_import) {
+             PyErr_Clear();
+             continue;
+         }
+-        str2 = PyObject_GetAttrString(entrypoint, "module");
++        str2 = PyObject_GetAttrString(entrypoint, "value");
+         const char *modname = PyUnicode_AsUTF8(str2);
+         if (modname == NULL) {
+             Py_XDECREF(str);
+
+From 33493bf3d38c2211d1ea8012e747bcde64ccb120 Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Fri, 21 Nov 2025 00:12:41 +0200
+Subject: [PATCH 4/6] Add LoadPluginMetadata() for Python plugins
+
+---
+ fontforge/plugin.c      | 125 +++++++++++++++++++++++++++++-----------
+ fontforgeexe/pluginui.c |   2 +-
+ 2 files changed, 91 insertions(+), 36 deletions(-)
+
+diff --git a/fontforge/plugin.c b/fontforge/plugin.c
+index d683f78be3..61475d50b4 100644
+--- a/fontforge/plugin.c
++++ b/fontforge/plugin.c
+@@ -339,11 +339,96 @@ static PyObject *GetPluginEntryPoints() {
+     return iter;
+ }
+ 
++/* Retrieve name, URL, and summary of the plugin */
++static void LoadPluginMetadata(PluginEntry* pe) {
++    PyObject *globals = PyDict_New(), *locals = PyDict_New();
++    PyObject *dist = NULL, *function_args = NULL;
++
++    /* The `EntryPoint.dist` attribute is available starting with Python 3.10.
++     * To support Python 3.8+ we resort to the ugly but more uniform method of
++     * retrieving all `Distribution` objects and traversing them until we find
++     * one which points to our `EntryPoint` object. */
++    const char* function_string =
++        "def load_plugin_metadata(entrypoint):\n"
++        "    import importlib.metadata\n"
++        "    all_dists = importlib.metadata.distributions()\n"
++        "    for dist in all_dists:\n"
++        "        dist_eps = dist.entry_points\n"
++        "        for ep in dist_eps:\n"
++        "            if ep == entrypoint:\n"
++        "                return dist\n"
++        "    return None\n";
++
++    /* Execute the function definition */
++    if (PyRun_String(function_string, Py_file_input, globals, locals) == NULL) {
++        Py_DECREF(globals);
++        Py_DECREF(locals);
++        return;
++    }
++
++    /* Retrieve the function object */
++    PyObject* func = PyDict_GetItemString(locals, "load_plugin_metadata");
++    if (func == NULL || !PyCallable_Check(func)) {
++        PyErr_SetString(PyExc_RuntimeError, "Could not find the function");
++        Py_DECREF(globals);
++        Py_DECREF(locals);
++        return;
++    }
++
++    /* Call the function */
++    function_args = PyTuple_Pack(1, pe->entrypoint);
++    if (function_args != NULL) {
++        dist = PyObject_Call(func, function_args, NULL);
++    }
++    Py_XDECREF(func);
++    Py_XDECREF(function_args);
++
++    if (dist == NULL) {
++        PyErr_Print();
++        PyErr_SetString(PyExc_RuntimeError, "Could not retrieve distribution");
++        return;
++    }
++
++    if (PyObject_HasAttrString(dist, "metadata")) {
++        PyObject *str, *val;
++        PyObject* metadata = PyObject_GetAttrString(dist, "metadata");
++        str = PyUnicode_FromString("Home-page");
++        val = PyObject_GetItem(metadata, str);
++        if (val) {
++            free(pe->package_url);
++            pe->package_url = copy(PyUnicode_AsUTF8(val));
++        }
++        Py_XDECREF(str);
++        Py_XDECREF(val);
++
++        str = PyUnicode_FromString("Name");
++        val = PyObject_GetItem(metadata, str);
++        if (val) {
++            free(pe->package_name);
++            pe->package_name = copy(PyUnicode_AsUTF8(val));
++        }
++        Py_XDECREF(str);
++        Py_XDECREF(val);
++
++        str = PyUnicode_FromString("Summary");
++        val = PyObject_GetItem(metadata, str);
++        if (val) {
++            free(pe->summary);
++            pe->summary = copy(PyUnicode_AsUTF8(val));
++        }
++        Py_XDECREF(str);
++        Py_XDECREF(val);
++        Py_XDECREF(metadata);
++    }
++
++    Py_XDECREF(dist);
++}
++
+ static bool DiscoverPlugins(int do_import) {
+     int do_ask = false;
+-    PluginEntry *pe;
++    PluginEntry *pe = NULL;
+     GList_Glib *i;
+-    PyObject *str, *str2, *iter, *tmp, *tmp2, *entrypoint;
++    PyObject *str, *str2, *iter, *entrypoint;
+ 
+     iter = GetPluginEntryPoints();
+     if (iter == NULL) {
+@@ -385,7 +470,7 @@ static bool DiscoverPlugins(int do_import) {
+         Py_DECREF(str);
+         Py_DECREF(str2);
+         str = PyObject_GetAttrString(entrypoint, "attr");
+-        if (str == NULL) {
++        if (str == NULL || str == Py_None) {
+             PyErr_Clear();
+         } else {
+             if (pe->attrs) {
+@@ -398,43 +483,13 @@ static bool DiscoverPlugins(int do_import) {
+         pe->is_present = true;
+         Py_XDECREF(pe->entrypoint);
+         pe->entrypoint = entrypoint;
+-        // Extract project URL from package data
+-        PyObject *dist = PyObject_GetAttrString(entrypoint, "dist");
+-        if (dist != NULL && PyObject_HasAttrString(dist, "metadata")) {
+-            tmp = PyObject_GetAttrString(dist, "metadata");
+-            tmp2 = PyObject_GetIter(tmp);
+-            Py_DECREF(tmp);
+-            if (PyIter_Check(tmp2)) {
+-                while ((str = PyIter_Next(tmp2))) {
+-                    const char *metaline = PyUnicode_AsUTF8(str);
+-                    // printf("%s\n", metaline);
+-                    if (strncmp(metaline, "Home-page: ", 11) == 0) {
+-                        if (pe->package_url != NULL) {
+-                            free(pe->package_url);
+-                        }
+-                        pe->package_url = copy(metaline + 11);
+-                    } else if (strncmp(metaline, "Name: ", 6) == 0) {
+-                        if (pe->package_name != NULL) {
+-                            free(pe->package_name);
+-                        }
+-                        pe->package_name = copy(metaline + 6);
+-                    } else if (strncmp(metaline, "Summary: ", 9) == 0) {
+-                        if (pe->summary != NULL) {
+-                            free(pe->summary);
+-                        }
+-                        pe->summary = copy(metaline + 9);
+-                    }
+-                    Py_DECREF(str);
+-                }
+-            }
+-            Py_DECREF(tmp2);
+-        }
++
++	LoadPluginMetadata(pe);
+         if (do_import && pe->startup_mode == sm_on) {
+             LoadPlugin(pe);
+         } else if (do_import && pe->startup_mode == sm_ask) {
+             do_ask = true;
+         }
+-        Py_XDECREF(dist);
+     }
+     if (PyErr_Occurred()) {
+         PyErr_Print();
+diff --git a/fontforgeexe/pluginui.c b/fontforgeexe/pluginui.c
+index fa7f366650..151ff68e20 100644
+--- a/fontforgeexe/pluginui.c
++++ b/fontforgeexe/pluginui.c
+@@ -164,7 +164,7 @@ static void PluginInfoDlg(PluginEntry *pe) {
+     gcd[k++].creator = GLabelCreate;
+     hvgrid[3][0] = &gcd[k - 1];
+ 
+-    label[k].text = (unichar_t *) pe->attrs;
++    label[k].text = (unichar_t *)(pe->attrs == NULL ? "" : pe->attrs);
+     label[k].text_is_1byte = true;
+     gcd[k].gd.label = &label[k];
+     gcd[k].gd.flags = gg_enabled | gg_visible;
+
+From 4e50308d7efd14a76b4a93e8a0a0cf372f08321c Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Fri, 21 Nov 2025 10:17:53 +0200
+Subject: [PATCH 5/6] Cleanup
+
+---
+ fontforge/plugin.c | 40 ++++++++++++++--------------------------
+ 1 file changed, 14 insertions(+), 26 deletions(-)
+
+diff --git a/fontforge/plugin.c b/fontforge/plugin.c
+index 61475d50b4..54de155019 100644
+--- a/fontforge/plugin.c
++++ b/fontforge/plugin.c
+@@ -339,6 +339,17 @@ static PyObject *GetPluginEntryPoints() {
+     return iter;
+ }
+ 
++static void RetrieveStringItem(PyObject* obj, const char* key, char** p_value) {
++    PyObject* str = PyUnicode_FromString(key);
++    PyObject* val = PyObject_GetItem(obj, str);
++    if (val) {
++        free(*p_value);
++        *p_value = copy(PyUnicode_AsUTF8(val));
++    }
++    Py_XDECREF(str);
++    Py_XDECREF(val);
++}
++
+ /* Retrieve name, URL, and summary of the plugin */
+ static void LoadPluginMetadata(PluginEntry* pe) {
+     PyObject *globals = PyDict_New(), *locals = PyDict_New();
+@@ -390,34 +401,11 @@ static void LoadPluginMetadata(PluginEntry* pe) {
+     }
+ 
+     if (PyObject_HasAttrString(dist, "metadata")) {
+-        PyObject *str, *val;
+         PyObject* metadata = PyObject_GetAttrString(dist, "metadata");
+-        str = PyUnicode_FromString("Home-page");
+-        val = PyObject_GetItem(metadata, str);
+-        if (val) {
+-            free(pe->package_url);
+-            pe->package_url = copy(PyUnicode_AsUTF8(val));
+-        }
+-        Py_XDECREF(str);
+-        Py_XDECREF(val);
+ 
+-        str = PyUnicode_FromString("Name");
+-        val = PyObject_GetItem(metadata, str);
+-        if (val) {
+-            free(pe->package_name);
+-            pe->package_name = copy(PyUnicode_AsUTF8(val));
+-        }
+-        Py_XDECREF(str);
+-        Py_XDECREF(val);
+-
+-        str = PyUnicode_FromString("Summary");
+-        val = PyObject_GetItem(metadata, str);
+-        if (val) {
+-            free(pe->summary);
+-            pe->summary = copy(PyUnicode_AsUTF8(val));
+-        }
+-        Py_XDECREF(str);
+-        Py_XDECREF(val);
++	RetrieveStringItem(metadata, "Home-page", &pe->package_url);
++	RetrieveStringItem(metadata, "Name", &pe->package_name);
++	RetrieveStringItem(metadata, "Summary", &pe->summary);
+         Py_XDECREF(metadata);
+     }
+ 
+
+From 41b7ca47ce44ea48b578799be03d8074c59da1b9 Mon Sep 17 00:00:00 2001
+From: Maxim Iorsh <iorsh@users.sourceforge.net>
+Date: Fri, 21 Nov 2025 10:55:36 +0200
+Subject: [PATCH 6/6] Minor UI fix
+
+---
+ fontforgeexe/pluginui.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fontforgeexe/pluginui.c b/fontforgeexe/pluginui.c
+index 151ff68e20..dda25430d8 100644
+--- a/fontforgeexe/pluginui.c
++++ b/fontforgeexe/pluginui.c
+@@ -522,6 +522,7 @@ static int PLUG_PluginOp(GGadget *g, GEvent *e) {
+     } else if (cid == CID_Revert) {
+         FigurePluginList(d);
+     }
++    GGadgetRedraw(list);
+     return true;
+ }
+ 
