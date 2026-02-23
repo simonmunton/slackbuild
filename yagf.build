@@ -7,11 +7,12 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/y
 #TAR_EXT=.tar.gz
-VERSION=0.9.4.3
+VERSION=0.9.5
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://symmetrica.net/cuneiform-linux/yagf-en.html"
+WEBPAGE=https://sourceforge.net/projects/yagf-ocr/
+#"http://symmetrica.net/cuneiform-linux/yagf-en.html"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,12 +35,12 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
 #mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
@@ -55,22 +56,48 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+mkdir _BuilD_
+cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 if [ ${DO_CONFIGURE} == "yes" ]
+then
+if [ -f ../configure ]
+then
+CFLAGS="${SLKCFLAGS}" \
+CXXFLAGS="${SLKCFLAGS}" \
+../configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --localstatedir=/var/lib \
+	    --mandir=/usr/man
+elif [ -f ../CMakeLists.txt ]
 then
 cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DMAN_INSTALL_DIR=/usr/man \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
-      .
+      ..
+elif [ -f ../meson.build ]
+then
+  meson --prefix=/usr . ..
+fi
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+if [ -f ../meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -78,7 +105,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG}
+if [ -f ../meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
+
+cd ..
 
 strip_binaries
 
@@ -96,13 +130,13 @@ fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
 make_slack_desc << EOF "YAGF is a graphical frontend for the Cuneiform OCR tool"
-YAGF is a graphical frontend for the Cuneiform OCR tool. It lets you 
-open already scanned image files or obtain new images via XSane 
-(scanning results are automatically passed to YAGF). Once you have a 
-scanned image you can prepare it for recognition, select particular 
-image areas for recognition, set the recognition language and so on. 
-Recognized text is displayed in an editor window where it can be 
-spell-checked, corrected, saved to disk, or copied to clipboard. YAGF 
+YAGF is a graphical frontend for the Cuneiform OCR tool. It lets you
+open already scanned image files or obtain new images via XSane
+(scanning results are automatically passed to YAGF). Once you have a
+scanned image you can prepare it for recognition, select particular
+image areas for recognition, set the recognition language and so on.
+Recognized text is displayed in an editor window where it can be
+spell-checked, corrected, saved to disk, or copied to clipboard. YAGF
 also provides some facilities for a multi-page recognition.
 
 EOF

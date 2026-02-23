@@ -2,21 +2,20 @@
 #
 . build_funcs
 
-TARNAME=ocaml
+TARNAME=typing_inspection
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/o
+TARDIR=${SOURCE}/t
 #TAR_EXT=.tar.gz
-VERSION=5.4.1
+VERSION=0.4.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://ocaml.org/"
-#"http://caml.inria.fr"
+WEBPAGE="https://pypi.org/project/typing-inspection/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=python-typing_inspection
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -56,23 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
-#mkdir _BuilD_
-#cd _BuilD_
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-CFLAGS="${SLKCFLAGS}" \
-CXXFLAGS="${SLKCFLAGS}" \
-./configure --prefix /usr --libdir /usr/lib${LIBDIRSUFFIX}/ocaml
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-#make ${NUM_JOBS} world || exit
-##make ${NUM_JOBS} bootstrap || exit
-#make ${NUM_JOBS} opt || exit
-#make ${NUM_JOBS} opt.opt || exit
-make ${NUM_JOBS} world.opt || exit
+#make ${NUM_JOBS} || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -80,12 +91,12 @@ then
   exit
 fi
 
-#make install PREFIX=${PKG}/usr LIBDIR=${PKG}/usr/lib${LIBDIRSUFFIX}/ocaml
-make install DESTDIR=${PKG}
+#make install DESTDIR=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
-#cd ..
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -100,10 +111,9 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "implementation of the ML language"
-Objective Caml is an implementation of the ML language, based on the
-Caml Light dialect extended with a complete class-based object system
-and a powerful module system in the style of Standard ML.
+make_slack_desc << EOF "Runtime typing introspection tools"
+typing-inspection provides tools to inspect type annotations at 
+runtime.
 
 EOF
 

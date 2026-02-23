@@ -1,5 +1,5 @@
 --- flann-1.9.2/doc/CMakeLists.txt.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/doc/CMakeLists.txt	2025-08-26 17:08:11.815792469 +0100
++++ flann-1.9.2/doc/CMakeLists.txt	2026-02-23 22:28:27.730411852 +0000
 @@ -7,7 +7,7 @@
  if (EXISTS ${PDFLATEX_COMPILER} AND EXISTS ${BIBTEX_COMPILER})
      include(${PROJECT_SOURCE_DIR}/cmake/UseLATEX.cmake)
@@ -10,7 +10,7 @@
      add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/manual.pdf
          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/manual.pdf ${CMAKE_CURRENT_SOURCE_DIR}/manual.pdf
 --- flann-1.9.2/CMakeLists.txt.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/CMakeLists.txt	2025-08-26 16:15:16.023801722 +0100
++++ flann-1.9.2/CMakeLists.txt	2026-02-23 22:28:27.730492756 +0000
 @@ -1,4 +1,4 @@
 -cmake_minimum_required(VERSION 2.6)
 +cmake_minimum_required(VERSION 3.10)
@@ -71,8 +71,8 @@
  set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
  set(version_config "${generated_dir}/flann-config-version.cmake")
  set(project_config "${generated_dir}/flann-config.cmake")
---- flann-1.9.2/cmake/Findlz4.cmake.orig	2025-08-26 16:14:42.041098562 +0100
-+++ flann-1.9.2/cmake/Findlz4.cmake	2025-08-26 16:26:40.361983320 +0100
+--- flann-1.9.2/cmake/Findlz4.cmake.orig	2026-02-23 22:28:27.730568235 +0000
++++ flann-1.9.2/cmake/Findlz4.cmake	2026-02-23 22:28:27.730568235 +0000
 @@ -0,0 +1,132 @@
 +# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
 +# file Copyright.txt or https://cmake.org/licensing for details.
@@ -207,7 +207,7 @@
 +    endif()
 +endif()
 --- flann-1.9.2/cmake/Config.cmake.in.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/cmake/Config.cmake.in	2025-08-26 16:02:59.487187050 +0100
++++ flann-1.9.2/cmake/Config.cmake.in	2026-02-23 22:28:27.730618149 +0000
 @@ -1,5 +1,11 @@
  @PACKAGE_INIT@
  
@@ -221,7 +221,7 @@
  check_required_components("flann")
  
 --- flann-1.9.2/cmake/flann_utils.cmake.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/cmake/flann_utils.cmake	2025-08-26 16:04:16.900807410 +0100
++++ flann-1.9.2/cmake/flann_utils.cmake	2026-02-23 22:28:27.730672776 +0000
 @@ -22,21 +22,8 @@
  
  # workaround a FindHDF5 bug
@@ -246,22 +246,21 @@
      mark_as_advanced( HDF5_IS_PARALLEL )
  endmacro(find_hdf5)
  
---- flann-1.9.2/cmake/UseLATEX.cmake.orig	2025-08-26 17:09:13.789440933 +0100
-+++ flann-1.9.2/cmake/UseLATEX.cmake	2025-08-27 09:55:26.533888332 +0100
-@@ -751,9 +751,9 @@
+--- flann-1.9.2/cmake/UseLATEX.cmake.orig	2021-04-12 08:15:28.000000000 +0100
++++ flann-1.9.2/cmake/UseLATEX.cmake	2026-02-23 22:30:13.261836060 +0000
+@@ -751,8 +751,9 @@
      ADD_CUSTOM_TARGET(${html_target}
        ${CMAKE_COMMAND} -E chdir ${output_dir}
        ${LATEX2HTML_CONVERTER} ${LATEX2HTML_CONVERTER_FLAGS} ${LATEX_MAIN_INPUT}
 +      DEPENDS ${LATEX_MAIN_INPUT} ${LATEX_INPUTS}
        )
--message("SM: ${html_target} ${LATEX_MAIN_INPUT} ${LATEX_INPUTS}")
 -    ADD_DEPENDENCIES(${html_target} ${LATEX_MAIN_INPUT} ${LATEX_INPUTS})
 +#    ADD_DEPENDENCIES(${html_target} ${LATEX_MAIN_INPUT} ${LATEX_INPUTS})
    ENDIF (LATEX2HTML_CONVERTER)
  
    ADD_CUSTOM_TARGET(${auxclean_target}
 --- flann-1.9.2/src/cpp/CMakeLists.txt.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/src/cpp/CMakeLists.txt	2025-08-26 16:14:15.347140724 +0100
++++ flann-1.9.2/src/cpp/CMakeLists.txt	2026-02-23 22:28:27.730945929 +0000
 @@ -8,13 +8,7 @@
  file(GLOB_RECURSE CPP_SOURCES flann_cpp.cpp)
  file(GLOB_RECURSE CU_SOURCES *.cu)
@@ -476,8 +475,8 @@
          INCLUDES DESTINATION include
          RUNTIME DESTINATION bin
 --- flann-1.9.2/src/matlab/CMakeLists.txt.orig	2021-04-12 08:15:28.000000000 +0100
-+++ flann-1.9.2/src/matlab/CMakeLists.txt	2025-08-28 12:02:11.854792557 +0100
-@@ -16,8 +16,15 @@
++++ flann-1.9.2/src/matlab/CMakeLists.txt	2026-02-23 22:28:47.580660267 +0000
+@@ -16,8 +16,11 @@
  
  find_program(OCT_CMD mkoctfile)
  
@@ -488,14 +487,10 @@
 +else()
 +get_filename_component(FLANN_LIB_PATH flann PATH)
 +endif()
-+
-+include(print_target_properties.cmake)
-+
-+print_target_properties(flann)
  
  if(MEX_CMD AND MEXEXT_CMD)
  
-@@ -33,7 +40,7 @@
+@@ -33,7 +36,7 @@
          EXECUTE_PROCESS(COMMAND ${MEXEXT_REAL_CMD} OUTPUT_VARIABLE MEX_EXTENSION OUTPUT_STRIP_TRAILING_WHITESPACE)
          SET(MEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/${MEX_NAME}.${MEX_EXTENSION})
  
@@ -504,7 +499,7 @@
          if (WIN32)
  			if (MSVC_IDE)
  				set(MEX_BUILD_FLAGS "COMPFLAGS=\"$COMPFLAGS ${OpenMP_CXX_FLAGS}\" LINKFLAGS=\"$LINKFLAGS ${OpenMP_CXX_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}\"")
-@@ -43,15 +50,25 @@
+@@ -43,15 +46,25 @@
          else()
              set(MEX_BUILD_FLAGS "CFLAGS='$$CFLAGS ${OpenMP_CXX_FLAGS}' LDFLAGS='$$LDFLAGS ${OpenMP_CXX_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}'")
          endif()
@@ -538,7 +533,7 @@
  
          ADD_CUSTOM_TARGET(mex_${MEX_NAME} ALL DEPENDS ${MEX_FILE})
  
-@@ -63,10 +80,11 @@
+@@ -63,10 +76,11 @@
          )
      else()
          message(WARNING "The 'mex' and 'mexext' programs have been found in different locations. It's likely that one of them is not part of the MATLAB instalation. Make sure that the 'bin' directory from the MATLAB instalation is in PATH")
@@ -551,7 +546,7 @@
    ADD_CUSTOM_COMMAND(
      OUTPUT ${MEX_FILE}
      COMMAND ${OCT_CMD}
-@@ -74,6 +92,15 @@
+@@ -74,6 +88,15 @@
      DEPENDS flann_s ${CMAKE_CURRENT_SOURCE_DIR}/${MEX_NAME}.cpp
      COMMENT "Building MEX extension ${MEX_FILE}"
      )
@@ -567,7 +562,7 @@
  
    ADD_CUSTOM_TARGET(mex_${MEX_NAME} ALL DEPENDS ${MEX_FILE})
  
-@@ -85,6 +112,6 @@
+@@ -85,6 +108,6 @@
      )
  else()
      message(WARNING "Cannot find MATLAB or Octave instalation. Make sure that the 'bin' directory from the MATLAB instalation or that mkoctfile is in PATH")
