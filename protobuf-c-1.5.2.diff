@@ -1,0 +1,329 @@
+--- protobuf-c-1.5.2/protoc-gen-c/c_string_field.cc.orig	2025-02-02 04:19:55.000000000 +0000
++++ protobuf-c-1.5.2/protoc-gen-c/c_string_field.cc	2026-03-01 10:12:16.105756639 +0000
+@@ -94,19 +94,15 @@
+ {
+   const ProtobufCFileOptions opt = descriptor_->file()->options().GetExtension(pb_c_file);
+ 
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
+-      if (opt.const_strings())
+-        printer->Print(variables_, "const ");
+-      printer->Print(variables_, "char *$name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
++  if (descriptor_->is_repeated()) {
+       printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
+       if (opt.const_strings())
+         printer->Print(variables_, "const ");
+       printer->Print(variables_, "char **$name$$deprecated$;\n");
+-      break;
++  } else {
++      if (opt.const_strings())
++        printer->Print(variables_, "const ");
++      printer->Print(variables_, "char *$name$$deprecated$;\n");
+   }
+ }
+ void StringFieldGenerator::GenerateDefaultValueDeclarations(google::protobuf::io::Printer* printer) const
+@@ -138,14 +134,10 @@
+   } else {
+     vars["default"] = "(char *)protobuf_c_empty_string";
+   }
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
+-      printer->Print(vars, "$default$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
++  if (descriptor_->is_repeated()) {
+       printer->Print(vars, "0,NULL");
+-      break;
++  } else {
++      printer->Print(vars, "$default$");
+   }
+ }
+ void StringFieldGenerator::GenerateDescriptorInitializer(google::protobuf::io::Printer* printer) const
+--- protobuf-c-1.5.2/protoc-gen-c/c_helpers.cc.orig	2025-04-07 02:17:27.000000000 +0100
++++ protobuf-c-1.5.2/protoc-gen-c/c_helpers.cc	2026-03-01 10:06:53.761595145 +0000
+@@ -329,13 +329,14 @@
+   return result;
+ }
+ 
+-std::string GetLabelName(google::protobuf::FieldDescriptor::Label label) {
+-  switch (label) {
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL: return "optional";
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED: return "required";
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED: return "repeated";
++std::string GetLabelName(const google::protobuf::FieldDescriptor* descriptor_) {
++  if (descriptor_->is_required()) {
++    return "required";
++  } else if (descriptor_->is_repeated()) {
++    return "repeated";
++  } else {
++    return "optional";
+   }
+-  return "bad-label";
+ }
+ 
+ unsigned
+--- protobuf-c-1.5.2/protoc-gen-c/c_enum_field.cc.orig	2025-04-07 02:17:27.000000000 +0100
++++ protobuf-c-1.5.2/protoc-gen-c/c_enum_field.cc	2026-03-01 09:55:36.470212581 +0000
+@@ -95,19 +95,15 @@
+ 
+ void EnumFieldGenerator::GenerateStructMembers(google::protobuf::io::Printer* printer) const
+ {
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(variables_, "$type$ $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
++      printer->Print(variables_, "$type$ *$name$$deprecated$;\n");
++  } else {
+       if (descriptor_->containing_oneof() == NULL && FieldSyntax(descriptor_) == 2)
+         printer->Print(variables_, "protobuf_c_boolean has_$name$$deprecated$;\n");
+       printer->Print(variables_, "$type$ $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
+-      printer->Print(variables_, "$type$ *$name$$deprecated$;\n");
+-      break;
+   }
+ }
+ 
+@@ -117,19 +113,15 @@
+ }
+ void EnumFieldGenerator::GenerateStaticInit(google::protobuf::io::Printer* printer) const
+ {
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(variables_, "$default$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      // no support for default?
++      printer->Print("0,NULL");
++  } else {
+       if (FieldSyntax(descriptor_) == 2)
+         printer->Print(variables_, "0, ");
+       printer->Print(variables_, "$default$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      // no support for default?
+-      printer->Print("0,NULL");
+-      break;
+   }
+ }
+ 
+--- protobuf-c-1.5.2/protoc-gen-c/c_message_field.cc.orig	2025-02-02 04:19:55.000000000 +0000
++++ protobuf-c-1.5.2/protoc-gen-c/c_message_field.cc	2026-03-01 10:09:43.901996294 +0000
+@@ -83,15 +83,11 @@
+   vars["name"] = FieldName(descriptor_);
+   vars["type"] = FullNameToC(descriptor_->message_type()->full_name(), descriptor_->message_type()->file());
+   vars["deprecated"] = FieldDeprecated(descriptor_);
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
+-      printer->Print(vars, "$type$ *$name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
++  if (descriptor_->is_repeated()) {
+       printer->Print(vars, "size_t n_$name$$deprecated$;\n");
+       printer->Print(vars, "$type$ **$name$$deprecated$;\n");
+-      break;
++  } else {
++      printer->Print(vars, "$type$ *$name$$deprecated$;\n");
+   }
+ }
+ std::string MessageFieldGenerator::GetDefaultValue(void) const
+@@ -103,14 +99,10 @@
+ }
+ void MessageFieldGenerator::GenerateStaticInit(google::protobuf::io::Printer* printer) const
+ {
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
+-      printer->Print("NULL");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
++  if (descriptor_->is_repeated()) {
+       printer->Print("0,NULL");
+-      break;
++  } else {
++      printer->Print("NULL");
+   }
+ }
+ void MessageFieldGenerator::GenerateDescriptorInitializer(google::protobuf::io::Printer* printer) const
+--- protobuf-c-1.5.2/protoc-gen-c/c_helpers.h.orig	2025-04-07 02:17:27.000000000 +0100
++++ protobuf-c-1.5.2/protoc-gen-c/c_helpers.h	2026-03-01 10:07:03.179777122 +0000
+@@ -151,7 +151,7 @@
+ std::string FilenameIdentifier(compat::StringView filename);
+ 
+ // return 'required', 'optional', or 'repeated'
+-std::string GetLabelName(google::protobuf::FieldDescriptor::Label label);
++std::string GetLabelName(const google::protobuf::FieldDescriptor* descriptor_);
+ 
+ // write IntRanges entries for a bunch of sorted values.
+ // returns the number of ranges there are to bsearch.
+--- protobuf-c-1.5.2/protoc-gen-c/c_bytes_field.cc.orig	2025-02-02 04:19:55.000000000 +0000
++++ protobuf-c-1.5.2/protoc-gen-c/c_bytes_field.cc	2026-03-01 09:48:08.203397929 +0000
+@@ -94,19 +94,15 @@
+ 
+ void BytesFieldGenerator::GenerateStructMembers(google::protobuf::io::Printer* printer) const
+ {
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(variables_, "ProtobufCBinaryData $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
++      printer->Print(variables_, "ProtobufCBinaryData *$name$$deprecated$;\n");
++  } else {
+       if (descriptor_->containing_oneof() == NULL && FieldSyntax(descriptor_) == 2)
+         printer->Print(variables_, "protobuf_c_boolean has_$name$$deprecated$;\n");
+       printer->Print(variables_, "ProtobufCBinaryData $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
+-      printer->Print(variables_, "ProtobufCBinaryData *$name$$deprecated$;\n");
+-      break;
+   }
+ }
+ void BytesFieldGenerator::GenerateDefaultValueDeclarations(google::protobuf::io::Printer* printer) const
+@@ -135,19 +131,15 @@
+ }
+ void BytesFieldGenerator::GenerateStaticInit(google::protobuf::io::Printer* printer) const
+ {
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(variables_, "$default_value$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      // no support for default?
++      printer->Print("0,NULL");
++  } else {
+       if (FieldSyntax(descriptor_) == 2)
+         printer->Print(variables_, "0, ");
+       printer->Print(variables_, "$default_value$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      // no support for default?
+-      printer->Print("0,NULL");
+-      break;
+   }
+ }
+ void BytesFieldGenerator::GenerateDescriptorInitializer(google::protobuf::io::Printer* printer) const
+--- protobuf-c-1.5.2/protoc-gen-c/c_primitive_field.cc.orig	2025-04-07 02:17:27.000000000 +0100
++++ protobuf-c-1.5.2/protoc-gen-c/c_primitive_field.cc	2026-03-01 10:10:49.923188524 +0000
+@@ -109,19 +109,15 @@
+   vars["name"] = FieldName(descriptor_);
+   vars["deprecated"] = FieldDeprecated(descriptor_);
+ 
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(vars, "$c_type$ $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      printer->Print(vars, "size_t n_$name$$deprecated$;\n");
++      printer->Print(vars, "$c_type$ *$name$$deprecated$;\n");
++  } else {
+       if (descriptor_->containing_oneof() == NULL && FieldSyntax(descriptor_) == 2)
+         printer->Print(vars, "protobuf_c_boolean has_$name$$deprecated$;\n");
+       printer->Print(vars, "$c_type$ $name$$deprecated$;\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      printer->Print(vars, "size_t n_$name$$deprecated$;\n");
+-      printer->Print(vars, "$c_type$ *$name$$deprecated$;\n");
+-      break;
+   }
+ }
+ std::string PrimitiveFieldGenerator::GetDefaultValue() const
+@@ -156,18 +152,14 @@
+   } else {
+     vars["default_value"] = "0";
+   }
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(vars, "$default_value$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      printer->Print("0,NULL");
++  } else {
+       if (FieldSyntax(descriptor_) == 2)
+         printer->Print(vars, "0, ");
+       printer->Print(vars, "$default_value$");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      printer->Print("0,NULL");
+-      break;
+   }
+ }
+ 
+--- protobuf-c-1.5.2/protoc-gen-c/c_field.cc.orig	2025-04-07 02:17:27.000000000 +0100
++++ protobuf-c-1.5.2/protoc-gen-c/c_field.cc	2026-03-01 10:05:27.794827717 +0000
+@@ -125,11 +125,11 @@
+     variables["oneofname"] = CamelToLower(oneof->name());
+ 
+   if (FieldSyntax(descriptor_) == 3 &&
+-    descriptor_->label() == google::protobuf::FieldDescriptor::LABEL_OPTIONAL) {
++    (!descriptor_->is_required() && !descriptor_->is_repeated())) {
+     variables["LABEL"] = "NONE";
+     optional_uses_has = false;
+   } else {
+-    variables["LABEL"] = CamelToUpper(GetLabelName(descriptor_->label()));
++    variables["LABEL"] = CamelToUpper(GetLabelName(descriptor_));
+   }
+ 
+   if (descriptor_->has_default_value()) {
+@@ -145,11 +145,11 @@
+ 
+   variables["flags"] = "0";
+ 
+-  if (descriptor_->label() == google::protobuf::FieldDescriptor::LABEL_REPEATED
++  if (descriptor_->is_repeated()
+    && is_packable_type (descriptor_->type())
+    && descriptor_->options().packed()) {
+     variables["flags"] += " | PROTOBUF_C_FIELD_FLAG_PACKED";
+-  } else if (descriptor_->label() == google::protobuf::FieldDescriptor::LABEL_REPEATED
++  } else if (descriptor_->is_repeated()
+    && is_packable_type (descriptor_->type())
+    && FieldSyntax(descriptor_) == 3
+    && !descriptor_->options().has_packed()) {
+@@ -179,11 +179,11 @@
+     "  $value$,\n"
+     "  PROTOBUF_C_LABEL_$LABEL$,\n"
+     "  PROTOBUF_C_TYPE_$TYPE$,\n");
+-  switch (descriptor_->label()) {
+-    case google::protobuf::FieldDescriptor::LABEL_REQUIRED:
++  if (descriptor_->is_required()) {
+       printer->Print(variables, "  0,   /* quantifier_offset */\n");
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_OPTIONAL:
++  } else if (descriptor_->is_repeated()) {
++      printer->Print(variables, "  offsetof($classname$, n_$name$),\n");
++  } else {
+       if (oneof != NULL) {
+         printer->Print(variables, "  offsetof($classname$, $oneofname$_case),\n");
+       } else if (optional_uses_has) {
+@@ -191,10 +191,6 @@
+       } else {
+ 	printer->Print(variables, "  0,   /* quantifier_offset */\n");
+       }
+-      break;
+-    case google::protobuf::FieldDescriptor::LABEL_REPEATED:
+-      printer->Print(variables, "  offsetof($classname$, n_$name$),\n");
+-      break;
+   }
+   printer->Print(variables, "  offsetof($classname$, $name$),\n");
+   printer->Print(variables, "  $descriptor_addr$,\n");
