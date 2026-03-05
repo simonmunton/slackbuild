@@ -1,0 +1,405 @@
+--- inkscape-1.4.3/src/extension/internal/pdfinput/pdf-input.cpp.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/pdf-input.cpp	2026-02-11 09:59:40.544739603 +0000
+@@ -33,6 +33,7 @@
+ #include <poppler/glib/poppler.h>
+ #include <poppler/glib/poppler-document.h>
+ #include <poppler/glib/poppler-page.h>
++#include <poppler/goo/gmem.h>
+ #endif
+ 
+ #include <gdkmm/general.h>
+--- inkscape-1.4.3/src/extension/internal/pdfinput/svg-builder.cpp.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/svg-builder.cpp	2026-02-11 09:59:40.545074048 +0000
+@@ -32,6 +32,7 @@
+ #include <poppler/GfxState.h>
+ #include <poppler/Page.h>
+ #include <poppler/Stream.h>
++#include <poppler/goo/gmem.h>
+ 
+ #include "color.h"
+ #include "color/cms-util.h"
+@@ -955,7 +956,7 @@
+         auto node = _pushGroup();
+         node->setAttribute("id", label.c_str());
+         setAsLayer(label.c_str(), visible);
+-    } 
++    }
+     return save_current_location;
+ }
+ 
+@@ -1385,7 +1386,11 @@
+     sp_repr_css_set_property(_css_font, "font-variant", "normal");
+ 
+     // Writing mode
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++    if ( font->getWMode() == GfxFont::WritingMode::Horizontal ) {
++#else
+     if ( font->getWMode() == 0 ) {
++#endif
+         sp_repr_css_set_property(_css_font, "writing-mode", "lr");
+     } else {
+         sp_repr_css_set_property(_css_font, "writing-mode", "tb");
+@@ -1397,7 +1402,11 @@
+  */
+ void SvgBuilder::updateTextShift(GfxState *state, double shift) {
+     double shift_value = -shift * 0.001 * fabs(state->getFontSize());
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++    if (state->getFont()->getWMode() != GfxFont::WritingMode::Horizontal ) {
++#else
+     if (state->getFont()->getWMode()) {
++#endif
+         _text_position[1] += shift_value;
+     } else {
+         _text_position[0] += shift_value;
+@@ -1451,7 +1460,11 @@
+ 
+     // Text direction is a property of the <text> element.
+     auto font = state->getFont();
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++    if (font->getWMode() == GfxFont::WritingMode::Vertical ) {
++#else
+     if (font->getWMode() == 1) {
++#endif
+         // Only set if vertical.
+         auto css_text = sp_repr_css_attr_new();
+         sp_repr_css_set_property(css_text, "writing-mode", "tb");
+@@ -1542,11 +1555,19 @@
+ 
+         auto writing_mode = state->getFont()->getWMode(); // Horizontal or vertical text.
+         auto next_it = it + 1;
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++        bool output_tspan =
++            next_it == _glyphs.end() ||
++            next_it->style_changed   ||
++            (writing_mode == GfxFont::WritingMode::Horizontal && std::abs(glyph.text_position[1] - next_it->text_position[1]) > 0.1) ||
++            (writing_mode == GfxFont::WritingMode::Vertical && std::abs(glyph.text_position[0] - next_it->text_position[0]) > 0.1);
++#else
+         bool output_tspan =
+             next_it == _glyphs.end() ||
+             next_it->style_changed   ||
+             (writing_mode == 0 && std::abs(glyph.text_position[1] - next_it->text_position[1]) > 0.1) ||
+             (writing_mode == 1 && std::abs(glyph.text_position[0] - next_it->text_position[0]) > 0.1);
++#endif
+ 
+         if (output_tspan) {
+ 
+@@ -2093,7 +2114,21 @@
+         } else {
+             image_stream = new ImageStream(str, width, 1, 1);
+         }
++#if POPPLER_CHECK_VERSION(26, 0, 0)
++        if(!image_stream->rewind())
++        {
++            g_warning("ImageStream: Failed to rewind image stream");
++            png_destroy_write_struct(&png_ptr, &info_ptr);
++            if (!_embed_images) {
++                fclose(fp);
++                g_free(file_name);
++            }
++            delete image_stream;
++            return nullptr;
++        }
++#else
+         image_stream->reset();
++#endif
+ 
+         // Convert grayscale values
+         unsigned char *buffer = new unsigned char[width];
+@@ -2119,7 +2154,21 @@
+         image_stream = new ImageStream(str, width,
+                                        color_map->getNumPixelComps(),
+                                        color_map->getBits());
++#if POPPLER_CHECK_VERSION(26, 0, 0)
++        if(!image_stream->rewind())
++        {
++            g_warning("ImageStream: Failed to rewind image stream");
++            png_destroy_write_struct(&png_ptr, &info_ptr);
++            if (!_embed_images) {
++                fclose(fp);
++                g_free(file_name);
++            }
++            delete image_stream;
++            return nullptr;
++        }
++#else
+         image_stream->reset();
++#endif
+ 
+         // Convert RGB values
+         unsigned int *buffer = new unsigned int[width];
+--- inkscape-1.4.3/src/extension/internal/pdfinput/pdf-parser.cpp.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/pdf-parser.cpp	2026-03-05 19:59:29.932648995 +0000
+@@ -653,7 +653,11 @@
+ void PdfParser::opSetLineJoin(Object args[], int /*numArgs*/)
+ {
+   builder->beforeStateChange(state);
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  state->setLineJoin((GfxState::LineJoinStyle)args[0].getInt());
++#else
+   state->setLineJoin(args[0].getInt());
++#endif
+   builder->updateStyle(state);
+ }
+ 
+@@ -661,7 +665,11 @@
+ void PdfParser::opSetLineCap(Object args[], int /*numArgs*/)
+ {
+   builder->beforeStateChange(state);
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  state->setLineCap((GfxState::LineCapStyle)args[0].getInt());
++#else
+   state->setLineCap(args[0].getInt());
++#endif
+   builder->updateStyle(state);
+ }
+ 
+@@ -1725,14 +1733,14 @@
+     colors2[2] = colorM0;
+     colors2[3] = colorMM;
+     doFunctionShFill1(shading, x0, y0, xM, yM, colors2, depth + 1);
+-    
++
+     // lower-left sub-rectangle
+     colors2[0] = color0M;
+     colors2[1] = colors[1];
+     colors2[2] = colorMM;
+     colors2[3] = colorM1;
+     doFunctionShFill1(shading, x0, yM, xM, y1, colors2, depth + 1);
+-    
++
+     // upper-right sub-rectangle
+     colors2[0] = colorM0;
+     colors2[1] = colorMM;
+@@ -2220,7 +2228,11 @@
+     return;
+   }
+   doUpdateFont();
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  wMode = (int)state->getFont()->getWMode();
++#else
+   wMode = state->getFont()->getWMode();
++#endif
+   a = args[0].getArray();
+   for (int i = 0; i < a->getLength(); ++i) {
+     _POPPLER_CALL_ARGS(obj, a->get, i);
+@@ -2254,7 +2266,11 @@
+ void PdfParser::doShowText(GooString *s) {
+ #endif
+     auto font = state->getFont();
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++    int wMode = (int)font->getWMode(); // Vertical/Horizontal/Invalid
++#else
+     int wMode = font->getWMode(); // Vertical/Horizontal/Invalid
++#endif
+ 
+     builder->beginString(state, get_goostring_length(*s));
+ 
+@@ -2409,16 +2425,16 @@
+     GBool maskInvert;
+     GBool maskInterpolate;
+     Object obj1, obj2;
+-    
++
+     // get info from the stream
+     bits = 0;
+     csMode = streamCSNone;
+     hasAlpha = false;
+     str->_POPPLER_GET_IMAGE_PARAMS(&bits, &csMode, &hasAlpha);
+-    
++
+     // get stream dict
+     dict = str->getDict();
+-    
++
+     // get size
+     _POPPLER_CALL_ARGS(obj1, dict->lookup, "Width");
+     if (obj1.isNull()) {
+@@ -2450,7 +2466,7 @@
+         goto err2;
+     }
+     _POPPLER_FREE(obj1);
+-    
++
+     // image interpolation
+     _POPPLER_CALL_ARGS(obj1, dict->lookup, "Interpolate");
+     if (obj1.isNull()) {
+@@ -2478,7 +2494,7 @@
+         goto err2;
+     }
+     _POPPLER_FREE(obj1);
+-    
++
+     // bit depth
+     if (bits == 0) {
+         _POPPLER_CALL_ARGS(obj1, dict->lookup, "BitsPerComponent");
+@@ -2495,7 +2511,7 @@
+         }
+         _POPPLER_FREE(obj1);
+     }
+-    
++
+     // display a mask
+     if (mask) {
+         // check for inverted mask
+@@ -2518,10 +2534,10 @@
+             goto err2;
+         }
+         _POPPLER_FREE(obj1);
+-        
++
+         // draw it
+         builder->addImageMask(state, str, width, height, invert, interpolate);
+-        
++
+     } else {
+         // get color space and color map
+         std::unique_ptr<GfxColorSpace> colorSpace;
+@@ -2553,7 +2569,7 @@
+         if (!colorMap->isOk()) {
+             goto err1;
+         }
+-        
++
+         // get the mask
+         int maskColors[2*gfxColorMaxComps];
+         haveColorKeyMask = haveExplicitMask = haveSoftMask = gFalse;
+@@ -2707,7 +2723,7 @@
+             _POPPLER_FREE(obj1);
+             haveExplicitMask = gTrue;
+         }
+-        
++
+         // draw it
+         if (haveSoftMask) {
+ 	    builder->addSoftMaskedImage(state, str, width, height, colorMap.get(), interpolate,
+@@ -2719,7 +2735,7 @@
+ 	    builder->addImage(state, str, width, height, colorMap.get(), interpolate,
+ 		        haveColorKeyMask ? maskColors : nullptr);
+         }
+-        
++
+         _POPPLER_FREE(maskObj);
+         _POPPLER_FREE(smaskObj);
+     }
+@@ -2907,12 +2923,20 @@
+ void PdfParser::opBeginImage(Object /*args*/[], int /*numArgs*/)
+ {
+   // build dict/stream
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  auto str = buildImageStream();
++#else
+   Stream *str = buildImageStream();
++#endif
+ 
+   // display the image
+   if (str) {
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++    doImage(nullptr, str.get(), gTrue);
++#else
+     doImage(nullptr, str, gTrue);
+-  
++#endif
++
+     // skip 'EI' tag
+     int c1 = str->getUndecodedStream()->getChar();
+     int c2 = str->getUndecodedStream()->getChar();
+@@ -2920,18 +2944,32 @@
+       c1 = c2;
+       c2 = str->getUndecodedStream()->getChar();
+     }
++#if ! POPPLER_CHECK_VERSION(26, 2, 0)
+     delete str;
++#endif
+   }
+ }
+ 
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++std::unique_ptr<Stream> PdfParser::buildImageStream() {
++#else
+ Stream *PdfParser::buildImageStream() {
++#endif
+   Object dict;
+   Object obj;
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  std::unique_ptr<Stream> str;
++#else
+   Stream *str;
++#endif
+ 
+   // build dictionary
+ #if defined(POPPLER_NEW_OBJECT_API)
++#if POPPLER_CHECK_VERSION(26, 3, 0)
++  dict = Object(std::move(std::make_unique<Dict>(new Dict(xref))));
++#else
+   dict = Object(new Dict(xref));
++#endif
+ #else
+   dict.initDict(xref);
+ #endif
+@@ -2963,8 +3001,13 @@
+ 
+   // make stream
+ #if defined(POPPLER_NEW_OBJECT_API)
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  str = std::make_unique<EmbedStream>(parser->getStream(), dict.copy(), gFalse, 0);
++  str =  Stream::addFilters(std::move(str), dict.getDict());
++#else
+   str = new EmbedStream(parser->getStream(), dict.copy(), gFalse, 0);
+   str = str->addFilters(dict.getDict());
++#endif
+ #else
+   str = new EmbedStream(parser->getStream(), &dict, gFalse, 0);
+   str = str->addFilters(&dict);
+@@ -3116,7 +3159,7 @@
+  */
+ void PdfParser::loadOptionalContentLayers(Dict *resources)
+ {
+-    if (!resources) 
++    if (!resources)
+         return;
+ 
+     auto props = resources->lookup("Properties");
+@@ -3138,7 +3181,11 @@
+             // Normally we'd use poppler optContentIsVisible, but these dict
+             // objects don't retain their references so can't be used directly.
+             for (auto &[ref, ocg] : ocgs->getOCGs()) {
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++                if (ocg->getName()->compare(label) == 0)
++#else
+                 if (ocg->getName()->cmp(label) == 0)
++#endif
+                     visible = ocg->getState() == OptionalContentGroup::On;
+             }
+             builder->addOptionalGroup(dict->getKey(j), label, visible);
+--- inkscape-1.4.3/src/extension/internal/pdfinput/pdf-parser.h.orig	2025-12-26 00:35:50.000000000 +0000
++++ inkscape-1.4.3/src/extension/internal/pdfinput/pdf-parser.h	2026-02-11 09:59:40.545490650 +0000
+@@ -4,7 +4,7 @@
+  *//*
+  * Authors:
+  * see git history
+- * 
++ *
+  * Derived from Gfx.h from poppler (?) which derives from Xpdf, Copyright 1996-2003 Glyph & Cog, LLC, which is under GPL2+.
+  *
+  * Copyright (C) 2018 Authors
+@@ -288,7 +288,7 @@
+ #else
+   void doShowText(GooString *s);
+ #endif
+-  
++
+ 
+   // XObject operators
+   void opXObject(Object args[], int numArgs);
+@@ -303,7 +303,11 @@
+ 
+   // in-line image operators
+   void opBeginImage(Object args[], int numArgs);
++#if POPPLER_CHECK_VERSION(26, 2, 0)
++  std::unique_ptr<Stream> buildImageStream();
++#else
+   Stream *buildImageStream();
++#endif
+   void opImageData(Object args[], int numArgs);
+   void opEndImage(Object args[], int numArgs);
+ 
