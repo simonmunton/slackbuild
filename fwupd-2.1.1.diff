@@ -1,0 +1,73 @@
+--- fwupd-2.1.1/meson.build.orig	2026-03-12 10:08:33.000000000 +0000
++++ fwupd-2.1.1/meson.build	2026-03-12 11:05:31.752464223 +0000
+@@ -713,6 +713,11 @@
+   endif
+ endif
+ 
++elogind = dependency('systemd', 'libelogind', required: get_option('elogind'))
++if elogind.found()
++  conf.set('HAVE_LOGIND' , '1')
++endif
++
+ supported_build = get_option('supported_build').disable_auto_if(not tag).allowed()
+ if supported_build
+   conf.set('SUPPORTED_BUILD', '1')
+@@ -935,6 +940,7 @@
+     'dbus_socket_address': get_option('dbus_socket_address'),
+     'vendor_ids_dir': vendor_ids_dir,
+     'docs': build_docs,
++    'elogind': elogind,
+     'gnutls': gnutls,
+     'introspection': introspection.allowed(),
+     'libblkid': libblkid,
+--- fwupd-2.1.1/meson_options.txt.orig	2026-03-12 10:08:33.000000000 +0000
++++ fwupd-2.1.1/meson_options.txt	2026-03-12 11:05:31.752560472 +0000
+@@ -48,6 +48,10 @@
+   type: 'string',
+   description: 'the hardcoded name of OS directory in ESP, e.g. fedora',
+ )
++option('elogind',
++  type: 'feature',
++  description: 'elogind support',
++)
+ option(
+   'firmware-packager',
+   type: 'boolean',
+--- fwupd-2.1.1/data/meson.build.orig	2026-03-12 10:08:33.000000000 +0000
++++ fwupd-2.1.1/data/meson.build	2026-03-12 11:05:31.752620881 +0000
+@@ -205,17 +205,19 @@
+     install_dir: join_paths(datadir, 'dbus-1', 'system-services'),
+   )
+ 
+-  if launchctl.found()
++  if launchctl.found() or elogind.found()
+     con2 = configuration_data()
+     con2.set('libexecdir', libexecdir)
+     con2.set('dbus_socket_address', get_option('dbus_socket_address'))
+-    configure_file(
+-      input: 'org.freedesktop.fwupd.plist',
+-      output: 'org.freedesktop.fwupd.plist',
+-      configuration: con2,
+-      install_tag: 'runtime',
+-      install_dir: get_option('launchd_agent_dir'),
+-    )
++    if launchctl.found()
++      configure_file(
++        input: 'org.freedesktop.fwupd.plist',
++        output: 'org.freedesktop.fwupd.plist',
++        configuration: con2,
++        install_tag: 'runtime',
++        install_dir: get_option('launchd_agent_dir'),
++      )
++    endif
+   endif
+ 
+ endif
+--- fwupd-2.1.1/plugins/logind/meson.build.orig	2026-03-12 10:08:33.000000000 +0000
++++ fwupd-2.1.1/plugins/logind/meson.build	2026-03-12 11:08:12.908778130 +0000
+@@ -1,4 +1,4 @@
+-logind.found() or subdir_done()
++logind.found() or elogind.found() or subdir_done()
+ 
+ cargs = ['-DG_LOG_DOMAIN="FuPluginLogind"']
+ plugins += {meson.current_source_dir().split('/')[-1]: true}
