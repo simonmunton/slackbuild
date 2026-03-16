@@ -1,0 +1,42 @@
+From: Christian Tismer <tismer@stackless.com>
+Date: Tue, 20 May 2025 15:25:38 +0200
+Subject: testing: fix finding tests on new cmake versions
+
+By chance, cmake was installed by homebrew without any restrictions,
+and so version 4.0.2 happened to be installed which does no longer
+use the option "--force-new-ctest-process". Changed the analysis to
+look for "/bin/ctest" instead. This should work for a long time.
+
+Task-number: PYSIDE-2221
+Change-Id: Idc16063953ba82d4053cc60a7e0ef11b71b7b571
+Pick-to: 6.9
+Reviewed-by: Friedemann Kleint <Friedemann.Kleint@qt.io>
+(cherry picked from commit 03de4672557d80b34f9c9ef1e654a4117c621e65)
+---
+ testing/runner.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/testing/runner.py b/testing/runner.py
+index 83b7b08..43aaee0 100644
+--- a/testing/runner.py
++++ b/testing/runner.py
+@@ -93,7 +93,8 @@ class TestRunner(object):
+         Helper for _find_ctest() that finds the ctest binary in a build
+         system file (ninja, Makefile).
+         """
+-        look_for = "--force-new-ctest-process"
++        # Looking for a command ending this way:
++        look_for = "\\ctest.exe" if "win32" in sys.platform else "/ctest"
+         line = None
+         with open(file_name) as makefile:
+             for line in makefile:
+@@ -111,7 +112,8 @@ class TestRunner(object):
+                 raise RuntimeError(msg)
+         # the ctest program is on the left to look_for
+         assert line, "Did not find {}".format(look_for)
+-        ctest = re.search(r'(\S+|"([^"]+)")\s+' + look_for, line).groups()
++        look = re.escape(look_for)
++        ctest = re.search(fr'(\S+{look}|"([^"]+{look})")', line).groups()
+         return ctest[1] or ctest[0]
+ 
+     def _find_ctest(self):
