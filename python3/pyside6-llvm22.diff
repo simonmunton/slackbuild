@@ -1,0 +1,61 @@
+--- a/sources/shiboken6/ApiExtractor/clangparser/clangparser.cpp
++++ b/sources/shiboken6/ApiExtractor/clangparser/clangparser.cpp
+@@ -327,6 +327,8 @@ bool parse(const QByteArrayList  &clangArgs, bool addCompilerSupportArguments,
+ 
+     CXCursor rootCursor = clang_getTranslationUnitCursor(translationUnit);
+ 
++    printingPolicy = clang_getCursorPrintingPolicy(rootCursor);
++
+     clang_visitChildren(rootCursor, visitorCallback, reinterpret_cast<CXClientData>(&bv));
+ 
+     QList<Diagnostic> diagnostics = getDiagnostics(translationUnit);
+@@ -344,6 +346,7 @@ bool parse(const QByteArrayList  &clangArgs, bool addCompilerSupportArguments,
+             debug << diagnostic << '\n';
+     }
+ 
++    clang_PrintingPolicy_dispose(printingPolicy);
+     clang_disposeTranslationUnit(translationUnit);
+     clang_disposeIndex(index);
+     return ok;
+--- a/sources/shiboken6/ApiExtractor/clangparser/clangutils.cpp
++++ b/sources/shiboken6/ApiExtractor/clangparser/clangutils.cpp
+@@ -35,6 +35,8 @@ size_t qHash(const CXType &ct, size_t seed) noexcept
+ 
+ namespace clang {
+ 
++CXPrintingPolicy printingPolicy;
++
+ SourceLocation getExpansionLocation(const CXSourceLocation &location)
+ {
+     SourceLocation result;
+@@ -139,9 +141,16 @@ CXType fullyResolveType(const CXType &type)
+ 
+ QString getTypeName(const CXType &type)
+ {
+-    CXString typeSpelling = clang_getTypeSpelling(type);
+-    const QString result = QString::fromUtf8(clang_getCString(typeSpelling));
+-    clang_disposeString(typeSpelling);
++    using namespace Qt::StringLiterals;
++
++    CXString fullyQualifiedName = clang_getFullyQualifiedName(type, printingPolicy, 0);
++    QString result = QString::fromUtf8(clang_getCString(fullyQualifiedName));
++    clang_disposeString(fullyQualifiedName);
++
++    int idx = result.lastIndexOf(">::"_L1);
++    if (idx >= 0)
++        result = result.mid(idx + 3);
++
+     return result;
+ }
+ 
+--- a/sources/shiboken6/ApiExtractor/clangparser/clangutils.h
++++ b/sources/shiboken6/ApiExtractor/clangparser/clangutils.h
+@@ -23,6 +23,8 @@ size_t qHash(const CXType &ct, size_t seed = 0) noexcept;
+ 
+ namespace clang {
+ 
++extern CXPrintingPolicy printingPolicy;
++
+ QString getCursorKindName(CXCursorKind cursorKind);
+ QString getCursorSpelling(const CXCursor &cursor);
+ QString getCursorDisplayName(const CXCursor &cursor);
