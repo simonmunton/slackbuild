@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=acme
+TARNAME=importlib_resources
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/c/certbot/individual
+TARDIR=${SOURCE}/i
 #TAR_EXT=.tar.gz
-VERSION=5.4.0
+VERSION=6.5.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://pypi.python.org/pypi/acme"
+WEBPAGE="https://pypi.org/project/importlib-resources/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python-acme
+PKGNAME=python-importlib_resources
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -81,8 +81,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-#python setup.py build || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -91,8 +92,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-#python setup.py install --root=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
@@ -109,8 +111,14 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "ACME protocol implementation in Python"
-ACME protocol implementation in Python
+make_slack_desc << EOF "Read resources from Python packages"
+importlib_resources is a backport of Python standard library
+importlib.resources module for older Pythons.
+
+The key goal of this module is to replace parts of pkg_resources
+with a solution in Python’s stdlib that relies on well-defined APIs.
+This makes reading resources included in packages easier, with more
+stable and consistent semantics.
 
 EOF
 

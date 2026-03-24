@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=CImg
+TARNAME=iso639
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/c
+TARDIR=${SOURCE}/i
 #TAR_EXT=.tar.gz
-VERSION=3.7.4
+VERSION=0.1.4
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://cimg.eu/"
+WEBPAGE="https://pypi.org/project/iso639/"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=python-iso639
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -36,7 +36,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}_${VERSION} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -55,15 +55,35 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
+
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-true
+:
+#CFLAGS="${SLKCFLAGS}" \
+#CXXFLAGS="${SLKCFLAGS}" \
+#./configure --prefix=/usr \
+#            --sysconfdir=/etc \
+#            --libdir=/usr/lib${LIBDIRSUFFIX} \
+#            --localstatedir=/var/lib \
+#	    --mandir=/usr/man
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
+
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-true
 #make ${NUM_JOBS} || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -72,11 +92,11 @@ then
 fi
 
 #make install DESTDIR=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
-mkdir -p ${PKG}/usr/include
-cp CImg.h ${PKG}/usr/include/
-
-#strip_binaries
+strip_binaries
 
 fix_links
 
@@ -85,18 +105,14 @@ compress_manpages
 compress_info
 
 cp -a \
-  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO documentation Licence* \
+  AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc <<EOF "C++ image processing toolkit"
-The CImg Library is an open source C++ toolkit for image processing.
-
-It mainly consists in a (big) single header file CImg.h providing a 
-set of C++ classes and functions that can be used in your own sources, 
-to load/save, manage/process and display generic images. 
+make_slack_desc << EOF "ISO639-2 support for Python"
+ISO639-2 support for Python.
 
 EOF
 
