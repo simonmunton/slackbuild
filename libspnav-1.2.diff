@@ -1,0 +1,33 @@
+--- libspnav-1.2/configure.orig	2025-03-30 04:02:34.000000000 +0100
++++ libspnav-1.2/configure	2026-03-24 09:46:31.073390430 +0000
+@@ -21,7 +21,7 @@
+ echo "configuring libspnav - $VER"
+ 
+ srcdir="`dirname "$0"`"
+-libdir=lib
++libdir=lib${LIBDIRSUFFIX}
+ 
+ #if [ "`uname -m`" = 'x86_64' ]; then
+ #	libdir=lib64
+--- libspnav-1.2/Makefile.in.orig	2025-03-30 03:42:13.000000000 +0100
++++ libspnav-1.2/Makefile.in	2026-03-24 09:47:46.960195765 +0000
+@@ -59,8 +59,8 @@
+ 		ln -s $(soname) $(devlink) || \
+ 		true
+ 	for h in $(hdr); do cp -p $(srcdir)/$$h $(DESTDIR)$(PREFIX)/include/; done
+-	mkdir -p $(DESTDIR)$(PREFIX)/share/pkgconfig
+-	cp spnav.pc $(DESTDIR)$(PREFIX)/share/pkgconfig/spnav.pc
++	mkdir -p $(DESTDIR)$(PREFIX)/$(libdir)/pkgconfig
++	cp spnav.pc $(DESTDIR)$(PREFIX)/$(libdir)/pkgconfig/spnav.pc
+ 
+ .PHONY: uninstall
+ uninstall:
+@@ -70,7 +70,7 @@
+ 		rm -f $(DESTDIR)$(PREFIX)/$(libdir)/$(soname) $(DESTDIR)$(PREFIX)/$(libdir)/$(devlink) || \
+ 		true
+ 	for i in $(hdr); do rm -f $(DESTDIR)$(PREFIX)/include/$$i; done
+-	rm -f $(DESTDIR)$(PREFIX)/share/pkgconfig/spnav.pc
++	rm -f $(DESTDIR)$(PREFIX)/$(libdir)/pkgconfig/spnav.pc
+ 
+ .PHONY: examples
+ examples:

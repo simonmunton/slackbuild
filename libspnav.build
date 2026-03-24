@@ -2,16 +2,16 @@
 #
 . build_funcs
 
-TARNAME=mupdf
+TARNAME=libspnav
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/m
+TARDIR=${SOURCE}/l
 #TAR_EXT=.tar.gz
-VERSION=1.27.2
-VERSIONEXTRA=-source
+VERSION=1.2
+VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="http://mupdf.com/"
+WEBPAGE="https://github.com/FreeSpacenav/libspnav"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -34,19 +34,18 @@ then
 fi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}${VERSIONEXTRA} ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
-then 
+then
   echo "${TARNAME}-${VERSION} directory not found"
   exit
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/mupdf-1.19.0.diff
-
+ patch -p1 < ${CWD}/libspnav-1.2.diff
 )
 fi
 
@@ -56,12 +55,16 @@ cd ${TARNAME}-${VERSION}
 
 fix_perms
 
+#mkdir _BuilD_
+#cd _BuilD_
+
 PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
 if [ -f ./configure ]
 then
+export LIBDIRSUFFIX
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
@@ -79,33 +82,21 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       -DSYSCONF_INSTALL_DIR=/etc \
       .
+elif [ -f ./meson.build ]
+then
+  meson --prefix=/usr . .
 fi
-
- cat << EOF > user.make
-USE_SYSTEM_FREETYPE := yes
-USE_SYSTEM_GUMBO := no
-USE_SYSTEM_HARFBUZZ := yes
-USE_SYSTEM_JBIG2DEC := yes
-USE_SYSTEM_JPEGXR := no # not available
-USE_SYSTEM_LCMS2 := no # lcms2mt is strongly preferred
-USE_SYSTEM_LIBJPEG := yes
-USE_SYSTEM_MUJS := no # not available
-USE_SYSTEM_OPENJPEG := yes
-USE_SYSTEM_ZLIB := yes
-USE_SYSTEM_GLUT := yes
-USE_SYSTEM_CURL := yes
-USE_SYSTEM_LEPTONICA := yes
-USE_SYSTEM_TESSERACT := yes
-USE_SYSTEM_LIBS := yes
-tesseract := yes
-shared := yes
-EOF
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX} || exit
+if [ -f ./meson.build ]
+then
+  ninja || exit
+else
+  make ${NUM_JOBS} || exit
+fi
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -113,19 +104,14 @@ then
   exit
 fi
 
-make install DESTDIR=${PKG} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX}
-make install-shared-python DESTDIR=${PKG} prefix=/usr libdir=/usr/lib${LIBDIRSUFFIX}
+if [ -f ./meson.build ]
+then
+  DESTDIR=${PKG} ninja install
+else
+  make install DESTDIR=${PKG}
+fi
 
-
-
-(
- cd ${PKG}/usr/lib${LIBDIRSUFFIX}
- for f in libmupdf.so.*
- do
-   ln -s ${f} ${f%.*}
-   ln -s ${f} ${f%.*.*}
- done
-)
+#cd ..
 
 strip_binaries
 
@@ -142,14 +128,19 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "a lightweight PDF and XPS viewer"
-MuPDF is a lightweight PDF, XPS, EPUB and CBZ viewer and parser/
-rendering library.
+make_slack_desc << EOF "Library for communicating with spacenavd or 3dxsrv to get input from 6-dof devices."
+Libspnav is a C library for receiving input from 6
+degrees-of-freedom (6dof) input devices, also known as spacemice,
+spaceballs, etc. 6dof input is very useful for fluidly manipulating
+objects or viewpoints in 3D space, and fundamendally comprises of
+relative movement (translation) across 3 axes (TX/TY/TZ), and
+rotation about 3 axes (RX/RY/RZ).
 
-The renderer in MuPDF is tailored for high quality anti-aliased 
-graphics. It renders text with metrics and spacing accurate to within 
-fractions of a pixel for the highest fidelity in reproducing the look 
-of a printed page on screen.
+Libspnav is a counterpart to the free spacenav driver (spacenavd),
+which runs as a system daemon, and handles all the low level
+interfacing with the actual devices. However, it can also
+communicate with the proprietary 3Dconnexion driver (3dxsrv), with
+reduced functionality.
 
 EOF
 
