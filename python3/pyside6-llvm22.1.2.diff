@@ -1,0 +1,62 @@
+--- pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangutils.cpp.orig	2026-03-31 05:38:37.000000000 +0100
++++ pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangutils.cpp	2026-04-07 14:07:47.629516466 +0100
+@@ -35,6 +35,8 @@
+ 
+ namespace clang {
+ 
++CXPrintingPolicy printingPolicy;
++
+ SourceLocation getExpansionLocation(const CXSourceLocation &location)
+ {
+     SourceLocation result;
+@@ -139,9 +141,16 @@
+ 
+ QString getTypeName(const CXType &type)
+ {
+-    CXString typeSpelling = clang_getTypeSpelling(type);
+-    const QString result = QString::fromUtf8(clang_getCString(typeSpelling));
+-    clang_disposeString(typeSpelling);
++    using namespace Qt::StringLiterals;
++
++    CXString fullyQualifiedName = clang_getTypePrettyPrinted(type, printingPolicy);
++    QString result = QString::fromUtf8(clang_getCString(fullyQualifiedName));
++    clang_disposeString(fullyQualifiedName);
++
++    int idx = result.lastIndexOf(">::"_L1);
++    if (idx >= 0)
++        result = result.mid(idx + 3);
++
+     return result;
+ }
+ 
+--- pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangparser.cpp.orig	2026-03-31 05:38:37.000000000 +0100
++++ pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangparser.cpp	2026-04-07 14:05:04.053835196 +0100
+@@ -322,6 +322,9 @@
+ 
+     CXCursor rootCursor = clang_getTranslationUnitCursor(translationUnit);
+ 
++    printingPolicy = clang_getCursorPrintingPolicy(rootCursor);
++    clang_PrintingPolicy_setProperty(printingPolicy, CXPrintingPolicy_FullyQualifiedName, 1);
++
+     clang_visitChildren(rootCursor, visitorCallback, reinterpret_cast<CXClientData>(&bv));
+ 
+     QList<Diagnostic> diagnostics = getDiagnostics(translationUnit);
+@@ -339,6 +342,7 @@
+             debug << diagnostic << '\n';
+     }
+ 
++    clang_PrintingPolicy_dispose(printingPolicy);
+     clang_disposeTranslationUnit(translationUnit);
+     clang_disposeIndex(index);
+     return ok;
+--- pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangutils.h.orig	2026-03-31 05:38:37.000000000 +0100
++++ pyside-setup-everywhere-src-6.10.3/sources/shiboken6/ApiExtractor/clangparser/clangutils.h	2026-04-07 13:48:37.746943206 +0100
+@@ -23,6 +23,8 @@
+ 
+ namespace clang {
+ 
++extern CXPrintingPolicy printingPolicy;
++
+ QString getCursorKindName(CXCursorKind cursorKind);
+ QString getCursorSpelling(const CXCursor &cursor);
+ QString getCursorDisplayName(const CXCursor &cursor);
