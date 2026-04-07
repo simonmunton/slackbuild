@@ -1,0 +1,382 @@
+--- FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_UnstructuredGrid.cpp.orig	2025-08-10 10:38:54.000000000 +0100
++++ FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_UnstructuredGrid.cpp	2026-02-13 21:53:47.058934307 +0000
+@@ -193,8 +193,8 @@
+ 
+   vtkCellArray *newConnectivity = vtkCellArray::New();
+   newConnectivity->Initialize();
+-  int oldCellDataSize = this->Connectivity->GetData()->GetSize();
+-  newConnectivity->Allocate(oldCellDataSize);
++  int oldCellDataSize = this->GetCells()->GetConnectivityArray()->GetSize();
++  newConnectivity->AllocateExact(oldCellDataSize, oldCellDataSize);
+   MESSAGE("oldCellSize="<< oldCellSize << " oldCellDataSize=" << oldCellDataSize);
+ 
+   vtkUnsignedCharArray *newTypes = vtkUnsignedCharArray::New();
+@@ -214,11 +214,11 @@
+   while ( i < oldCellSize )
+   {
+     // skip a hole if any
+-    while ( i < oldCellSize && this->Types->GetValue(i) == VTK_EMPTY_CELL )
++    while ( i < oldCellSize && this->GetCellType(i) == VTK_EMPTY_CELL )
+       ++i;
+     int startBloc = i;
+     // look for a block end
+-    while ( i < oldCellSize && this->Types->GetValue(i) != VTK_EMPTY_CELL )
++    while ( i < oldCellSize && this->GetCellType(i) != VTK_EMPTY_CELL )
+       ++i;
+     int endBloc = i;
+     if ( endBloc > startBloc )
+@@ -242,7 +242,7 @@
+   {
+     for (int oldCellID = 0; oldCellID < oldCellSize; oldCellID++)
+     {
+-      if (this->Types->GetValue(oldCellID) == VTK_EMPTY_CELL)
++      if (this->GetCellType(oldCellID) == VTK_EMPTY_CELL)
+         continue;
+       int newCellId = idCellsOldToNew[ oldCellID ];
+       if (newTypes->GetValue(newCellId) == VTK_POLY_VERTEX)
+@@ -250,6 +250,71 @@
+     }
+   }
+ 
++#if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 3, 20240112)
++  if ( this->FaceLocations )
++  {
++    vtkIdTypeArray *iniFaceLocO = (vtkIdTypeArray *)this->FaceLocations->GetOffsetsArray();
++    vtkIdTypeArray *iniFaceLocC = (vtkIdTypeArray *)this->FaceLocations->GetConnectivityArray();
++    vtkIdTypeArray *iniFaceO = (vtkIdTypeArray *)this->Faces->GetOffsetsArray();
++    vtkIdTypeArray *iniFaceC = (vtkIdTypeArray *)this->Faces->GetConnectivityArray();
++    //
++    vtkNew<vtkIdTypeArray> facesLoc_o; facesLoc_o->Initialize(); facesLoc_o->InsertNextValue(0);
++    vtkNew<vtkIdTypeArray> facesLoc_c; facesLoc_c->Initialize();
++    vtkNew<vtkIdTypeArray> faces_o; faces_o->Initialize(); faces_o->InsertNextValue(0);
++    vtkNew<vtkIdTypeArray> faces_c; faces_c->Initialize();
++    int newFaceId( 0 );
++    vtkIdType facesLoc_o_cur(0),faces_o_cur(0);
++    // for ( vtkIdType newCellID = 0; newCellID < newCellSize; newCellID++ )
++    for (int oldCellId = 0; oldCellId < oldCellSize; oldCellId++)
++    {
++      int newCellId = idCellsOldToNew[oldCellId];
++      if ( this->GetCellType(newCellId) == VTK_POLYHEDRON )
++      {
++        vtkIdType oldStartFaceLocOff = iniFaceLocO->GetValue( oldCellId );
++        vtkIdType nCellFaces = iniFaceLocO->GetValue( oldCellId + 1 ) - oldStartFaceLocOff;
++        facesLoc_o_cur += nCellFaces;
++        facesLoc_o->InsertNextValue( facesLoc_o_cur );
++        for ( int n = 0; n < nCellFaces; n++ )
++        {
++          facesLoc_c->InsertNextValue( newFaceId++ );
++          int curFaceId = iniFaceLocC->GetValue( oldStartFaceLocOff + n );
++          int oldStartPtOfFaceOff = iniFaceO->GetValue( curFaceId );
++          int nbOfPts = iniFaceO->GetValue( curFaceId + 1 ) - oldStartPtOfFaceOff;
++          faces_o_cur += nbOfPts;
++          faces_o->InsertNextValue( faces_o_cur );
++          for( int m = 0 ; m < nbOfPts ; m++ )
++          {
++            vtkIdType oldpt = iniFaceC->GetValue( oldStartPtOfFaceOff + m );
++            int curPt = idNodesOldToNew[ oldpt ];
++            faces_c->InsertNextValue( curPt );
++          }
++        }
++      }
++      else
++      {
++        facesLoc_o->InsertNextValue(facesLoc_o_cur);
++      }
++    }
++    {
++      faces_o->Squeeze(); faces_c->Squeeze();
++      facesLoc_o->Squeeze(); facesLoc_c->Squeeze();
++      //
++      vtkNew<vtkCellArray> outFaces;
++      outFaces->SetData( faces_o, faces_c );
++      vtkNew<vtkCellArray> outFaceLocations;
++      outFaceLocations->SetData( facesLoc_o, facesLoc_c );
++      //
++      this->SetPolyhedralCells(newTypes, newConnectivity, outFaceLocations, outFaces);
++    }
++  }
++  else
++  {
++    {
++      this->SetCells(newTypes,newConnectivity);
++    }
++    //this->CellLocations = newLocations;
++  }
++#else
+   vtkIdTypeArray* thisFaceLocations = GetFaceLocations();
+   vtkIdTypeArray* thisFaces = GetFaces();
+   if (thisFaceLocations)
+@@ -262,7 +327,7 @@
+       newFaces->Allocate(thisFaces->GetSize());
+       for (int i = 0; i < oldCellSize; i++)
+         {
+-          if (this->Types->GetValue(i) == VTK_EMPTY_CELL)
++          if (this->GetCellType(i) == VTK_EMPTY_CELL)
+             continue;
+           int newCellId = idCellsOldToNew[i];
+           if (newTypes->GetValue(newCellId) == VTK_POLYHEDRON)
+@@ -297,6 +362,7 @@
+   {
+     this->SetCells(newTypes, newLocations, newConnectivity, thisFaceLocations, thisFaces);
+   }
++#endif
+ 
+   newPoints->Delete();
+   newTypes->Delete();
+@@ -333,7 +399,7 @@
+   //MESSAGE("copyBloc " << alreadyCopied << " " << start << " " << end << " size: " << end - start << " total: " << alreadyCopied + end - start);
+   for (int j = start; j < end; j++)
+     {
+-      newTypes->SetValue(alreadyCopied, this->Types->GetValue(j));
++      newTypes->SetValue(alreadyCopied, this->GetCellType(j));
+       idCellsOldToNew[j] = alreadyCopied; // old vtkId --> new vtkId
+       // The difference is mainly the internal representation of vtkCellArray between vtk 7.x and vtk 9.x
+       // In the old version a single array of the form (n1,id1,id2,...,idn1, n2,id1,id2,...,idn2, ...) is used
+@@ -341,16 +407,12 @@
+       // (n1,n2,n3) and (id1,id2,...,idn1,id1,id2,...,idn2, ...)
+       // The Locations array in vtk 7.x kept the positions of the n's of the above array: (0, idn1 + 1, idn2 + 2).
+       // In vtk 9.x this array doesn't exist any more but its values can be determined with idni + i
+-#ifdef VTK_CELL_ARRAY_V2
+       vtkIdType oldLoc = ((vtkIdTypeArray *)(this->Connectivity->GetOffsetsArray()))->GetValue( j ) + j;
+-#else
+-      vtkIdType oldLoc = this->Locations->GetValue(j);
+-#endif
+       vtkIdType nbpts;
+       vtkIdTypePtr oldPtsCell = 0;
+       this->Connectivity->GetCell(oldLoc, nbpts, oldPtsCell);
+       assert(nbpts < NBMAXNODESINCELL);
+-      //MESSAGE(j << " " << alreadyCopied << " " << (int)this->Types->GetValue(j) << " " << oldLoc << " " << nbpts );
++      //MESSAGE(j << " " << alreadyCopied << " " << (int)this->GetCellType(j) << " " << oldLoc << " " << nbpts );
+       for (int l = 0; l < nbpts; l++)
+         {
+           int oldval = oldPtsCell[l];
+@@ -358,7 +420,8 @@
+           //MESSAGE("   " << oldval << " " << pointsCell[l]);
+         }
+       /*int newcnt = */newConnectivity->InsertNextCell(nbpts, pointsCell);
+-      int newLoc = newConnectivity->GetInsertLocation(nbpts);
++      int newLoc = this->GetCells()->GetOffsetsArray()->GetNumberOfValues() - 1
++        + this->GetCells()->GetConnectivityArray()->GetNumberOfValues() - nbpts - 1;
+       //MESSAGE(newcnt << " " << newLoc);
+       newLocations->SetValue(alreadyCopied, newLoc);
+       alreadyCopied++;
+@@ -965,7 +1028,6 @@
+  */
+ void SMDS_UnstructuredGrid::ModifyCellNodes(int vtkVolId, std::map<int, int> localClonedNodeIds)
+ {
+-#ifdef VTK_CELL_ARRAY_V2
+   vtkNew<vtkIdList> cellPoints;
+   this->GetCellPoints(vtkVolId, cellPoints.GetPointer());
+   for (vtkIdType i = 0; i < cellPoints->GetNumberOfIds(); i++)
+@@ -979,22 +1041,6 @@
+           //this->AddReferenceToCell(pts[i], vtkVolId);
+         }
+     }
+-#else
+-  vtkIdType npts = 0;
+-  vtkIdType *pts; // will refer to the point id's of the face
+-  this->GetCellPoints(vtkVolId, npts, pts);
+-  for (int i = 0; i < npts; i++)
+-    {
+-      if (localClonedNodeIds.count(pts[i]))
+-        {
+-          vtkIdType oldpt = pts[i];
+-          pts[i] = localClonedNodeIds[oldpt];
+-          //MESSAGE(oldpt << " --> " << pts[i]);
+-          //this->RemoveReferenceToCell(oldpt, vtkVolId);
+-          //this->AddReferenceToCell(pts[i], vtkVolId);
+-        }
+-    }
+-#endif
+ }
+ 
+ /*! reorder the nodes of a face
+@@ -1024,25 +1070,17 @@
+     this->Links->UnRegister(this);
+     }
+ 
+-#ifdef VTK_CELL_ARRAY_V2
+   this->Links = SMDS_CellLinks::New();
+   GetLinks()->Allocate(this->GetNumberOfPoints());
+   GetLinks()->Register(this);
+-//FIXME: vtk9
+-  #if VTK_VERSION_NUMBER < VTK_VERSION_CHECK(9,3,0)
++#if VTK_VERSION_NUMBER < VTK_VERSION_CHECK(9, 2, 20221112)
+   GetLinks()->BuildLinks(this);
+-  #else
++#else
+   GetLinks()->SetDataSet(this);
++  std::cout << this->GetNumberOfPoints() << std::endl;
+   GetLinks()->BuildLinks();
+-  #endif
+-  GetLinks()->Delete();
+-#else
+-  this->Links = SMDS_CellLinks::New();
+-  this->Links->Allocate(this->GetNumberOfPoints());
+-  this->Links->Register(this);
+-  this->Links->BuildLinks(this, this->Connectivity);
+-  this->Links->Delete();
+ #endif
++  GetLinks()->Delete();
+ }
+ 
+ /*! Create a volume (prism or hexahedron) by duplication of a face.
+--- FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_VtkCellIterator.cpp.orig	2025-08-10 10:38:54.000000000 +0100
++++ FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_VtkCellIterator.cpp	2026-02-13 21:54:51.572674961 +0000
+@@ -182,9 +182,10 @@
+   case SMDSEntity_Polyhedra:
+   {
+     //MESSAGE("SMDS_VtkCellIterator Polyhedra");
+-    vtkIdType nFaces = 0;
+-    vtkIdTypePtr ptIds = 0;
+-    grid->GetFaceStream(_cellId, nFaces, ptIds);
++    vtkNew<vtkIdList> faceStream;
++    grid->GetFaceStream( vtkCellId, faceStream);
++    vtkIdType nFaces = faceStream->GetId(0);
++    vtkIdType *ptIds = faceStream->GetPointer(1);
+     int id = 0;
+     _nbNodesInFaces = 0;
+     for (int i = 0; i < nFaces; i++)
+--- FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_VtkVolume.cpp.orig	2025-08-10 10:38:54.000000000 +0100
++++ FreeCAD-1.0.2/src/3rdParty/salomesmesh/src/SMDS/SMDS_VtkVolume.cpp	2026-02-13 21:56:36.497701700 +0000
+@@ -133,7 +133,6 @@
+ bool SMDS_VtkVolume::ChangeNodes(const SMDS_MeshNode* nodes[], const int nbNodes)
+ {
+   vtkUnstructuredGrid* grid = SMDS_Mesh::_meshList[myMeshId]->getGrid();
+-#ifdef VTK_CELL_ARRAY_V2
+   vtkNew<vtkIdList> cellPoints;
+   grid->GetCellPoints(myVtkID, cellPoints.GetPointer());
+   if (nbNodes != cellPoints->GetNumberOfIds())
+@@ -145,20 +144,6 @@
+     {
+       cellPoints->SetId(i, nodes[i]->getVtkId());
+     }
+-#else
+-  vtkIdType npts = 0;
+-  vtkIdType* pts = 0;
+-  grid->GetCellPoints(myVtkID, npts, pts);
+-  if (nbNodes != npts)
+-    {
+-      MESSAGE("ChangeNodes problem: not the same number of nodes " << npts << " -> " << nbNodes);
+-      return false;
+-    }
+-  for (int i = 0; i < nbNodes; i++)
+-    {
+-      pts[i] = nodes[i]->getVtkId();
+-    }
+-#endif
+   SMDS_Mesh::_meshList[myMeshId]->setMyModified();
+   return true;
+ }
+@@ -220,9 +205,10 @@
+       break;
+     case VTK_POLYHEDRON:
+       {
+-        vtkIdType nFaces = 0;
+-        vtkIdTypePtr ptIds = 0;
+-        grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++        vtkNew<vtkIdList> faceStream;
++        grid->GetFaceStream( this->myVtkID, faceStream);
++        vtkIdType nFaces = faceStream->GetId(0);
++        vtkIdType *ptIds = faceStream->GetPointer(1);
+         nbFaces = nFaces;
+         break;
+       }
+@@ -249,9 +235,10 @@
+     }
+   else
+     {
+-      vtkIdType nFaces = 0;
+-      vtkIdTypePtr ptIds = 0;
+-      grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++      vtkNew<vtkIdList> faceStream;
++      grid->GetFaceStream( this->myVtkID, faceStream);
++      vtkIdType nFaces = faceStream->GetId(0);
++      vtkIdType *ptIds = faceStream->GetPointer(1);
+       int id = 0;
+       for (int i = 0; i < nFaces; i++)
+         {
+@@ -289,9 +276,10 @@
+       break;
+     case VTK_POLYHEDRON:
+       {
+-        vtkIdType nFaces = 0;
+-        vtkIdTypePtr ptIds = 0;
+-        grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++        vtkNew<vtkIdList> faceStream;
++        grid->GetFaceStream( this->myVtkID, faceStream);
++        vtkIdType nFaces = faceStream->GetId(0);
++        vtkIdType *ptIds = faceStream->GetPointer(1);
+         nbEdges = 0;
+         int id = 0;
+         for (int i = 0; i < nFaces; i++)
+@@ -325,9 +313,10 @@
+   int nbNodes = 0;
+   if (aVtkType == VTK_POLYHEDRON)
+     {
+-      vtkIdType nFaces = 0;
+-      vtkIdTypePtr ptIds = 0;
+-      grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++      vtkNew<vtkIdList> faceStream;
++      grid->GetFaceStream( this->myVtkID, faceStream);
++      vtkIdType nFaces = faceStream->GetId(0);
++      vtkIdType *ptIds = faceStream->GetPointer(1);
+       int id = 0;
+       for (int i = 0; i < nFaces; i++)
+         {
+@@ -355,9 +344,10 @@
+   const SMDS_MeshNode* node = 0;
+   if (aVtkType == VTK_POLYHEDRON)
+     {
+-      vtkIdType nFaces = 0;
+-      vtkIdTypePtr ptIds = 0;
+-      grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++      vtkNew<vtkIdList> faceStream;
++      grid->GetFaceStream( this->myVtkID, faceStream);
++      vtkIdType nFaces = faceStream->GetId(0);
++      vtkIdType *ptIds = faceStream->GetPointer(1);
+       int id = 0;
+       for (int i = 0; i < nFaces; i++)
+         {
+@@ -385,9 +375,10 @@
+   vtkIdType aVtkType = grid->GetCellType(this->myVtkID);
+   if (aVtkType == VTK_POLYHEDRON)
+     {
+-      vtkIdType nFaces = 0;
+-      vtkIdTypePtr ptIds = 0;
+-      grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++      vtkNew<vtkIdList> faceStream;
++      grid->GetFaceStream( this->myVtkID, faceStream);
++      vtkIdType nFaces = faceStream->GetId(0);
++      vtkIdType *ptIds = faceStream->GetPointer(1);
+       int id = 0;
+       for (int i = 0; i < nFaces; i++)
+         {
+@@ -443,9 +434,10 @@
+   vtkIdType aVtkType = grid->GetCellType(this->myVtkID);
+   if ( aVtkType == VTK_POLYHEDRON)
+   {
+-    vtkIdType nFaces = 0;
+-    vtkIdTypePtr ptIds = 0;
+-    grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++    vtkNew<vtkIdList> faceStream;
++    grid->GetFaceStream( this->myVtkID, faceStream);
++    vtkIdType nFaces = faceStream->GetId(0);
++    vtkIdType *ptIds = faceStream->GetPointer(1);
+     int id = 0, nbPoints = 0;
+     for (int i = 0; i < nFaces; i++)
+     {
+@@ -474,9 +466,10 @@
+   const  vtkIdType aVtkType = grid->GetCellType(this->myVtkID);
+   if ( aVtkType == VTK_POLYHEDRON)
+   {
+-    vtkIdType nFaces = 0;
+-    vtkIdTypePtr ptIds = 0;
+-    grid->GetFaceStream(this->myVtkID, nFaces, ptIds);
++    vtkNew<vtkIdList> faceStream;
++    grid->GetFaceStream( this->myVtkID, faceStream);
++    vtkIdType nFaces = faceStream->GetId(0);
++    vtkIdType *ptIds = faceStream->GetPointer(1);
+     int id = 0;
+     for (int iF = 0; iF < nFaces; iF++)
+     {

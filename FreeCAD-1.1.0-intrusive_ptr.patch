@@ -1,0 +1,276 @@
+From 1bd2aa8a54ab2ca83e0405ec630a8dfce4726b8e Mon Sep 17 00:00:00 2001
+From: captain0xff <sayantandebin@gmail.com>
+Date: Wed, 18 Mar 2026 23:36:26 +0530
+Subject: [PATCH 1/2] Gui: update CoinPtr to not use boost::intrusive_ptr
+
+---
+ src/Gui/View3DInventor.cpp   |  2 +-
+ src/Gui/ViewProvider.h       | 80 +++++++++++++++++++++++++++++-------
+ src/Gui/ViewProviderLink.cpp |  2 +-
+ 3 files changed, 68 insertions(+), 16 deletions(-)
+
+diff --git a/src/Gui/View3DInventor.cpp b/src/Gui/View3DInventor.cpp
+index 807432fb68fb..26e87c072ed8 100644
+--- a/src/Gui/View3DInventor.cpp
++++ b/src/Gui/View3DInventor.cpp
+@@ -597,7 +597,7 @@ bool View3DInventor::setCamera(const char* pCamera)
+     }
+ 
+     // this is to make sure to reliably delete the node
+-    CoinPtr<SoNode> camPtr(Cam, true);
++    CoinPtr<SoNode> camPtr{Cam};
+ 
+     // toggle between perspective and orthographic camera
+     if (Cam->getTypeId() != CamViewer->getTypeId()) {
+diff --git a/src/Gui/ViewProvider.h b/src/Gui/ViewProvider.h
+index 2c4600cc805d..412224961e8d 100644
+--- a/src/Gui/ViewProvider.h
++++ b/src/Gui/ViewProvider.h
+@@ -86,26 +86,78 @@ enum ViewStatus
+ };
+ 
+ 
++/** Convenience smart pointer to manage the lifetime of coin nodes.
++ *
++ * This class is copied from Inventor/misc/SoRefPtr.h and can be removed when the
++ * minimum supported coin version provides this header.
++ */
++template <typename T>
++class SoRefPtr {
++public:
++    SoRefPtr(void) noexcept : ptr(NULL) { }
++
++    explicit SoRefPtr(T * p) : ptr(p)
++    {
++        if (this->ptr) this->ptr->ref();
++    }
++
++    SoRefPtr(const SoRefPtr & other) : ptr(other.ptr)
++    {
++        if (this->ptr) this->ptr->ref();
++    }
++
++    SoRefPtr(SoRefPtr && other) noexcept : ptr(other.ptr)
++    {
++        other.ptr = NULL;
++    }
++
++    ~SoRefPtr(void)
++    {
++        if (this->ptr) this->ptr->unref();
++    }
++
++    SoRefPtr & operator=(SoRefPtr other) noexcept
++    {
++        this->swap(other);
++        return *this;
++    }
++
++    void reset(T * p = NULL)
++    {
++        SoRefPtr tmp(p);
++        this->swap(tmp);
++    }
++
++    T * get(void) const noexcept { return this->ptr; }
++    T & operator*(void) const { return *this->ptr; }
++    T * operator->(void) const noexcept { return this->ptr; }
++    explicit operator bool(void) const noexcept { return this->ptr != NULL; }
++
++    void swap(SoRefPtr & other) noexcept
++    {
++        using std::swap;
++        swap(this->ptr, other.ptr);
++    }
++
++private:
++    T * ptr;
++};
++
+ /** Convenience smart pointer to wrap coin node.
+  *
+- * It is basically boost::intrusive plus implicit pointer conversion to save the
+- * trouble of typing get() all the time.
++ * This class isn't merged with SoRefPtr because it can be removed in the future
+  */
+ template<class T>
+-class CoinPtr: public boost::intrusive_ptr<T>
++class CoinPtr: public SoRefPtr<T>
+ {
+ public:
+-    // Too bad, VC2013 does not support constructor inheritance
+-    // using boost::intrusive_ptr<T>::intrusive_ptr;
+-    using inherited = boost::intrusive_ptr<T>;
+-    CoinPtr() = default;
+-    CoinPtr(T* p, bool add_ref = true)
+-        : inherited(p, add_ref)
+-    {}
+-    template<class Y>
+-    CoinPtr(CoinPtr<Y> const& r)
+-        : inherited(r)
+-    {}
++    using SoRefPtr<T>::SoRefPtr;
++
++    CoinPtr& operator=(T* ptr)
++    {
++        SoRefPtr<T>::reset(ptr);
++        return *this;
++    }
+ 
+     operator T*() const
+     {
+diff --git a/src/Gui/ViewProviderLink.cpp b/src/Gui/ViewProviderLink.cpp
+index 269c21dd9a7f..689017c9c1e8 100644
+--- a/src/Gui/ViewProviderLink.cpp
++++ b/src/Gui/ViewProviderLink.cpp
+@@ -1644,7 +1644,7 @@ void LinkView::updateLink()
+ bool LinkView::linkGetElementPicked(const SoPickedPoint* pp, std::string& subname) const
+ {
+     std::ostringstream ss;
+-    CoinPtr<SoPath> path = pp->getPath();
++    CoinPtr<SoPath> path{pp->getPath()};
+     if (!nodeArray.empty()) {
+         auto idx = path->findNode(pcLinkRoot);
+         if (idx < 0 || idx + 2 >= path->getLength()) {
+
+From da77aeb99eb9a86dbbfb27dff7c4c661bc135ad2 Mon Sep 17 00:00:00 2001
+From: "pre-commit-ci[bot]"
+ <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+Date: Wed, 18 Mar 2026 18:19:26 +0000
+Subject: [PATCH 2/2] [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci
+---
+ src/Gui/View3DInventor.cpp   |  2 +-
+ src/Gui/ViewProvider.h       | 58 +++++++++++++++++++++++++-----------
+ src/Gui/ViewProviderLink.cpp |  2 +-
+ 3 files changed, 43 insertions(+), 19 deletions(-)
+
+diff --git a/src/Gui/View3DInventor.cpp b/src/Gui/View3DInventor.cpp
+index 26e87c072ed8..037380390bac 100644
+--- a/src/Gui/View3DInventor.cpp
++++ b/src/Gui/View3DInventor.cpp
+@@ -597,7 +597,7 @@ bool View3DInventor::setCamera(const char* pCamera)
+     }
+ 
+     // this is to make sure to reliably delete the node
+-    CoinPtr<SoNode> camPtr{Cam};
++    CoinPtr<SoNode> camPtr {Cam};
+ 
+     // toggle between perspective and orthographic camera
+     if (Cam->getTypeId() != CamViewer->getTypeId()) {
+diff --git a/src/Gui/ViewProvider.h b/src/Gui/ViewProvider.h
+index 412224961e8d..7680d46f9f2b 100644
+--- a/src/Gui/ViewProvider.h
++++ b/src/Gui/ViewProvider.h
+@@ -91,56 +91,80 @@ enum ViewStatus
+  * This class is copied from Inventor/misc/SoRefPtr.h and can be removed when the
+  * minimum supported coin version provides this header.
+  */
+-template <typename T>
+-class SoRefPtr {
++template<typename T>
++class SoRefPtr
++{
+ public:
+-    SoRefPtr(void) noexcept : ptr(NULL) { }
++    SoRefPtr(void) noexcept
++        : ptr(NULL)
++    {}
+ 
+-    explicit SoRefPtr(T * p) : ptr(p)
++    explicit SoRefPtr(T* p)
++        : ptr(p)
+     {
+-        if (this->ptr) this->ptr->ref();
++        if (this->ptr) {
++            this->ptr->ref();
++        }
+     }
+ 
+-    SoRefPtr(const SoRefPtr & other) : ptr(other.ptr)
++    SoRefPtr(const SoRefPtr& other)
++        : ptr(other.ptr)
+     {
+-        if (this->ptr) this->ptr->ref();
++        if (this->ptr) {
++            this->ptr->ref();
++        }
+     }
+ 
+-    SoRefPtr(SoRefPtr && other) noexcept : ptr(other.ptr)
++    SoRefPtr(SoRefPtr&& other) noexcept
++        : ptr(other.ptr)
+     {
+         other.ptr = NULL;
+     }
+ 
+     ~SoRefPtr(void)
+     {
+-        if (this->ptr) this->ptr->unref();
++        if (this->ptr) {
++            this->ptr->unref();
++        }
+     }
+ 
+-    SoRefPtr & operator=(SoRefPtr other) noexcept
++    SoRefPtr& operator=(SoRefPtr other) noexcept
+     {
+         this->swap(other);
+         return *this;
+     }
+ 
+-    void reset(T * p = NULL)
++    void reset(T* p = NULL)
+     {
+         SoRefPtr tmp(p);
+         this->swap(tmp);
+     }
+ 
+-    T * get(void) const noexcept { return this->ptr; }
+-    T & operator*(void) const { return *this->ptr; }
+-    T * operator->(void) const noexcept { return this->ptr; }
+-    explicit operator bool(void) const noexcept { return this->ptr != NULL; }
++    T* get(void) const noexcept
++    {
++        return this->ptr;
++    }
++    T& operator*(void) const
++    {
++        return *this->ptr;
++    }
++    T* operator->(void) const noexcept
++    {
++        return this->ptr;
++    }
++    explicit operator bool(void) const noexcept
++    {
++        return this->ptr != NULL;
++    }
+ 
+-    void swap(SoRefPtr & other) noexcept
++    void swap(SoRefPtr& other) noexcept
+     {
+         using std::swap;
+         swap(this->ptr, other.ptr);
+     }
+ 
+ private:
+-    T * ptr;
++    T* ptr;
+ };
+ 
+ /** Convenience smart pointer to wrap coin node.
+diff --git a/src/Gui/ViewProviderLink.cpp b/src/Gui/ViewProviderLink.cpp
+index 689017c9c1e8..398e7ff921be 100644
+--- a/src/Gui/ViewProviderLink.cpp
++++ b/src/Gui/ViewProviderLink.cpp
+@@ -1644,7 +1644,7 @@ void LinkView::updateLink()
+ bool LinkView::linkGetElementPicked(const SoPickedPoint* pp, std::string& subname) const
+ {
+     std::ostringstream ss;
+-    CoinPtr<SoPath> path{pp->getPath()};
++    CoinPtr<SoPath> path {pp->getPath()};
+     if (!nodeArray.empty()) {
+         auto idx = path->findNode(pcLinkRoot);
+         if (idx < 0 || idx + 2 >= path->getLength()) {
