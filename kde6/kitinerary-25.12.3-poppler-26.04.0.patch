@@ -1,0 +1,14 @@
+--- kitinerary-25.12.3/src/lib/pdf/pdfdocument.cpp.orig	2026-03-02 17:03:50.000000000 +0000
++++ kitinerary-25.12.3/src/lib/pdf/pdfdocument.cpp	2026-04-07 15:33:20.424790711 +0100
+@@ -286,7 +286,11 @@
+     int tzMins;
+     char tz;
+ 
++#if KPOPPLER_VERSION < QT_VERSION_CHECK(26, 4, 90)
++    if (!parseDateString(str->c_str(), &year, &month, &day, &hour, &min, &sec, &tz, &tzHours, &tzMins)) {
++#else
+     if (!parseDateString(str, &year, &month, &day, &hour, &min, &sec, &tz, &tzHours, &tzMins)) {
++#endif
+         return {};
+     }
+ 
