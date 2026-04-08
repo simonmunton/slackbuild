@@ -1,0 +1,118 @@
+--- drkonqi-6.6.4/CMakeLists.txt.orig	2026-04-07 08:54:59.000000000 +0100
++++ drkonqi-6.6.4/CMakeLists.txt	2026-04-08 18:07:19.332035190 +0100
+@@ -91,7 +91,7 @@
+ )
+ 
+ find_package(Systemd 254)
+-set_package_properties(Systemd PROPERTIES TYPE REQUIRED PURPOSE "Coredumpd integration.")
++set_package_properties(Systemd PROPERTIES TYPE OPTIONAL PURPOSE "Coredumpd integration.")
+ 
+ find_package(PolkitQt6-1) # This is only used when extracting crashes from coredumpd
+ set_package_properties(PolkitQt6-1 PROPERTIES TYPE REQUIRED PURPOSE "Reading kwin_wayland crashes")
+--- drkonqi-6.6.4/src/backtracegenerator.cpp.orig	2026-04-07 08:54:59.000000000 +0100
++++ drkonqi-6.6.4/src/backtracegenerator.cpp	2026-04-08 18:08:09.339028017 +0100
+@@ -34,11 +34,13 @@
+ using namespace std::chrono_literals;
+ using namespace Qt::StringLiterals;
+ 
++#ifdef SYSTEMD_AVAILABLE
+ // WARNING: Do not make this a class member static or translation unit static. It uses QDBus internally and possibly
+ // leads to defunct dbus connections when initialized during the __static_initialization_and_destruction, before the
+ // QCoreApplication is set up.
+ // https://bugs.kde.org/show_bug.cgi?id=504386
+ Q_GLOBAL_STATIC(MemoryFence, s_fence)
++#endif
+ 
+ bool isMeteredNetwork()
+ {
+@@ -199,12 +201,14 @@
+     Q_EMIT newLine(QString());
+ 
+     if (exitStatus != QProcess::NormalExit || exitCode != 0) {
++#ifdef SYSTEMD_AVAILABLE
+         if (MemoryPressure::instance()->level() == MemoryPressure::Level::High) {
+             m_state = MemoryPressure;
+             Q_EMIT stateChanged();
+             Q_EMIT someError();
+             return;
+         }
++#endif
+ 
+         m_state = Failed;
+         Q_EMIT stateChanged();
+@@ -244,12 +248,14 @@
+     // make very sure the process is getting discarded, otherwise retry operations won't work
+     resetProcessAndUnlock();
+ 
++#ifdef SYSTEMD_AVAILABLE
+     if (MemoryPressure::instance()->level() == MemoryPressure::Level::High) {
+         m_state = MemoryPressure;
+         Q_EMIT stateChanged();
+         Q_EMIT someError();
+         return;
+     }
++#endif
+ 
+     switch (error) {
+     case QProcess::FailedToStart:
+@@ -331,8 +337,12 @@
+ 
+     Q_EMIT starting();
+ 
++#ifdef SYSTEMD_AVAILABLE
+     s_fence->surroundMe();
+     connect(s_fence, &MemoryFence::loaded, this, &BacktraceGenerator::startProcessInternal, Qt::UniqueConnection);
++#else
++    startProcessInternal();
++#endif
+ }
+ 
+ void BacktraceGenerator::startProcessInternal()
+@@ -406,7 +416,9 @@
+ 
+     connect(m_proc, &KProcess::started, this, [this] {
+         auto pid = m_proc->processId();
++#ifdef SYSTEMD_AVAILABLE
+         Q_EMIT MemoryPressure::instance()->monitoring(pid);
++#endif
+         QFile adj("/proc/"_L1 + QString::number(pid) + "/oom_score_adj"_L1);
+         if (!adj.open(QIODevice::WriteOnly)) {
+             qCWarning(DRKONQI_LOG) << "Failed to open oom_score_adj for pid" << pid << adj.errorString();
+@@ -428,6 +440,7 @@
+ 
+ void BacktraceGenerator::memoryConstrainProc()
+ {
++#ifdef SYSTEMD_AVAILABLE
+     Q_ASSERT(m_proc);
+ 
+     MemoryPressure::instance()->reset();
+@@ -457,6 +470,7 @@
+     qWarning() << "adjusting gdb profile for size" << s_fence->size();
+     m_proc->setArguments(arguments);
+     Q_EMIT crampedMemoryChanged();
++#endif
+ }
+ 
+ bool BacktraceGenerator::debuggerIsGDB() const
+--- drkonqi-6.6.4/src/CMakeLists.txt.orig	2026-04-07 08:54:59.000000000 +0100
++++ drkonqi-6.6.4/src/CMakeLists.txt	2026-04-08 18:07:19.332264016 +0100
+@@ -119,13 +119,13 @@
+     qbugzilla
+ )
+ 
+-add_subdirectory(systemd)
+-add_subdirectory(coredump)
++#add_subdirectory(systemd)
++#add_subdirectory(coredump)
+ 
+-target_sources(DrKonqiInternal PRIVATE coredumpbackend.cpp coredumpbackend.h)
+-target_link_libraries(DrKonqiInternal drkonqi-coredump) # needed for logs extraction
+-target_link_libraries(DrKonqiInternal drkonqi-coredumpexcavator)
+-target_compile_definitions(DrKonqiInternal PRIVATE SYSTEMD_AVAILABLE)
++#target_sources(DrKonqiInternal PRIVATE coredumpbackend.cpp coredumpbackend.h)
++#target_link_libraries(DrKonqiInternal drkonqi-coredump) # needed for logs extraction
++#target_link_libraries(DrKonqiInternal drkonqi-coredumpexcavator)
++#target_compile_definitions(DrKonqiInternal PRIVATE SYSTEMD_AVAILABLE)
+ 
+ add_executable(drkonqi main.cpp qml/qml.qrc)
+ ecm_mark_nongui_executable(drkonqi)
