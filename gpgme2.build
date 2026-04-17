@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=spglib
+TARNAME=gpgme
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/s
+TARDIR=${SOURCE}/g
 #TAR_EXT=.tar.gz
-VERSION=2.7.0
+VERSION=2.0.1
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE=https://github.com/spglib/spglib
+WEBPAGE="http://www.gnupg.org"
 
 #TAR_PROG=
 #TAR_OPTS=
-#PKGNAME=
+PKGNAME=gpgme2
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -45,7 +45,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/spglib-1.10.4.diff
+# patch -p1 < ${CWD}/gpgme-1.8.0.diff
 )
 fi
 
@@ -59,40 +59,32 @@ PKGCFLAGS="-O2 -march=i686 ${CPUOPT}=i686"
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-if [ -f ./configure ]
-then
 CFLAGS="${SLKCFLAGS}" \
 CXXFLAGS="${SLKCFLAGS}" \
 ./configure --prefix=/usr \
             --sysconfdir=/etc \
             --libdir=/usr/lib${LIBDIRSUFFIX} \
+            --infodir=/usr/info \
             --localstatedir=/var/lib \
-	    --mandir=/usr/man
-elif [ -f ./CMakeLists.txt ]
-then
-cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DMAN_INSTALL_DIR=/usr/man \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      -DSYSCONF_INSTALL_DIR=/etc \
-      .
-elif [ -f ./meson.build ]
-then
-  meson --prefix=/usr _BuilD_
-fi
+            --mandir=/usr/man \
+            --build=${ARCH}-slackware-linux \
+            --host=${ARCH}-slackware-linux 
+
+#	    --with-gpg=/usr/bin/gpg2
+
+#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX=/usr \
+#      -DMAN_INSTALL_DIR=/usr/man \
+#      -DSYSCONF_INSTALL_DIR=/etc \
+#      .
 
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-if [ -f ./meson.build ]
-then
-  ninja -C _BuilD_ || exit
-else
-  make ${NUM_JOBS} || exit
-fi
+make ${NUM_JOBS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -100,15 +92,7 @@ then
   exit
 fi
 
-if [ -f ./meson.build ]
-then
-  DESTDIR=${PKG} ninja -C _BuilD_ install
-else
-  make install DESTDIR=${PKG}
-fi
-
-mkdir ${PKG}/usr/include/spglib
-mv ${PKG}/usr/include/*.h ${PKG}/usr/include/spglib
+make install DESTDIR=${PKG}
 
 strip_binaries
 
@@ -125,8 +109,12 @@ cp -a \
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "spglib is a library for finding and handling crystal symmetries"
-C library for finding and handling crystal symmetries
+make_slack_desc << EOF "GPGME (GnuPG Made Easy)"
+GPGME (GnuPG Made Easy) is a C language library that allows to add 
+support for cryptography to a program. It is designed to make access 
+to public key crypto engines like GnuPG or GpgSM easier for 
+applications. GPGME provides a high-level crypto API for encryption, 
+decryption, signing, signature verification and key management.
 
 EOF
 
