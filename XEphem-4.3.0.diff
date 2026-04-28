@@ -1,0 +1,2188 @@
+--- XEphem-4.3.0/libip/lstsqr.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/libip/lstsqr.c	2026-04-28 14:17:15.087442849 +0100
+@@ -12,7 +12,7 @@
+ 
+ /* from Numerical Recipes */
+ static int amoeba(double **p, double *y, int ndim, double ftol,
+-    double (*funk)(), int *nfunk);
++    double (*funk)(double p[]), int *nfunk);
+ 
+ /* this lets us map 1-based arrays into 0-based arrays */
+ static double (*chisqr_0based)(double p[]);
+@@ -92,7 +92,7 @@
+ /* following are from Numerical Recipes in C */
+ 
+ static double amotry(double **p, double *y, double *psum, int ndim,
+-    double (*funk)(), int ihi, int *nfunk, double fac);
++    double (*funk)(double []), int ihi, int *nfunk, double fac);
+ static void nrerror( char error_text[]);
+ static double *vector(int nl, int nh);
+ static void free_vector(double *v, int nl, int nh);
+@@ -108,13 +108,10 @@
+ 						sum += p[i][j]; psum[j]=sum;}
+ 
+ static int
+-amoeba(p,y,ndim,ftol,funk,nfunk)
+-double **p,y[],ftol,(*funk)();
+-int ndim,*nfunk;
++amoeba(double **p, double y[], int ndim, double ftol, double (*funk)(double []), int *nfunk)
+ {
+ 	int i,j,ilo,ihi,inhi,mpts=ndim+1;
+-	double ytry,ysave,sum,rtol,amotry(),*psum,*vector();
+-	void nrerror(),free_vector();
++	double ytry,ysave,sum,rtol,*psum;
+ 	double yihilo;
+ 
+ 	psum=vector(1,ndim);
+@@ -168,13 +165,10 @@
+ }
+ 
+ static double
+-amotry(p,y,psum,ndim,funk,ihi,nfunk,fac)
+-double **p,*y,*psum,(*funk)(),fac;
+-int ndim,ihi,*nfunk;
++amotry(double **p, double *y, double *psum, int ndim, double (*funk)(double []), int ihi, int *nfunk, double fac)
+ {
+ 	int j;
+-	double fac1,fac2,ytry,*ptry,*vector();
+-	void nrerror(),free_vector();
++	double fac1,fac2,ytry,*ptry;
+ 
+ 	ptry=vector(1,ndim);
+ 	fac1=(1.0-fac)/ndim;
+@@ -202,8 +196,7 @@
+ /* nrutil.c */
+ 
+ static void
+-nrerror(error_text)
+-char error_text[];
++nrerror(char error_text[])
+ {
+ 	fprintf(stderr,"Numerical Recipes run-time error...\n");
+ 	fprintf(stderr,"%s\n",error_text);
+@@ -214,8 +207,7 @@
+ 
+ 
+ static double *
+-vector(nl,nh)
+-int nl,nh;
++vector(int nl, int nh)
+ {
+ 	double *v;
+ 
+@@ -226,9 +218,7 @@
+ 
+ 
+ static void
+-free_vector(v,nl,nh)
+-double *v;
+-int nl,nh;
++free_vector(double *v, int nl, int nh)
+ {
+ 	free((char*) (v+nl));
+ }
+--- XEphem-4.3.0/libip/explodegif.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/libip/explodegif.c	2026-04-28 14:07:50.510169770 +0100
+@@ -27,7 +27,7 @@
+ #define INTERLACEMASK 0x40
+ #define COLORMAPMASK  0x80
+ 
+-  
++
+ 
+ static int BitOffset = 0,	/* Bit Offset of next code */
+     XC = 0, YC = 0,		/* Output X and Y coords of current pixel */
+@@ -72,16 +72,16 @@
+ static char *id89 = "GIF89a";
+ 
+ static int EGApalette[16][3] = {
+-  {0,0,0},       {0,0,128},     {0,128,0},     {0,128,128}, 
++  {0,0,0},       {0,0,128},     {0,128,0},     {0,128,128},
+   {128,0,0},     {128,0,128},   {128,128,0},   {200,200,200},
+   {100,100,100}, {100,100,255}, {100,255,100}, {100,255,255},
+   {255,100,100}, {255,100,255}, {255,255,100}, {255,255,255} };
+-  
+ 
+-static int   readImage();
++
++static int   readImage(PICINFO *pinfo);
+ static int   ReadCode();
+-static void  DoInterlace();
+-static int   gifError();
++static void  DoInterlace(byte Index);
++static int   gifError(PICINFO *pinfo, char *st);
+ 
+ static int   filesize;
+ static int numcols;
+@@ -92,16 +92,19 @@
+ 
+ static char *g_errmsg;
+ 
+-static int LoadGIF();
++static int LoadGIF(PICINFO *pinfo);
++
++
++// int
++// explodeGIF (raw, nraw, wp, hp, pixap, ra, ga, ba, errmsg)
++// unsigned char *raw;		/* raw gif file */
++// int nraw;			/* bytes ingif file */
++// int *wp, *hp;			/* RETURN: image width/height */
++// unsigned char *pixap[];		/* RETURN: malloced w*h pixels, rgba indices */
++// unsigned char ra[], ga[], ba[];	/* RETURN: color map, 256 each */
++// char errmsg[];			/* excuse, if return -1 */
+ 
+-int
+-explodeGIF (raw, nraw, wp, hp, pixap, ra, ga, ba, errmsg)
+-unsigned char *raw;		/* raw gif file */
+-int nraw;			/* bytes ingif file */
+-int *wp, *hp;			/* RETURN: image width/height */
+-unsigned char *pixap[];		/* RETURN: malloced w*h pixels, rgba indices */
+-unsigned char ra[], ga[], ba[];	/* RETURN: color map, 256 each */
+-char errmsg[];			/* excuse, if return -1 */
++int explodeGIF(unsigned char *raw, int nraw, int *wp, int *hp, unsigned char *pixap[], unsigned char ra[], unsigned char ga[], unsigned char ba[], char errmsg[])
+ {
+ 	PICINFO pi;
+ 
+@@ -121,8 +124,7 @@
+ 
+ 
+ /*****************************/
+-static int LoadGIF(pinfo)
+-     PICINFO *pinfo;
++static int LoadGIF(PICINFO *pinfo)
+ /*****************************/
+ {
+   /* returns '1' if successful */
+@@ -137,45 +139,45 @@
+   gif89 = 0;
+   pinfo->pic     = (byte *) NULL;
+   RawGIF = dataptr;
+-  
+-  /* the +256's are so we can read truncated GIF files without fear of 
++
++  /* the +256's are so we can read truncated GIF files without fear of
+      segmentation violation */
+-  if (!(Raster = (byte *) calloc(filesize+256,1))) 
++  if (!(Raster = (byte *) calloc(filesize+256,1)))
+     return( gifError(pinfo, "not enough memory to read gif file") );
+-  
++
+   origptr = dataptr;
+ 
+   if      (strncmp((char *) dataptr, id87, 6)==0) gif89 = 0;
+   else if (strncmp((char *) dataptr, id89, 6)==0) gif89 = 1;
+   else    return( gifError(pinfo, "not a GIF file"));
+-  
++
+   dataptr += 6;
+-  
++
+   /* Get variables from the GIF screen descriptor */
+-  
++
+   ch = NEXTBYTE;
+   RWidth = ch + 0x100 * NEXTBYTE;	/* screen dimensions... not used. */
+   ch = NEXTBYTE;
+   RHeight = ch + 0x100 * NEXTBYTE;
+-  
++
+   ch = NEXTBYTE;
+   HasColormap = ((ch & COLORMAPMASK) ? True : False);
+-  
++
+   BitsPerPixel = (ch & 7) + 1;
+   numcols = ColorMapSize = 1 << BitsPerPixel;
+   BitMask = ColorMapSize - 1;
+-  
++
+   Background = NEXTBYTE;		/* background color... not used. */
+-  
++
+   aspect = NEXTBYTE;
+   if (aspect) {
+     if (!gif89) return(gifError(pinfo,"corrupt GIF file (screen descriptor)"));
+     else normaspect = (float)((aspect + 15) / 64.0);   /* gif89 aspect ratio */
+   }
+-  
+-  
++
++
+   /* Read in global colormap. */
+-  
++
+   if (HasColormap) {
+     for (i=0; i<ColorMapSize; i++) {
+       pinfo->r[i] = NEXTBYTE;
+@@ -226,7 +228,7 @@
+ 	if (blocksize == 2) {
+ 	  aspnum = NEXTBYTE;
+ 	  aspden = NEXTBYTE;
+-	  if (aspden>0 && aspnum>0) 
++	  if (aspden>0 && aspnum>0)
+ 	    normaspect = (float) aspnum / (float) aspden;
+ 	  else { normaspect = 1.0;  aspnum = aspden = 1; }
+ 	}
+@@ -267,7 +269,7 @@
+       else if (fn == 0x01) {  /* PlainText Extension */
+ 	int j,sbsize,ch;
+ 	int tgLeft, tgTop, tgWidth, tgHeight, cWidth, cHeight, fg, bg;
+-      
++
+ 	sbsize   = NEXTBYTE;
+ 	tgLeft   = NEXTBYTE;  tgLeft   += (NEXTBYTE)<<8;
+ 	tgTop    = NEXTBYTE;  tgTop    += (NEXTBYTE)<<8;
+@@ -279,7 +281,7 @@
+ 	bg       = NEXTBYTE;
+ 	i=12;
+ 	for ( ; i<sbsize; i++) NEXTBYTE;   /* read rest of first subblock*/
+-      
++
+ 	/* read (and ignore) data sub-blocks */
+ 	do {
+ 	  j = 0;
+@@ -300,7 +302,7 @@
+ 	  while (j<sbsize) { NEXTBYTE;  j++; }
+ 	} while (sbsize);
+       }
+-      
++
+ 
+       else if (fn == 0xFF) {  /* Application Extension */
+ 	int j, sbsize;
+@@ -311,7 +313,7 @@
+ 	  while (j<sbsize) { NEXTBYTE;  j++; }
+ 	} while (sbsize);
+       }
+-      
++
+ 
+       else { /* unknown extension */
+ 	int j, sbsize;
+@@ -378,7 +380,7 @@
+ 
+   free(Raster);  Raster = NULL;
+ 
+-  if (!gotimage) 
++  if (!gotimage)
+      return( gifError(pinfo, "no image data found in GIF file") );
+ 
+   return 1;
+@@ -386,8 +388,7 @@
+ 
+ 
+ /********************************************/
+-static int readImage(pinfo)
+-     PICINFO *pinfo;
++static int readImage(PICINFO *pinfo)
+ {
+   register byte ch, ch1, *ptr1, *picptr;
+   int           i, npixels, maxpixels;
+@@ -395,7 +396,7 @@
+   npixels = maxpixels = 0;
+ 
+   /* read in values from the image descriptor */
+-  
++
+   ch = NEXTBYTE;
+   LeftOfs = ch + 0x100 * NEXTBYTE;
+   ch = NEXTBYTE;
+@@ -421,30 +422,30 @@
+     /* no global or local colormap */
+     return (gifError (pinfo, "No colormap in this GIF file."));
+   }
+-    
+ 
+-  
++
++
+   /* Start reading the raster data. First we get the intial code size
+    * and compute decompressor constant values, based on this code size.
+    */
+-  
++
+   CodeSize = NEXTBYTE;
+ 
+   ClearCode = (1 << CodeSize);
+   EOFCode = ClearCode + 1;
+   FreeCode = FirstFree = ClearCode + 2;
+-  
++
+   /* The GIF spec has it that the code size is the code size used to
+    * compute the above values is the code size given in the file, but the
+    * code size used in compression/decompression is the code size given in
+    * the file plus one. (thus the ++).
+    */
+-  
++
+   CodeSize++;
+   InitCodeSize = CodeSize;
+   MaxCode = (1 << CodeSize);
+   ReadMask = MaxCode - 1;
+-  
++
+ 
+ 
+   /* UNBLOCK:
+@@ -452,7 +453,7 @@
+    * to the Raster array, turning it from a series of blocks into one long
+    * data stream, which makes life much easier for ReadCode().
+    */
+-  
++
+   ptr1 = Raster;
+   do {
+     ch = ch1 = NEXTBYTE;
+@@ -468,11 +469,11 @@
+   picptr = pic8 = (byte *) malloc(maxpixels);
+   if (!pic8) return( gifError(pinfo, "couldn't malloc 'pic8'") );
+ 
+-  
++
+   /* Decompress the file, continuing until you see the GIF EOF code.
+    * One obvious enhancement is to add checking for corrupt files here.
+    */
+-  
++
+   Code = ReadCode();
+   while (Code != EOFCode) {
+     /* Clear code sets everything back to its initial value, then reads the
+@@ -499,58 +500,58 @@
+ 			    break; }
+ 
+       CurCode = InCode = Code;
+-      
++
+       /* If greater or equal to FreeCode, not in the hash table yet;
+        * repeat the last character decoded
+        */
+-      
++
+       if (CurCode >= FreeCode) {
+ 	CurCode = OldCode;
+ 	if (OutCount > 4096) {  /* printf("outcount1 blew up\n"); */ break; }
+ 	OutCode[OutCount++] = FinChar;
+       }
+-      
++
+       /* Unless this code is raw data, pursue the chain pointed to by CurCode
+        * through the hash table to its end; each code in the chain puts its
+        * associated output code on the output queue.
+        */
+-      
++
+       while (CurCode > BitMask) {
+ 	if (OutCount > 4096) break;   /* corrupt file */
+ 	OutCode[OutCount++] = Suffix[CurCode];
+ 	CurCode = Prefix[CurCode];
+       }
+-      
++
+       if (OutCount > 4096) { /* printf("outcount blew up\n"); */ break; }
+-      
++
+       /* The last code in the chain is treated as raw data. */
+-      
++
+       FinChar = CurCode & BitMask;
+       OutCode[OutCount++] = FinChar;
+-      
++
+       /* Now we put the data out to the Output routine.
+        * It's been stacked LIFO, so deal with it that way...
+        */
+ 
+       /* safety thing:  prevent exceeding range of 'pic8' */
+       if (npixels + OutCount > maxpixels) OutCount = maxpixels-npixels;
+-	
++
+       npixels += OutCount;
+       if (!Interlace) for (i=OutCount-1; i>=0; i--) *picptr++ = OutCode[i];
+                 else  for (i=OutCount-1; i>=0; i--) DoInterlace(OutCode[i]);
+       OutCount = 0;
+ 
+       /* Build the hash table on-the-fly. No table is stored in the file. */
+-      
++
+       Prefix[FreeCode] = OldCode;
+       Suffix[FreeCode] = FinChar;
+       OldCode = InCode;
+-      
++
+       /* Point to the next slot in the table.  If we exceed the current
+        * MaxCode value, increment the code size unless it's already 12.  If it
+        * is, do nothing: the next code decompressed better be CLEAR
+        */
+-      
++
+       FreeCode++;
+       if (FreeCode >= MaxCode) {
+ 	if (CodeSize < 12) {
+@@ -563,7 +564,7 @@
+     Code = ReadCode();
+     if (npixels >= maxpixels) break;
+   }
+-  
++
+   if (npixels != maxpixels) {
+     if (!Interlace)
+       memset(pic8+npixels, 0, maxpixels-npixels);  /* clear to EOBuffer */
+@@ -572,7 +573,7 @@
+   /* fill in the PICINFO structure */
+ 
+   pinfo->pic     = pic8;
+-  pinfo->w       = Width;           
++  pinfo->w       = Width;
+   pinfo->h       = Height;
+ 
+   return 1;
+@@ -585,13 +586,13 @@
+  * maintain our location in the Raster array as a BIT Offset.  We compute
+  * the byte Offset into the raster array by dividing this by 8, pick up
+  * three bytes, compute the bit Offset into our 24-bit chunk, shift to
+- * bring the desired code to the bottom, then mask it off and return it. 
++ * bring the desired code to the bottom, then mask it off and return it.
+  */
+ 
+ static int ReadCode()
+ {
+   int RawCode, ByteOffset;
+-  
++
+   ByteOffset = BitOffset / 8;
+   RawCode = Raster[ByteOffset] + (Raster[ByteOffset + 1] << 8);
+   if (CodeSize >= 8)
+@@ -604,47 +605,46 @@
+ 
+ 
+ /***************************/
+-static void DoInterlace(Index)
+-     byte Index;
++static void DoInterlace(byte Index)
+ {
+   static byte *ptr = NULL;
+   static int   oldYC = -1;
+-  
++
+   if (oldYC != YC) {  ptr = pic8 + YC * Width;  oldYC = YC; }
+-  
++
+   if (YC<Height)
+     *ptr++ = Index;
+-  
++
+   /* Update the X-coordinate, and if it overflows, update the Y-coordinate */
+-  
++
+   if (++XC == Width) {
+-    
++
+     /* deal with the interlace as described in the GIF
+      * spec.  Put the decoded scan line out to the screen if we haven't gone
+      * past the bottom of it
+      */
+-    
++
+     XC = 0;
+-    
++
+     switch (Pass) {
+     case 0:
+       YC += 8;
+       if (YC >= Height) { Pass++; YC = 4; }
+       break;
+-      
++
+     case 1:
+       YC += 8;
+       if (YC >= Height) { Pass++; YC = 2; }
+       break;
+-      
++
+     case 2:
+       YC += 4;
+       if (YC >= Height) { Pass++; YC = 1; }
+       break;
+-      
++
+     case 3:
+       YC += 2;  break;
+-      
++
+     default:
+       break;
+     }
+@@ -652,11 +652,9 @@
+ }
+ 
+ 
+-      
++
+ /*****************************/
+-static int gifError(pinfo, st)
+-     PICINFO *pinfo;
+-     char    *st;
++static int gifError(PICINFO *pinfo, char *st)
+ {
+   strcpy (g_errmsg, st);
+ 
+--- XEphem-4.3.0/GUI/xephem/rotated.h.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/rotated.h	2026-04-28 14:27:44.273656750 +0100
+@@ -8,7 +8,7 @@
+ 
+ /* ************************************************************************ */
+ 
+-#ifndef _XVERTEXT_INCLUDED_ 
++#ifndef _XVERTEXT_INCLUDED_
+ #define _XVERTEXT_INCLUDED_
+ 
+ #define XV_VERSION      5.0
+@@ -35,7 +35,7 @@
+ 
+ /* ---------------------------------------------------------------------- */
+ 
+-/* this shoulf be C++ compliant, thanks to 
++/* this shoulf be C++ compliant, thanks to
+      vlp@latina.inesc.pt (Vasco Lopes Paulo) */
+ 
+ #if defined(__cplusplus) || defined(c_plusplus)
+@@ -58,14 +58,19 @@
+ 
+ #else
+ 
+-extern float   XRotVersion();
+-extern void    XRotSetMagnification();
+-extern void    XRotSetBoundingBoxPad();
+-extern int     XRotDrawString();
+-extern int     XRotDrawImageString();
+-extern int     XRotDrawAlignedString();
+-extern int     XRotDrawAlignedImageString();
+-extern XPoint *XRotTextExtents();
++extern float   XRotVersion(char*, int);
++extern void    XRotSetMagnification(float);
++extern void    XRotSetBoundingBoxPad(int);
++extern int     XRotDrawString(Display*, XFontStruct*, float,
++                       Drawable, GC, int, int, char*);
++extern int     XRotDrawImageString(Display*, XFontStruct*, float,
++                            Drawable, GC, int, int, char*);
++extern int     XRotDrawAlignedString(Display*, XFontStruct*, float,
++                                     Drawable, GC, int, int, char*, int);
++extern int     XRotDrawAlignedImageString(Display*, XFontStruct*, float,
++                                   Drawable, GC, int, int, char*, int);
++extern XPoint *XRotTextExtents(Display*, XFontStruct*, float,
++			int, int, char*, int);
+ 
+ #endif /* __cplusplus */
+ 
+--- XEphem-4.3.0/GUI/xephem/xephem.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/xephem.c	2026-04-28 14:56:40.903228379 +0100
+@@ -61,7 +61,7 @@
+     char *acc;		/* button accelerator, if any */
+     char *acctext;	/* button accelerator text, if any */
+     char mne;		/* button mnemonic */
+-    void (*cb)();	/* button callback, or NULL if none */
++    void (*cb)(struct _WidgetRec *, void *, void *);	/* button callback, or NULL if none */
+     XtPointer client;	/* button callback client data */
+ } ButtonInfo;
+ typedef struct {
+@@ -645,7 +645,7 @@
+ 	static PullDownMenu help_pd =
+ 	    {"Additional information about xephem and the Main display",
+ 		"Help", 0, 'H', "help_pd", help_buttons,XtNumber(help_buttons)};
+-	    
++
+ 	Widget mainrc;
+ 	Widget mb_w;
+ 	Widget cb_w;
+@@ -670,7 +670,7 @@
+ 
+ 	n = 0;
+ 	splashMsg ("Building main menu bar\n");
+-	mb_w = XmCreateMenuBar (mainrc, "MB", args, n); 
++	mb_w = XmCreateMenuBar (mainrc, "MB", args, n);
+ 	XtManageChild (mb_w);
+ 
+ 	    /* create each pulldown */
+--- XEphem-4.3.0/GUI/xephem/saveres.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/saveres.c	2026-04-28 14:46:30.652578813 +0100
+@@ -77,7 +77,7 @@
+     char reg2;			/* whether to register in Save list */
+     char autosav2;		/* if reg2, whether as autosav */
+     XtCallbackProc cb;		/* callback */
+-    int (*isf)();		/* class comparitor function */
++    int (*isf)(Widget);		/* class comparitor function */
+     char *tip;			/* help tip text */
+     Widget w;			/* PB control (once created that is) */
+ } Choice;
+@@ -103,7 +103,7 @@
+ static Resource *findRes (char *findnam);
+ static int cmpRes (Resource *r1, Resource *r2);
+ static char *fullWName (Widget w, char *buf);
+-static void loadArgsChildren (Widget w, int (*isf)(), Arg *args, int nargs);
++static void loadArgsChildren (Widget w, int (*isf)(Widget), Arg *args, int nargs);
+ static int fgetres (char *buf, int bufl, FILE *fp);
+ static void fputres (FILE *fp, char *buf);
+ static void skyview_newres(void);
+@@ -332,7 +332,7 @@
+ static void src_obj_cb (Widget w, XtPointer client, XtPointer call);
+ static void src_nightv_cb (Widget w, XtPointer client, XtPointer call);
+ static void src_install (char *res, char *res2, char *cnam);
+-static void src_setbg (Widget w, Pixel bg, int (*isf)());
++static void src_setbg (Widget w, Pixel bg, int (*isf)(Widget));
+ static void src_showcolor (char *name, int scalestoo);
+ static void installNVBg (void);
+ static void installNVFg (void);
+@@ -957,7 +957,7 @@
+ 						    !crackVal (buf, val)) {
+ 			vp = val;
+ 			break;
+-		    } 
++		    }
+ 		}
+ 		fclose(ofp);
+ 		if (!vp)
+@@ -1138,7 +1138,7 @@
+ 	    wtip (asel_w,
+ 		  "Whether modified Major preferences are selected for Saving");
+ 	    XtManageChild (asel_w);
+-	
++
+ 	/* minor count */
+ 
+ 	n = 0;
+@@ -1633,7 +1633,7 @@
+ 		lastcp = &catlist[rp->cati];
+ 		sr_1cat (ww, rp);
+ 		lastas = 1;
+-	    } 
++	    }
+ 	    if (lastcp->exp) {
+ 		if (!rp->autosav && lastas) {
+ 		    /* put header over first non-autosav */
+@@ -2084,7 +2084,7 @@
+ static void
+ loadArgsChildren (w, isf, args, nargs)
+ Widget w;
+-int (*isf)();
++int (*isf)(Widget);
+ Arg *args;
+ int nargs;
+ {
+@@ -2112,7 +2112,7 @@
+ 	    XtSetValues (w, args, nargs);
+ 	}
+ }
+-
++
+ /* Font control */
+ 
+ /* display the named font in srfsample_w and store name in srfsname_w */
+@@ -2132,7 +2132,7 @@
+ 	    xe_msg (1, "%s\nFont not found", xlfd);
+ 	    return;
+ 	}
+-	entry = XmFontListEntryCreate(XmSTRING_DEFAULT_CHARSET, 
++	entry = XmFontListEntryCreate(XmSTRING_DEFAULT_CHARSET,
+ 			XmFONT_IS_FONT, (XtPointer)fsp);
+ 	fl = XmFontListAppendEntry(NULL,entry);
+ 	n = 0;
+@@ -2260,7 +2260,7 @@
+ 	    if (fsp) {
+ 		entry = XmFontListEntryCreate(XmSTRING_DEFAULT_CHARSET,
+                         XmFONT_IS_FONT, (XtPointer)fsp);
+-		XmFontList fl = XmFontListAppendEntry(NULL,entry);		
++		XmFontList fl = XmFontListAppendEntry(NULL,entry);
+ 
+ 		/* distribute to existing widgets */
+ 		XtSetArg (args[0], XmNfontList, fl);
+@@ -2915,7 +2915,7 @@
+ 	srf_search ();
+ 	XtManageChild (srfaf_w);
+ }
+-
++
+ /* Color control */
+ 
+ /* display the named color in the sample area and maybe set scales to match */
+@@ -2990,7 +2990,7 @@
+ 	if (!XmListItemExists (srcsl_w, xms))
+ 	    XmListAddItem (srcsl_w, xms, 0);
+ 	XmStringFree (xms);
+-	
++
+ 	if (val)
+ 	    XtFree(val);
+ }
+@@ -3000,7 +3000,7 @@
+ src_setbg (w, bg, isf)
+ Widget w;
+ Pixel bg;
+-int (*isf)();
++int (*isf)(Widget);
+ {
+ 	Display *dsp = XtDisplay(w);
+ 	Screen *scr = DefaultScreenOfDisplay(dsp);
+@@ -4060,7 +4060,7 @@
+ 		*buf++ = c;
+ 		bufl--;
+ 	    }
+-	    
++
+ 	if (bufl <= 0 || feof(fp) || ferror(fp))
+ 	    return (-1);
+ 
+--- XEphem-4.3.0/GUI/xephem/skyfiltmenu.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/skyfiltmenu.c	2026-04-28 14:48:02.646236878 +0100
+@@ -119,7 +119,7 @@
+     {"Clusters:",
+ 	"Whether to display various types of star clusters",
+ 	clusters_f,	XtNumber(clusters_f)},
+-    {"Other:",		
++    {"Other:",
+ 	"Whether to display a variety of miscellaneous classes of objects",
+ 	other_f,	XtNumber(other_f)},
+     {"Galaxies:",
+@@ -163,7 +163,7 @@
+ 	static struct {
+ 	    char *name;
+ 	    char *tip;
+-	    void (*cb)();
++	    void (*cb)(struct _WidgetRec *, void *, void *);
+ 	} ctls[] = {
+ 	    /* balance in half */
+ 	    {"Ok", "Apply changes and close", svf_ok_cb},
+@@ -690,7 +690,7 @@
+ 	case EARTHSAT:
+ 	    /* TODO: work on satellite magnitudes someday */
+ 	    return (1);
+-	default: 
++	default:
+ 	    printf ("sv_bright_ok(): bad type: %d\n", op->o_type);
+ 	    abort();
+ 	    return (0);	/* for lint */
+@@ -721,7 +721,7 @@
+ 	    if (!before) {
+ 		XSetWindowAttributes swa;
+ 		swa.bit_gravity = ForgetGravity;
+-		XChangeWindowAttributes (e->display, e->window, 
++		XChangeWindowAttributes (e->display, e->window,
+ 							    CWBitGravity, &swa);
+ 		before = 1;
+ 	    }
+@@ -863,7 +863,7 @@
+ 	    FilterCat *fcp = &filters[i];
+ 	    for (j = 0; j < fcp->nftb; j++) {
+ 		FilterTB *ftbp = &fcp->ftb[j];
+-		XmToggleButtonSetState (ftbp->tbw, 
++		XmToggleButtonSetState (ftbp->tbw,
+ 		    !XmToggleButtonGetState(ftbp->tbw), True);
+ 	    }
+ 	}
+@@ -914,7 +914,7 @@
+ 
+ 	for (i = 0; i < fcp->nftb; i++) {
+ 	    FilterTB *ftbp = &fcp->ftb[i];
+-	    XmToggleButtonSetState (ftbp->tbw, 
++	    XmToggleButtonSetState (ftbp->tbw,
+ 		!XmToggleButtonGetState(ftbp->tbw), True);
+ 	}
+ }
+--- XEphem-4.3.0/GUI/xephem/rotated.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/rotated.c	2026-04-28 14:38:47.897667772 +0100
+@@ -43,7 +43,7 @@
+ #ifndef CACHE_SIZE_LIMIT
+ #define CACHE_SIZE_LIMIT 0
+ #endif /*CACHE_SIZE_LIMIT */
+-    
++
+ /* Make sure a cache method is specified */
+ 
+ #ifndef CACHE_XIMAGES
+@@ -87,24 +87,24 @@
+ typedef struct rotated_text_item_template {
+     Pixmap bitmap;
+     XImage *ximage;
+-    
++
+     char *text;
+     char *font_name;
+     Font fid;
+     float angle;
+     int align;
+     float magnify;
+-    
++
+     int cols_in;
+     int rows_in;
+     int cols_out;
+     int rows_out;
+-    
++
+     int nl;
+     int max_width;
+     float *corners_x;
+     float *corners_y;
+-    
++
+     long int size;
+     int cached;
+ 
+@@ -131,27 +131,50 @@
+ /* ---------------------------------------------------------------------- */
+ 
+ 
+-static char            *my_strdup();
+-static char            *my_strtok();
+-
+-float                   XRotVersion();
+-void                    XRotSetMagnification();
+-void                    XRotSetBoundingBoxPad();
+-int                     XRotDrawString();
+-int                     XRotDrawImageString();
+-int                     XRotDrawAlignedString();
+-int                     XRotDrawAlignedImageString();
+-XPoint                 *XRotTextExtents();
+-
+-static XImage          *MakeXImage();
+-static int              XRotPaintAlignedString();
+-static int              XRotDrawHorizontalString();
+-static RotatedTextItem *XRotRetrieveFromCache();
+-static RotatedTextItem *XRotCreateTextItem();
+-static void             XRotAddToLinkedList();
+-static void             XRotFreeTextItem();
+-static XImage          *XRotMagnifyImage();
++static char            *my_strdup(char *);
++static char            *my_strtok(char *, char *);
+ 
++float XRotVersion(char *, int);
++void XRotSetMagnification(float);
++void XRotSetBoundingBoxPad(int);
++int XRotDrawString(Display *, XFontStruct *, float, Drawable, GC, int, int,
++                   char *);
++int XRotDrawImageString(Display *, XFontStruct *, float, Drawable, GC, int, int,
++                        char *);
++int XRotDrawAlignedString(Display *, XFontStruct *, float, Drawable, GC, int,
++                          int, char *, int);
++int XRotDrawAlignedImageString(Display *, XFontStruct *, float, Drawable, GC,
++                               int, int, char *, int);
++XPoint *XRotTextExtents(Display *, XFontStruct *, float, int, int, char *, int);
++
++static XImage *MakeXImage(Display *dpy, int w, int h);
++static int XRotPaintAlignedString(Display *dpy, XFontStruct *font, float angle,
++                                  Drawable drawable, GC gc, int x, int y,
++                                  char *text, int align, int bg);
++static int XRotDrawHorizontalString(Display *dpy,
++    XFontStruct *font,
++    Drawable drawable,
++    GC gc,
++    int x, int y,
++    char *text,
++    int align,
++    int bg);
++static RotatedTextItem *XRotRetrieveFromCache(Display *dpy,
++    XFontStruct *font,
++    float angle,
++    char *text,
++    int align);
++static RotatedTextItem *XRotCreateTextItem(Display *dpy,
++    XFontStruct *font,
++    float angle,
++    char *text,
++    int align);
++static void XRotAddToLinkedList(Display *dpy,
++    RotatedTextItem *item);
++static void XRotFreeTextItem(Display *dpy,
++    RotatedTextItem *item);
++static XImage *XRotMagnifyImage(Display *dpy,
++    XImage *ximage);
+ 
+ /* ---------------------------------------------------------------------- */
+ 
+@@ -160,18 +183,17 @@
+ /* Routine to mimic `strdup()' (some machines don't have it)              */
+ /**************************************************************************/
+ 
+-static char *my_strdup(str)
+-    char *str;
++static char *my_strdup(char *str)
+ {
+     char *s;
+-    
++
+     if(str==NULL)
+ 	return NULL;
+-    
++
+     s=(char *)malloc((unsigned)(strlen(str)+1));
+-    if(s!=NULL) 
++    if(s!=NULL)
+ 	strcpy(s, str);
+-    
++
+     return s;
+ }
+ 
+@@ -184,28 +206,27 @@
+ /* it encounters two consecutive delimiters                               */
+ /**************************************************************************/
+ 
+-static char *my_strtok(str1, str2)
+-    char *str1, *str2;
++static char *my_strtok(char *str1, char *str2)
+ {
+     char *ret;
+     int i, j, stop;
+     static int start, len;
+     static char *stext;
+-    
++
+     if(str2==NULL)
+ 	return NULL;
+-    
++
+     /* initialise if str1 not NULL */
+     if(str1!=NULL) {
+ 	start=0;
+ 	stext=str1;
+ 	len=strlen(str1);
+     }
+-    
++
+     /* run out of tokens ? */
+     if(start>=len)
+ 	return NULL;
+-    
++
+     /* loop through characters */
+     for(i=start; i<len; i++) {
+ 	/* loop through delimiters */
+@@ -213,17 +234,17 @@
+ 	for(j=0; j<(int)strlen(str2); j++)
+ 	    if(stext[i]==str2[j])
+ 		stop=1;
+-	
++
+ 	if(stop)
+ 	    break;
+     }
+-    
++
+     stext[i]='\0';
+-    
++
+     ret=stext+start;
+-    
++
+     start=i+1;
+-    
++
+     return ret;
+ }
+ 
+@@ -282,24 +303,22 @@
+ /*  Create an XImage structure and allocate memory for it                 */
+ /**************************************************************************/
+ 
+-static XImage *MakeXImage(dpy, w, h)
+-    Display *dpy;
+-    int w, h;
++static XImage *MakeXImage(Display *dpy, int w, int h)
+ {
+     XImage *I;
+     char *data;
+-    
++
+     /* reserve memory for image */
+     data=(char *)calloc((unsigned)(((w-1)/8+1)*h), 1);
+     if(data==NULL)
+ 	return NULL;
+-    
++
+     /* create the XImage */
+     I=XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)), 1, XYBitmap,
+                    0, data, w, h, 8, 0);
+     if(I==NULL)
+ 	return NULL;
+-    
++
+     I->byte_order=I->bitmap_bit_order=MSBFirst;
+     return I;
+ }
+@@ -313,14 +332,14 @@
+ /*      -no alignment, no background                                      */
+ /**************************************************************************/
+ 
+-int XRotDrawString(dpy, font, angle, drawable, gc, x, y, str)
+-    Display *dpy;
+-    XFontStruct *font;
+-    float angle;
+-    Drawable drawable;
+-    GC gc;
+-    int x, y;
+-    char *str;
++int XRotDrawString(
++    Display *dpy,
++    XFontStruct *font,
++    float angle,
++    Drawable drawable,
++    GC gc,
++    int x, int y,
++    char *str)
+ {
+     return (XRotPaintAlignedString(dpy, font, angle, drawable, gc,
+ 				   x, y, str, NONE, 0));
+@@ -403,17 +422,16 @@
+ /*  Aligns and paints a rotated string                                    */
+ /**************************************************************************/
+ 
+-static int XRotPaintAlignedString(dpy, font, angle, drawable, gc, x, y, text,
+-				  align, bg)
+-    Display *dpy;
+-    XFontStruct *font;
+-    float angle;
+-    Drawable drawable;
+-    GC gc;
+-    int x, y;
+-    char *text;
+-    int align;
+-    int bg;
++static int XRotPaintAlignedString(
++    Display *dpy,
++    XFontStruct *font,
++    float angle,
++    Drawable drawable,
++    GC gc,
++    int x, int y,
++    char *text,
++    int align,
++    int bg)
+ {
+     int i;
+     GC my_gc;
+@@ -423,11 +441,11 @@
+     float sin_angle, cos_angle;
+     RotatedTextItem *item;
+     Pixmap bitmap_to_paint;
+-    
++
+     /* return early for NULL/empty strings */
+     if(text==NULL)
+         return 0;
+-    
++
+     if(strlen(text)==0)
+ 	return 0;
+ 
+@@ -435,22 +453,22 @@
+     angle = floor(angle*100+.5)/100.;
+     while(angle<0)
+         angle+=360;
+-    
++
+     while(angle>=360)
+         angle-=360;
+-    
++
+     angle*=M_PI/180;
+-    
++
+     /* horizontal text made easy */
+-    if(angle==0. && style.magnify==1.) 
++    if(angle==0. && style.magnify==1.)
+ 	return(XRotDrawHorizontalString(dpy, font, drawable, gc, x, y,
+ 					text, align, bg));
+-    
++
+     /* get a rotated bitmap */
+     item=XRotRetrieveFromCache(dpy, font, angle, text, align);
+     if(item==NULL)
+ 	return 0;
+-    
++
+     /* this gc has similar properties to the user's gc */
+     my_gc=XCreateGC(dpy, drawable, 0L, NULL);
+     XCopyGC(dpy, gc, GCForeground|GCBackground|GCFunction|GCPlaneMask,
+@@ -458,7 +476,7 @@
+ 
+     /* alignment : which point (hot_x, hot_y) relative to bitmap centre
+        coincides with user's specified point? */
+-    
++
+     /* y position */
+     if(align==TLEFT || align==TCENTRE || align==TRIGHT)
+         hot_y=(float)item->rows_in/2*style.magnify;
+@@ -468,7 +486,7 @@
+ 	hot_y=-(float)item->rows_in/2*style.magnify;
+     else
+ 	hot_y=-((float)item->rows_in/2-(float)font->descent)*style.magnify;
+-    
++
+     /* x position */
+     if(align==TLEFT || align==MLEFT || align==BLEFT || align==NONE)
+ 	hot_x=-(float)item->max_width/2*style.magnify;
+@@ -476,59 +494,59 @@
+ 	hot_x=0;
+     else
+         hot_x=(float)item->max_width/2*style.magnify;
+-    
++
+     /* pre-calculate sin and cos */
+     sin_angle=(float)sin(angle);
+     cos_angle=(float)cos(angle);
+-    
++
+     /* rotate hot_x and hot_y around bitmap centre */
+     hot_xp= hot_x*cos_angle - hot_y*sin_angle;
+     hot_yp= hot_x*sin_angle + hot_y*cos_angle;
+-    
++
+     /* text background will be drawn using XFillPolygon */
+     if(bg) {
+ 	GC depth_one_gc;
+ 	XPoint *xpoints;
+ 	Pixmap empty_stipple;
+-	
++
+ 	/* reserve space for XPoints */
+ 	xpoints=(XPoint *)malloc((unsigned)(4*item->nl*sizeof(XPoint)));
+ 	if(!xpoints)
+ 	    return 1;
+-	
++
+ 	/* rotate corner positions */
+ 	for(i=0; i<4*item->nl; i++) {
+-	    xpoints[i].x=x + (int)( (item->corners_x[i]-hot_x)*cos_angle + 
++	    xpoints[i].x=x + (int)( (item->corners_x[i]-hot_x)*cos_angle +
+ 				    (item->corners_y[i]+hot_y)*sin_angle);
+-	    xpoints[i].y=y + (int)(-(item->corners_x[i]-hot_x)*sin_angle + 
++	    xpoints[i].y=y + (int)(-(item->corners_x[i]-hot_x)*sin_angle +
+ 				    (item->corners_y[i]+hot_y)*cos_angle);
+ 	}
+-	
++
+ 	/* we want to swap foreground and background colors here;
+ 	   XGetGCValues() is only available in R4+ */
+-	
++
+ 	empty_stipple=XCreatePixmap(dpy, drawable, 1, 1, 1);
+-	
++
+ 	depth_one_gc=XCreateGC(dpy, empty_stipple, 0L, NULL);
+ 	XSetForeground(dpy, depth_one_gc, 0);
+ 	XFillRectangle(dpy, empty_stipple, depth_one_gc, 0, 0, 2, 2);
+ 
+ 	XSetStipple(dpy, my_gc, empty_stipple);
+ 	XSetFillStyle(dpy, my_gc, FillOpaqueStippled);
+-	
++
+ 	XFillPolygon(dpy, drawable, my_gc, xpoints, 4*item->nl, Nonconvex,
+ 		     CoordModeOrigin);
+-	
++
+ 	/* free our resources */
+ 	free((char *)xpoints);
+ 	XFreeGC(dpy, depth_one_gc);
+ 	XFreePixmap(dpy, empty_stipple);
+     }
+-    
++
+     /* where should top left corner of bitmap go ? */
+     xp=x-(int)((float)item->cols_out/2 +hot_xp);
+     yp=y-(int)((float)item->rows_out/2 -hot_yp);
+-    
++
+     /* by default we draw the rotated bitmap, solid */
+     bitmap_to_paint=item->bitmap;
+ 
+@@ -538,9 +556,9 @@
+ 	GC depth_one_gc;
+ 	XGCValues values;
+ 	Pixmap new_bitmap, inverse;
+-	
++
+ 	/* try and get some GC properties */
+-	if(XGetGCValues(dpy, gc, 
++	if(XGetGCValues(dpy, gc,
+ 			GCStipple|GCFillStyle|GCForeground|GCBackground|
+ 			GCTileStipXOrigin|GCTileStipYOrigin,
+ 			&values)) {
+@@ -570,7 +588,7 @@
+ 		XSetBackground(dpy, depth_one_gc, 0);
+ 
+ 		/* set the relative stipple origin */
+-		XSetTSOrigin(dpy, depth_one_gc, 
++		XSetTSOrigin(dpy, depth_one_gc,
+ 			     values.ts_x_origin-xp, values.ts_y_origin-yp);
+ 
+ 		/* fill the whole bitmap with the user's stipple */
+@@ -616,9 +634,9 @@
+     XSetFillStyle(dpy, my_gc, FillStippled);
+     XSetStipple(dpy, my_gc, bitmap_to_paint);
+     XSetTSOrigin(dpy, my_gc, xp, yp);
+-    XFillRectangle(dpy, drawable, my_gc, xp, yp, 
++    XFillRectangle(dpy, drawable, my_gc, xp, yp,
+ 		   item->cols_out, item->rows_out);
+-    
++
+     /* free our resources */
+     XFreeGC(dpy, my_gc);
+ 
+@@ -631,7 +649,7 @@
+ #endif /*CACHE_XIMAGES*/
+ 
+     /* if item isn't cached, destroy it completely */
+-    if(!item->cached) 
++    if(!item->cached)
+ 	XRotFreeTextItem(dpy,item);
+ 
+     /* we got to the end OK! */
+@@ -646,16 +664,15 @@
+ /*  Draw a horizontal string in a quick fashion                           */
+ /**************************************************************************/
+ 
+-static int XRotDrawHorizontalString(dpy, font, drawable, gc, x, y, text, 
+-			     align, bg)
+-    Display *dpy;
+-    XFontStruct *font;
+-    Drawable drawable;
+-    GC gc;
+-    int x, y;
+-    char *text;
+-    int align;
+-    int bg;
++static int XRotDrawHorizontalString(
++    Display *dpy,
++    XFontStruct *font,
++    Drawable drawable,
++    GC gc,
++    int x, int y,
++    char *text,
++    int align,
++    int bg)
+ {
+     GC my_gc;
+     int nl=1, i;
+@@ -674,22 +691,22 @@
+ 	    GCForeground|GCBackground|GCFunction|GCStipple|GCFillStyle|
+ 	    GCTileStipXOrigin|GCTileStipYOrigin|GCPlaneMask, my_gc);
+     XSetFont(dpy, my_gc, font->fid);
+-	
++
+     /* count number of sections in string */
+     if(align!=NONE)
+ 	for(i=0; i<(int)strlen(text)-1; i++)
+ 	    if(text[i]=='\n')
+ 		nl++;
+-    
++
+     /* ignore newline characters if not doing alignment */
+     if(align==NONE)
+ 	str2=str2_a;
+     else
+ 	str2=str2_b;
+-    
++
+     /* overall font height */
+     height=font->ascent+font->descent;
+-    
++
+     /* y position */
+     if(align==TLEFT || align==TCENTRE || align==TRIGHT)
+ 	yp=y+font->ascent;
+@@ -699,13 +716,13 @@
+ 	yp=y-nl*height+font->ascent;
+     else
+ 	yp=y;
+-    
++
+     str1=my_strdup(text);
+     if(str1==NULL)
+ 	return 1;
+-    
++
+     str3=my_strtok(str1, str2);
+-    
++
+     /* loop through each section in the string */
+     do {
+         XTextExtents(font, str3, strlen(str3), &dir, &asc, &desc,
+@@ -718,20 +735,20 @@
+ 	    xp=x-overall.rbearing/2;
+ 	else
+ 	    xp=x-overall.rbearing;
+-	
++
+ 	/* draw string onto bitmap */
+ 	if(!bg)
+ 	    XDrawString(dpy, drawable, my_gc, xp, yp, str3, strlen(str3));
+ 	else
+ 	    XDrawImageString(dpy, drawable, my_gc, xp, yp, str3, strlen(str3));
+-	
++
+ 	/* move to next line */
+ 	yp+=height;
+-	
++
+ 	str3=my_strtok((char *)NULL, str2);
+     }
+     while(str3!=NULL);
+-    
++
+     free(str1);
+     XFreeGC(dpy, my_gc);
+ 
+@@ -747,19 +764,19 @@
+ /*       request, otherwise arrange for its creation                      */
+ /**************************************************************************/
+ 
+-static RotatedTextItem *XRotRetrieveFromCache(dpy, font, angle, text, align)
+-    Display *dpy;
+-    XFontStruct *font;
+-    float angle;
+-    char *text;
+-    int align;
++static RotatedTextItem *XRotRetrieveFromCache(
++    Display *dpy,
++    XFontStruct *font,
++    float angle,
++    char *text,
++    int align)
+ {
+     Font fid;
+     char *font_name=NULL;
+     unsigned long name_value;
+     RotatedTextItem *item=NULL;
+     RotatedTextItem *i1=first_text_item;
+-    
++
+     /* get font name, if it exists */
+     if(XGetFontProperty(font, XA_FONT, &name_value)) {
+ 	DEBUG_PRINT1("got font name OK\n");
+@@ -781,7 +798,7 @@
+ 	fid=0;
+     }
+ #endif /*CACHE_FID*/
+-    
++
+     /* look for a match in cache */
+ 
+     /* matching formula:
+@@ -825,7 +842,7 @@
+ 	else
+ 	    i1=i1->next;
+     }
+-    
++
+     if(item)
+ 	DEBUG_PRINT1("**\nFound target in cache.\n");
+     if(!item)
+@@ -871,7 +888,7 @@
+ 	/* create bitmap to hold rotated text */
+ 	item->bitmap=XCreatePixmap(dpy, RootWindow(dpy, DefaultScreen(dpy)),
+ 				   item->cols_out, item->rows_out, 1);
+-	
++
+ 	/* depth one gc */
+ 	depth_one_gc=XCreateGC(dpy, item->bitmap, NULL, 0);
+ 	XSetBackground(dpy, depth_one_gc, 0);
+@@ -884,7 +901,7 @@
+ 	XFreeGC(dpy, depth_one_gc);
+     }
+ #endif /*CACHE_XIMAGES*/
+-    
++
+     return item;
+ }
+ 
+@@ -896,12 +913,12 @@
+ /*  Create a rotated text item                                            */
+ /**************************************************************************/
+ 
+-static RotatedTextItem *XRotCreateTextItem(dpy, font, angle, text, align)
+-    Display *dpy;
+-    XFontStruct *font;
+-    float angle;
+-    char *text;
+-    int align;
++static RotatedTextItem *XRotCreateTextItem(
++    Display *dpy,
++    XFontStruct *font,
++    float angle,
++    char *text,
++    int align)
+ {
+     RotatedTextItem *item=NULL;
+     Pixmap canvas;
+@@ -922,37 +939,37 @@
+     int dir, asc, desc;
+     XCharStruct overall;
+     int old_cols_in=0, old_rows_in=0;
+-    
++
+     /* allocate memory */
+     item=(RotatedTextItem *)malloc((unsigned)sizeof(RotatedTextItem));
+     if(!item)
+ 	return NULL;
+-	
++
+     /* count number of sections in string */
+     item->nl=1;
+     if(align!=NONE)
+ 	for(i=0; i<(int)strlen(text)-1; i++)
+ 	    if(text[i]=='\n')
+ 		item->nl++;
+-    
++
+     /* ignore newline characters if not doing alignment */
+     if(align==NONE)
+ 	str2=str2_a;
+     else
+ 	str2=str2_b;
+-    
++
+     /* find width of longest section */
+     str1=my_strdup(text);
+     if(str1==NULL)
+ 	return NULL;
+-    
++
+     str3=my_strtok(str1, str2);
+ 
+     XTextExtents(font, str3, strlen(str3), &dir, &asc, &desc,
+ 		 &overall);
+-    
++
+     item->max_width=overall.rbearing;
+-    
++
+     /* loop through each section */
+     do {
+ 	str3=my_strtok((char *)NULL, str2);
+@@ -966,57 +983,57 @@
+ 	}
+     }
+     while(str3!=NULL);
+-    
++
+     free(str1);
+-    
++
+     /* overall font height */
+     height=font->ascent+font->descent;
+-    
++
+     /* dimensions horizontal text will have */
+     item->cols_in=item->max_width;
+     item->rows_in=item->nl*height;
+-    
++
+     /* bitmap for drawing on */
+     canvas=XCreatePixmap(dpy, RootWindow(dpy, DefaultScreen(dpy)),
+ 			 item->cols_in, item->rows_in, 1);
+-    
++
+     /* create a GC for the bitmap */
+     font_gc=XCreateGC(dpy, canvas, 0L, NULL);
+     XSetBackground(dpy, font_gc, 0);
+     XSetFont(dpy, font_gc, font->fid);
+-    
++
+     /* make sure the bitmap is blank */
+     XSetForeground(dpy, font_gc, 0);
+-    XFillRectangle(dpy, canvas, font_gc, 0, 0, 
++    XFillRectangle(dpy, canvas, font_gc, 0, 0,
+ 		   item->cols_in+1, item->rows_in+1);
+     XSetForeground(dpy, font_gc, 1);
+-    
++
+     /* pre-calculate sin and cos */
+     sin_angle=(float)sin(angle);
+     cos_angle=(float)cos(angle);
+-    
++
+     /* text background will be drawn using XFillPolygon */
+     item->corners_x=
+ 	(float *)malloc((unsigned)(4*item->nl*sizeof(float)));
+     if(!item->corners_x)
+ 	return NULL;
+-    
++
+     item->corners_y=
+ 	(float *)malloc((unsigned)(4*item->nl*sizeof(float)));
+     if(!item->corners_y)
+ 	return NULL;
+-    
++
+     /* draw text horizontally */
+-    
++
+     /* start at top of bitmap */
+     yp=font->ascent;
+-    
++
+     str1=my_strdup(text);
+     if(str1==NULL)
+ 	return NULL;
+-    
++
+     str3=my_strtok(str1, str2);
+-    
++
+     /* loop through each section in the string */
+     do {
+ 	XTextExtents(font, str3, strlen(str3), &dir, &asc, &desc,
+@@ -1032,7 +1049,7 @@
+ 
+ 	/* draw string onto bitmap */
+ 	XDrawString(dpy, canvas, font_gc, xp, yp, str3, strlen(str3));
+-	
++
+ 	/* keep a note of corner positions of this string */
+ 	item->corners_x[ic]=((float)xp-(float)item->cols_in/2)*style.magnify;
+ 	item->corners_y[ic]=((float)(yp-font->ascent)-(float)item->rows_in/2)
+@@ -1045,28 +1062,28 @@
+ 	item->corners_x[item->nl*4-2-ic]=
+ 	    item->corners_x[item->nl*4-1-ic];
+ 	item->corners_y[item->nl*4-2-ic]=item->corners_y[ic+1];
+-	
++
+ 	ic+=2;
+-	
++
+ 	/* move to next line */
+ 	yp+=height;
+-	
++
+ 	str3=my_strtok((char *)NULL, str2);
+     }
+     while(str3!=NULL);
+-    
++
+     free(str1);
+-    
++
+     /* create image to hold horizontal text */
+     I_in=MakeXImage(dpy, item->cols_in, item->rows_in);
+     if(I_in==NULL)
+ 	return NULL;
+-    
++
+     /* extract horizontal text */
+     XGetSubImage(dpy, canvas, 0, 0, item->cols_in, item->rows_in,
+ 		 1, XYPixmap, I_in, 0, 0);
+     I_in->format=XYBitmap;
+-    
++
+     /* magnify horizontal text */
+     if(style.magnify!=1.) {
+ 	I_in=XRotMagnifyImage(dpy, I_in);
+@@ -1086,26 +1103,26 @@
+ 
+     if(item->cols_out%2==0)
+ 	item->cols_out++;
+-    
++
+     if(item->rows_out%2==0)
+ 	item->rows_out++;
+-    
++
+     /* create image to hold rotated text */
+     item->ximage=MakeXImage(dpy, item->cols_out, item->rows_out);
+     if(item->ximage==NULL)
+ 	return NULL;
+-    
++
+     byte_w_in=(item->cols_in-1)/8+1;
+     byte_w_out=(item->cols_out-1)/8+1;
+-    
++
+     /* we try to make this bit as fast as possible - which is why it looks
+        a bit over-the-top */
+-    
++
+     /* vertical distance from centre */
+     dj=(float)(0.5-(float)item->rows_out/2);
+ 
+     /* where abouts does text actually lie in rotated image? */
+-    if(angle==0 || angle==M_PI/2 || 
++    if(angle==0 || angle==M_PI/2 ||
+        angle==M_PI || angle==3*M_PI/2) {
+ 	xl=0;
+ 	xr=(float)item->cols_out;
+@@ -1123,30 +1140,30 @@
+ 	    (dj+(float)item->rows_in/(2*cos_angle))/tan(angle)-2);
+ 	xr=(float)(item->cols_out/2+
+ 	    (dj-(float)item->rows_in/(2*cos_angle))/tan(angle)+2);
+-	
++
+ 	xinc=(float)(1./tan(angle));
+     }
+ 
+     /* loop through all relevent bits in rotated image */
+     for(j=0; j<item->rows_out; j++) {
+-	
++
+ 	/* no point re-calculating these every pass */
+ 	di=(float)(((xl<0)?0:(int)xl)+0.5-(float)item->cols_out/2);
+ 	byte_out=(item->rows_out-j-1)*byte_w_out;
+-	
++
+ 	/* loop through meaningful columns */
+-	for(i=((xl<0)?0:(int)xl); 
++	for(i=((xl<0)?0:(int)xl);
+ 	    i<((xr>=item->cols_out)?item->cols_out:(int)xr); i++) {
+-	    
++
+ 	    /* rotate coordinates */
+ 	    it=(int)(item->cols_in/2. + ( di*cos_angle + dj*sin_angle));
+ 	    jt=(int)(item->rows_in/2. - (-di*sin_angle + dj*cos_angle));
+-	    
++
+             /* set pixel if required */
+             if(it>=0 && it<item->cols_in && jt>=0 && jt<item->rows_in)
+                 if((I_in->data[jt*byte_w_in+it/8] & 128>>(it%8))>0)
+                     item->ximage->data[byte_out+i/8]|=128>>i%8;
+-	    
++
+ 	    di+=1;
+ 	}
+ 	dj+=1;
+@@ -1154,7 +1171,7 @@
+ 	xr+=xinc;
+     }
+     XDestroyImage(I_in);
+-    
++
+     if(style.magnify!=1.) {
+ 	item->cols_in=old_cols_in;
+ 	item->rows_in=old_rows_in;
+@@ -1166,7 +1183,7 @@
+     /* create a bitmap to hold rotated text */
+     item->bitmap=XCreatePixmap(dpy, DefaultRootWindow(dpy),
+ 			       item->cols_out, item->rows_out, 1);
+-    
++
+     /* make the text bitmap from XImage */
+     XPutImage(dpy, item->bitmap, font_gc, item->ximage, 0, 0, 0, 0,
+ 	      item->cols_out, item->rows_out);
+@@ -1190,11 +1207,11 @@
+ /*      from the front as required to keep cache size below limit         */
+ /**************************************************************************/
+ 
+-static void XRotAddToLinkedList(dpy, item)
+-    Display *dpy;
+-    RotatedTextItem *item;
++static void XRotAddToLinkedList(
++    Display *dpy,
++    RotatedTextItem *item)
+ {
+-    
++
+     static long int current_size=0;
+     static RotatedTextItem *last=NULL;
+     RotatedTextItem *i1=first_text_item, *i2=NULL;
+@@ -1211,7 +1228,7 @@
+     /* this is pretty much the size of a RotatedTextItem */
+ 
+     item->size=((item->cols_out-1)/8+1)*item->rows_out +
+-	sizeof(XImage) + strlen(item->text) + 
++	sizeof(XImage) + strlen(item->text) +
+ 	    item->nl*8*sizeof(float) + sizeof(RotatedTextItem);
+ 
+     if(item->font_name!=NULL)
+@@ -1300,9 +1317,9 @@
+ /*  Free the resources used by a text item                                */
+ /**************************************************************************/
+ 
+-static void XRotFreeTextItem(dpy, item)
+-    Display *dpy;
+-    RotatedTextItem *item;
++static void XRotFreeTextItem(
++    Display *dpy,
++    RotatedTextItem *item)
+ {
+     free(item->text);
+ 
+@@ -1329,9 +1346,9 @@
+ /* Magnify an XImage using bilinear interpolation                         */
+ /**************************************************************************/
+ 
+-static XImage *XRotMagnifyImage(dpy, ximage)
+-    Display *dpy;
+-    XImage *ximage;
++static XImage *XRotMagnifyImage(
++    Display *dpy,
++    XImage *ximage)
+ {
+     int i, j;
+     float x, y;
+@@ -1425,7 +1442,7 @@
+ 	}
+ 	y+=mag_inv;
+     }
+-    
++
+     /* destroy original */
+     XDestroyImage(ximage);
+ 
+@@ -1461,41 +1478,41 @@
+     XPoint *xp_in, *xp_out;
+     int dir, asc, desc;
+     XCharStruct overall;
+-    
++
+     /* manipulate angle to 0<=angle<360 degrees */
+     while(angle<0)
+         angle+=360;
+-    
++
+     while(angle>360)
+         angle-=360;
+-    
++
+     angle*=M_PI/180;
+-    
++
+     /* count number of sections in string */
+     nl=1;
+     if(align!=NONE)
+ 	for(i=0; i<(int)strlen(text)-1; i++)
+ 	    if(text[i]=='\n')
+ 		nl++;
+-    
++
+     /* ignore newline characters if not doing alignment */
+     if(align==NONE)
+ 	str2=str2_a;
+     else
+ 	str2=str2_b;
+-    
++
+     /* find width of longest section */
+     str1=my_strdup(text);
+     if(str1==NULL)
+ 	return NULL;
+-    
++
+     str3=my_strtok(str1, str2);
+ 
+     XTextExtents(font, str3, strlen(str3), &dir, &asc, &desc,
+ 		 &overall);
+ 
+     max_width=overall.rbearing;
+-    
++
+     /* loop through each section */
+     do {
+ 	str3=my_strtok((char *)NULL, str2);
+@@ -1509,20 +1526,20 @@
+ 	}
+     }
+     while(str3!=NULL);
+-    
++
+     free(str1);
+-    
++
+     /* overall font height */
+     height=font->ascent+font->descent;
+-    
++
+     /* dimensions horizontal text will have */
+     cols_in=max_width;
+     rows_in=nl*height;
+-    
++
+     /* pre-calculate sin and cos */
+     sin_angle=(float)sin(angle);
+     cos_angle=(float)cos(angle);
+-    
++
+     /* y position */
+     if(align==TLEFT || align==TCENTRE || align==TRIGHT)
+         hot_y=(float)rows_in/2*style.magnify;
+@@ -1532,7 +1549,7 @@
+ 	hot_y=-(float)rows_in/2*style.magnify;
+     else
+ 	hot_y=-((float)rows_in/2-(float)font->descent)*style.magnify;
+-    
++
+     /* x position */
+     if(align==TLEFT || align==MLEFT || align==BLEFT || align==NONE)
+ 	hot_x=-(float)max_width/2*style.magnify;
+@@ -1540,7 +1557,7 @@
+ 	hot_x=0;
+     else
+         hot_x=(float)max_width/2*style.magnify;
+-    
++
+     /* reserve space for XPoints */
+     xp_in=(XPoint *)malloc((unsigned)(5*sizeof(XPoint)));
+     if(!xp_in)
+@@ -1561,7 +1578,7 @@
+     xp_in[3].y=-(short)(rows_in*style.magnify/2-style.bbx_pad);
+     xp_in[4].x=xp_in[0].x;
+     xp_in[4].y=xp_in[0].y;
+-	
++
+     /* rotate and translate bounding box */
+     for(i=0; i<5; i++) {
+ 	xp_out[i].x=x + (int)( ((float)xp_in[i].x-hot_x)*cos_angle +
+--- XEphem-4.3.0/GUI/xephem/ps.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/ps.c	2026-04-28 14:23:33.478848573 +0100
+@@ -72,7 +72,7 @@
+ static char printcategory[] = "Print";	/* Save category */
+ 
+ /* handy reference to xpsc.fp */
+-#define	FP	xpsc.fp 
++#define	FP	xpsc.fp
+ 
+ static Widget print_w;			/* overall print setup shell */
+ static Widget color_w;			/* TB set when want to print in color */
+@@ -866,7 +866,7 @@
+ 	    doSegment (xs[i].x1, xs[i].y1, xs[i].x2, xs[i].y2);
+ 	}
+ 	fprintf (FP, "\nstroke\n");
+-			
++
+ }
+ 
+ /* draw using the font from gc which matches a previously Registered PS font.
+@@ -948,7 +948,7 @@
+ 
+ 	/* [x,y] is the location of the `align' position of the string and
+ 	 * is the location about which we are to appear to rotate. Since PS
+-	 * always rotates about the lower left corner of string we need to 
++	 * always rotates about the lower left corner of string we need to
+ 	 * move the corner to where it will be after the rotation, then let
+ 	 * PS rotate from there. Remember PS +Y is up.
+ 	 */
+@@ -1275,7 +1275,7 @@
+ 	double f, p, q, t;
+ 	int i;
+ 
+-	if (v == 0) 
++	if (v == 0)
+ 	    r = g = b = 0.0;
+ 	else if (s == 0)
+ 	    r = g = b = v;
+@@ -1547,7 +1547,7 @@
+ 	    {"times",      "Times",            0,       "Bold", "Italic"},
+ 	};
+ 	Display *dsp = XtDisplay(toplevel_w);
+-	int (*oldhandler)();
++	int (*oldhandler)(Display *, XErrorEvent *);
+ 	int bold, ital;
+ 	char *fam;
+ 	char psname[64];
+--- XEphem-4.3.0/GUI/xephem/earthmenu.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/earthmenu.c	2026-04-28 14:20:17.659303977 +0100
+@@ -531,7 +531,7 @@
+ 	typedef struct {
+ 	    char *name;
+ 	    char *label;
+-	    void (*cb)();
++	    void (*cb)(struct _WidgetRec *, void *, void *);
+ 	    int client;
+ 	    Widget *wp;
+ 	    char *tip;
+@@ -1541,7 +1541,7 @@
+ 	/* insure shown as a friendly gesture */
+ 	TBON(eop->show_w);
+ 	eop->shownbefore = 1;
+-	    
++
+ 	/* turn off others to simulate a radio box */
+ 	for (eop = eobjs; eop < &eobjs[nfavs]; eop++)
+ 	    if (w != eop->track_w && TBISON(eop->track_w))
+@@ -2087,7 +2087,7 @@
+ 
+ 	if (b3p)
+ 	    e_popup (w, ev, d, xb, yb, wx, wy);
+-	
++
+ 	if ((b2p || m2) && wants[LIVEDRAG] && projection != WXMAP) {
+ 	    static int lastx, lasty;
+ 	    double lt, lg;
+@@ -2117,7 +2117,7 @@
+ 	    /* redraw */
+ 	    e_all (0);
+ 	}
+-	
++
+ 	if (b2r)
+ 	    XUndefineCursor(dsp, win);
+ 
+@@ -2240,7 +2240,7 @@
+ 	if (TBISOFF(w)) {
+ 	    /* erase, if anything to erase */
+ 	    if (eop->ntrail > 1)
+-		e_all(0);	
++		e_all(0);
+ 	} else {
+ 	    /* turning on trail.. insure shown too as a friendly gesture */
+ 	    if (TBISOFF(eop->show_w)) {
+@@ -2673,7 +2673,7 @@
+ 	if (!win)
+ 	    return;
+ 
+-	/* create the main gc. 
++	/* create the main gc.
+ 	 * it's GCForeground is set each time it's used.
+ 	 */
+ 	gcm = GCFunction;
+@@ -3138,8 +3138,8 @@
+ 	XSetForeground (XtD, e_strgc, bg);
+ 	XFillRectangle (XtD, win, e_strgc, 0, topy, last_ll_w, 2*(asc+des));
+ 	XSetForeground (XtD, e_strgc, fg);
+-	XDrawString (XtD, win, e_strgc, 0, topy+asc, lat_buf, strlen(lat_buf)); 
+-	XDrawString (XtD, win, e_strgc, 0, topy+2*asc+des, lng_buf, strlen(lng_buf)); 
++	XDrawString (XtD, win, e_strgc, 0, topy+asc, lat_buf, strlen(lat_buf));
++	XDrawString (XtD, win, e_strgc, 0, topy+2*asc+des, lng_buf, strlen(lng_buf));
+ 
+ 	/* dist/bear in upper right */
+ 	len = strlen (dist_buf);
+@@ -3153,8 +3153,8 @@
+ 	XSetForeground (XtD, e_strgc, bg);
+ 	XFillRectangle (XtD, win, e_strgc, wide-last_db_w, topy, last_db_w, 2*(asc+des));
+ 	XSetForeground (XtD, e_strgc, fg);
+-	XDrawString (XtD, win, e_strgc, wide-last_db_w, topy+asc, dist_buf, strlen(dist_buf)); 
+-	XDrawString (XtD, win, e_strgc, wide-last_db_w, topy+2*asc+des, bear_buf, strlen(bear_buf)); 
++	XDrawString (XtD, win, e_strgc, wide-last_db_w, topy+asc, dist_buf, strlen(dist_buf));
++	XDrawString (XtD, win, e_strgc, wide-last_db_w, topy+2*asc+des, bear_buf, strlen(bear_buf));
+ 
+ 	/* lmt in lower left */
+ 	len = strlen (lmt_buf);
+@@ -3361,7 +3361,7 @@
+  *   x and y coords of point on screen
+  * always return the coordinates, but return 1 if the point is visible or 0 if
+  *   it's over the limb.
+- */   
++ */
+ static int
+ e_coord (d, wb, hb, pl, pL, xp, yp)
+ unsigned d;		/* diameter of drawing surface circle */
+@@ -3680,10 +3680,10 @@
+ 		if (*lgp > PI)
+ 		    *lgp -= 2*PI;
+ 	    }
+-	    
++
+ 	    return (1);
+ 	    }
+-	
++
+ 	case WXMAP: {
+ 	    return (mollweide_xyll (x, y, ltp, lgp));
+ 	    }
+@@ -4087,7 +4087,7 @@
+ 		    px = lx;
+ 		    py = ly;
+ 		}
+-	    } 
++	    }
+ 	    xp[npts].x = px;
+ 	    xp[npts].y = py;
+ 	    npts++;
+@@ -4252,7 +4252,7 @@
+ 		    break;
+ 
+ 		case WXMAP:
+-		    if (abs(x-lx) < w/10) 
++		    if (abs(x-lx) < w/10)
+ 			tr_draw (XtD, e_pm, e_olgc, e, TICKLN, &ts, ltsp,
+ 						&eop->trstate, lx, ly, x, y);
+ 		    break;
+@@ -4449,7 +4449,7 @@
+ 		xpts[nxpts].x = sx1;
+ 		xpts[nxpts].y = sy1;
+ 		nxpts++;
+-		XPSDrawLines (XtD, e_pm, e_gc, xpts, nxpts, CoordModeOrigin); 
++		XPSDrawLines (XtD, e_pm, e_gc, xpts, nxpts, CoordModeOrigin);
+ 		xpts[0].x = xs;
+ 		xpts[0].y = ys;
+ 		nxpts = 1;
+@@ -4546,7 +4546,7 @@
+ 		} else
+ 		    xwrap = 0;
+ 		break;
+-	    
++
+ 	    case SPHI:	/* FALLTHRU */
+ 	    case SPHG:
+ 		/* never wraps due to not being visible over edge */
+--- XEphem-4.3.0/GUI/xephem/skylist.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/skylist.c	2026-04-28 14:49:14.619367154 +0100
+@@ -108,7 +108,7 @@
+ typedef struct {
+     char *lname;		/* label widget instance name */
+     char *title;		/* sort description */
+-    int (*cmp_f)();		/* qsort-style compare function */
++    int (*cmp_f)(const void *, const void *);		/* qsort-style compare function */
+     Widget lw;			/* sort-order label widget */
+     Widget pw;			/* sort-order pushb widget */
+ } SortInfo;
+@@ -611,7 +611,7 @@
+ sl_clearlast()
+ {
+ 	SortInfo *sip;
+-	
++
+ 	/* clear last */
+ 	sip = sortorder[--nsortorder];
+ 	set_xmstring (sip->lw, XmNlabelString, "  ");
+@@ -1510,9 +1510,9 @@
+ 	    airmass (op->s_alt, &lp->Z);
+ 	    lp->desc = obj_description (op);
+ 	    radec2ha (np, op->s_ra, op->s_dec, &lp->ha);
+-	    strncpy (lp->ura, um_atlas(op->s_ra, op->s_dec), sizeof(lp->ura)); 
+-	    strncpy (lp->u2k, u2k_atlas(op->s_ra, op->s_dec), sizeof(lp->u2k)); 
+-	    strncpy (lp->msa, msa_atlas(op->s_ra, op->s_dec), sizeof(lp->msa)); 
++	    strncpy (lp->ura, um_atlas(op->s_ra, op->s_dec), sizeof(lp->ura));
++	    strncpy (lp->u2k, u2k_atlas(op->s_ra, op->s_dec), sizeof(lp->u2k));
++	    strncpy (lp->msa, msa_atlas(op->s_ra, op->s_dec), sizeof(lp->msa));
+ 	}
+ 
+ 	/* sort as desired */
+--- XEphem-4.3.0/GUI/xephem/favmenu.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/favmenu.c	2026-04-28 14:21:29.006606629 +0100
+@@ -46,7 +46,7 @@
+ static void fav_create (void);
+ static void showFavorites (void);
+ static void setup1Row (Widget rc_w, int i);
+-static void loadFavs ();
++static void loadFavs (char *filename);
+ static void saveFavs (char *filename);
+ static void favRmAll(void);
+ static void bldExport(void);
+--- XEphem-4.3.0/GUI/xephem/ucac.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/ucac.c	2026-04-28 14:55:45.603725181 +0100
+@@ -128,7 +128,7 @@
+ char msg[] 	/* status or error message if msg[0] != '\0' on return */
+ )
+ {
+-	int (*doucac)() = 0;		/* function to process */
++	int (*doucac)(ObjFArray *, int,  int) = 0;		/* function to process */
+ 	int d0z, drovz;			/* dec center and radius, in 0-zones */
+ 	ObjFArray oa;			/* malloc accumulator */
+ 	int dz;				/* scanning dec zone number */
+@@ -286,7 +286,7 @@
+ 
+ 	/* if oap-> +nnew ==0, the realloc actually works like a free(3) and
+ 	* the result will be NULL. This should not return -1 because the condition
+-	* of not finding more stars is not an error, in particular in the bins around 
++	* of not finding more stars is not an error, in particular in the bins around
+ 	* the celestial poles with sparse populations.
+ 	*/
+ 	if ( oap->n + nnew == 0 ) {
+@@ -422,7 +422,7 @@
+ 
+ /* add the stars in the given 0-based ra/dec zone to oap.
+  * return 0 if ok, else -1
+- * N.B. rz may wrap 
++ * N.B. rz may wrap
+  */
+ static int
+ add4Bin (ObjFArray *oap, int rz, int dz)
+@@ -454,7 +454,7 @@
+ 
+ 	/* if oap-> +nnew ==0, the realloc actually works like a free(3) and
+ 	* the result will be NULL. This should not return -1 because the condition
+-	* of not finding more stars is not an error, in particular in the bins around 
++	* of not finding more stars is not an error, in particular in the bins around
+ 	* the celestial poles with sparse populations.
+ 	*/
+ 	if ( oap->n + nnew == 0 ) {
+@@ -647,7 +647,7 @@
+ 
+ /* add the stars in the given 0-based ra/dec zone to oap.
+  * return 0 if ok, else -1
+- * N.B. rz may wrap 
++ * N.B. rz may wrap
+  */
+ static int
+ add3Bin (ObjFArray *oap, int rz, int dz)
+@@ -679,7 +679,7 @@
+ 
+ 	/* if oap-> +nnew ==0, the realloc actually works like a free(3) and
+ 	* the result will be NULL. This should not return -1 because the condition
+-	* of not finding more stars is not an error, in particular in the bins around 
++	* of not finding more stars is not an error, in particular in the bins around
+ 	* the celestial poles with sparse populations.
+ 	*/
+ 	if ( oap->n + nnew == 0 ) {
+@@ -795,7 +795,7 @@
+ 
+ /* add the stars in the given 0-based ra/dec zone to oap.
+  * return 0 if ok, else -1
+- * N.B. rz may wrap 
++ * N.B. rz may wrap
+  */
+ static int
+ add2Bin (ObjFArray *oap, int rz, int dz)
+--- XEphem-4.3.0/GUI/xephem/msgmenu.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/msgmenu.c	2026-04-28 14:22:26.614209397 +0100
+@@ -128,7 +128,7 @@
+ {
+ 	static struct {
+ 	    char *name;
+-	    void (*cb)();
++	    void (*cb)(struct _WidgetRec *, void *, void *);
+ 	    char *tip;
+ 	} cb[] = {
+ 	    {"Erase", msg_erase_cb, "Erase messages"},
+--- XEphem-4.3.0/GUI/xephem/srchmenu.c.orig	2026-03-06 18:04:45.000000000 +0000
++++ XEphem-4.3.0/GUI/xephem/srchmenu.c	2026-04-28 14:54:40.532457006 +0100
+@@ -64,7 +64,7 @@
+ static char solvecategory[] = "Tools -- Solve";	/* Save category */
+ static char xml_srchele[] = "XEphemSolver";
+ 
+-static int (*srch_f)();		/* 0 or pointer to one of the search functions*/
++static int (*srch_f)(double Mjd, double v, double *tmincp);		/* 0 or pointer to one of the search functions*/
+ static int srch_tmscalled;	/* number of iterations so far */
+ static double tmlimit;		/* search accuracy, hrs */
+ static char config_suffix[] = ".svc";	/* file ext for solver config files */
+@@ -99,7 +99,7 @@
+ {
+ 	if (!srchshell_w)
+ 	    srch_create_shell();
+-	
++
+ 	XtPopup (srchshell_w, XtGrabNone);
+ 	set_something (srchshell_w, XmNiconic, (XtArgVal)False);
+ 	srch_set_buttons(srch_selecting);
+@@ -243,7 +243,7 @@
+ {
+ 	XmString str;
+ 	Widget w, trc_w, brc_w, f_w, rb_w;
+-	Widget oms_w, compile_w; 
++	Widget oms_w, compile_w;
+ 	Widget help_w;
+ 	Widget srchform_w;
+ 	Arg args[20];
+@@ -691,7 +691,7 @@
+ }
+ 
+ /* save the current search function to a file.
+- * N.B. don't use call, used by both TF and PB 
++ * N.B. don't use call, used by both TF and PB
+  */
+ /* ARGSUSED */
+ static void
+@@ -853,7 +853,7 @@
+ XtPointer client;
+ XtPointer call;
+ {
+-	int (*sfp)()= (int (*)())client;
++	int (*sfp)(double Mjd, double v, double *tmincp)= (int (*)(double Mjd, double v, double *tmincp))client;
+ 
+ 	if (XmToggleButtonGetState(w)) {
+ 	    /* better turn off searching if changing the search function! */
+@@ -882,7 +882,7 @@
+ 	    if (!prog_isgood()) {
+ 		XmToggleButtonSetState(on_w, False, True/* invoke cb */);
+ 		xe_msg (1, "%s", msg);
+-		 
++
+ 	    } else if (srch_f == 0) {
+ 		XmToggleButtonSetState(on_w, False, True/* invoke cb */);
+ 		xe_msg (1, "%s", msg);
