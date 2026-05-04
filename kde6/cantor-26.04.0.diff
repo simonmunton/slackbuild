@@ -8,3 +8,44 @@
  )
  
  install(TARGETS cantor_juliaserver ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+--- cantor-26.04.0/src/backends/R/rserver/rserver.cpp.orig	2026-04-10 04:53:48.000000000 +0100
++++ cantor-26.04.0/src/backends/R/rserver/rserver.cpp	2026-05-04 11:48:20.308309319 +0100
+@@ -144,7 +144,7 @@
+ 
+     /* delayedAssign call*/
+     PROTECT(da = Rf_findFun(Rf_install("delayedAssign"), R_GlobalEnv));
+-    PROTECT(AutoloadEnv = Rf_findVar(Rf_install(".AutoloadEnv"), R_GlobalEnv));
++    PROTECT(AutoloadEnv = R_getVar(Rf_install(".AutoloadEnv"), R_GlobalEnv, TRUE));
+     if (AutoloadEnv == R_NilValue){
+         qDebug()<<"RServer: "<<"Cannot find .AutoloadEnv";
+         //exit(1);
+@@ -202,7 +202,9 @@
+     // if (completion is needed) // TODO: discuss how to pass parameter
+     {
+         /* First check if namespace is loaded */
+-        if  (findVarInFrame(R_NamespaceRegistry,install("utils"))==R_UnboundValue)
++//        if  (findVarInFrame(R_NamespaceRegistry,install("utils"))==R_UnboundValue)
++        SEXP ut = install("utils");
++        if  (R_getVarEx(ut, R_getRegisteredNamespace("utils"), FALSE, R_UnboundValue)==R_UnboundValue)
+         { /* Then try to load it */
+             SEXP cmdSexp, cmdexpr;
+             ParseStatus status;
+@@ -218,7 +220,8 @@
+             }
+             UNPROTECT(2);
+             /* Completion is available if the namespace is correctly loaded */
+-            m_isCompletionAvailable= (findVarInFrame(R_NamespaceRegistry,install("utils"))!=R_UnboundValue);
++//            m_isCompletionAvailable= (findVarInFrame(R_NamespaceRegistry,install("utils"))!=R_UnboundValue);
++            m_isCompletionAvailable= (R_getVarEx(ut, R_getRegisteredNamespace("utils"), FALSE, R_UnboundValue)!=R_UnboundValue);
+         }
+     }
+ }
+@@ -444,7 +447,7 @@
+     {
+         SEXP object = STRING_ELT(usr,i);
+         const QString& name = QString::fromUtf8(translateCharUTF8(object));
+-        SEXP value = findVar(installChar(object), R_GlobalEnv);
++        SEXP value = R_getVar(installChar(object), R_GlobalEnv, TRUE);
+ 
+         if (Rf_isFunction(value))
+             funcs << name;

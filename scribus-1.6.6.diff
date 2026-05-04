@@ -1,0 +1,68 @@
+--- scribus-1.6.6/scribus/plugins/import/pdf/slaoutput.cpp.orig	2026-04-13 21:35:12.000000000 +0100
++++ scribus-1.6.6/scribus/plugins/import/pdf/slaoutput.cpp	2026-05-04 11:09:19.620390173 +0100
+@@ -3081,14 +3081,18 @@
+ 	const double *textMat = nullptr;
+ #endif
+ 	double m11, m12, m21, m22, fontSize;
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 1, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 5, 0)
++	std::array<double, 4> mat = { 1.0, 0.0, 0.0, 1.0 };
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 1, 0)
+ 	std::array<SplashCoord, 4> mat = { 1.0, 0.0, 0.0, 1.0 };
+ #else
+ 	SplashCoord mat[4] = { 1.0, 0.0, 0.0, 1.0 };
+ #endif
+ 	int n = 0;
+ 	int faceIndex = 0;
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 1, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 5, 0)
++	std::array<double, 6> matrix = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 1, 0)
+ 	std::array<SplashCoord, 6> matrix = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+ #else
+ 	SplashCoord matrix[6] = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+@@ -3177,7 +3181,13 @@
+ 		// load the font file
+ 		switch (fontType) {
+ 		case fontType1:
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 5, 0)
++			if (!(fontFile = m_fontEngine->loadType1Font(std::move(id), std::move(fontsrc), ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
++			{
++				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
++				goto err2;
++			}
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadType1Font(std::move(id), std::move(fontsrc), (const char**) ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+@@ -3198,7 +3208,13 @@
+ #endif
+ 			break;
+ 		case fontType1C:
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 5, 0)
++			if (!(fontFile = m_fontEngine->loadType1CFont(std::move(id), std::move(fontsrc), ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
++			{
++				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
++				goto err2;
++			}
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadType1CFont(std::move(id), std::move(fontsrc), (const char**) ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
+@@ -3219,7 +3235,13 @@
+ #endif
+ 			break;
+ 		case fontType1COT:
+-#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
++#if POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 5, 0)
++			if (!(fontFile = m_fontEngine->loadOpenTypeT1CFont(std::move(id), std::move(fontsrc), ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
++			{
++				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
++				goto err2;
++			}
++#elif POPPLER_ENCODED_VERSION >= POPPLER_VERSION_ENCODE(26, 2, 0)
+ 			if (!(fontFile = m_fontEngine->loadOpenTypeT1CFont(std::move(id), std::move(fontsrc), (const char**) ((Gfx8BitFont*) gfxFont)->getEncoding(), fontLoc->fontNum)))
+ 			{
+ 				error(errSyntaxError, -1, "Couldn't create a font for '{0:s}'", gfxFont->getName() ? gfxFont->getName()->c_str() : "(unnamed)");
