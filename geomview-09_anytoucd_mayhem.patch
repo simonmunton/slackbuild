@@ -1,0 +1,14 @@
+--- a/src/bin/geomutil/ucd/anytoucd.c
++++ b/src/bin/geomutil/ucd/anytoucd.c
+@@ -298,8 +298,10 @@ int main(int argc, char **argv)
+     TmIdentity(id);
+     thisgeom = GeomFLoad(iobfileopen(stdin), NULL);
+     thispl = (PolyList *)AnyToPL(thisgeom, id);
+-    if (initstack() == 0) 
++    if (!thispl || (initstack() == 0)) {
+ 	OOGLError(1,"anytoucd: unable to init stack\n");
++        exit(1);
++    }
+ 
+     cp = OOGLNew(polygon);
+     CP = &thisPoly;

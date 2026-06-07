@@ -1,0 +1,38 @@
+--- a/src/bin/geomutil/oogl2rib/oogl2rib.c
++++ b/src/bin/geomutil/oogl2rib/oogl2rib.c
+@@ -215,7 +215,7 @@ Default: create complete rib file contai
+ 	    if(framebuffer) display = MG_RIBFRAME;
+ 	    else display = MG_RIBTIFF;
+ 
+-	    mgctxcreate(MG_RIBFILE, outfileFD,
++	    if (! mgctxcreate(MG_RIBFILE, outfileFD,
+ 			MG_RIBFORMAT, MG_RIBASCII,
+ 			MG_RIBBACKING, MG_RIBNOBG,
+ 			MG_WINDOW, win,	
+@@ -223,7 +223,9 @@ Default: create complete rib file contai
+ 			MG_APPEAR, ap,
+ 			MG_RIBDISPLAY, display,
+ 			MG_RIBDISPLAYNAME, name,
+-			MG_END );
++			MG_END )) {
++                exit(2);
++            }
+     
+ 	    if(doback) {
+ 		mgctxset(
+@@ -242,11 +244,13 @@ Default: create complete rib file contai
+ 				MT_END,
+ 			  AP_LGT, lighting,
+ 			  AP_END);
+-	    mgctxcreate(MG_RIBFILE, outfileFD,
++	    if (! mgctxcreate(MG_RIBFILE, outfileFD,
+ 			MG_SHOW, 0,		/* overides Format & Display */
+ 		 	MG_RIBFORMAT, MG_RIBASCII,
+ 			MG_APPEAR, ap,
+-			MG_END);
++			MG_END)) {
++                exit(2);
++            }
+ 	}
+ 
+ 	ageom = GeomFLoad(iobfileopen(infileFD), infile);

@@ -1,0 +1,32 @@
+From: Helmut Grohne <helmut@subdivi.de>
+To: Debian Bug Tracking System <submit@bugs.debian.org>
+Subject: geomview FTCBFS: AC_TRY_RUN check for popen fails
+Date: Sat, 4 Dec 2021 18:57:08 +0100
+[Message part 1 (text/plain, inline)]
+Source: geomview
+Version: 1.9.5-3
+Tags: patch upstream
+User: debian-cross@lists.debian.org
+Usertags: ftcbfs
+
+geomview fails to cross build from source, because configure gives up on
+testing popen for the flag "rb". The check cannot be made to work for
+cross compilation. However, popen is so widely supported now that it we
+are much better off assuming that it works during cross compilation and
+testing it otherwise. Please consider applying the attached patch.
+
+Helmut
+
+--- geomview-1.9.5.orig/configure.ac
++++ geomview-1.9.5/configure.ac
+@@ -890,7 +890,9 @@
+   return 0;])],[AC_MSG_RESULT([yes])
+ AC_DEFINE(POPEN_ACCEPTS_RB, 1,
+ [Define to 1 if popen(CMD, MODE) accepts "rb" for MODE])],
+-[AC_MSG_RESULT([no])])
++[AC_MSG_RESULT([no])],[AC_MSG_RESULT([cross. guessing yes])
++AC_DEFINE(POPEN_ACCEPTS_RB, 1,
++[Define to 1 if popen(CMD, MODE) accepts "rb" for MODE])])
+ AC_LANG_POP([C])
+ 
+ AM_CONDITIONAL(HAVE_CXX,    test x$HAVE_CXX = xtrue)
