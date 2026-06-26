@@ -1,0 +1,40 @@
+Subject: Efi binaries building fails on aarch64 and riscv64, for unknown reasons.
+
+Disabling it is the fastest way to make the package build there and migrate to testing
+
+Timestamp is 0-0-0 00:00:00
+Authentication Payload size 134
+Signature of size 1151
+Signature at: 40
+Invalid DOS header magic
+make[1]: *** [Make.rules:136: HelloWorld-signed.efi] Error 1
+rm KEK-blacklist.esl SetNull.so KeyTool.o ms-kek.esl DB1.crt DB1.esl PK-hash-blacklist.esl ShimReplace.o ReadVars.o DB2-blacklist.esl ms-kek-blacklist.esl SetNull.o ms-uefi-hash-blacklist.esl HelloWorld.o ms-uefi-blacklist.esl UpdateVars.o KEK-hash-blacklist.esl DB-blacklist.esl HashTool.o DB1-hash-blacklist.esl ms-uefi.esl DB2.esl Loader.o DB2.crt ms-kek-hash-blacklist.esl PK-blacklist.esl DB2-hash-blacklist.esl DB-hash-blacklist.esl DB1-blacklist.esl
+
+Author: Gianfranco Costamagna <locutusofborg@debian.org>
+Last-Update: 2025-03-14
+
+--- efitools-1.9.2.orig/Makefile
++++ efitools-1.9.2/Makefile
+@@ -30,15 +30,21 @@ include Make.rules
+ 
+ EFISIGNED = $(patsubst %.efi,%-signed.efi,$(EFIFILES))
+ 
++ifneq (,(filter $(ARCH),aarch64 riscv64))
++all: $(BINARIES) $(MANPAGES) noPK.auth $(KEYAUTH) \
++	$(KEYUPDATEAUTH) $(KEYBLACKLISTAUTH) $(KEYHASHBLACKLISTAUTH)
++else
+ all: $(EFISIGNED) $(BINARIES) $(MANPAGES) noPK.auth $(KEYAUTH) \
+ 	$(KEYUPDATEAUTH) $(KEYBLACKLISTAUTH) $(KEYHASHBLACKLISTAUTH)
+-
++endif
+ 
+ install: all
+ 	$(INSTALL) -m 755 -d $(MANDIR)
+ 	$(INSTALL) -m 644 $(MANPAGES) $(MANDIR)
++ifeq (,(filter $(ARCH),aarch64 riscv64))
+ 	$(INSTALL) -m 755 -d $(EFIDIR)
+ 	$(INSTALL) -m 755 $(EFIFILES) $(EFIDIR)
++endif
+ 	$(INSTALL) -m 755 -d $(BINDIR)
+ 	$(INSTALL) -m 755 $(BINARIES) $(BINDIR)
+ 	$(INSTALL) -m 755 mkusb.sh $(BINDIR)/efitool-mkusb

@@ -1,0 +1,25 @@
+Description: Add build support for loongarch64
+Last-Update: 2024-04-17
+
+--- efitools-1.9.2.orig/Make.rules
++++ efitools-1.9.2/Make.rules
+@@ -10,6 +10,8 @@ else ifeq ($(ARCH),aarch64)
+ ARCH3264 =
+ else ifeq ($(ARCH),riscv64)
+ ARCH3264 =
++else ifeq ($(ARCH),loongarch64)
++ARCH3264 =
+ else ifeq ($(ARCH),arm)
+ ARCH3264 =
+ else
+@@ -63,6 +65,10 @@ ifeq ($(ARCH),riscv64)
+   FORMAT = -O binary
+ endif
+ 
++ifeq ($(ARCH),loongarch64)
++  LDFLAGS += --defsym=EFI_SUBSYSTEM=0x0a
++endif
++
+ %.efi: %.so
+ 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym \
+ 		   -j .rel -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
