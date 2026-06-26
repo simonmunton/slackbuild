@@ -1,18 +1,24 @@
---- octave-6.4.0/scripts/pkg/private/install.m.orig	2021-10-30 15:20:24.000000000 +0100
-+++ octave-6.4.0/scripts/pkg/private/install.m	2022-03-20 21:51:59.602543475 +0000
-@@ -68,7 +68,10 @@
+Description: Allow an unpacked source package to be compiled in place
+Author: Rafael Laboissière <rafael@debian.org>
+Origin: vendor, http://pkgs.fedoraproject.org/cgit/rpms/octave.git/tree/octave-pkgbuilddir.patch
+Forwarded: not-needed
+Last-Update: 2016-02-13
+
+--- a/scripts/pkg/private/install.m
++++ b/scripts/pkg/private/install.m
+@@ -74,7 +74,10 @@ function install (files, handle_deps, pr
      for i = 1:length (files)
        tgz = files{i};
  
 -      if (exist (tgz, "file"))
 +      ## The filename pointed to an uncompressed package to begin with.
-+      if (exist (tgz, "dir"))
++      if (isfolder (tgz))
 +        dirlist = {".", "..", tgz};
 +      elseif (exist (tgz, "file"))
          ## Create a temporary directory.
          tmpdir = tempname ();
          tmpdirs{end+1} = tmpdir;
-@@ -103,17 +106,16 @@
+@@ -109,17 +112,16 @@ function install (files, handle_deps, pr
          endif
        endif
  

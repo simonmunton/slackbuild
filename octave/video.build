@@ -7,11 +7,11 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/o/octave-forge
 #TAR_EXT=.tar.gz
-VERSION=2.0.2
+VERSION=20260623
 VERSIONEXTRA=
-BUILD=5
+BUILD=1
 
-WEBPAGE=""
+WEBPAGE="https://github.com/Andy1978/octave-video"
 
 #TAR_PROG=
 #TAR_OPTS=
@@ -45,7 +45,14 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- patch -p1 -b -z .orig < ${CWD}/video-2.0.2.diff
+# patch -p1 -b -z .orig < ${CWD}/video-2.0.2.diff
+
+ (cd src
+  if [ ! -e configure ]
+  then
+    ./bootstrap
+  fi
+ )
 )
 fi
 
@@ -89,6 +96,12 @@ then
   exit
 fi
 
+NEW_PACKAGE=new-package.tar.gz
+
+(cd ..
+ tar czf ${TARNAME}-${VERSION}/${NEW_PACKAGE} --exclude=${NEW_PACKAGE} ${TARNAME}-${VERSION}
+)
+
 mpath=`octave -q --eval "pkg -global prefix" | grep "Installation prefix:" | gawk "{print \\$NF}"`
 bpath=`octave -q --eval "pkg -global prefix" | grep "Architecture dependent prefix:" | gawk "{print \\$NF}"`
 
@@ -99,14 +112,13 @@ export OCTAVE_HISTFILE=/dev/null
 
 [ -e PKG_ADD ] && mv PKG_ADD PKG_ADD.bak
 octave --eval                                           \
-    "pkg ('prefix', '${PKG}/${mpath}',         \
-	  '${PKG}/${bpath}');                 \
+    "pkg prefix ${PKG}/${mpath} ${PKG}/${bpath};        \
      pkg ('local_list', [pwd(),'/local-list']);         \
      pkg ('global_list', [pwd(),'/global-list']);       \
      if (exist ('PKG_ADD.bak') == 2),                   \
-	 movefile ('PKG_ADD.bak', 'PKG_ADD');           \
+         movefile ('PKG_ADD.bak', 'PKG_ADD');           \
      endif;                                             \
-     pkg -verbose -nodeps install ." \
+     pkg install -verbose -nodeps ${NEW_PACKAGE}"       \
  || exit
 
 #make install DESTDIR=${PKG}
