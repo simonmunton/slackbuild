@@ -1,0 +1,31 @@
+--- Gtk2-1.24993/xs/GtkEntryBuffer.xs.orig	2011-11-27 07:57:26.000000000 +0000
++++ Gtk2-1.24993/xs/GtkEntryBuffer.xs	2026-07-26 21:54:58.902032393 +0100
+@@ -41,7 +41,7 @@
+ =for arg initial_chars (string)
+ =cut
+ GtkEntryBuffer_noinc *
+-gtk_entry_buffer_new (class, const gchar_utf8_length *initial_chars=NULL, gint length(initial_chars))
++gtk_entry_buffer_new (class, const gchar_utf8_length *initial_chars, gint length(initial_chars))
+     CODE:
+         if (initial_chars == NULL) {
+                 RETVAL = gtk_entry_buffer_new (NULL, 0);
+--- Gtk2-1.24993/xs/GtkItemFactory.xs.orig	2017-05-21 20:02:54.000000000 +0100
++++ Gtk2-1.24993/xs/GtkItemFactory.xs	2026-07-26 21:36:13.022289589 +0100
+@@ -134,7 +134,7 @@
+ 
+ 			if (callback && value && gperl_sv_is_defined (*value)) {
+ 				*callback = *value;
+-				entry->callback = gtk2perl_item_factory_item_activate;
++				entry->callback = (void (*)(void)) gtk2perl_item_factory_item_activate;
+ 			}
+ 		}
+ 
+@@ -152,7 +152,7 @@
+ 
+ 		if (callback && value && gperl_sv_is_defined (*value)) {
+ 			*callback = *value;
+-			entry->callback = gtk2perl_item_factory_item_activate;
++			entry->callback = (void (*)(void)) gtk2perl_item_factory_item_activate;
+ 		}
+ 
+ 		AV_FETCH_AND_CHECK (3, callback_action, SvIV (*value));
