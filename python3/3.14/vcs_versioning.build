@@ -2,20 +2,20 @@
 #
 . build_funcs
 
-TARNAME=cython
+TARNAME=vcs_versioning
 TARNAMEEXTRA=
 TARSEP="-"
-TARDIR=${SOURCE}/c
+TARDIR=${SOURCE}/v
 #TAR_EXT=.tar.gz
-VERSION=3.2.9
+VERSION=2.2.2
 VERSIONEXTRA=
 BUILD=1
 
-WEBPAGE="https://files.pythonhosted.org/packages/d4/ad/7ce0cccd68824ac9623daf4e973c587aa7e2d23418cd028f8860c80651f5/Cython-0.29.30.tar.gz"
+WEBPAGE="https://pypi.org/project/vcs-versioning/"
 
 #TAR_PROG=
 #TAR_OPTS=
-PKGNAME=python3_14-Cython
+PKGNAME=python3_14-vcs_versioning
 #PKGVERSION=
 #BUILD_SUFFIX=
 #ARCH=noarch
@@ -80,7 +80,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 -m build --wheel --no-isolation -Csetup-args=-Dcpu-baseline=none || exit
+python3 -m build --wheel --no-isolation || exit
+#python3 -m flit_core.wheel || exit 1
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,12 +91,7 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
-
-# Make cython3 symlink:
-if [ ! -x ${PKG}/opt/python3/bin/cython3 ]; then
-  ( cd ${PKG}/opt/python3/bin ; ln -sf cython cython3)
-fi
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 
 strip_binaries
@@ -107,16 +104,13 @@ compress_info
 
 cp -a \
   AUTHORS COPYING* INSTALL NEWS PLANS README* TODO \
-  *.rst *.txt docs/* \
   ${PKG}/usr/doc/${TARNAME}-${VERSION}
 
 fix_docs
 
 #-----handy-ruler-for-slack-desc-width-------------------------------|
-make_slack_desc << EOF "Cython (C bindings for Python)"
-Cython is a language that makes writing C extensions for the Python
-language as easy as Python itself. Cython is based on the well-known
-Pyrex, but supports more cutting edge functionality and optimizations.
+make_slack_desc << EOF "the blessed package to manage your versions by vcs metadata"
+the blessed package to manage your versions by vcs metadata
 
 EOF
 
