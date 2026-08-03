@@ -9,7 +9,7 @@ TARDIR=${SOURCE}/s
 #TAR_EXT=.tar.gz
 VERSION=0.21.0
 VERSIONEXTRA=
-BUILD=10
+BUILD=11
 
 WEBPAGE="https://github.com/sddm/sddm"
 
@@ -192,6 +192,11 @@ chmod 0755 ${PKG}/usr/bin/sddm
 # Let's also add an example customization (localization of the UI):
 mkdir -p  ${PKG}/etc/default
 echo ". /etc/profile.d/lang.sh" >  ${PKG}/etc/default/sddm.new
+
+# If /usr/bin/sddm-greeter doesn't exist, symlink it:
+if [ ! -r ${PKG}/usr/bin/sddm-greeter -a -r ${PKG}/usr/bin/sddm-greeter-qt6 ]; then
+  ( cd ${PKG}/usr/bin ; ln -sf sddm-greeter-qt6 sddm-greeter )
+fi
 
 
 doinst_config etc/sddm.conf.new
