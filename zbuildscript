@@ -39,14 +39,15 @@ do
 
   TARNAME=""
   PKGNAME=""
+  PKGSUFFIX=""
 
-  eval `grep -E "^(TAR|PKG)NAME" $f.build | grep -v "PKGNAME.*module"`
+  eval `grep -E "^(TARNAME|PKGNAME|PKGSUFFIX)" $f.build | grep -v "PKGNAME.*module"`
   if [ -z "${PKGNAME}" ]
   then
     PKGNAME=${TARNAME}
   fi
 
-  if [ ! -e /tmp/packages/${PKGNAME}.built ]
+  if [ ! -e /tmp/packages/${PKGNAME}${PKGSUFFIX}.built ]
   then
 
     if [ "${BLACKLIST[$f]}" == "1" ]
@@ -68,7 +69,7 @@ do
       ./$f.build -j$JOBS $opts 2>&1 | tee $f.log
     fi
 
-    su -c "upgradepkg --install-new --reinstall /tmp/packages/${PKGNAME}-*"
+    su -c "upgradepkg --install-new --reinstall /tmp/packages/${PKGNAME}${PKGSUFFIX}-*"
 
     touch /tmp/packages/${PKGNAME}.built
   fi
