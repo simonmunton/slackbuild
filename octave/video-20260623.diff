@@ -1,0 +1,16 @@
+--- video-20260623/src/cap_ffmpeg_impl_ov.hpp.orig	2026-06-23 21:54:40.000000000 +0100
++++ video-20260623/src/cap_ffmpeg_impl_ov.hpp	2026-08-09 18:16:38.455033658 +0100
+@@ -1856,8 +1856,11 @@
+     c->time_base.den = frame_rate;
+     c->time_base.num = frame_rate_base;
+     /* adjust time base for supported framerates */
+-    if(codec->supported_framerates){
+-        const AVRational *p= codec->supported_framerates;
++    const AVRational *supported_framerates = NULL;
++    avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_FRAME_RATE, 0, (const void**)&supported_framerates, NULL);
++
++    if(supported_framerates){
++        const AVRational *p= supported_framerates;
+         AVRational req = {frame_rate, frame_rate_base};
+         const AVRational *best=NULL;
+         AVRational best_error= {INT_MAX, 1};
