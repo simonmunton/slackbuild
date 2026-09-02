@@ -1,0 +1,74 @@
+--- libopenshot-1.0.0/src/FFmpegWriter.cpp.orig	2026-08-18 07:00:44.000000000 +0100
++++ libopenshot-1.0.0/src/FFmpegWriter.cpp	2026-09-02 15:25:14.052155967 +0100
+@@ -1142,15 +1142,18 @@
+ #endif
+ 
+ 	// Set valid sample rate (or throw error)
+-	if (codec->supported_samplerates) {
++	const int *supported_samplerates;
++	avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_SAMPLE_RATE, 0, (const void**)&supported_samplerates, NULL);
++
++	if (supported_samplerates) {
+ 		int i;
+-		for (i = 0; codec->supported_samplerates[i] != 0; i++)
+-			if (info.sample_rate == codec->supported_samplerates[i]) {
++		for (i = 0; supported_samplerates[i] != 0; i++)
++			if (info.sample_rate == supported_samplerates[i]) {
+ 				// Set the valid sample rate
+ 				c->sample_rate = info.sample_rate;
+ 				break;
+ 			}
+-		if (codec->supported_samplerates[i] == 0)
++		if (supported_samplerates[i] == 0)
+ 			throw InvalidSampleRate("An invalid sample rate was detected for this codec.", path);
+ 	} else
+ 		// Set sample rate
+@@ -1164,15 +1167,17 @@
+ 	// Set a valid number of channels (or throw error)
+ 	AVChannelLayout ch_layout;
+ 	av_channel_layout_from_mask(&ch_layout, info.channel_layout);
+-	if (codec->ch_layouts) {
++	const AVChannelLayout *ch_layouts;
++	avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT, 0, (const void**)&ch_layouts, NULL);
++	if (ch_layouts) {
+ 		int i;
+-		for (i = 0; av_channel_layout_check(&codec->ch_layouts[i]); i++)
+-			if (av_channel_layout_compare(&ch_layout, &codec->ch_layouts[i])) {
++		for (i = 0; av_channel_layout_check(&ch_layouts[i]); i++)
++			if (av_channel_layout_compare(&ch_layout, &ch_layouts[i])) {
+ 				// Set valid channel layout
+ 				av_channel_layout_copy(&c->ch_layout, &ch_layout);
+ 				break;
+ 			}
+-		if (!av_channel_layout_check(&codec->ch_layouts[i]))
++		if (!av_channel_layout_check(&ch_layouts[i]))
+ 			throw InvalidChannels("An invalid channel layout was detected (i.e. MONO / STEREO).", path);
+ 	} else
+ 		// Set valid channel layout
+@@ -1195,10 +1200,12 @@
+ #endif
+ 
+ 	// Choose a valid sample_fmt
+-	if (codec->sample_fmts) {
+-		for (int i = 0; codec->sample_fmts[i] != AV_SAMPLE_FMT_NONE; i++) {
++	const enum AVSampleFormat *sample_fmts;
++	avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, (const void**)&sample_fmts, NULL);
++	if (sample_fmts) {
++		for (int i = 0; sample_fmts[i] != AV_SAMPLE_FMT_NONE; i++) {
+ 			// Set sample format to 1st valid format (and then exit loop)
+-			c->sample_fmt = codec->sample_fmts[i];
++			c->sample_fmt = sample_fmts[i];
+ 			break;
+ 		}
+ 	}
+@@ -1401,7 +1408,9 @@
+ #endif
+ 
+ 	// Find all supported pixel formats for this codec
+-	const PixelFormat *supported_pixel_formats = codec->pix_fmts;
++	const PixelFormat *supported_pixel_formats = NULL;
++	avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&supported_pixel_formats, NULL);
++
+ 	while (supported_pixel_formats != NULL && *supported_pixel_formats != PIX_FMT_NONE) {
+ 		// Assign the 1st valid pixel format (if one is missing)
+ 		if (c->pix_fmt == PIX_FMT_NONE)
