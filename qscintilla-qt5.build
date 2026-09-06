@@ -3,11 +3,11 @@
 . build_funcs
 
 TARNAME=QScintilla
-TARNAMEEXTRA=
+TARNAMEEXTRA=_src
 TARSEP="-"
 TARDIR=${SOURCE}/q
 #TAR_EXT=.tar.gz
-VERSION=2.11.4
+VERSION=2.14.1
 VERSIONEXTRA=
 BUILD=1
 
@@ -34,7 +34,7 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-#mv ${TARNAME}-${VERSION} ${TARNAME}-${VERSION}
+mv ${TARNAME}${TARNAMEEXTRA}-${VERSION} ${TARNAME}-${VERSION}
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -57,28 +57,34 @@ PATH=/usr/lib64/qt5/bin:$PATH
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
-(cd Qt4Qt5
-  qmake -o Makefile qscintilla.pro
+(cd src
+  qmake-qt5
 )
-(cd designer-Qt4Qt5
-  qmake -o Makefile designer.pro
+(cd designer
+  qmake-qt5 INCLUDEPATH+=../src QMAKE_LIBDIR+=../src
 )
 (cd Python
-  python configure.py --pyqt=PyQt5
+  mv pyproject-qt5.toml pyproject.toml
+  export LD_LIBRARY_PATH=`pwd`/../src
+  sip-build \
+  --qsci-features-dir ../src/features \
+  --qsci-include-dir ../src \
+  --qsci-library-dir ../src \
+  --api-dir /usr/share/qt5/qsci/api/python
 )
 fi
 
 if [ ${DO_MAKE} == "yes" ]
 then
-cd Qt4Qt5
+cd src
   make ${NUM_JOBS} || exit
 cd ..
-cd designer-Qt4Qt5
+cd designer
   make ${NUM_JOBS} || exit
 cd ..
-cd Python
-  make ${NUM_JOBS} #|| exit
-cd ..
+cd Python/build
+  make ${NUM_JOBS} || exit
+cd ../..
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -86,17 +92,17 @@ then
   exit
 fi
 
-(cd Qt4Qt5
+(cd src
   make install INSTALL_ROOT=${PKG}
   # Yes, we'll spam the dev environment so we can build the other parts.
 #  make install
 )
 
-(cd designer-Qt4Qt5
+(cd designer
   make install INSTALL_ROOT=${PKG}
 )
 
-(cd Python
+(cd Python/build
   make install INSTALL_ROOT=${PKG}
 )
 
