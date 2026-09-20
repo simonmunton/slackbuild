@@ -1,0 +1,14 @@
+--- bcc-0.37.0/src/cc/bcc_debug.cc.orig	2026-09-20 10:39:18.000000000 +0100
++++ bcc-0.37.0/src/cc/bcc_debug.cc	2026-09-20 10:42:17.425143373 +0100
+@@ -148,7 +148,11 @@
+       T->createMCSubtargetInfo(TripleArg, "", ""));
+   MCObjectFileInfo MOFI;
+ #if LLVM_VERSION_MAJOR >= 13
++#if LLVM_VERSION_MAJOR >= 23
++  MCContext Ctx(TheTriple, *MAI, *MRI, *STI, nullptr);
++#else
+   MCContext Ctx(TheTriple, MAI.get(), MRI.get(), STI.get(), nullptr);
++#endif
+   Ctx.setObjectFileInfo(&MOFI);
+   MOFI.initMCObjectFileInfo(Ctx, false, false);
+ #else
