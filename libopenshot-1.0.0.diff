@@ -1,5 +1,26 @@
+--- libopenshot-1.0.0/src/CVObjectMask.cpp.orig	2026-08-18 07:00:44.000000000 +0100
++++ libopenshot-1.0.0/src/CVObjectMask.cpp	2026-09-21 10:30:41.033460882 +0100
+@@ -19,6 +19,7 @@
+ #define int64 int64_t
+ #define uint64 uint64_t
+ #include <opencv2/core/ocl.hpp>
++#include <opencv2/geometry.hpp>
+ #undef uint64
+ #undef int64
+ 
+--- libopenshot-1.0.0/src/CMakeLists.txt.orig	2026-08-18 07:00:44.000000000 +0100
++++ libopenshot-1.0.0/src/CMakeLists.txt	2026-09-21 10:02:21.814186020 +0100
+@@ -553,7 +553,7 @@
+ 
+ ################## OPENCV ###################
+ if(ENABLE_OPENCV)
+-  find_package(OpenCV 4)
++  find_package(OpenCV 5)
+   if(NOT OpenCV_FOUND)
+     set(ENABLE_OPENCV FALSE CACHE BOOL
+       "Build with OpenCV algorithms (requires Protobuf 3)" FORCE)
 --- libopenshot-1.0.0/src/FFmpegWriter.cpp.orig	2026-08-18 07:00:44.000000000 +0100
-+++ libopenshot-1.0.0/src/FFmpegWriter.cpp	2026-09-02 15:25:14.052155967 +0100
++++ libopenshot-1.0.0/src/FFmpegWriter.cpp	2026-09-20 22:25:26.488092962 +0100
 @@ -1142,15 +1142,18 @@
  #endif
  
@@ -72,3 +93,29 @@
  	while (supported_pixel_formats != NULL && *supported_pixel_formats != PIX_FMT_NONE) {
  		// Assign the 1st valid pixel format (if one is missing)
  		if (c->pix_fmt == PIX_FMT_NONE)
+--- libopenshot-1.0.0/src/CVStabilization.h.orig	2026-08-18 07:00:44.000000000 +0100
++++ libopenshot-1.0.0/src/CVStabilization.h	2026-09-21 10:09:05.518929729 +0100
+@@ -18,6 +18,7 @@
+ #define uint64 opencv_broken_uint
+ #include <opencv2/opencv.hpp>
+ #include <opencv2/core.hpp>
++#include <opencv2/geometry.hpp>
+ #undef uint64
+ #undef int64
+ 
+--- libopenshot-1.0.0/src/effects/Stabilizer.cpp.orig	2026-08-18 07:00:44.000000000 +0100
++++ libopenshot-1.0.0/src/effects/Stabilizer.cpp	2026-09-21 10:32:09.262735733 +0100
+@@ -21,6 +21,13 @@
+ 
+ #include <google/protobuf/util/time_util.h>
+ 
++#define int64 opencv_broken_int
++#define uint64 opencv_broken_uint
++#include <opencv2/opencv.hpp>
++#include <opencv2/geometry.hpp>
++#undef uint64
++#undef int64
++
+ using namespace std;
+ using namespace openshot;
+ using google::protobuf::util::TimeUtil;
