@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/t
 #TAR_EXT=.tar.gz
-VERSION=1.1
+VERSION=1.10.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -44,7 +44,7 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
- #patch -p1 < ${CWD}/
+ patch -p1 < ${CWD}/TLP-1.10.2.diff
 )
 fi
 
@@ -79,9 +79,16 @@ fi
 
 fi
 
+MAKEOPTS="TLP_WITH_SYSTEMD=0 \
+    TLP_WITH_ELOGIND=1 \
+    TLP_ELOD=/lib${LIBDIRSUFFIX}/elogind/system-sleep \
+    TLP_ULIB=/lib/udev \
+    TLP_MAN=/usr/man \
+    TLP_SYSV=/etc/rc.d"
+
 if [ ${DO_MAKE} == "yes" ]
 then
-make ${NUM_JOBS} || exit
+make ${NUM_JOBS} ${MAKEOPTS} || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -89,23 +96,25 @@ then
   exit
 fi
 
-make install install-man TLP_MAN=/usr/man DESTDIR=${PKG}
+make install install-man ${MAKEOPTS} DESTDIR=${PKG}
 
 if [ -n "${LIBDIRSUFFIX}" ]
 then
   mv ${PKG}/usr/lib ${PKG}/usr/lib${LIBDIRSUFFIX}
 fi
 
-mv ${PKG}/etc/init.d ${PKG}/etc/rc.d
-sed 's|. \/lib\/lsb\/init-functions|#. \/lib\/lsb\/init-functions|' -i ${PKG}/etc/rc.d/tlp
+# Don't clobber configs
+mv ${PKG}/etc/tlp.conf ${PKG}/etc/tlp.conf.new
 
-mv ${PKG}/etc/default/tlp ${PKG}/etc/default/tlp.new
-
-mv ${PKG}/etc/rc.d/tlp ${PKG}/etc/rc.d/rc.tlp.new
+# move to rc.tlp
+#mv $PKG/etc/rc.d/tlp $PKG/etc/rc.d/rc.tlp.new
+install -Dm755 $CWD/TLP-rc.tlp ${PKG}/etc/rc.d/rc.tlp.new
 chmod 644 ${PKG}/etc/rc.d/rc.tlp.new
 
 doinst_same_perm etc/rc.d/rc.tlp
-doinst_config etc/default/tlp.new etc/rc.d/rc.tlp.new
+doinst_config etc/tlp.conf.new etc/rc.d/rc.tlp.new
+
+rm ${PKG}/etc/rc.d/tlp
 
 strip_binaries
 
