@@ -35,7 +35,14 @@ fi
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
 ${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
-mv ${TARNAME}-${VERSION}-* ${TARNAME}-${VERSION}
+#mv ${TARNAME}-${VERSION}-* ${TARNAME}-${VERSION}
+
+${TAR_PROG} ${TAR_OPTS} ${FULL_TARNAME}
+${TAR_PROG} ${TAR_OPTS} ${TARDIR}/qcadjsapi${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+${TAR_PROG} ${TAR_OPTS} ${TARDIR}/qtjsapi${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA}${TAR_EXT}
+ln -s qcad${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} qcad
+ln -s qtjsapi${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} qtjsapi
+ln -s qcadjsapi${TARNAMEEXTRA}${TARSEP}${VERSION}${VERSIONEXTRA} qcadjsapi
 
 if [ ! -d ${TARNAME}-${VERSION} ]
 then 
@@ -44,27 +51,8 @@ then
 fi
 
 (cd ${TARNAME}-${VERSION}
-# patch -p1 < ${CWD}/qcad-add-qt-5.15.3.diff
-# patch -p1 < ${CWD}/qcad-add-qt-5.15.5.diff
-# patch -p1 < ${CWD}/qcad-add-qt-5.15.6.diff
-# patch -p1 < ${CWD}/qcad-add-qt-5.15.8.diff
-# patch -p1 < ${CWD}/qcad-add-qt-5.15.9.diff
+# patch -p1 < ${CWD}/
 
-QT_VER=`qtpaths-qt5 --qt-version`
-
-mkdir src/3rdparty/qt-labs-qtscriptgenerator-${QT_VER}
-cat << EOF > src/3rdparty/qt-labs-qtscriptgenerator-${QT_VER}/qt-labs-qtscriptgenerator-${QT_VER}.pro
-include( ../../../shared.pri )
-
-SUBDIRS = ../qt-labs-qtscriptgenerator-5.5.0/qtbindings
-TEMPLATE = subdirs
-EOF
-
-# sed -i -e "/qcadmobile/ s/SUBDIR/#SUBDIR/" qcad.pro
-
-# [ ! -d src/3rdparty/qt-labs-qtscriptgenerator-4.8.5 ] && \
-#    ln -s qt-labs-qtscriptgenerator-4.8.4 src/3rdparty/qt-labs-qtscriptgenerator-4.8.5 && \
-#    ln -s qt-labs-qtscriptgenerator-4.8.4.pro src/3rdparty/qt-labs-qtscriptgenerator-4.8.5/qt-labs-qtscriptgenerator-4.8.5.pro
 )
 fi
 
@@ -85,7 +73,7 @@ fix_perms
 #mkdir _BuilD_
 #cd _BuilD_
 
-PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin/:${PATH}
+#PATH=/usr/lib${LIBDIRSUFFIX}/qt5/bin/:${PATH}
 
 if [ ${DO_CONFIGURE} == "yes" ]
 then
@@ -98,26 +86,52 @@ then
 #            --localstatedir=/var/lib \
 #	    --mandir=/usr/man
 
-#cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DCMAKE_INSTALL_PREFIX=/usr \
-#      -DMAN_INSTALL_DIR=/usr/man \
-#      -DSYSCONF_INSTALL_DIR=/etc \
-#      .
-qmake -r .
+cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/opt/qcad \
+      -DMAN_INSTALL_DIR=/usr/man \
+      -DSYSCONF_INSTALL_DIR=/etc \
+      -DBUILD_QT6=ON \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+      -DCMAKE_INSTALL_RPATH=/opt/qcad \
+      -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+      .
+
+cd ../qtjsapi-${VERSION}
+cmake \
+    -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+    -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+    -DCMAKE_INSTALL_RPATH=/opt/qcad \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    .
+
+cd ../qcadjsapi-${VERSION}
+cmake \
+    -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
+    -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS}" \
+    -DCMAKE_INSTALL_RPATH=/opt/qcad \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    .
+
+cd ../${TARNAME}-${VERSION}
+
 fi
 
-#export QTDIR=/opt/kde3/lib/qt3
-#PATH=/opt/kde3/lib/qt3/bin:${PATH}
 
 if [ ${DO_MAKE} == "yes" ]
 then
 make ${NUM_JOBS} || exit
-#(cd scripts
-#
-#./build_qcad.sh notrans
-#)
+
+cd ../qtjsapi-${VERSION}
+make ${NUM_JOBS} || exit
+
+cd ../qcadjsapi-${VERSION}
+make ${NUM_JOBS} || exit
+
+cd ../${TARNAME}-${VERSION}
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -127,23 +141,27 @@ fi
 
 #cd ..
 
-(cd release
-
 mkdir -p ${PKG}/opt/qcad/
-cp * ${PKG}/opt/qcad/
+cp -a release/* ${PKG}/opt/qcad/
 rm ${PKG}/opt/qcad/*.a
 
-cd ..
-cp -pr examples fonts libraries patterns plugins scripts ts ${PKG}/opt/qcad/
+cp -pr examples fonts libraries linetypes patterns scripts themes ts plugins readme.txt ${PKG}/opt/qcad/
 
-#ln -sf /usr/bin/assistant $PKG/opt/qcad/bin/assistant
-)
+#mkdir -p ${PKG}/usr/share/man/man1 ${PKG}/usr/share/{pixmaps,icons/hicolor/scalable/apps,applications}
+# install man
+install -Dm644 qcad.1 ${PKG}/usr/share/man/man1/qcad.1
+# desktop
+install -Dm644 scripts/qcad_icon.png ${PKG}/usr/share/pixmaps/org.qcad.QCAD.png
+install -Dm644 scripts/qcad_icon.svg ${PKG}/usr/share/icons/hicolor/scalable/apps/org.qcad.QCAD.svg
+install -Dm644 qcad.desktop ${PKG}/usr/share/applications/qcad.desktop
 
 mkdir -p ${PKG}/usr/bin
 cat > ${PKG}/usr/bin/qcad << EOF
 #! /bin/bash
 
 LD_LIBRARY_PATH=/opt/qcad /opt/qcad/qcad-bin "\$@"
+
+#exec /opt/qcad/qcad-bin "\$@"
 EOF
 
 chmod +x ${PKG}/usr/bin/qcad
