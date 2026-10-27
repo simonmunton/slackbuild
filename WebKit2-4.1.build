@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/w
 #TAR_EXT=.tar.gz
-VERSION=2.52.6
+VERSION=2.54.2
 VERSIONEXTRA=
 BUILD=1
 
@@ -104,6 +104,7 @@ cmake -DCMAKE_C_FLAGS:STRING="${SLKCFLAGS}" \
       -DENABLE_JOURNALD_LOG=off \
       -DDEVELOPER_MODE_FATAL_WARNINGS=off \
       -DCMAKE_JOB_POOLS:STRING="compile=4;link=2" \
+      -G Ninja \
       ..
 
 #      -DCMAKE_CXX_FLAGS:STRING="${SLKCFLAGS} -DUPRV_BLOCK_MACRO_BEGIN= -DUPRV_BLOCK_MACRO_END= " \
@@ -115,7 +116,8 @@ then
 # fix for missig dependency that sometimes breaks build
 #make JavaScriptCore-4-gir || exit
 
-make ${NUM_JOBS} || exit
+ninja || exit
+#make ${NUM_JOBS} || exit
 
 #CFLAGS="${SLKCFLAGS}" \
 #CXXFLAGS="${SLKCFLAGS}" \
@@ -128,7 +130,8 @@ then
 fi
 
 #make -C WebKitBuild/Release install DESTDIR=${PKG}
-make ${NUM_JOBS} install DESTDIR=${PKG}
+DESTDIR=${PKG} ninja install
+#make ${NUM_JOBS} install DESTDIR=${PKG}
 
 cd ..
 
