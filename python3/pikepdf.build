@@ -7,7 +7,7 @@ TARNAMEEXTRA=
 TARSEP="-"
 TARDIR=${SOURCE}/p
 #TAR_EXT=.tar.gz
-VERSION=10.3.0
+VERSION=10.17.0
 VERSIONEXTRA=
 BUILD=1
 
@@ -78,7 +78,9 @@ fi
 if [ ${DO_MAKE} == "yes" ]
 then
 #make ${NUM_JOBS} || exit
-python3 setup.py build || exit
+#python3 setup.py build || exit
+#python3 -c 'import setuptools; setuptools.setup()' build || exit
+python3 -m build --wheel --no-isolation || exit
 fi
 
 if [ ${DO_INSTALL} != "yes" ]
@@ -87,7 +89,9 @@ then
 fi
 
 #make install DESTDIR=${PKG}
-python3 setup.py install --root=${PKG}
+#python3 setup.py install --root=${PKG}
+#python3 -c 'import setuptools; setuptools.setup()' install --root=${PKG}
+python3 -m installer --destdir "$PKG" dist/*.whl
 
 strip_binaries
 
